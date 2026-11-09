@@ -245,8 +245,8 @@
           '</g>' + (big ? '' : '<path d="M36 90 Q48 140 88 156 M164 90 Q152 140 112 156" fill="none" stroke="#2f3720" stroke-width="3"/>');
       }
       case 'chef':
-        return t('<circle cx="70" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="100" cy="20" r="24" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="130" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
-          '<rect x="54" y="34" width="92" height="34" rx="6" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M60 56 L140 56" stroke="#ddd" stroke-width="3"/>');
+        return '<g transform="translate(0 ' + (6 + dy) + ')">' + ('<circle cx="70" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="100" cy="20" r="24" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="130" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
+          '<rect x="54" y="34" width="92" height="34" rx="6" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M60 56 L140 56" stroke="#ddd" stroke-width="3"/>') + '</g>';
       case 'beanie':
         return t('<path d="M40 74 Q40 22 100 20 Q160 22 160 74Z" fill="#5f6a3a" stroke="' + INK + '" stroke-width="3"/>' +
           '<rect x="36" y="62" width="128" height="18" rx="8" fill="#4d5730" stroke="' + INK + '" stroke-width="3"/>' +
@@ -275,8 +275,8 @@
       case 'afro': {
         var cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
         var a = '';
-        var pts = [[40, 64], [34, 40], [52, 20], [78, 8], [104, 4], [130, 10], [154, 24], [168, 46], [164, 68], [66, 30], [100, 26], [134, 34]];
-        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="22" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
+        var pts = [[38, 66], [34, 46], [48, 28], [72, 20], [100, 18], [128, 20], [152, 28], [166, 46], [162, 66], [64, 40], [100, 36], [136, 40]];
+        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="18" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
         return t(a);
       }
       default: return '';
@@ -363,7 +363,7 @@
       case 'pill':
         return '<g class="prop"><rect x="152" y="160" width="34" height="16" rx="8" fill="#fff" stroke="' + INK + '" stroke-width="3" transform="rotate(-30 169 168)"/><path d="M162 176 L176 160" stroke="#e23b3b" stroke-width="8" stroke-linecap="round"/>' + hand + '</g>';
       case 'megaphone':
-        return '<g class="prop"><path d="M150 196 L186 168 L196 204 Z" fill="#f2f2f2" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><ellipse cx="191" cy="186" rx="7" ry="18" fill="#e23b3b" stroke="' + INK + '" stroke-width="3" transform="rotate(-20 191 186)"/>' + hand + '</g>';
+        return '<g class="prop" transform="translate(-8 0)"><path d="M150 196 L186 168 L196 204 Z" fill="#f2f2f2" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><ellipse cx="191" cy="186" rx="7" ry="18" fill="#e23b3b" stroke="' + INK + '" stroke-width="3" transform="rotate(-20 191 186)"/>' + hand + '</g>';
       case 'broom':
         return '<g class="prop"><path d="M154 226 L176 110" stroke="#a0763e" stroke-width="6" stroke-linecap="round"/><path d="M166 116 L170 70 M174 114 L184 72 M178 118 L196 82 M170 116 L160 74" stroke="#c9a24b" stroke-width="4" stroke-linecap="round"/>' + hand + '</g>';
       case 'clipboard':

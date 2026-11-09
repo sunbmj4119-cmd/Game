@@ -43,7 +43,7 @@
     var str = function (v, len) { return String(v || '').slice(0, len); };
     return {
       id: id, name: str(d.name, 8) || '무명', score: n(d.score, 200000), title: str(d.title, 12), ending: str(d.ending, 12),
-      unit: str(d.unit, 12), mos: str(d.mos, 12), cos: str(d.cos, 16), days: n(d.days, 600),
+      unit: str(d.unit, 12), mos: str(d.mos, 12), cos: str(d.cos, 16), days: n(d.days, 600), heat: n(d.heat, 7),
       dDate: str(d.dDate, 10), dScore: n(d.dScore, 200000), dName: str(d.dName, 8), dEnding: str(d.dEnding, 12), at: n(d.at, 9e15)
     };
   }
@@ -58,12 +58,12 @@
         var t = JY.Game.todayStr();
         var changed = false;
         var next = {
-          name: cur.name, score: cur.score, title: cur.title, ending: cur.ending, unit: cur.unit, mos: cur.mos, cos: cur.cos, days: cur.days,
+          name: cur.name, score: cur.score, title: cur.title, ending: cur.ending, unit: cur.unit, mos: cur.mos, cos: cur.cos, days: cur.days, heat: cur.heat,
           dDate: cur.dDate, dScore: cur.dScore, dName: cur.dName, dEnding: cur.dEnding, at: Date.now()
         };
         if (!snap.exists || rec.score > cur.score) {
           next.name = rec.name; next.score = rec.score; next.title = rec.title; next.ending = rec.ending;
-          next.unit = rec.unit; next.mos = rec.mos; next.cos = rec.cos; next.days = rec.days;
+          next.unit = rec.unit; next.mos = rec.mos; next.cos = rec.cos; next.days = rec.days; next.heat = rec.heat || 0;
           changed = true;
         }
         if (rec.daily === t && (cur.dDate !== t || rec.score > cur.dScore)) {
@@ -96,5 +96,35 @@
     });
   }
 
-  JY.Rank = { init: init, submit: submit, top: top, status: function () { return R; } };
+  /* ── 진행 상황 클라우드 백업: data/users/<내 id>/meta (본인만 읽고 쓴다) ── */
+  var lastPushed = null, pushTimer = 0, inflight = false, again = false;
+  function metaRef() { return db.doc('data/users/' + R.uid + '/meta'); }
+  function cloudOk() { return R.online && R.canWrite && !!R.uid; }
+  function pullMeta() {
+    return init().then(function () {
+      if (!cloudOk()) return { available: false };
+      return withTimeout(metaRef().get(), 10000).then(function (snap) {
+        if (!snap.exists) return { available: true, data: null };
+        var d = snap.data() || {};
+        try { return { available: true, data: JSON.parse(String(d.json || 'null')), at: d.at }; } catch (e) { return { available: true, data: null }; }
+      });
+    }).catch(function () { return { available: false }; });
+  }
+  function pushNow(m) {
+    if (!cloudOk()) return;
+    var json = JSON.stringify(m);
+    if (json === lastPushed || json.length > 200000) return;
+    if (inflight) { again = true; return; }
+    inflight = true;
+    withTimeout(metaRef().set({ json: json, at: Date.now(), jjamTotal: m.jjamTotal || 0, runs: m.runs || 0 }), 10000)
+      .then(function () { lastPushed = json; R.lastSync = Date.now(); })
+      .catch(function () { /* 다음 저장 때 다시 시도 */ })
+      .then(function () { inflight = false; if (again) { again = false; pushNow(JY.Meta.get()); } });
+  }
+  function pushMeta(m, soon) {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () { init().then(function () { pushNow(m); }); }, soon ? 300 : 5000);
+  }
+
+  JY.Rank = { init: init, submit: submit, top: top, pullMeta: pullMeta, pushMeta: pushMeta, cloudOk: cloudOk, status: function () { return R; } };
 })(window.JY = window.JY || {});

@@ -93,9 +93,15 @@
       <fieldset class="field" id="field-pace">
         <legend>복무 방식</legend>
         <div class="pace-grid">
-          <label class="pace"><input type="radio" name="pace" value="1" checked><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
-          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="1"><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3" checked><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
         </div>
+      </fieldset>
+
+      <fieldset class="field" id="field-heat" hidden>
+        <legend>악조건 🔥 (선택 · 켤수록 점수·짬 증가)</legend>
+        <div class="heat-grid" id="heat-grid"></div>
+        <p class="field-note" id="heat-note"></p>
       </fieldset>
 
       <label class="check-row" id="row-insurance" hidden>
@@ -134,13 +140,13 @@
         <div class="urgent-bar" id="urgent-bar" hidden><i id="urgent-fill"></i><span id="urgent-sec"></span></div>
         <div class="card" id="card" tabindex="0" aria-label="이벤트 카드 — 좌우로 넘겨 선택"></div>
         <div class="talk-bubble" id="talk-bubble" hidden></div>
-        <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
         <button class="choice choice-x" data-side="x" id="choice-x-btn" hidden><span>⭐</span><b id="choice-x"></b><small id="choice-x-need"></small></button>
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
+      <div class="result" id="result" hidden></div>
     </main>
 
     <nav class="dock">
@@ -214,6 +220,7 @@
         <i class="lv-bar big"><i id="me-lvbar"></i></i>
         <small id="me-lvtext">0 / 100 짬</small>
         <span class="jjam-chip" id="me-jjam">🍚 짬 0</span>
+        <small class="cloud-line" id="me-cloud"></small>
       </div>
     </div>
     <div class="tabs" role="tablist" id="barracks-tabs">
@@ -252,6 +259,7 @@
 </div>
 <div id="mini" class="mini" hidden></div>
 <div id="toast" class="toast" hidden></div>
+<div id="coach" class="coach" hidden><div class="coach-hole" id="coach-hole"></div><div class="coach-box" id="coach-box"></div></div>
 <!-- /build:body -->
 
 <script src="js/art.js"></script>

@@ -56,14 +56,14 @@
 
   /* ── 장비 강화: 짬으로 영구 강화 (+4, +5는 확률) ── */
   JY.UPGRADES = [
-    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력 소모 -5% / 강', per: function (l) { return '체력 소모 -' + l * 5 + '%'; } },
+    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력이 0이나 100 쪽으로 쏠리는 변화 -6% / 강', per: function (l) { return '체력 쏠림 -' + l * 6 + '%'; } },
     { id: 'helmet', icon: '🪖', name: '방탄모', desc: '위험 구간(20 이하·80 이상)에서 더 위험해지는 변화 -8% / 강', per: function (l) { return '위험 완충 ' + l * 8 + '%'; } },
     { id: 'notebook', icon: '📓', name: '수양록', desc: '판 시작 때 투시경 카드 3장 / 강', per: function (l) { return '시작 투시 ' + l * 3 + '장'; } },
     { id: 'wallet', icon: '👛', name: '지갑', desc: '월급 현금 +5%, PX 할인 4% / 강', per: function (l) { return '월급 +' + l * 5 + '% · PX -' + l * 4 + '%'; } },
     { id: 'pack', icon: '🎒', name: '군용 배낭', desc: '아이템 회복량 +10% / 강', per: function (l) { return '아이템 +' + l * 10 + '%'; } },
     { id: 'tag', icon: '🏷️', name: '명찰', desc: '동료 호감도 상승 +12% / 강', per: function (l) { return '호감도 +' + l * 12 + '%'; } },
     { id: 'watch', icon: '⌚', name: '국방부 시계', desc: '방금 선택을 되돌리는 횟수 (+1: 1회, +3: 2회, +5: 3회)', per: function (l) { return '되돌리기 ' + ([0, 1, 1, 2, 2, 3][l] || 0) + '회'; } },
-    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택이 유리해질 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
+    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택에서 더 안전한 결과가 나올 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
   ];
   JY.UPGRADE_COST = [80, 160, 300, 500, 800];  // +1 ~ +5
   JY.UPGRADE_RATE = [1, 1, 1, 0.8, 0.6];       // 성공 확률 (실패하면 짬 절반 돌려받음)
@@ -127,7 +127,9 @@
     { id: 'daily', icon: '📅', name: '오늘의 작전', desc: '오늘의 작전에 참가', gem: 10 },
     { id: 'streak7', icon: '🗓️', name: '개근상', desc: '7일 연속 출석', gem: 50 },
     { id: 'score20k', icon: '🏆', name: '전설의 예비역', desc: '한 판 20,000점 이상', gem: 60 },
-    { id: 'fail10', icon: '😵', name: '재입대 장인', desc: '전역 실패 누적 10회', gem: 20 }
+    { id: 'fail10', icon: '😵', name: '재입대 장인', desc: '전역 실패 누적 10회', gem: 20 },
+    { id: 'heat3', icon: '🔥', name: '악조건 돌파', desc: '악조건 3개 이상 켜고 전역', gem: 50 },
+    { id: 'heatall', icon: '🌋', name: '지옥에서 온 예비역', desc: '악조건 7개 전부 켜고 전역', gem: 200 }
   ];
 
   /* 점수 */

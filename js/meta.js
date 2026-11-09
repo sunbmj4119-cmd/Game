@@ -29,7 +29,7 @@
     ['hat', 'face', 'fx', 'body', 'prop'].forEach(function (k) { if (m.cos.eq[k] === undefined) m.cos.eq[k] = null; });
     m.stats.units = m.stats.units || {}; m.stats.mosOut = m.stats.mosOut || {};
     m.up = m.up || {}; m.scenes = m.scenes || {}; m.collectClaimed = m.collectClaimed || {};
-    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; }
+    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; m.stash.insurance = (m.stash.insurance || 0) + 1; }
     if (!m.v3gift) { // 업데이트 선물: 그동안 플레이한 만큼 짬
       m.v3gift = true;
       var g = Math.min(600, 80 + (m.runs || 0) * 60);
@@ -40,7 +40,17 @@
     save();
     return M;
   }
-  function save() { if (M) lsSet(KEY, M); }
+  function save() {
+    if (!M) return;
+    lsSet(KEY, M);
+    if (JY.Meta && JY.Meta.onSave) { try { JY.Meta.onSave(M); } catch (e) { /* 백업 실패는 무시 */ } }
+  }
+  // 다른 기기(클라우드)의 진행으로 바꾸기
+  function replace(m) {
+    lsSet(KEY, m);
+    M = null;
+    return load();
+  }
   function get() { return M || load(); }
 
   function addGems(n) {
@@ -182,7 +192,7 @@
     addGems(reward);
 
     // 기록 (상위 10)
-    var rec = { score: sc.total, title: sc.title, name: s.name, ending: o.id, good: o.good, mos: s.mos, unit: s.unit, trait: s.trait, days: o.good ? s.total + 1 : o.day, daily: s.daily || null, date: today(), cos: badge() };
+    var rec = { score: sc.total, title: sc.title, name: s.name, ending: o.id, good: o.good, mos: s.mos, unit: s.unit, trait: s.trait, days: o.good ? s.total + 1 : o.day, daily: s.daily || null, date: today(), cos: badge(), heat: (s.heat || []).length };
     m.records.push(rec);
     m.records.sort(function (a, b) { return b.score - a.score; });
     m.records = m.records.slice(0, 10);
@@ -209,11 +219,14 @@
     if (s.daily) ids.push('daily');
     if (sc.total >= 20000) ids.push('score20k');
     if (m.fails >= 10) ids.push('fail10');
+    if (o.good && (s.heat || []).length >= 3) ids.push('heat3');
+    if (o.good && (s.heat || []).length >= JY.HEAT_ORDER.length) ids.push('heatall');
     var ach = unlock(ids);
     // 짬: 버틴 날 + 점수 + 전역 보너스
     var served = o.good ? s.total + 1 : o.day;
     var jj = Math.floor(served / 4) + Math.floor(sc.total / 150) + (o.good ? 30 : 0);
     if (s.daily) jj = Math.round(jj * 1.2);
+    jj = Math.round(jj * (1 + JY.Game.heatBonus(s)));
     var jr = addJjam(jj);
     save();
     return { reward: reward, newEndings: newEndings, ach: ach, place: place, record: rec, dailyFirst: dailyFirst, runGems: s.gems, jjam: jj, levelUps: jr.ups, unlocked: jr.unlocked };
@@ -376,7 +389,7 @@
   }
 
   JY.Meta = {
-    load: load, save: save, get: get, addGems: addGems, spend: spend, attendance: attendance,
+    load: load, save: save, get: get, replace: replace, onSave: null, addGems: addGems, spend: spend, attendance: attendance,
     stash: stash, buyPremium: buyPremium, useStash: useStash,
     ownsCos: ownsCos, buyCos: buyCos, equip: equip, equipped: equipped, dress: dress, badge: badge,
     openBox: openBox, unlock: unlock, finishRun: finishRun,

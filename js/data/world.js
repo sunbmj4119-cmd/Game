@@ -71,6 +71,18 @@
     love: { name: '생활관 연애 상담소', emoji: '💘', cards: 3, tick: { bd: 1, mt: 1 }, desc: '카드마다 전우애 +1, 멘탈 +1' }
   };
 
+  /* ── 악조건: 첫 전역 후 해금. 켤수록 점수·짬이 오른다 (고수용 난이도) ── */
+  JY.HEAT = {
+    haeng: { name: '악마 행보관', emoji: '😈', bonus: 0.15, desc: '행보관·작업 카드 3배, 간부 신뢰가 1.3배 크게 흔들린다', whoW: { who: 'haeng', ids: ['work_day'], mult: 3 }, mods: { tr: { neg: 1.35, pos: 1.3 }, mt: { neg: 1.1 } } },
+    pxclose: { name: 'PX 폐점 위기', emoji: '🏚️', bonus: 0.05, desc: 'PX 가격 2배, 다시 열리기까지 3배 오래', pxMult: 2, pxCd: 3 },
+    noleave: { name: '휴가 반납', emoji: '📵', bonus: 0.05, desc: '진급 휴가 없음, 포상휴가 절반, 전역일 60일 연기', leaveNone: true, leaveGain: 0.5, extend: 60 },
+    chaos: { name: '돌발 지옥', emoji: '🚨', bonus: 0.15, desc: '돌발 상황 2.5배, 제한 시간 1.5초 짧고, 놓치면 피해 2배', emerMult: 2.5, urgentMinus: 1.5, urgentFx: 1.3, timeoutFx: 2 },
+    fragile: { name: '롤러코스터', emoji: '🎢', bonus: 0.15, desc: '체력·멘탈이 오를 때도 내릴 때도 1.3배', mods: { hp: { neg: 1.3, pos: 1.3 }, mt: { neg: 1.3, pos: 1.3 } } },
+    blind: { name: '눈치 제로', emoji: '🙈', bonus: 0.2, desc: '카드를 끌어도 스탯 점(미리보기)이 안 뜬다', blind: true },
+    noinsure: { name: '맨몸 복무', emoji: '🚫', bonus: 0.1, desc: '장비 강화 효과 절반, 보험·되돌리기·특급 보급품 금지', noPremium: true, halfUp: true }
+  };
+  JY.HEAT_ORDER = ['haeng', 'pxclose', 'noleave', 'fragile', 'chaos', 'noinsure', 'blind'];
+
   /* ── 동료 호감도: 선물·수다·카드 선택으로 쌓인다. 70 이상이면 절친 효과 ── */
   JY.NPCS = {
     dumb: {

@@ -16,6 +16,9 @@
   var EMER_BASE = 0.08; // 카드마다 돌발 상황이 터질 기본 확률
   var COND_CHANCE = 0.4; // 매달 1일 주간 상황이 시작될 확률
   var BFF = 70; // 절친 기준 호감도
+  // 복무 방식별 흔들림: 카드가 적은 속성 복무는 한 장 한 장이 더 크게, 긴 정상 복무는 덜 크게
+  // (tools/retention-sim.js로 초보 첫 판 전역률이 두 방식 모두 비슷해지도록 맞춘 값)
+  var PACE_SWING = { 1: 0.72, 3: 1.3 };
 
   var MOS = {
     infantry: { name: '소총수', emoji: '🎯', start: { hp: 58, mt: 50, tr: 45, bd: 50 }, boost: null,
@@ -164,6 +167,10 @@
   function getCardDef(id) { return index()[id]; }
 
   function unitOf(s) { return (JY.UNITS && JY.UNITS[s.unit]) || {}; }
+  // 악조건(선택 난이도): 켜진 것들의 정의 목록
+  function heatDefs(s) { return asArr(s.heat).map(function (id) { return JY.HEAT && JY.HEAT[id]; }).filter(Boolean); }
+  function heatHas(s, key) { return heatDefs(s).some(function (h) { return h[key]; }); }
+  function heatBonus(s) { return heatDefs(s).reduce(function (a, h) { return a + h.bonus; }, 0); }
   function traitOf(s) { return (JY.TRAITS && JY.TRAITS[s.trait]) || {}; }
   function condDef(id) { return (JY.CONDITIONS && JY.CONDITIONS[id]) || {}; }
 
@@ -213,6 +220,7 @@
       talkDay: {},
       bffs: {},
       insurance: opts.insurance ? 1 : 0,
+      heat: (opts.heat || []).filter(function (id) { return JY.HEAT && JY.HEAT[id]; }),
       up: opts.up || {},
       undo: 0,
       cv: null,
@@ -235,9 +243,12 @@
     asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
     if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
     if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
+    if (heatHas(state, 'halfUp')) { var hu = {}; for (var u in state.up) hu[u] = Math.floor(state.up[u] / 2); state.up = hu; }
+    heatDefs(state).forEach(function (h) { if (h.extend) state.total += h.extend; });
     var up = state.up;
     state.insight += 3 * (up.notebook || 0);
     state.undo = [0, 1, 1, 2, 2, 3][up.watch || 0] || 0;
+    if (heatHas(state, 'noPremium')) { state.undo = 0; state.insurance = 0; }
     state.queue = openingQueue();
     nextCard(state);
     return state;
@@ -302,6 +313,7 @@
     }
     if (c.req && c.req.unit) w *= 1.4; // 자대 전용 카드는 조금 더 자주
     if (tr.catW && c.who === 'cat') w *= tr.catW;
+    heatDefs(s).forEach(function (h) { if (h.whoW && (c.who === h.whoW.who || (h.whoW.ids && h.whoW.ids.indexOf(c.id) >= 0))) w *= h.whoW.mult; });
     return w;
   }
 
@@ -323,6 +335,7 @@
     var em = JY.CARDS.emergency || [];
     if (s.rank < 1 || s.emer.since < 3 || !em.length) return null;
     var chance = EMER_BASE * (unitOf(s).emerMult || 1) * (traitOf(s).emerMult || 1);
+    heatDefs(s).forEach(function (h) { if (h.emerMult) chance *= h.emerMult; });
     if (rand() >= chance) return null;
     var list = em.filter(function (c) {
       if (s.seen[c.id] !== undefined && s.day - s.seen[c.id] < 150 * s.pace) return false;
@@ -434,7 +447,7 @@
     var vw = view(s), c = vw.c, k = s.cv.k;
     var res = {
       id: c.id, key: vw.key, who: vw.who, bg: vw.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
-      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
+      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent ? Math.max(3, c.urgent - heatDefs(s).reduce(function (a, h) { return a + (h.urgentMinus || 0); }, 0)) : 0,
       text: fill(s, vw.text),
       l: { t: fill(s, pickStr(vw.l.t, k >> 4)), preview: preview(vw.l, s) },
       r: { t: fill(s, pickStr(vw.r.t, k >> 8)), preview: preview(vw.r, s) }
@@ -453,8 +466,9 @@
     asArr(opt.roll).forEach(function (r) { add(r.fx || {}, r.p); });
     asArr(opt.cases).forEach(function (r, i, arr) { add(r.fx || {}, 1 / arr.length); });
     var out = {};
-    for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (opt.mini) out.mini = true;
+    if (s && heatHas(s, 'blind')) return out; // 눈치 제로: 점 없음
+    for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (s) {
       var see = s.insight > 0 ? STATS : (traitOf(s).insightStat ? [traitOf(s).insightStat] : []);
       if (see.length) {
@@ -466,7 +480,16 @@
   }
 
   /* ── 결과 적용 ───────────────────────────── */
-  function fxSum(fx) { var t = 0; for (var k in (fx || {})) t += fx[k]; return t; }
+  // 운: 지금 상태에서 더 안전한 결과(스탯이 가운데에 가까운 쪽)를 '좋은 결과'로 본다
+  function rollScore(s, r) {
+    var t = (r.gem || 0) * 2 + (r.leave || 0) * 4 + (r.end ? -999 : 0) + (r.money || 0) / 20000;
+    STATS.forEach(function (k) {
+      var v = s.stats[k] + ((r.fx && r.fx[k]) || 0);
+      t -= (v - 50) * (v - 50) / 100;
+      if (v <= 0 || v >= 100) t -= 500;
+    });
+    return t;
+  }
 
   function resolveOutcome(s, opt) {
     var out = {};
@@ -486,9 +509,7 @@
       var lucky = s.luck > 0 || (luckP > 0 && rand() < luckP);
       if (lucky) {
         var second = roll();
-        var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
-        var score1 = fxSum(extra.fx) + (extra.gem || 0) + (extra.leave || 0) * 4 + (extra.end ? -999 : 0);
-        if (score2 > score1) extra = second;
+        if (rollScore(s, second) > rollScore(s, extra)) extra = second;
       }
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
@@ -513,11 +534,13 @@
     var key = v > 0 ? 'pos' : 'neg';
     if (v > 0 && MOS[s.mos].boost === k) m *= 1.25;
     var srcs = [traitOf(s).mods, unitOf(s).mods];
+    heatDefs(s).forEach(function (h) { srcs.push(h.mods); });
     s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
     if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
     srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
     var up = s.up || {};
-    if (k === 'hp' && v < 0 && up.boots) m *= 1 - 0.05 * up.boots;
+    // 전투화: 체력이 끝(0·100) 쪽으로 쏠리는 변화를 줄인다
+    if (k === 'hp' && up.boots && ((v < 0 && s.stats.hp <= 50) || (v > 0 && s.stats.hp >= 50))) m *= 1 - 0.06 * up.boots;
     // 방탄모: 위험 구간에서 더 위험해지는 쪽 변화 완화
     if (up.helmet && ((s.stats[k] <= 20 && v < 0) || (s.stats[k] >= 80 && v > 0))) m *= 1 - 0.08 * up.helmet;
     return m;
@@ -527,7 +550,7 @@
     for (var k in fx) {
       if (STATS.indexOf(k) < 0) continue;
       var v = fx[k];
-      if (!soft && v) v = Math.round(v * statMult(s, k, v));
+      if (!soft && v) v = Math.round(v * statMult(s, k, v) * (PACE_SWING[s.pace] || 1));
       var before = s.stats[k];
       var after = clamp(before + v, 0, 100);
       if (soft) { // 아이템/휴가/주간 상황: 경계 바깥으로는 밀지 않는다
@@ -545,6 +568,7 @@
     if (n > 0 && !raw) {
       if (s.mos === 'infantry') n = Math.ceil(n * 1.5);
       if (unitOf(s).leaveReward) n += unitOf(s).leaveReward;
+      heatDefs(s).forEach(function (h) { if (h.leaveGain) n = Math.max(1, Math.floor(n * h.leaveGain)); });
     }
     s.leave = Math.max(0, s.leave + n);
     if (n > 0) res.events.push({ type: 'leave', n: n, text: (why || '포상휴가') + ' +' + n + '일' });
@@ -703,6 +727,7 @@
     }
     s.rank = next;
     var add = LEAVE_ON_PROMO[next] + (next >= 2 ? (unitOf(s).leaveBonus || 0) : 0);
+    if (heatHas(s, 'leaveNone')) add = 0;
     s.leave += add;
     res.events.push({ type: 'promo', rank: next, leave: add, text: RANKS[next] + ' 진급!' + (add ? ' 휴가 +' + add + '일' : '') });
     addLog(s, RANKS[next] + ' 진급');
@@ -748,6 +773,9 @@
       s.specials += 1;
     } else opt = side === 'l' || side === 'left' ? vw.l : side === 't' && vw.t ? vw.t : vw.r;
     var out = resolveOutcome(s, opt);
+    // 돌발 지옥: 돌발 상황의 결과가 커진다
+    var uf = c.urgent ? heatDefs(s).reduce(function (a, h) { return a * ((side === 't' ? h.timeoutFx : h.urgentFx) || 1); }, 1) : 1;
+    if (uf !== 1) for (var fk in out.fx) if (STATS.indexOf(fk) >= 0) out.fx[fk] = Math.round(out.fx[fk] * uf);
     var res = newRes();
     res.scene = vw.key;
     res.special = side === 'x';
@@ -911,7 +939,8 @@
   }
   function pxPrice(s, id) {
     var it = JY.ITEMS[id];
-    return Math.max(100, Math.round(it.price * (1 - pxDiscount(s)) / 100) * 100);
+    var hm = heatDefs(s).reduce(function (a, h) { return a * (h.pxMult || 1); }, 1);
+    return Math.max(100, Math.round(it.price * hm * (1 - pxDiscount(s)) / 100) * 100);
   }
 
   function pxStatus(s) {
@@ -934,7 +963,7 @@
     return true;
   }
 
-  function closePX(s, bought) { if (bought) s.pxDay = s.day + 4 * s.pace; }
+  function closePX(s, bought) { if (bought) s.pxDay = s.day + Math.round(4 * s.pace * heatDefs(s).reduce(function (a, h) { return a * (h.pxCd || 1); }, 1)); }
 
   function useItem(s, id) {
     if (s.over || !(s.items[id] > 0)) return null;
@@ -953,6 +982,7 @@
   /* ── 특급 보급품 (다이아) ─────────────────── */
   function usePremium(s, id) {
     if (s.over || s.pendingMini) return null;
+    if (heatHas(s, 'noPremium')) return null;
     CUR = s;
     var res = newRes();
     switch (id) {
@@ -1032,7 +1062,7 @@
     add('절친 ' + bffCount(s) + '명', bffCount(s) * 300);
     if (o2.good) add('전역 통장', Math.floor(bank(s).total / 20000));
     var base = parts.reduce(function (a, p) { return a + p.n; }, 0);
-    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1);
+    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1) * (1 + heatBonus(s));
     var total = Math.round(base * mult);
     return { total: total, base: base, mult: mult, parts: parts, title: JY.scoreTitle ? JY.scoreTitle(total) : '' };
   }
@@ -1075,6 +1105,7 @@
     if (!s.unit) s.unit = 'gop';
     if (s.rng === undefined) s.rng = null;
     if (!s.up) s.up = {};
+    if (!s.heat) s.heat = [];
     if (s.undo === undefined) s.undo = 0;
     if (!s.vlast) s.vlast = {};
     if (s.specials === undefined) s.specials = 0;
@@ -1092,7 +1123,7 @@
     daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank, score: score,
     dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
-    unitOf: unitOf, traitOf: traitOf, condDef: condDef,
+    unitOf: unitOf, traitOf: traitOf, condDef: condDef, heatBonus: heatBonus, heatHas: heatHas,
     _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});

@@ -268,7 +268,7 @@ button { cursor: pointer; }
 .rank-svg { width: 100%; height: auto; display: block; }
 .hud-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .hud-name b { font-weight: 400; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hud-name small { font-size: 12px; opacity: .75; font-family: var(--font-util); }
+.hud-name small { font-size: 12px; opacity: .75; font-family: var(--font-util); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud-dday { text-align: right; display: flex; flex-direction: column; line-height: 1.1; }
 .hud-dday small { font-size: 11px; opacity: .7; }
 .hud-dday b { font-family: var(--font-display); font-weight: 400; font-size: 26px; color: var(--brass); font-variant-numeric: tabular-nums; }
@@ -325,8 +325,9 @@ button { cursor: pointer; }
   box-shadow: 3px 3px 0 var(--shadow);
   text-wrap: pretty;
 }
-.prompt .who { display: inline-block; font-size: 12px; background: var(--olive); color: var(--cream); padding: 1px 8px; border-radius: 99px; margin-bottom: 3px; }
+.prompt .who { display: inline-block; font-size: 12px; line-height: 1.5; background: var(--olive); color: var(--cream); padding: 0 8px; border-radius: 99px; vertical-align: 2px; }
 
+.stage { position: relative; }
 .card-zone { position: relative; flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; }
 .card {
   position: relative;
@@ -348,6 +349,8 @@ button { cursor: pointer; }
 .card.back { transition: transform .25s cubic-bezier(.2, 1.4, .4, 1); }
 .card .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
 .card .char-wrap { position: absolute; left: 6%; right: 6%; bottom: 46px; top: 10%; }
+.card.wide .char-wrap { top: 6%; bottom: 40px; }
+.card.wide .nametape { height: 40px; }
 .card .char-wrap .char { width: 100%; height: 100%; display: block; }
 .nametape {
   position: absolute; left: 0; right: 0; bottom: 0;
@@ -408,7 +411,9 @@ button { cursor: pointer; }
 }
 .note {
   position: relative;
-  width: min(100%, 340px);
+  width: min(100%, 360px);
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
   background: var(--paper);
   border: 2px solid var(--ink);
   border-radius: 6px;
@@ -438,7 +443,7 @@ button { cursor: pointer; }
 .chip.up { color: var(--good); }
 .chip.down { color: var(--stamp); }
 .chip.info { color: var(--olive-dark); background: rgba(86, 102, 47, .12); }
-.events { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--olive-dark); }
+.events { display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.35; color: var(--olive-dark); }
 .events div { display: flex; gap: 6px; align-items: baseline; }
 .tap-next { align-self: flex-end; font-size: 13px; color: var(--muted); animation: blink 1.2s steps(2) infinite; }
 
@@ -548,9 +553,11 @@ button { cursor: pointer; }
 }
 
 /* ── 엔딩 ─────────────────────────── */
-.end-screen { overflow-y: auto; gap: 14px; padding-block: 16px; }
+.end-screen { overflow-y: auto; overflow-x: hidden; gap: 14px; padding-block: 16px; }
 .cert {
   position: relative;
+  flex: none;
+  overflow: hidden;
   background: var(--paper);
   border: 3px solid var(--ink);
   padding: 18px 16px;
@@ -572,7 +579,7 @@ button { cursor: pointer; }
 .cert dt { color: var(--muted); }
 .cert dd { margin: 0; font-family: var(--font-util); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
 .cert .seal {
-  position: absolute; right: 18px; top: 104px;
+  position: absolute; right: 30px; top: 104px;
   width: 86px; height: 86px;
   border: 5px double var(--stamp);
   border-radius: 50%;
@@ -723,8 +730,10 @@ button { cursor: pointer; }
 .check-row small { color: var(--muted); }
 
 /* HUD: 주간 상황 */
-.conds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.conds { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
+.conds::-webkit-scrollbar { display: none; }
 .cond {
+  flex: none; white-space: nowrap;
   border: 0; border-radius: 99px; padding: 1px 8px;
   background: rgba(239, 232, 204, .16); color: var(--cream);
   font-size: 12px; line-height: 1.5;
@@ -803,6 +812,7 @@ button { cursor: pointer; }
 
 /* 엔딩 점수 */
 .score-panel {
+  flex: none;
   background: var(--olive-dark); color: var(--cream);
   border-radius: var(--r-lg); padding: 14px 16px;
   display: flex; flex-direction: column; gap: 8px;
@@ -955,10 +965,10 @@ button { cursor: pointer; }
 .choice-x {
   grid-column: 1 / -1; order: -1;
   background: #fff3cf; border-color: #b8860b; box-shadow: 0 3px 0 #8a6a18;
-  min-height: 40px; justify-content: center; text-align: center; flex-wrap: wrap; gap: 2px 6px;
+  min-height: 36px; justify-content: center; text-align: center; gap: 6px; padding-block: 4px;
 }
-.choice-x b { flex: 0 1 auto; }
-.choice-x small { width: 100%; font-size: 11px; color: #8a6a18; }
+.choice-x b { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.choice-x small { flex: none; font-size: 11px; color: #8a6a18; white-space: nowrap; }
 .choice-x.armed { background: #b8860b; color: #fff; }
 .choice-x.armed small { color: #fff3cf; }
 .card-label.x { left: 50%; right: auto; transform: translateX(-50%); top: 12px; background: #b8860b; text-align: center; width: max-content; }
@@ -993,6 +1003,7 @@ button { cursor: pointer; }
 .me-info .lv-line em { font-style: normal; font-family: var(--font-display); color: var(--brass); font-size: 18px; }
 .me-info .lv-bar { background: rgba(0, 0, 0, .35); }
 .me-info small { font-size: 12px; opacity: .8; }
+.cloud-line { font-size: 11px !important; opacity: .7; }
 .jjam-chip { align-self: flex-start; background: var(--brass); color: var(--ink); border-radius: 99px; padding: 1px 10px; font-size: 14px; }
 .barracks-body { display: flex; flex-direction: column; gap: 8px; }
 .face-rows { display: flex; flex-direction: column; gap: 6px; }
@@ -1049,6 +1060,38 @@ button { cursor: pointer; }
   .face-row { grid-template-columns: 52px auto 1fr auto; }
 }
 
+/* ── v4: 악조건 · 코치 마크 ─────────── */
+.heat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.heat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left;
+  border: 2px solid var(--ink); border-radius: var(--r-sm); background: transparent; padding: 6px 8px; min-width: 0;
+}
+.heat i { font-style: normal; font-size: 20px; }
+.heat b { font-weight: 400; font-size: 14px; }
+.heat b em { font-style: normal; font-size: 11px; color: var(--stamp); }
+.heat small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.heat[aria-pressed="true"] { background: #4a1f1a; color: #ffe3d6; border-color: var(--stamp); }
+.heat[aria-pressed="true"] small, .heat[aria-pressed="true"] b em { color: #ffb4a3; }
+.up-cta { align-self: center; }
+.coach { position: fixed; inset: 0; z-index: 80; }
+.coach-hole {
+  position: fixed; border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(20, 18, 12, .72);
+  border: 3px solid var(--brass);
+  transition: all .25s ease;
+  pointer-events: none;
+}
+.coach-box {
+  position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 480px; margin: 0 auto;
+  background: var(--paper); border: 3px solid var(--ink); border-radius: var(--r-lg);
+  padding: 12px 14px; box-shadow: 0 6px 0 var(--shadow);
+  animation: pop .3s cubic-bezier(.2, 1.5, .4, 1);
+}
+.coach-box p { margin: 0 0 8px; font-size: 16px; line-height: 1.45; }
+.coach-box b { color: var(--stamp); font-weight: 400; }
+.coach-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
 /* ── 애니메이션 ───────────────────── */
 .char .bob { animation: bob 2.4s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
 .char .eyes { animation: blink 4.2s infinite; transform-origin: center; transform-box: fill-box; }
@@ -1082,7 +1125,7 @@ button { cursor: pointer; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes toastIn { from { transform: translate(-50%, -16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 @keyframes pop { 0% { transform: scale(.3); } 100% { transform: scale(1); } }
-@keyframes stamp { 0% { transform: rotate(-16deg) scale(2.4); opacity: 0; } 100% { transform: rotate(-16deg) scale(1); opacity: 1; } }
+@keyframes stamp { 0% { transform: rotate(-16deg) scale(1.5); opacity: 0; } 100% { transform: rotate(-16deg) scale(1); opacity: 1; } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 @keyframes blinkText { 50% { opacity: .3; } }
@@ -1098,6 +1141,21 @@ button { cursor: pointer; }
   .title-screen .fine { display: none; }
   .title-actions { gap: 8px; }
   .title-actions .btn { padding-block: 9px; }
+}
+@media (max-height: 760px) {
+  .game-screen { gap: 6px; padding-block: 6px 4px; }
+  .hud { padding: 8px 10px 6px; }
+  .hud-name b { font-size: 16px; }
+  .gauge { margin-top: 4px; }
+  .stats { margin-top: 6px; }
+  .stat-ic { width: 32px; height: 30px; }
+  .prompt { font-size: 15px; line-height: 1.35; min-height: 0; padding: 7px 10px 8px; }
+  .stage { gap: 6px; }
+  .choice { min-height: 42px; font-size: 14px; }
+  .dock { padding: 4px; }
+  .dock-btn { padding: 2px; }
+  .dock-btn i { font-size: 18px; }
+  .dock-btn span { font-size: 11px; }
 }
 @media (max-height: 640px) {
   .prompt { font-size: 15px; min-height: 4em; padding: 7px 10px; }
@@ -1188,9 +1246,15 @@ button { cursor: pointer; }
       <fieldset class="field" id="field-pace">
         <legend>복무 방식</legend>
         <div class="pace-grid">
-          <label class="pace"><input type="radio" name="pace" value="1" checked><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
-          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="1"><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3" checked><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
         </div>
+      </fieldset>
+
+      <fieldset class="field" id="field-heat" hidden>
+        <legend>악조건 🔥 (선택 · 켤수록 점수·짬 증가)</legend>
+        <div class="heat-grid" id="heat-grid"></div>
+        <p class="field-note" id="heat-note"></p>
       </fieldset>
 
       <label class="check-row" id="row-insurance" hidden>
@@ -1229,13 +1293,13 @@ button { cursor: pointer; }
         <div class="urgent-bar" id="urgent-bar" hidden><i id="urgent-fill"></i><span id="urgent-sec"></span></div>
         <div class="card" id="card" tabindex="0" aria-label="이벤트 카드 — 좌우로 넘겨 선택"></div>
         <div class="talk-bubble" id="talk-bubble" hidden></div>
-        <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
         <button class="choice choice-x" data-side="x" id="choice-x-btn" hidden><span>⭐</span><b id="choice-x"></b><small id="choice-x-need"></small></button>
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
+      <div class="result" id="result" hidden></div>
     </main>
 
     <nav class="dock">
@@ -1309,6 +1373,7 @@ button { cursor: pointer; }
         <i class="lv-bar big"><i id="me-lvbar"></i></i>
         <small id="me-lvtext">0 / 100 짬</small>
         <span class="jjam-chip" id="me-jjam">🍚 짬 0</span>
+        <small class="cloud-line" id="me-cloud"></small>
       </div>
     </div>
     <div class="tabs" role="tablist" id="barracks-tabs">
@@ -1347,6 +1412,7 @@ button { cursor: pointer; }
 </div>
 <div id="mini" class="mini" hidden></div>
 <div id="toast" class="toast" hidden></div>
+<div id="coach" class="coach" hidden><div class="coach-hole" id="coach-hole"></div><div class="coach-box" id="coach-box"></div></div>
 <script>
 /* js/art.js */
 /* 전역각 — 캐릭터/배경/아이콘 SVG 생성기
@@ -1596,8 +1662,8 @@ button { cursor: pointer; }
           '</g>' + (big ? '' : '<path d="M36 90 Q48 140 88 156 M164 90 Q152 140 112 156" fill="none" stroke="#2f3720" stroke-width="3"/>');
       }
       case 'chef':
-        return t('<circle cx="70" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="100" cy="20" r="24" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="130" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
-          '<rect x="54" y="34" width="92" height="34" rx="6" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M60 56 L140 56" stroke="#ddd" stroke-width="3"/>');
+        return '<g transform="translate(0 ' + (6 + dy) + ')">' + ('<circle cx="70" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="100" cy="20" r="24" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="130" cy="30" r="20" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
+          '<rect x="54" y="34" width="92" height="34" rx="6" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M60 56 L140 56" stroke="#ddd" stroke-width="3"/>') + '</g>';
       case 'beanie':
         return t('<path d="M40 74 Q40 22 100 20 Q160 22 160 74Z" fill="#5f6a3a" stroke="' + INK + '" stroke-width="3"/>' +
           '<rect x="36" y="62" width="128" height="18" rx="8" fill="#4d5730" stroke="' + INK + '" stroke-width="3"/>' +
@@ -1626,8 +1692,8 @@ button { cursor: pointer; }
       case 'afro': {
         var cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
         var a = '';
-        var pts = [[40, 64], [34, 40], [52, 20], [78, 8], [104, 4], [130, 10], [154, 24], [168, 46], [164, 68], [66, 30], [100, 26], [134, 34]];
-        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="22" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
+        var pts = [[38, 66], [34, 46], [48, 28], [72, 20], [100, 18], [128, 20], [152, 28], [166, 46], [162, 66], [64, 40], [100, 36], [136, 40]];
+        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="18" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
         return t(a);
       }
       default: return '';
@@ -1714,7 +1780,7 @@ button { cursor: pointer; }
       case 'pill':
         return '<g class="prop"><rect x="152" y="160" width="34" height="16" rx="8" fill="#fff" stroke="' + INK + '" stroke-width="3" transform="rotate(-30 169 168)"/><path d="M162 176 L176 160" stroke="#e23b3b" stroke-width="8" stroke-linecap="round"/>' + hand + '</g>';
       case 'megaphone':
-        return '<g class="prop"><path d="M150 196 L186 168 L196 204 Z" fill="#f2f2f2" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><ellipse cx="191" cy="186" rx="7" ry="18" fill="#e23b3b" stroke="' + INK + '" stroke-width="3" transform="rotate(-20 191 186)"/>' + hand + '</g>';
+        return '<g class="prop" transform="translate(-8 0)"><path d="M150 196 L186 168 L196 204 Z" fill="#f2f2f2" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><ellipse cx="191" cy="186" rx="7" ry="18" fill="#e23b3b" stroke="' + INK + '" stroke-width="3" transform="rotate(-20 191 186)"/>' + hand + '</g>';
       case 'broom':
         return '<g class="prop"><path d="M154 226 L176 110" stroke="#a0763e" stroke-width="6" stroke-linecap="round"/><path d="M166 116 L170 70 M174 114 L184 72 M178 118 L196 82 M170 116 L160 74" stroke="#c9a24b" stroke-width="4" stroke-linecap="round"/>' + hand + '</g>';
       case 'clipboard':
@@ -4787,6 +4853,18 @@ button { cursor: pointer; }
     love: { name: '생활관 연애 상담소', emoji: '💘', cards: 3, tick: { bd: 1, mt: 1 }, desc: '카드마다 전우애 +1, 멘탈 +1' }
   };
 
+  /* ── 악조건: 첫 전역 후 해금. 켤수록 점수·짬이 오른다 (고수용 난이도) ── */
+  JY.HEAT = {
+    haeng: { name: '악마 행보관', emoji: '😈', bonus: 0.15, desc: '행보관·작업 카드 3배, 간부 신뢰가 1.3배 크게 흔들린다', whoW: { who: 'haeng', ids: ['work_day'], mult: 3 }, mods: { tr: { neg: 1.35, pos: 1.3 }, mt: { neg: 1.1 } } },
+    pxclose: { name: 'PX 폐점 위기', emoji: '🏚️', bonus: 0.05, desc: 'PX 가격 2배, 다시 열리기까지 3배 오래', pxMult: 2, pxCd: 3 },
+    noleave: { name: '휴가 반납', emoji: '📵', bonus: 0.05, desc: '진급 휴가 없음, 포상휴가 절반, 전역일 60일 연기', leaveNone: true, leaveGain: 0.5, extend: 60 },
+    chaos: { name: '돌발 지옥', emoji: '🚨', bonus: 0.15, desc: '돌발 상황 2.5배, 제한 시간 1.5초 짧고, 놓치면 피해 2배', emerMult: 2.5, urgentMinus: 1.5, urgentFx: 1.3, timeoutFx: 2 },
+    fragile: { name: '롤러코스터', emoji: '🎢', bonus: 0.15, desc: '체력·멘탈이 오를 때도 내릴 때도 1.3배', mods: { hp: { neg: 1.3, pos: 1.3 }, mt: { neg: 1.3, pos: 1.3 } } },
+    blind: { name: '눈치 제로', emoji: '🙈', bonus: 0.2, desc: '카드를 끌어도 스탯 점(미리보기)이 안 뜬다', blind: true },
+    noinsure: { name: '맨몸 복무', emoji: '🚫', bonus: 0.1, desc: '장비 강화 효과 절반, 보험·되돌리기·특급 보급품 금지', noPremium: true, halfUp: true }
+  };
+  JY.HEAT_ORDER = ['haeng', 'pxclose', 'noleave', 'fragile', 'chaos', 'noinsure', 'blind'];
+
   /* ── 동료 호감도: 선물·수다·카드 선택으로 쌓인다. 70 이상이면 절친 효과 ── */
   JY.NPCS = {
     dumb: {
@@ -4887,14 +4965,14 @@ button { cursor: pointer; }
 
   /* ── 장비 강화: 짬으로 영구 강화 (+4, +5는 확률) ── */
   JY.UPGRADES = [
-    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력 소모 -5% / 강', per: function (l) { return '체력 소모 -' + l * 5 + '%'; } },
+    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력이 0이나 100 쪽으로 쏠리는 변화 -6% / 강', per: function (l) { return '체력 쏠림 -' + l * 6 + '%'; } },
     { id: 'helmet', icon: '🪖', name: '방탄모', desc: '위험 구간(20 이하·80 이상)에서 더 위험해지는 변화 -8% / 강', per: function (l) { return '위험 완충 ' + l * 8 + '%'; } },
     { id: 'notebook', icon: '📓', name: '수양록', desc: '판 시작 때 투시경 카드 3장 / 강', per: function (l) { return '시작 투시 ' + l * 3 + '장'; } },
     { id: 'wallet', icon: '👛', name: '지갑', desc: '월급 현금 +5%, PX 할인 4% / 강', per: function (l) { return '월급 +' + l * 5 + '% · PX -' + l * 4 + '%'; } },
     { id: 'pack', icon: '🎒', name: '군용 배낭', desc: '아이템 회복량 +10% / 강', per: function (l) { return '아이템 +' + l * 10 + '%'; } },
     { id: 'tag', icon: '🏷️', name: '명찰', desc: '동료 호감도 상승 +12% / 강', per: function (l) { return '호감도 +' + l * 12 + '%'; } },
     { id: 'watch', icon: '⌚', name: '국방부 시계', desc: '방금 선택을 되돌리는 횟수 (+1: 1회, +3: 2회, +5: 3회)', per: function (l) { return '되돌리기 ' + ([0, 1, 1, 2, 2, 3][l] || 0) + '회'; } },
-    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택이 유리해질 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
+    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택에서 더 안전한 결과가 나올 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
   ];
   JY.UPGRADE_COST = [80, 160, 300, 500, 800];  // +1 ~ +5
   JY.UPGRADE_RATE = [1, 1, 1, 0.8, 0.6];       // 성공 확률 (실패하면 짬 절반 돌려받음)
@@ -4958,7 +5036,9 @@ button { cursor: pointer; }
     { id: 'daily', icon: '📅', name: '오늘의 작전', desc: '오늘의 작전에 참가', gem: 10 },
     { id: 'streak7', icon: '🗓️', name: '개근상', desc: '7일 연속 출석', gem: 50 },
     { id: 'score20k', icon: '🏆', name: '전설의 예비역', desc: '한 판 20,000점 이상', gem: 60 },
-    { id: 'fail10', icon: '😵', name: '재입대 장인', desc: '전역 실패 누적 10회', gem: 20 }
+    { id: 'fail10', icon: '😵', name: '재입대 장인', desc: '전역 실패 누적 10회', gem: 20 },
+    { id: 'heat3', icon: '🔥', name: '악조건 돌파', desc: '악조건 3개 이상 켜고 전역', gem: 50 },
+    { id: 'heatall', icon: '🌋', name: '지옥에서 온 예비역', desc: '악조건 7개 전부 켜고 전역', gem: 200 }
   ];
 
   /* 점수 */
@@ -4995,6 +5075,9 @@ button { cursor: pointer; }
   var EMER_BASE = 0.08; // 카드마다 돌발 상황이 터질 기본 확률
   var COND_CHANCE = 0.4; // 매달 1일 주간 상황이 시작될 확률
   var BFF = 70; // 절친 기준 호감도
+  // 복무 방식별 흔들림: 카드가 적은 속성 복무는 한 장 한 장이 더 크게, 긴 정상 복무는 덜 크게
+  // (tools/retention-sim.js로 초보 첫 판 전역률이 두 방식 모두 비슷해지도록 맞춘 값)
+  var PACE_SWING = { 1: 0.72, 3: 1.3 };
 
   var MOS = {
     infantry: { name: '소총수', emoji: '🎯', start: { hp: 58, mt: 50, tr: 45, bd: 50 }, boost: null,
@@ -5143,6 +5226,10 @@ button { cursor: pointer; }
   function getCardDef(id) { return index()[id]; }
 
   function unitOf(s) { return (JY.UNITS && JY.UNITS[s.unit]) || {}; }
+  // 악조건(선택 난이도): 켜진 것들의 정의 목록
+  function heatDefs(s) { return asArr(s.heat).map(function (id) { return JY.HEAT && JY.HEAT[id]; }).filter(Boolean); }
+  function heatHas(s, key) { return heatDefs(s).some(function (h) { return h[key]; }); }
+  function heatBonus(s) { return heatDefs(s).reduce(function (a, h) { return a + h.bonus; }, 0); }
   function traitOf(s) { return (JY.TRAITS && JY.TRAITS[s.trait]) || {}; }
   function condDef(id) { return (JY.CONDITIONS && JY.CONDITIONS[id]) || {}; }
 
@@ -5192,6 +5279,7 @@ button { cursor: pointer; }
       talkDay: {},
       bffs: {},
       insurance: opts.insurance ? 1 : 0,
+      heat: (opts.heat || []).filter(function (id) { return JY.HEAT && JY.HEAT[id]; }),
       up: opts.up || {},
       undo: 0,
       cv: null,
@@ -5214,9 +5302,12 @@ button { cursor: pointer; }
     asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
     if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
     if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
+    if (heatHas(state, 'halfUp')) { var hu = {}; for (var u in state.up) hu[u] = Math.floor(state.up[u] / 2); state.up = hu; }
+    heatDefs(state).forEach(function (h) { if (h.extend) state.total += h.extend; });
     var up = state.up;
     state.insight += 3 * (up.notebook || 0);
     state.undo = [0, 1, 1, 2, 2, 3][up.watch || 0] || 0;
+    if (heatHas(state, 'noPremium')) { state.undo = 0; state.insurance = 0; }
     state.queue = openingQueue();
     nextCard(state);
     return state;
@@ -5281,6 +5372,7 @@ button { cursor: pointer; }
     }
     if (c.req && c.req.unit) w *= 1.4; // 자대 전용 카드는 조금 더 자주
     if (tr.catW && c.who === 'cat') w *= tr.catW;
+    heatDefs(s).forEach(function (h) { if (h.whoW && (c.who === h.whoW.who || (h.whoW.ids && h.whoW.ids.indexOf(c.id) >= 0))) w *= h.whoW.mult; });
     return w;
   }
 
@@ -5302,6 +5394,7 @@ button { cursor: pointer; }
     var em = JY.CARDS.emergency || [];
     if (s.rank < 1 || s.emer.since < 3 || !em.length) return null;
     var chance = EMER_BASE * (unitOf(s).emerMult || 1) * (traitOf(s).emerMult || 1);
+    heatDefs(s).forEach(function (h) { if (h.emerMult) chance *= h.emerMult; });
     if (rand() >= chance) return null;
     var list = em.filter(function (c) {
       if (s.seen[c.id] !== undefined && s.day - s.seen[c.id] < 150 * s.pace) return false;
@@ -5413,7 +5506,7 @@ button { cursor: pointer; }
     var vw = view(s), c = vw.c, k = s.cv.k;
     var res = {
       id: c.id, key: vw.key, who: vw.who, bg: vw.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
-      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
+      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent ? Math.max(3, c.urgent - heatDefs(s).reduce(function (a, h) { return a + (h.urgentMinus || 0); }, 0)) : 0,
       text: fill(s, vw.text),
       l: { t: fill(s, pickStr(vw.l.t, k >> 4)), preview: preview(vw.l, s) },
       r: { t: fill(s, pickStr(vw.r.t, k >> 8)), preview: preview(vw.r, s) }
@@ -5432,8 +5525,9 @@ button { cursor: pointer; }
     asArr(opt.roll).forEach(function (r) { add(r.fx || {}, r.p); });
     asArr(opt.cases).forEach(function (r, i, arr) { add(r.fx || {}, 1 / arr.length); });
     var out = {};
-    for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (opt.mini) out.mini = true;
+    if (s && heatHas(s, 'blind')) return out; // 눈치 제로: 점 없음
+    for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (s) {
       var see = s.insight > 0 ? STATS : (traitOf(s).insightStat ? [traitOf(s).insightStat] : []);
       if (see.length) {
@@ -5445,7 +5539,16 @@ button { cursor: pointer; }
   }
 
   /* ── 결과 적용 ───────────────────────────── */
-  function fxSum(fx) { var t = 0; for (var k in (fx || {})) t += fx[k]; return t; }
+  // 운: 지금 상태에서 더 안전한 결과(스탯이 가운데에 가까운 쪽)를 '좋은 결과'로 본다
+  function rollScore(s, r) {
+    var t = (r.gem || 0) * 2 + (r.leave || 0) * 4 + (r.end ? -999 : 0) + (r.money || 0) / 20000;
+    STATS.forEach(function (k) {
+      var v = s.stats[k] + ((r.fx && r.fx[k]) || 0);
+      t -= (v - 50) * (v - 50) / 100;
+      if (v <= 0 || v >= 100) t -= 500;
+    });
+    return t;
+  }
 
   function resolveOutcome(s, opt) {
     var out = {};
@@ -5465,9 +5568,7 @@ button { cursor: pointer; }
       var lucky = s.luck > 0 || (luckP > 0 && rand() < luckP);
       if (lucky) {
         var second = roll();
-        var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
-        var score1 = fxSum(extra.fx) + (extra.gem || 0) + (extra.leave || 0) * 4 + (extra.end ? -999 : 0);
-        if (score2 > score1) extra = second;
+        if (rollScore(s, second) > rollScore(s, extra)) extra = second;
       }
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
@@ -5492,11 +5593,13 @@ button { cursor: pointer; }
     var key = v > 0 ? 'pos' : 'neg';
     if (v > 0 && MOS[s.mos].boost === k) m *= 1.25;
     var srcs = [traitOf(s).mods, unitOf(s).mods];
+    heatDefs(s).forEach(function (h) { srcs.push(h.mods); });
     s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
     if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
     srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
     var up = s.up || {};
-    if (k === 'hp' && v < 0 && up.boots) m *= 1 - 0.05 * up.boots;
+    // 전투화: 체력이 끝(0·100) 쪽으로 쏠리는 변화를 줄인다
+    if (k === 'hp' && up.boots && ((v < 0 && s.stats.hp <= 50) || (v > 0 && s.stats.hp >= 50))) m *= 1 - 0.06 * up.boots;
     // 방탄모: 위험 구간에서 더 위험해지는 쪽 변화 완화
     if (up.helmet && ((s.stats[k] <= 20 && v < 0) || (s.stats[k] >= 80 && v > 0))) m *= 1 - 0.08 * up.helmet;
     return m;
@@ -5506,7 +5609,7 @@ button { cursor: pointer; }
     for (var k in fx) {
       if (STATS.indexOf(k) < 0) continue;
       var v = fx[k];
-      if (!soft && v) v = Math.round(v * statMult(s, k, v));
+      if (!soft && v) v = Math.round(v * statMult(s, k, v) * (PACE_SWING[s.pace] || 1));
       var before = s.stats[k];
       var after = clamp(before + v, 0, 100);
       if (soft) { // 아이템/휴가/주간 상황: 경계 바깥으로는 밀지 않는다
@@ -5524,6 +5627,7 @@ button { cursor: pointer; }
     if (n > 0 && !raw) {
       if (s.mos === 'infantry') n = Math.ceil(n * 1.5);
       if (unitOf(s).leaveReward) n += unitOf(s).leaveReward;
+      heatDefs(s).forEach(function (h) { if (h.leaveGain) n = Math.max(1, Math.floor(n * h.leaveGain)); });
     }
     s.leave = Math.max(0, s.leave + n);
     if (n > 0) res.events.push({ type: 'leave', n: n, text: (why || '포상휴가') + ' +' + n + '일' });
@@ -5682,6 +5786,7 @@ button { cursor: pointer; }
     }
     s.rank = next;
     var add = LEAVE_ON_PROMO[next] + (next >= 2 ? (unitOf(s).leaveBonus || 0) : 0);
+    if (heatHas(s, 'leaveNone')) add = 0;
     s.leave += add;
     res.events.push({ type: 'promo', rank: next, leave: add, text: RANKS[next] + ' 진급!' + (add ? ' 휴가 +' + add + '일' : '') });
     addLog(s, RANKS[next] + ' 진급');
@@ -5727,6 +5832,9 @@ button { cursor: pointer; }
       s.specials += 1;
     } else opt = side === 'l' || side === 'left' ? vw.l : side === 't' && vw.t ? vw.t : vw.r;
     var out = resolveOutcome(s, opt);
+    // 돌발 지옥: 돌발 상황의 결과가 커진다
+    var uf = c.urgent ? heatDefs(s).reduce(function (a, h) { return a * ((side === 't' ? h.timeoutFx : h.urgentFx) || 1); }, 1) : 1;
+    if (uf !== 1) for (var fk in out.fx) if (STATS.indexOf(fk) >= 0) out.fx[fk] = Math.round(out.fx[fk] * uf);
     var res = newRes();
     res.scene = vw.key;
     res.special = side === 'x';
@@ -5890,7 +5998,8 @@ button { cursor: pointer; }
   }
   function pxPrice(s, id) {
     var it = JY.ITEMS[id];
-    return Math.max(100, Math.round(it.price * (1 - pxDiscount(s)) / 100) * 100);
+    var hm = heatDefs(s).reduce(function (a, h) { return a * (h.pxMult || 1); }, 1);
+    return Math.max(100, Math.round(it.price * hm * (1 - pxDiscount(s)) / 100) * 100);
   }
 
   function pxStatus(s) {
@@ -5913,7 +6022,7 @@ button { cursor: pointer; }
     return true;
   }
 
-  function closePX(s, bought) { if (bought) s.pxDay = s.day + 4 * s.pace; }
+  function closePX(s, bought) { if (bought) s.pxDay = s.day + Math.round(4 * s.pace * heatDefs(s).reduce(function (a, h) { return a * (h.pxCd || 1); }, 1)); }
 
   function useItem(s, id) {
     if (s.over || !(s.items[id] > 0)) return null;
@@ -5932,6 +6041,7 @@ button { cursor: pointer; }
   /* ── 특급 보급품 (다이아) ─────────────────── */
   function usePremium(s, id) {
     if (s.over || s.pendingMini) return null;
+    if (heatHas(s, 'noPremium')) return null;
     CUR = s;
     var res = newRes();
     switch (id) {
@@ -6011,7 +6121,7 @@ button { cursor: pointer; }
     add('절친 ' + bffCount(s) + '명', bffCount(s) * 300);
     if (o2.good) add('전역 통장', Math.floor(bank(s).total / 20000));
     var base = parts.reduce(function (a, p) { return a + p.n; }, 0);
-    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1);
+    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1) * (1 + heatBonus(s));
     var total = Math.round(base * mult);
     return { total: total, base: base, mult: mult, parts: parts, title: JY.scoreTitle ? JY.scoreTitle(total) : '' };
   }
@@ -6054,6 +6164,7 @@ button { cursor: pointer; }
     if (!s.unit) s.unit = 'gop';
     if (s.rng === undefined) s.rng = null;
     if (!s.up) s.up = {};
+    if (!s.heat) s.heat = [];
     if (s.undo === undefined) s.undo = 0;
     if (!s.vlast) s.vlast = {};
     if (s.specials === undefined) s.specials = 0;
@@ -6071,7 +6182,7 @@ button { cursor: pointer; }
     daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank, score: score,
     dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
-    unitOf: unitOf, traitOf: traitOf, condDef: condDef,
+    unitOf: unitOf, traitOf: traitOf, condDef: condDef, heatBonus: heatBonus, heatHas: heatHas,
     _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});
@@ -6108,7 +6219,7 @@ button { cursor: pointer; }
     ['hat', 'face', 'fx', 'body', 'prop'].forEach(function (k) { if (m.cos.eq[k] === undefined) m.cos.eq[k] = null; });
     m.stats.units = m.stats.units || {}; m.stats.mosOut = m.stats.mosOut || {};
     m.up = m.up || {}; m.scenes = m.scenes || {}; m.collectClaimed = m.collectClaimed || {};
-    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; }
+    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; m.stash.insurance = (m.stash.insurance || 0) + 1; }
     if (!m.v3gift) { // 업데이트 선물: 그동안 플레이한 만큼 짬
       m.v3gift = true;
       var g = Math.min(600, 80 + (m.runs || 0) * 60);
@@ -6119,7 +6230,17 @@ button { cursor: pointer; }
     save();
     return M;
   }
-  function save() { if (M) lsSet(KEY, M); }
+  function save() {
+    if (!M) return;
+    lsSet(KEY, M);
+    if (JY.Meta && JY.Meta.onSave) { try { JY.Meta.onSave(M); } catch (e) { /* 백업 실패는 무시 */ } }
+  }
+  // 다른 기기(클라우드)의 진행으로 바꾸기
+  function replace(m) {
+    lsSet(KEY, m);
+    M = null;
+    return load();
+  }
   function get() { return M || load(); }
 
   function addGems(n) {
@@ -6261,7 +6382,7 @@ button { cursor: pointer; }
     addGems(reward);
 
     // 기록 (상위 10)
-    var rec = { score: sc.total, title: sc.title, name: s.name, ending: o.id, good: o.good, mos: s.mos, unit: s.unit, trait: s.trait, days: o.good ? s.total + 1 : o.day, daily: s.daily || null, date: today(), cos: badge() };
+    var rec = { score: sc.total, title: sc.title, name: s.name, ending: o.id, good: o.good, mos: s.mos, unit: s.unit, trait: s.trait, days: o.good ? s.total + 1 : o.day, daily: s.daily || null, date: today(), cos: badge(), heat: (s.heat || []).length };
     m.records.push(rec);
     m.records.sort(function (a, b) { return b.score - a.score; });
     m.records = m.records.slice(0, 10);
@@ -6288,11 +6409,14 @@ button { cursor: pointer; }
     if (s.daily) ids.push('daily');
     if (sc.total >= 20000) ids.push('score20k');
     if (m.fails >= 10) ids.push('fail10');
+    if (o.good && (s.heat || []).length >= 3) ids.push('heat3');
+    if (o.good && (s.heat || []).length >= JY.HEAT_ORDER.length) ids.push('heatall');
     var ach = unlock(ids);
     // 짬: 버틴 날 + 점수 + 전역 보너스
     var served = o.good ? s.total + 1 : o.day;
     var jj = Math.floor(served / 4) + Math.floor(sc.total / 150) + (o.good ? 30 : 0);
     if (s.daily) jj = Math.round(jj * 1.2);
+    jj = Math.round(jj * (1 + JY.Game.heatBonus(s)));
     var jr = addJjam(jj);
     save();
     return { reward: reward, newEndings: newEndings, ach: ach, place: place, record: rec, dailyFirst: dailyFirst, runGems: s.gems, jjam: jj, levelUps: jr.ups, unlocked: jr.unlocked };
@@ -6455,7 +6579,7 @@ button { cursor: pointer; }
   }
 
   JY.Meta = {
-    load: load, save: save, get: get, addGems: addGems, spend: spend, attendance: attendance,
+    load: load, save: save, get: get, replace: replace, onSave: null, addGems: addGems, spend: spend, attendance: attendance,
     stash: stash, buyPremium: buyPremium, useStash: useStash,
     ownsCos: ownsCos, buyCos: buyCos, equip: equip, equipped: equipped, dress: dress, badge: badge,
     openBox: openBox, unlock: unlock, finishRun: finishRun,
@@ -6511,7 +6635,7 @@ button { cursor: pointer; }
     var str = function (v, len) { return String(v || '').slice(0, len); };
     return {
       id: id, name: str(d.name, 8) || '무명', score: n(d.score, 200000), title: str(d.title, 12), ending: str(d.ending, 12),
-      unit: str(d.unit, 12), mos: str(d.mos, 12), cos: str(d.cos, 16), days: n(d.days, 600),
+      unit: str(d.unit, 12), mos: str(d.mos, 12), cos: str(d.cos, 16), days: n(d.days, 600), heat: n(d.heat, 7),
       dDate: str(d.dDate, 10), dScore: n(d.dScore, 200000), dName: str(d.dName, 8), dEnding: str(d.dEnding, 12), at: n(d.at, 9e15)
     };
   }
@@ -6526,12 +6650,12 @@ button { cursor: pointer; }
         var t = JY.Game.todayStr();
         var changed = false;
         var next = {
-          name: cur.name, score: cur.score, title: cur.title, ending: cur.ending, unit: cur.unit, mos: cur.mos, cos: cur.cos, days: cur.days,
+          name: cur.name, score: cur.score, title: cur.title, ending: cur.ending, unit: cur.unit, mos: cur.mos, cos: cur.cos, days: cur.days, heat: cur.heat,
           dDate: cur.dDate, dScore: cur.dScore, dName: cur.dName, dEnding: cur.dEnding, at: Date.now()
         };
         if (!snap.exists || rec.score > cur.score) {
           next.name = rec.name; next.score = rec.score; next.title = rec.title; next.ending = rec.ending;
-          next.unit = rec.unit; next.mos = rec.mos; next.cos = rec.cos; next.days = rec.days;
+          next.unit = rec.unit; next.mos = rec.mos; next.cos = rec.cos; next.days = rec.days; next.heat = rec.heat || 0;
           changed = true;
         }
         if (rec.daily === t && (cur.dDate !== t || rec.score > cur.dScore)) {
@@ -6564,7 +6688,37 @@ button { cursor: pointer; }
     });
   }
 
-  JY.Rank = { init: init, submit: submit, top: top, status: function () { return R; } };
+  /* ── 진행 상황 클라우드 백업: data/users/<내 id>/meta (본인만 읽고 쓴다) ── */
+  var lastPushed = null, pushTimer = 0, inflight = false, again = false;
+  function metaRef() { return db.doc('data/users/' + R.uid + '/meta'); }
+  function cloudOk() { return R.online && R.canWrite && !!R.uid; }
+  function pullMeta() {
+    return init().then(function () {
+      if (!cloudOk()) return { available: false };
+      return withTimeout(metaRef().get(), 10000).then(function (snap) {
+        if (!snap.exists) return { available: true, data: null };
+        var d = snap.data() || {};
+        try { return { available: true, data: JSON.parse(String(d.json || 'null')), at: d.at }; } catch (e) { return { available: true, data: null }; }
+      });
+    }).catch(function () { return { available: false }; });
+  }
+  function pushNow(m) {
+    if (!cloudOk()) return;
+    var json = JSON.stringify(m);
+    if (json === lastPushed || json.length > 200000) return;
+    if (inflight) { again = true; return; }
+    inflight = true;
+    withTimeout(metaRef().set({ json: json, at: Date.now(), jjamTotal: m.jjamTotal || 0, runs: m.runs || 0 }), 10000)
+      .then(function () { lastPushed = json; R.lastSync = Date.now(); })
+      .catch(function () { /* 다음 저장 때 다시 시도 */ })
+      .then(function () { inflight = false; if (again) { again = false; pushNow(JY.Meta.get()); } });
+  }
+  function pushMeta(m, soon) {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () { init().then(function () { pushNow(m); }); }, soon ? 300 : 5000);
+  }
+
+  JY.Rank = { init: init, submit: submit, top: top, pullMeta: pullMeta, pushMeta: pushMeta, cloudOk: cloudOk, status: function () { return R; } };
 })(window.JY = window.JY || {});
 
 /* js/audio.js */
@@ -7410,6 +7564,11 @@ button { cursor: pointer; }
       return '<button type="button" class="mos" data-mos="' + k + '" aria-pressed="' + (k === setup.mos) + '"><b>' + mo.emoji + ' ' + mo.name + '</b><small>' + mo.desc + '</small><small>✦ ' + mo.perk + '</small></button>';
     }).join('');
     drawTraits();
+    setup.heat = (m.lastHeat || []).slice();
+    $('#field-heat').hidden = !(m.discharges > 0);
+    renderHeat();
+    var pace = m.lastPace || 3;
+    $$('input[name="pace"]').forEach(function (r) { r.checked = +r.value === pace; });
     var ins = Meta.stash('insurance');
     $('#row-insurance').hidden = !ins;
     $('#insurance-count').textContent = '(보유 ' + ins + '개 · 한 판에 1개)';
@@ -7421,6 +7580,15 @@ button { cursor: pointer; }
   }
 
   function updateSetupPreview() { $('#face-preview').innerHTML = charSVG('me'); }
+
+  function renderHeat() {
+    $('#heat-grid').innerHTML = JY.HEAT_ORDER.map(function (id) {
+      var h = JY.HEAT[id], on = setup.heat.indexOf(id) >= 0;
+      return '<button type="button" class="heat" data-heat="' + id + '" aria-pressed="' + on + '"><i>' + h.emoji + '</i><b>' + h.name + ' <em>+' + Math.round(h.bonus * 100) + '%</em></b><small>' + h.desc + '</small></button>';
+    }).join('');
+    var b = setup.heat.reduce(function (a, id) { return a + JY.HEAT[id].bonus; }, 0);
+    $('#heat-note').textContent = setup.heat.length ? '🔥 ' + setup.heat.length + '개 · 점수·짬 ×' + (1 + b).toFixed(2) + ' · 랭킹에 🔥 표시' : '하나도 안 켜면 보통 난이도. 고수라면 도전!';
+  }
 
   function updateDateNote() {
     var v = $('#in-date').value;
@@ -7436,8 +7604,9 @@ button { cursor: pointer; }
     var useIns = opts.insurance && Meta.stash('insurance') > 0;
     state = G.newState({
       name: opts.name, start: opts.start, mos: opts.mos, face: opts.face, pace: opts.pace,
-      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up
+      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up, heat: opts.heat || []
     });
+    if (!opts.daily) { m.lastPace = opts.pace; m.lastHeat = (opts.heat || []).slice(); Meta.save(); }
     m.runs = (m.runs || 0) + 1; Meta.save();
     save();
     busy = false;
@@ -7445,6 +7614,7 @@ button { cursor: pointer; }
     renderHUD();
     renderCard(true);
     snd('start');
+    if (!Meta.get().tutorialDone) setTimeout(startCoach, 700);
     var t = G.traitOf(state);
     toast((opts.daily ? '⭐ 오늘의 작전 출격! ' : '입영을 환영한다! ') + (t.name ? t.emoji + ' ' + t.name : ''), 2600);
   }
@@ -7454,7 +7624,7 @@ button { cursor: pointer; }
     var paceEl = document.querySelector('input[name="pace"]:checked');
     beginRun({
       name: name, start: $('#in-date').value || G.todayStr(), mos: setup.mos, face: setup.face,
-      pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait,
+      pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait, heat: $('#field-heat').hidden ? [] : setup.heat.slice(),
       insurance: !$('#row-insurance').hidden && $('#in-insurance').checked
     });
   }
@@ -7501,8 +7671,8 @@ button { cursor: pointer; }
     if (!state) return;
     var U = G.unitOf(state);
     $('#hud-rank').innerHTML = A.rankInsignia(state.rank);
-    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '');
-    $('#hud-date').textContent = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
+    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '') + ((state.heat || []).length ? ' 🔥' + state.heat.length : '');
+    $('#hud-date').textContent = G.dateOf(state).slice(2) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
     $('#hud-dday').textContent = 'D-' + G.daysLeft(state);
     var pct = G.progress(state) * 100;
     $('#gauge-fill').style.width = pct.toFixed(2) + '%';
@@ -7515,13 +7685,14 @@ button { cursor: pointer; }
       el.classList.toggle('danger', v <= 15 || v >= 85);
       el.setAttribute('aria-label', ICON[k] + ' ' + v);
     });
-    var chips = state.conds.map(function (c) {
-      var d = G.condDef(c.id);
-      return '<button class="cond" data-cond="' + c.id + '">' + d.emoji + ' ' + d.name + ' <em>' + c.left + '</em></button>';
-    });
-    if (state.insight > 0) chips.push('<button class="cond buff" data-buff="insight">🔭 투시경 <em>' + state.insight + '</em></button>');
-    if (state.luck > 0) chips.push('<button class="cond buff" data-buff="clover">🍀 행운 <em>' + state.luck + '</em></button>');
-    if (state.insurance > 0) chips.push('<button class="cond buff" data-buff="insurance">🛡️ 보험</button>');
+    var many = state.conds.length + (state.insight > 0) + (state.luck > 0) + (state.insurance > 0) > 2;
+    function chip(cls, data, emoji, name, left) { // 칩이 많으면 이름을 빼고 아이콘만 (눌러서 설명)
+      return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + (many ? '' : ' ' + name) + (left !== undefined ? ' <em>' + left + '</em>' : '') + '</button>';
+    }
+    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name, c.left); });
+    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경', state.insight));
+    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운', state.luck));
+    if (state.insurance > 0) chips.push(chip('cond buff', 'data-buff="insurance"', '🛡️', '보험'));
     $('#conds').innerHTML = chips.join('');
     $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
@@ -7572,10 +7743,11 @@ button { cursor: pointer; }
     if (!zone || !card) return;
     var r = zone.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    var ratio = 0.82;
-    var w = Math.min(r.width, r.height * ratio, 400);
-    var h = w / ratio;
-    if (h > r.height) { h = r.height; w = h * ratio; }
+    // 세로 카드가 기본. 높이가 모자라면 작게 줄이지 않고 가로로 넓힌다
+    var ratio = 0.82, w, h;
+    if (r.height >= Math.min(r.width, 400) / ratio) { w = Math.min(r.width, 400); h = w / ratio; }
+    else { h = r.height; w = Math.min(r.width, 400, Math.max(h * ratio, h * 1.5)); }
+    card.classList.toggle('wide', w > h);
     card.style.width = Math.floor(w) + 'px';
     card.style.height = Math.floor(h) + 'px';
   }
@@ -7586,7 +7758,7 @@ button { cursor: pointer; }
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발 상황!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span><br>' + esc(c.text);
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span> ' + esc(c.text);
     var card = $('#card');
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
@@ -7602,7 +7774,7 @@ button { cursor: pointer; }
     xb.hidden = !c.x;
     if (c.x) {
       $('#choice-x').textContent = c.x.t;
-      $('#choice-x-need').textContent = c.x.need || '';
+      $('#choice-x-need').textContent = c.x.need ? '· ' + c.x.need : '';
       card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
     }
     $('#choices').classList.toggle('three', !!c.x);
@@ -8200,6 +8372,7 @@ button { cursor: pointer; }
         (state.rank >= 1 && U.name ? '<p class="info-line">' + U.emoji + ' <b>' + U.name + '</b> — ' + U.perk + '</p>' : '<p class="info-line">🎲 자대는 훈련소 수료 때 정해진다.</p>') +
         (T.name ? '<p class="info-line">' + T.emoji + ' <b>' + T.name + '</b> — ' + T.desc + '</p>' : '') +
         state.conds.map(function (c) { var d = G.condDef(c.id); return '<p class="info-line">' + d.emoji + ' <b>' + d.name + '</b> (카드 ' + c.left + '장 남음) — ' + d.desc + '</p>'; }).join('') +
+        '<p class="sub">' + cloudLine() + '</p>' +
         '<div class="toggle-row"><span>효과음</span><button class="btn btn-small" data-act="sound">' + (settings.sound ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>진동</span><button class="btn btn-small" data-act="vibe">' + (settings.vibe ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>게임 방법</span><button class="btn btn-small" data-act="help">보기</button></div>' +
@@ -8285,7 +8458,8 @@ button { cursor: pointer; }
       '<div class="seal">' + (o.good ? '전역' : '보류') + '</div>';
 
     var parts = sc.parts.map(function (p) { return '<li><span>' + esc(p.label) + '</span><b>+' + num(p.n) + '</b></li>'; }).join('');
-    var multLine = sc.mult !== 1 ? '<li><span>배수 (' + (s.pace === 3 ? '속성 ×0.7' : '') + (G.traitOf(s).scoreMult ? ' 성격 ×' + G.traitOf(s).scoreMult : '') + ')</span><b>×' + sc.mult.toFixed(2) + '</b></li>' : '';
+    var hb = G.heatBonus(s);
+    var multLine = sc.mult !== 1 ? '<li><span>배수 (' + [s.pace === 3 ? '속성 ×0.7' : '', G.traitOf(s).scoreMult ? '성격 ×' + G.traitOf(s).scoreMult : '', hb ? '🔥악조건 ×' + (1 + hb).toFixed(2) : ''].filter(Boolean).join(' · ') + ')</span><b>×' + sc.mult.toFixed(2) + '</b></li>' : '';
     var ach = r.ach.map(function (a) { return '<span class="medal-chip">' + a.icon + ' ' + esc(a.name) + ' <em>+' + a.gem + '💎</em></span>'; }).join('');
     var newEnd = r.newEndings.map(function (id) { return '<span class="medal-chip new">📖 새 엔딩: ' + esc(JY.ENDINGS[id].title) + '</span>'; }).join('');
     var gemsTotal = r.reward + r.runGems + r.ach.reduce(function (a, x) { return a + x.gem; }, 0);
@@ -8299,6 +8473,8 @@ button { cursor: pointer; }
 
     showScreen('scr-end');
     if (o.good) { snd('win'); confetti(); } else { snd('fail'); if (JY.buzz) JY.buzz([80, 60, 80, 60, 200]); }
+    var cta = $('#btn-go-gear');
+    if (cta) cta.onclick = function () { barracksTab = 'gear'; renderBarracks(function () { showScreen('scr-end'); }); };
     if (r.levelUps && r.levelUps.length) setTimeout(function () { showLevelUp(r.levelUps, r.unlocked); }, 1400);
     else if (r.unlocked && r.unlocked.length) setTimeout(function () { showLevelUp([], r.unlocked); }, 1400);
     JY.Rank.submit(r.record).then(function (x) {
@@ -8393,7 +8569,7 @@ button { cursor: pointer; }
       var m = Meta.get();
       status.textContent = '이 기기에 저장된 내 최고 기록 10개.';
       list.innerHTML = m.records.length ? m.records.map(function (x, i) {
-        return '<li class="rank-row' + (i < 3 ? ' top' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(x.name) + ' ' + esc(x.cos || '') + '</b><small>' + (x.daily ? '⭐ ' : '') + esc(endTitle(x.ending)) + ' · ' + esc(unitShort(x.unit)) + ' · ' + esc(x.date || '') + '</small></span><span class="rs"><b>' + num(x.score) + '</b><small>' + esc(x.title || '') + '</small></span></li>';
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(x.name) + ' ' + esc(x.cos || '') + (x.heat ? ' 🔥' + x.heat : '') + '</b><small>' + (x.daily ? '⭐ ' : '') + esc(endTitle(x.ending)) + ' · ' + esc(unitShort(x.unit)) + ' · ' + esc(x.date || '') + '</small></span><span class="rs"><b>' + num(x.score) + '</b><small>' + esc(x.title || '') + '</small></span></li>';
       }).join('') : '<li class="rank-empty">아직 기록이 없다. 입대부터 하자!</li>';
       return;
     }
@@ -8417,7 +8593,7 @@ button { cursor: pointer; }
         var sc = kind === 'daily' ? x.dScore : x.score;
         var nm = kind === 'daily' ? (x.dName || x.name) : x.name;
         var en = kind === 'daily' ? x.dEnding : x.ending;
-        return '<li class="rank-row' + (i < 3 ? ' top' : '') + (x.id === r.me ? ' me' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(nm) + ' ' + esc(x.cos || '') + (x.id === r.me ? ' <em>나</em>' : '') + '</b><small>' + esc(endTitle(en)) + (kind === 'daily' ? '' : ' · ' + esc(unitShort(x.unit))) + '</small></span><span class="rs"><b>' + num(sc) + '</b><small>' + esc(kind === 'daily' ? JY.scoreTitle(sc) : x.title) + '</small></span></li>';
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + (x.id === r.me ? ' me' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(nm) + ' ' + esc(x.cos || '') + (kind !== 'daily' && x.heat ? ' 🔥' + x.heat : '') + (x.id === r.me ? ' <em>나</em>' : '') + '</b><small>' + esc(endTitle(en)) + (kind === 'daily' ? '' : ' · ' + esc(unitShort(x.unit))) + '</small></span><span class="rs"><b>' + num(sc) + '</b><small>' + esc(kind === 'daily' ? JY.scoreTitle(sc) : x.title) + '</small></span></li>';
       }).join('') : '<li class="rank-empty">' + (kind === 'daily' ? '오늘 1등이 비어 있다. 지금 출격하면 1등!' : '아직 아무도 없다. 첫 기록의 주인공이 되자!') + '</li>';
     });
   }
@@ -8494,6 +8670,64 @@ button { cursor: pointer; }
     }, 900);
   }
 
+  /* ── 진행 상황 클라우드 백업 ─────────── */
+  var cloudState = 'local';
+  function whenNoModal(fn) {
+    if ($('#modal').hidden) fn();
+    else setTimeout(function () { whenNoModal(fn); }, 500);
+  }
+  function cloudSync() {
+    JY.Rank.pullMeta().then(function (r) {
+      if (!r.available) { cloudState = 'local'; return; }
+      function on() { cloudState = 'cloud'; Meta.onSave = function (m) { JY.Rank.pushMeta(m); }; JY.Rank.pushMeta(Meta.get(), true); }
+      var rm = r.data, lm = Meta.get();
+      var lp = (lm.jjamTotal || 0) + (lm.runs || 0) * 10, rp = rm ? (rm.jjamTotal || 0) + (rm.runs || 0) * 10 : -1;
+      if (!rm || rp <= lp) { on(); return; }
+      if (!(lm.runs > 0)) { Meta.replace(rm); on(); toast('☁️ 다른 기기에서 하던 진행을 불러왔다!', 2600); if (!$('#scr-title').hidden) renderTitle(); return; }
+      whenNoModal(function () {
+        openModal('<h3>☁️ 다른 기기의 진행이 더 앞서 있다</h3><p>클라우드: Lv.' + Meta.lvInfo(rm.jjamTotal || 0).lv + ' · 입대 ' + (rm.runs || 0) + '회<br>이 기기: Lv.' + Meta.level().lv + ' · 입대 ' + (lm.runs || 0) + '회</p><p class="sub">불러오면 이 기기의 기록은 클라우드 것으로 바뀐다. (진행 중인 판은 그대로)</p>' +
+          '<div class="modal-actions"><button class="btn btn-ghost" data-act="keep">이 기기 유지</button><button class="btn btn-primary" data-act="load">불러오기</button></div>',
+        function (box) {
+          box.querySelector('[data-act="keep"]').onclick = function () { closeModal(); on(); };
+          box.querySelector('[data-act="load"]').onclick = function () { Meta.replace(rm); closeModal(); on(); toast('☁️ 불러왔다!'); if (!$('#scr-title').hidden) renderTitle(); };
+        });
+      });
+    });
+  }
+  function cloudLine() {
+    return cloudState === 'cloud' ? '☁️ 진행 상황 자동 백업 중 (다른 기기에서도 이어진다)' : '📱 이 기기에만 저장 중 — 브라우저 데이터를 지우면 사라진다';
+  }
+
+  /* ── 첫 판 안내 (코치 마크) ─────────── */
+  var COACH = [
+    { sel: '#card', text: '카드를 <b>왼쪽·오른쪽으로 밀어서</b> 고른다. 아래 버튼을 <b>두 번</b> 눌러도 된다.' },
+    { sel: '#stats', text: '체력·멘탈·간부 신뢰·전우애. 하나라도 <b>0이 되거나 100이 되면 전역 실패</b>. 너무 잘해도 말뚝 박힌다!' },
+    { sel: '#stats', text: '카드를 살짝 끌면 바뀔 스탯 위에 <b>점</b>이 뜬다. 큰 점 = 크게 변함. 오를지 내릴지는 글을 읽고 맞혀라.' },
+    { sel: '.dock', text: '위험하면 <b>가방·PX·동료·휴가</b>로 버틴다. 목표: <b>전역일까지 살아남기</b>. 충성!' }
+  ];
+  var coachStep = 0;
+  function startCoach() {
+    if ($('#scr-game').hidden) return;
+    coachStep = 0; showCoach();
+  }
+  function showCoach() {
+    var c = COACH[coachStep], el = document.querySelector(c.sel), ov = $('#coach');
+    if (!el) { endCoach(); return; }
+    var r = el.getBoundingClientRect();
+    var hole = $('#coach-hole');
+    hole.style.left = (r.left - 6) + 'px'; hole.style.top = (r.top - 6) + 'px';
+    hole.style.width = (r.width + 12) + 'px'; hole.style.height = (r.height + 12) + 'px';
+    var box = $('#coach-box');
+    box.innerHTML = '<p>' + c.text + '</p><div class="coach-actions"><button class="btn btn-small btn-ghost" data-c="skip">건너뛰기</button><button class="btn btn-small btn-primary" data-c="next">' + (coachStep === COACH.length - 1 ? '시작!' : '다음 (' + (coachStep + 1) + '/' + COACH.length + ')') + '</button></div>';
+    var below = r.top + r.height / 2 < window.innerHeight / 2;
+    box.style.top = below ? Math.min(window.innerHeight - 170, r.bottom + 16) + 'px' : 'auto';
+    box.style.bottom = below ? 'auto' : Math.max(12, window.innerHeight - r.top + 16) + 'px';
+    ov.hidden = false;
+    box.querySelector('[data-c="next"]').onclick = function () { snd('tap'); coachStep += 1; if (coachStep >= COACH.length) endCoach(); else showCoach(); };
+    box.querySelector('[data-c="skip"]').onclick = endCoach;
+  }
+  function endCoach() { $('#coach').hidden = true; Meta.get().tutorialDone = true; Meta.save(); }
+
   /* ── 짬 · 레벨업 ─────────────────────── */
   function jjamPanel(r, mdone) {
     var lv = Meta.level();
@@ -8501,7 +8735,14 @@ button { cursor: pointer; }
     return '<div class="jjam-panel"><p>🍚 짬 +' + num(r.jjam) + ' <small>(버틴 날 + 점수' + (r.record.good ? ' + 전역 보너스' : '') + ')</small></p>' +
       '<p class="lv-line"><em>Lv.' + lv.lv + '</em> ' + esc(lv.title) + ' <i class="lv-bar"><i style="width:' + Math.round(lv.cur / lv.need * 100) + '%"></i></i> <small>' + lv.cur + '/' + lv.need + '</small></p>' +
       (m ? '<div class="medal-row">' + m + '</div>' : '') +
-      '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.</p></div>';
+      (cheapestUp() !== null && Meta.get().jjam >= cheapestUp() ? '<button class="btn btn-daily btn-small up-cta" id="btn-go-gear">🔨 지금 장비 강화 가능! (짬 ' + num(Meta.get().jjam) + ')</button>' :
+        '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.' + (cheapestUp() !== null ? ' 다음 강화까지 짬 ' + num(cheapestUp() - Meta.get().jjam) + '.' : '') + '</p>') + '</div>';
+  }
+
+  function cheapestUp() {
+    var c = null;
+    JY.UPGRADES.forEach(function (u) { var l = Meta.upLevel(u.id); if (l < 5 && (c === null || JY.UPGRADE_COST[l] < c)) c = JY.UPGRADE_COST[l]; });
+    return c;
   }
 
   function showLevelUp(ups, unlocked) {
@@ -8567,6 +8808,7 @@ button { cursor: pointer; }
     $('#me-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
     $('#me-lvtext').textContent = lv.cur + ' / ' + lv.need + ' 짬 (다음 레벨 💎20' + (JY.LEVELS.rewards[lv.lv + 1] ? ' + 보너스' : '') + ')';
     $('#me-jjam').textContent = '🍚 짬 ' + num(m.jjam);
+    $('#me-cloud').textContent = cloudLine();
     $('#mission-badge').textContent = Meta.missionAlert() ? '!' : '';
     $$('#barracks-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === barracksTab)); });
     var body = $('#barracks-body');
@@ -8700,6 +8942,12 @@ button { cursor: pointer; }
     bindTabs('#barracks-tabs', function (t) { barracksTab = t; renderBarracks(); });
     $('#btn-face').onclick = function () { setup.face = randomFace(); snd('tap'); updateSetupPreview(); };
     $('#btn-reroll').onclick = function () { if (setup.rerolled) return; setup.rerolled = true; snd('box'); drawTraits(); };
+    $('#heat-grid').addEventListener('click', function (e) {
+      var b = e.target.closest('.heat'); if (!b) return;
+      var id = b.dataset.heat, i = setup.heat.indexOf(id);
+      if (i >= 0) setup.heat.splice(i, 1); else setup.heat.push(id);
+      snd(i >= 0 ? 'tap' : 'bad'); renderHeat();
+    });
     $('#trait-grid').addEventListener('click', function (e) {
       var b = e.target.closest('.trait'); if (!b) return;
       setup.trait = b.dataset.trait; snd('tap'); renderTraits();
@@ -8742,6 +8990,7 @@ button { cursor: pointer; }
     window.addEventListener('orientationchange', function () { setTimeout(fitCard, 200); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
 
+    cloudSync();
     var restored = data && data.save && data.save.stats && !data.save.over ? G.migrate(data.save) : null;
     if (restored) continueGame(restored);
     else { renderTitle(); greet(); }
@@ -8759,7 +9008,22 @@ button { cursor: pointer; }
     } catch (e) { /* 무시 */ }
   }
 
-  JY.UI = { init: init, charSVG: charSVG, _state: function () { return state; } };
+  JY.UI = {
+    init: init, charSVG: charSVG, _state: function () { return state; },
+    // 자동 점검(tests/ui-audit.js)용 연결 고리
+    _t: {
+      setState: function (s) { state = G.migrate(s); G._setCur(state); busy = false; },
+      showScreen: showScreen, renderHUD: renderHUD, renderCard: renderCard, showResult: showResult, fitCard: fitCard,
+      openBag: openBag, openPX: openPX, openMates: openMates, openLeave: openLeave, openMenu: openMenu, openHelp: openHelp,
+      showPromo: showPromo, showLevelUp: showLevelUp, openDaily: openDaily, closeModal: closeModal, showLeaveStory: showLeaveStory,
+      renderBarracks: function (t) { barracksTab = t; renderBarracks(renderTitle); },
+      renderShop: function (t) { shopTab = t; renderShop(renderTitle); },
+      renderAlbum: function (t) { albumTab = t; renderAlbum(renderTitle); },
+      renderRank: function (t) { rankTab = t; renderRank(renderTitle); },
+      renderTitle: renderTitle, renderSetup: renderSetup, showEnding: showEnding, stopUrgent: stopUrgent,
+      startCoach: startCoach, endCoach: endCoach
+    }
+  };
 
   var hot = window.claude && window.claude.hot;
   function boot() {

@@ -28,6 +28,12 @@
 - 🪞 **막사** — 외모(눈·입·눈썹·얼굴형·피부·특징) 직접 꾸미기, 옷장(모자·얼굴·효과·옷·소품 5슬롯, 24종: 핑크 전투복, 전역 정복, 황금 전투복, 삽돌이…)
 - 📒 **사건 수첩** — 본 장면 수집률 25/50/75/100% 보상
 
+### v4: 냉정한 점검
+- ✅ **기능 검증** — 아이템·강화·휴가·동료·되돌리기·악조건까지 200개 자동 검사, 휴대폰 5가지 크기에서 잘림 검사(0건)
+- 🔨 **강화가 진짜로 도움 되게** — 전투화·부적이 스탯을 100 쪽으로 밀어 오히려 손해였던 문제 수정 (강화 +5: 전역률 72% → 84%)
+- 🔥 **악조건 7종** — 첫 전역 후 열림. 악마 행보관·롤러코스터·돌발 지옥·맨몸 복무·눈치 제로 등, 켤수록 점수·짬 보너스 (하나에 전역률 -6~-12%p)
+- 🧭 **첫 판 길잡이**, 기본은 속성 복무, 실패 화면에서 바로 강화, 입대 선물 전역 보험, 진행 상황 클라우드 백업(아티팩트)
+
 기획 의도와 레퍼런스 분석, 현실 고증 자료는 [`docs/DESIGN.md`](docs/DESIGN.md)에 정리했습니다.
 
 ## 바로 플레이
@@ -87,8 +93,12 @@ js/audio.js           Web Audio 합성 효과음
 js/ui.js              화면 렌더링 · 스와이프 · 모달 · 저장
 sw.js, manifest.webmanifest   오프라인 · 홈 화면 설치
 tools/simulate.js     밸런스 시뮬레이터 (무작위/최적 플레이 수천 판)
+tools/retention-sim.js  지속성 시뮬레이션 (실력이 느는 플레이어 집단이 여러 판)
+tools/heat-sim.js     악조건마다 전역률이 얼마나 떨어지는지
 tools/build.js        한 파일 빌드 (dist/jeonyeok.html)
 tools/make-icons.js   앱 아이콘 생성
+tests/logic.js        기능 검사 200개 (브라우저 없이)
+tests/ui-audit.js     휴대폰 5가지 크기 잘림·탭 검사 (Playwright)
 tests/smoke.js        Playwright 자동 플레이 테스트 (입대 → 엔딩)
 ```
 
@@ -96,7 +106,11 @@ tests/smoke.js        Playwright 자동 플레이 테스트 (입대 → 엔딩)
 ```bash
 node tools/simulate.js 2000 1     # 정상 복무 밸런스 (판수, 속도)
 node tools/simulate.js 1000 3     # 속성 복무 밸런스
+node tests/logic.js               # 기능 검사 (아이템·강화·휴가·악조건 …)
+node tests/ui-audit.js shots/     # 휴대폰 5가지 크기 잘림 검사 + 스크린샷
 node tests/smoke.js shots/        # 휴대폰 화면 자동 플레이 + 스크린샷 (Playwright 필요)
+node tools/retention-sim.js 60 20 3   # 60명 × 20판 지속성 (속성 복무)
+node tools/heat-sim.js 400 3 0.8 3    # 악조건 난이도 보정
 node tools/build.js               # dist/jeonyeok.html 생성
 ```
 

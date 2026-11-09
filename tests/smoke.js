@@ -94,7 +94,15 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   await shot('03-setup');
   await tap('#setup-form button[type="submit"]');
   await page.waitForSelector('#scr-game:not([hidden])');
-  await sleep(600);
+  await sleep(900);
+  // 첫 판 길잡이: 4단계를 '다음'으로 끝까지 넘긴다
+  var coachSteps = 0;
+  while (await vis('#coach') && coachSteps < 8) {
+    if (!coachSteps) await shot('03b-coach');
+    await tap('#coach-box [data-c="next"]'); coachSteps++; await sleep(250);
+  }
+  if (coachSteps !== 4) errors.push('coach steps expected 4, got ' + coachSteps);
+  if (!(await page.evaluate(function () { return JY.Meta.get().tutorialDone; }))) errors.push('tutorialDone not saved');
   await shot('04-game');
 
   var cards = 0, minis = 0, emergencies = 0, leaveTaken = false, pxDone = false, matesDone = false, undoUsed = false, specialUsed = 0;
@@ -254,7 +262,6 @@ function log() { if (verbose) console.log.apply(console, arguments); }
     if (claim) { await claim.click(); await sleep(300); if (await vis('#modal')) await tap('#modal-box [data-act="close"]'); }
     await shot('16-missions');
     await tap('#btn-barracks-back'); await sleep(250);
-    await tap('#btn-album-back'); await sleep(250);
     // 오늘의 작전 시작만 확인
     await tap('#btn-daily'); await sleep(300);
     await shot('14-daily');
@@ -264,7 +271,7 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   }
   var meta = await page.evaluate(function () { var m = JY.Meta.get(); return { gems: m.gems, jjam: m.jjam, lv: JY.Meta.level().lv, up: m.up, scenes: Object.keys(m.scenes).length, ach: Object.keys(m.ach).length, records: m.records.length }; });
   if (warnings.length) console.log('WARN:\n' + warnings.join('\n'));
-  console.log(JSON.stringify({ cards: cards, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, undoUsed: undoUsed, specialUsed: specialUsed, ended: ended, meta: meta }));
+  console.log(JSON.stringify({ cards: cards, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, undoUsed: undoUsed, specialUsed: specialUsed, coach: coachSteps, ended: ended, meta: meta }));
   await browser.close();
   server.close();
   if (errors.length) { console.error('ERRORS:\n' + errors.join('\n')); process.exit(1); }

@@ -234,6 +234,11 @@
       return '<button type="button" class="mos" data-mos="' + k + '" aria-pressed="' + (k === setup.mos) + '"><b>' + mo.emoji + ' ' + mo.name + '</b><small>' + mo.desc + '</small><small>✦ ' + mo.perk + '</small></button>';
     }).join('');
     drawTraits();
+    setup.heat = (m.lastHeat || []).slice();
+    $('#field-heat').hidden = !(m.discharges > 0);
+    renderHeat();
+    var pace = m.lastPace || 3;
+    $$('input[name="pace"]').forEach(function (r) { r.checked = +r.value === pace; });
     var ins = Meta.stash('insurance');
     $('#row-insurance').hidden = !ins;
     $('#insurance-count').textContent = '(보유 ' + ins + '개 · 한 판에 1개)';
@@ -245,6 +250,15 @@
   }
 
   function updateSetupPreview() { $('#face-preview').innerHTML = charSVG('me'); }
+
+  function renderHeat() {
+    $('#heat-grid').innerHTML = JY.HEAT_ORDER.map(function (id) {
+      var h = JY.HEAT[id], on = setup.heat.indexOf(id) >= 0;
+      return '<button type="button" class="heat" data-heat="' + id + '" aria-pressed="' + on + '"><i>' + h.emoji + '</i><b>' + h.name + ' <em>+' + Math.round(h.bonus * 100) + '%</em></b><small>' + h.desc + '</small></button>';
+    }).join('');
+    var b = setup.heat.reduce(function (a, id) { return a + JY.HEAT[id].bonus; }, 0);
+    $('#heat-note').textContent = setup.heat.length ? '🔥 ' + setup.heat.length + '개 · 점수·짬 ×' + (1 + b).toFixed(2) + ' · 랭킹에 🔥 표시' : '하나도 안 켜면 보통 난이도. 고수라면 도전!';
+  }
 
   function updateDateNote() {
     var v = $('#in-date').value;
@@ -260,8 +274,9 @@
     var useIns = opts.insurance && Meta.stash('insurance') > 0;
     state = G.newState({
       name: opts.name, start: opts.start, mos: opts.mos, face: opts.face, pace: opts.pace,
-      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up
+      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up, heat: opts.heat || []
     });
+    if (!opts.daily) { m.lastPace = opts.pace; m.lastHeat = (opts.heat || []).slice(); Meta.save(); }
     m.runs = (m.runs || 0) + 1; Meta.save();
     save();
     busy = false;
@@ -269,6 +284,7 @@
     renderHUD();
     renderCard(true);
     snd('start');
+    if (!Meta.get().tutorialDone) setTimeout(startCoach, 700);
     var t = G.traitOf(state);
     toast((opts.daily ? '⭐ 오늘의 작전 출격! ' : '입영을 환영한다! ') + (t.name ? t.emoji + ' ' + t.name : ''), 2600);
   }
@@ -278,7 +294,7 @@
     var paceEl = document.querySelector('input[name="pace"]:checked');
     beginRun({
       name: name, start: $('#in-date').value || G.todayStr(), mos: setup.mos, face: setup.face,
-      pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait,
+      pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait, heat: $('#field-heat').hidden ? [] : setup.heat.slice(),
       insurance: !$('#row-insurance').hidden && $('#in-insurance').checked
     });
   }
@@ -325,8 +341,8 @@
     if (!state) return;
     var U = G.unitOf(state);
     $('#hud-rank').innerHTML = A.rankInsignia(state.rank);
-    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '');
-    $('#hud-date').textContent = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
+    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '') + ((state.heat || []).length ? ' 🔥' + state.heat.length : '');
+    $('#hud-date').textContent = G.dateOf(state).slice(2) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
     $('#hud-dday').textContent = 'D-' + G.daysLeft(state);
     var pct = G.progress(state) * 100;
     $('#gauge-fill').style.width = pct.toFixed(2) + '%';
@@ -339,13 +355,14 @@
       el.classList.toggle('danger', v <= 15 || v >= 85);
       el.setAttribute('aria-label', ICON[k] + ' ' + v);
     });
-    var chips = state.conds.map(function (c) {
-      var d = G.condDef(c.id);
-      return '<button class="cond" data-cond="' + c.id + '">' + d.emoji + ' ' + d.name + ' <em>' + c.left + '</em></button>';
-    });
-    if (state.insight > 0) chips.push('<button class="cond buff" data-buff="insight">🔭 투시경 <em>' + state.insight + '</em></button>');
-    if (state.luck > 0) chips.push('<button class="cond buff" data-buff="clover">🍀 행운 <em>' + state.luck + '</em></button>');
-    if (state.insurance > 0) chips.push('<button class="cond buff" data-buff="insurance">🛡️ 보험</button>');
+    var many = state.conds.length + (state.insight > 0) + (state.luck > 0) + (state.insurance > 0) > 2;
+    function chip(cls, data, emoji, name, left) { // 칩이 많으면 이름을 빼고 아이콘만 (눌러서 설명)
+      return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + (many ? '' : ' ' + name) + (left !== undefined ? ' <em>' + left + '</em>' : '') + '</button>';
+    }
+    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name, c.left); });
+    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경', state.insight));
+    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운', state.luck));
+    if (state.insurance > 0) chips.push(chip('cond buff', 'data-buff="insurance"', '🛡️', '보험'));
     $('#conds').innerHTML = chips.join('');
     $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
@@ -396,10 +413,11 @@
     if (!zone || !card) return;
     var r = zone.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    var ratio = 0.82;
-    var w = Math.min(r.width, r.height * ratio, 400);
-    var h = w / ratio;
-    if (h > r.height) { h = r.height; w = h * ratio; }
+    // 세로 카드가 기본. 높이가 모자라면 작게 줄이지 않고 가로로 넓힌다
+    var ratio = 0.82, w, h;
+    if (r.height >= Math.min(r.width, 400) / ratio) { w = Math.min(r.width, 400); h = w / ratio; }
+    else { h = r.height; w = Math.min(r.width, 400, Math.max(h * ratio, h * 1.5)); }
+    card.classList.toggle('wide', w > h);
     card.style.width = Math.floor(w) + 'px';
     card.style.height = Math.floor(h) + 'px';
   }
@@ -410,7 +428,7 @@
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발 상황!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span><br>' + esc(c.text);
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span> ' + esc(c.text);
     var card = $('#card');
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
@@ -426,7 +444,7 @@
     xb.hidden = !c.x;
     if (c.x) {
       $('#choice-x').textContent = c.x.t;
-      $('#choice-x-need').textContent = c.x.need || '';
+      $('#choice-x-need').textContent = c.x.need ? '· ' + c.x.need : '';
       card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
     }
     $('#choices').classList.toggle('three', !!c.x);
@@ -1024,6 +1042,7 @@
         (state.rank >= 1 && U.name ? '<p class="info-line">' + U.emoji + ' <b>' + U.name + '</b> — ' + U.perk + '</p>' : '<p class="info-line">🎲 자대는 훈련소 수료 때 정해진다.</p>') +
         (T.name ? '<p class="info-line">' + T.emoji + ' <b>' + T.name + '</b> — ' + T.desc + '</p>' : '') +
         state.conds.map(function (c) { var d = G.condDef(c.id); return '<p class="info-line">' + d.emoji + ' <b>' + d.name + '</b> (카드 ' + c.left + '장 남음) — ' + d.desc + '</p>'; }).join('') +
+        '<p class="sub">' + cloudLine() + '</p>' +
         '<div class="toggle-row"><span>효과음</span><button class="btn btn-small" data-act="sound">' + (settings.sound ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>진동</span><button class="btn btn-small" data-act="vibe">' + (settings.vibe ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>게임 방법</span><button class="btn btn-small" data-act="help">보기</button></div>' +
@@ -1109,7 +1128,8 @@
       '<div class="seal">' + (o.good ? '전역' : '보류') + '</div>';
 
     var parts = sc.parts.map(function (p) { return '<li><span>' + esc(p.label) + '</span><b>+' + num(p.n) + '</b></li>'; }).join('');
-    var multLine = sc.mult !== 1 ? '<li><span>배수 (' + (s.pace === 3 ? '속성 ×0.7' : '') + (G.traitOf(s).scoreMult ? ' 성격 ×' + G.traitOf(s).scoreMult : '') + ')</span><b>×' + sc.mult.toFixed(2) + '</b></li>' : '';
+    var hb = G.heatBonus(s);
+    var multLine = sc.mult !== 1 ? '<li><span>배수 (' + [s.pace === 3 ? '속성 ×0.7' : '', G.traitOf(s).scoreMult ? '성격 ×' + G.traitOf(s).scoreMult : '', hb ? '🔥악조건 ×' + (1 + hb).toFixed(2) : ''].filter(Boolean).join(' · ') + ')</span><b>×' + sc.mult.toFixed(2) + '</b></li>' : '';
     var ach = r.ach.map(function (a) { return '<span class="medal-chip">' + a.icon + ' ' + esc(a.name) + ' <em>+' + a.gem + '💎</em></span>'; }).join('');
     var newEnd = r.newEndings.map(function (id) { return '<span class="medal-chip new">📖 새 엔딩: ' + esc(JY.ENDINGS[id].title) + '</span>'; }).join('');
     var gemsTotal = r.reward + r.runGems + r.ach.reduce(function (a, x) { return a + x.gem; }, 0);
@@ -1123,6 +1143,8 @@
 
     showScreen('scr-end');
     if (o.good) { snd('win'); confetti(); } else { snd('fail'); if (JY.buzz) JY.buzz([80, 60, 80, 60, 200]); }
+    var cta = $('#btn-go-gear');
+    if (cta) cta.onclick = function () { barracksTab = 'gear'; renderBarracks(function () { showScreen('scr-end'); }); };
     if (r.levelUps && r.levelUps.length) setTimeout(function () { showLevelUp(r.levelUps, r.unlocked); }, 1400);
     else if (r.unlocked && r.unlocked.length) setTimeout(function () { showLevelUp([], r.unlocked); }, 1400);
     JY.Rank.submit(r.record).then(function (x) {
@@ -1217,7 +1239,7 @@
       var m = Meta.get();
       status.textContent = '이 기기에 저장된 내 최고 기록 10개.';
       list.innerHTML = m.records.length ? m.records.map(function (x, i) {
-        return '<li class="rank-row' + (i < 3 ? ' top' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(x.name) + ' ' + esc(x.cos || '') + '</b><small>' + (x.daily ? '⭐ ' : '') + esc(endTitle(x.ending)) + ' · ' + esc(unitShort(x.unit)) + ' · ' + esc(x.date || '') + '</small></span><span class="rs"><b>' + num(x.score) + '</b><small>' + esc(x.title || '') + '</small></span></li>';
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(x.name) + ' ' + esc(x.cos || '') + (x.heat ? ' 🔥' + x.heat : '') + '</b><small>' + (x.daily ? '⭐ ' : '') + esc(endTitle(x.ending)) + ' · ' + esc(unitShort(x.unit)) + ' · ' + esc(x.date || '') + '</small></span><span class="rs"><b>' + num(x.score) + '</b><small>' + esc(x.title || '') + '</small></span></li>';
       }).join('') : '<li class="rank-empty">아직 기록이 없다. 입대부터 하자!</li>';
       return;
     }
@@ -1241,7 +1263,7 @@
         var sc = kind === 'daily' ? x.dScore : x.score;
         var nm = kind === 'daily' ? (x.dName || x.name) : x.name;
         var en = kind === 'daily' ? x.dEnding : x.ending;
-        return '<li class="rank-row' + (i < 3 ? ' top' : '') + (x.id === r.me ? ' me' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(nm) + ' ' + esc(x.cos || '') + (x.id === r.me ? ' <em>나</em>' : '') + '</b><small>' + esc(endTitle(en)) + (kind === 'daily' ? '' : ' · ' + esc(unitShort(x.unit))) + '</small></span><span class="rs"><b>' + num(sc) + '</b><small>' + esc(kind === 'daily' ? JY.scoreTitle(sc) : x.title) + '</small></span></li>';
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + (x.id === r.me ? ' me' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(nm) + ' ' + esc(x.cos || '') + (kind !== 'daily' && x.heat ? ' 🔥' + x.heat : '') + (x.id === r.me ? ' <em>나</em>' : '') + '</b><small>' + esc(endTitle(en)) + (kind === 'daily' ? '' : ' · ' + esc(unitShort(x.unit))) + '</small></span><span class="rs"><b>' + num(sc) + '</b><small>' + esc(kind === 'daily' ? JY.scoreTitle(sc) : x.title) + '</small></span></li>';
       }).join('') : '<li class="rank-empty">' + (kind === 'daily' ? '오늘 1등이 비어 있다. 지금 출격하면 1등!' : '아직 아무도 없다. 첫 기록의 주인공이 되자!') + '</li>';
     });
   }
@@ -1318,6 +1340,64 @@
     }, 900);
   }
 
+  /* ── 진행 상황 클라우드 백업 ─────────── */
+  var cloudState = 'local';
+  function whenNoModal(fn) {
+    if ($('#modal').hidden) fn();
+    else setTimeout(function () { whenNoModal(fn); }, 500);
+  }
+  function cloudSync() {
+    JY.Rank.pullMeta().then(function (r) {
+      if (!r.available) { cloudState = 'local'; return; }
+      function on() { cloudState = 'cloud'; Meta.onSave = function (m) { JY.Rank.pushMeta(m); }; JY.Rank.pushMeta(Meta.get(), true); }
+      var rm = r.data, lm = Meta.get();
+      var lp = (lm.jjamTotal || 0) + (lm.runs || 0) * 10, rp = rm ? (rm.jjamTotal || 0) + (rm.runs || 0) * 10 : -1;
+      if (!rm || rp <= lp) { on(); return; }
+      if (!(lm.runs > 0)) { Meta.replace(rm); on(); toast('☁️ 다른 기기에서 하던 진행을 불러왔다!', 2600); if (!$('#scr-title').hidden) renderTitle(); return; }
+      whenNoModal(function () {
+        openModal('<h3>☁️ 다른 기기의 진행이 더 앞서 있다</h3><p>클라우드: Lv.' + Meta.lvInfo(rm.jjamTotal || 0).lv + ' · 입대 ' + (rm.runs || 0) + '회<br>이 기기: Lv.' + Meta.level().lv + ' · 입대 ' + (lm.runs || 0) + '회</p><p class="sub">불러오면 이 기기의 기록은 클라우드 것으로 바뀐다. (진행 중인 판은 그대로)</p>' +
+          '<div class="modal-actions"><button class="btn btn-ghost" data-act="keep">이 기기 유지</button><button class="btn btn-primary" data-act="load">불러오기</button></div>',
+        function (box) {
+          box.querySelector('[data-act="keep"]').onclick = function () { closeModal(); on(); };
+          box.querySelector('[data-act="load"]').onclick = function () { Meta.replace(rm); closeModal(); on(); toast('☁️ 불러왔다!'); if (!$('#scr-title').hidden) renderTitle(); };
+        });
+      });
+    });
+  }
+  function cloudLine() {
+    return cloudState === 'cloud' ? '☁️ 진행 상황 자동 백업 중 (다른 기기에서도 이어진다)' : '📱 이 기기에만 저장 중 — 브라우저 데이터를 지우면 사라진다';
+  }
+
+  /* ── 첫 판 안내 (코치 마크) ─────────── */
+  var COACH = [
+    { sel: '#card', text: '카드를 <b>왼쪽·오른쪽으로 밀어서</b> 고른다. 아래 버튼을 <b>두 번</b> 눌러도 된다.' },
+    { sel: '#stats', text: '체력·멘탈·간부 신뢰·전우애. 하나라도 <b>0이 되거나 100이 되면 전역 실패</b>. 너무 잘해도 말뚝 박힌다!' },
+    { sel: '#stats', text: '카드를 살짝 끌면 바뀔 스탯 위에 <b>점</b>이 뜬다. 큰 점 = 크게 변함. 오를지 내릴지는 글을 읽고 맞혀라.' },
+    { sel: '.dock', text: '위험하면 <b>가방·PX·동료·휴가</b>로 버틴다. 목표: <b>전역일까지 살아남기</b>. 충성!' }
+  ];
+  var coachStep = 0;
+  function startCoach() {
+    if ($('#scr-game').hidden) return;
+    coachStep = 0; showCoach();
+  }
+  function showCoach() {
+    var c = COACH[coachStep], el = document.querySelector(c.sel), ov = $('#coach');
+    if (!el) { endCoach(); return; }
+    var r = el.getBoundingClientRect();
+    var hole = $('#coach-hole');
+    hole.style.left = (r.left - 6) + 'px'; hole.style.top = (r.top - 6) + 'px';
+    hole.style.width = (r.width + 12) + 'px'; hole.style.height = (r.height + 12) + 'px';
+    var box = $('#coach-box');
+    box.innerHTML = '<p>' + c.text + '</p><div class="coach-actions"><button class="btn btn-small btn-ghost" data-c="skip">건너뛰기</button><button class="btn btn-small btn-primary" data-c="next">' + (coachStep === COACH.length - 1 ? '시작!' : '다음 (' + (coachStep + 1) + '/' + COACH.length + ')') + '</button></div>';
+    var below = r.top + r.height / 2 < window.innerHeight / 2;
+    box.style.top = below ? Math.min(window.innerHeight - 170, r.bottom + 16) + 'px' : 'auto';
+    box.style.bottom = below ? 'auto' : Math.max(12, window.innerHeight - r.top + 16) + 'px';
+    ov.hidden = false;
+    box.querySelector('[data-c="next"]').onclick = function () { snd('tap'); coachStep += 1; if (coachStep >= COACH.length) endCoach(); else showCoach(); };
+    box.querySelector('[data-c="skip"]').onclick = endCoach;
+  }
+  function endCoach() { $('#coach').hidden = true; Meta.get().tutorialDone = true; Meta.save(); }
+
   /* ── 짬 · 레벨업 ─────────────────────── */
   function jjamPanel(r, mdone) {
     var lv = Meta.level();
@@ -1325,7 +1405,14 @@
     return '<div class="jjam-panel"><p>🍚 짬 +' + num(r.jjam) + ' <small>(버틴 날 + 점수' + (r.record.good ? ' + 전역 보너스' : '') + ')</small></p>' +
       '<p class="lv-line"><em>Lv.' + lv.lv + '</em> ' + esc(lv.title) + ' <i class="lv-bar"><i style="width:' + Math.round(lv.cur / lv.need * 100) + '%"></i></i> <small>' + lv.cur + '/' + lv.need + '</small></p>' +
       (m ? '<div class="medal-row">' + m + '</div>' : '') +
-      '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.</p></div>';
+      (cheapestUp() !== null && Meta.get().jjam >= cheapestUp() ? '<button class="btn btn-daily btn-small up-cta" id="btn-go-gear">🔨 지금 장비 강화 가능! (짬 ' + num(Meta.get().jjam) + ')</button>' :
+        '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.' + (cheapestUp() !== null ? ' 다음 강화까지 짬 ' + num(cheapestUp() - Meta.get().jjam) + '.' : '') + '</p>') + '</div>';
+  }
+
+  function cheapestUp() {
+    var c = null;
+    JY.UPGRADES.forEach(function (u) { var l = Meta.upLevel(u.id); if (l < 5 && (c === null || JY.UPGRADE_COST[l] < c)) c = JY.UPGRADE_COST[l]; });
+    return c;
   }
 
   function showLevelUp(ups, unlocked) {
@@ -1391,6 +1478,7 @@
     $('#me-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
     $('#me-lvtext').textContent = lv.cur + ' / ' + lv.need + ' 짬 (다음 레벨 💎20' + (JY.LEVELS.rewards[lv.lv + 1] ? ' + 보너스' : '') + ')';
     $('#me-jjam').textContent = '🍚 짬 ' + num(m.jjam);
+    $('#me-cloud').textContent = cloudLine();
     $('#mission-badge').textContent = Meta.missionAlert() ? '!' : '';
     $$('#barracks-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === barracksTab)); });
     var body = $('#barracks-body');
@@ -1524,6 +1612,12 @@
     bindTabs('#barracks-tabs', function (t) { barracksTab = t; renderBarracks(); });
     $('#btn-face').onclick = function () { setup.face = randomFace(); snd('tap'); updateSetupPreview(); };
     $('#btn-reroll').onclick = function () { if (setup.rerolled) return; setup.rerolled = true; snd('box'); drawTraits(); };
+    $('#heat-grid').addEventListener('click', function (e) {
+      var b = e.target.closest('.heat'); if (!b) return;
+      var id = b.dataset.heat, i = setup.heat.indexOf(id);
+      if (i >= 0) setup.heat.splice(i, 1); else setup.heat.push(id);
+      snd(i >= 0 ? 'tap' : 'bad'); renderHeat();
+    });
     $('#trait-grid').addEventListener('click', function (e) {
       var b = e.target.closest('.trait'); if (!b) return;
       setup.trait = b.dataset.trait; snd('tap'); renderTraits();
@@ -1566,6 +1660,7 @@
     window.addEventListener('orientationchange', function () { setTimeout(fitCard, 200); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
 
+    cloudSync();
     var restored = data && data.save && data.save.stats && !data.save.over ? G.migrate(data.save) : null;
     if (restored) continueGame(restored);
     else { renderTitle(); greet(); }
@@ -1583,7 +1678,22 @@
     } catch (e) { /* 무시 */ }
   }
 
-  JY.UI = { init: init, charSVG: charSVG, _state: function () { return state; } };
+  JY.UI = {
+    init: init, charSVG: charSVG, _state: function () { return state; },
+    // 자동 점검(tests/ui-audit.js)용 연결 고리
+    _t: {
+      setState: function (s) { state = G.migrate(s); G._setCur(state); busy = false; },
+      showScreen: showScreen, renderHUD: renderHUD, renderCard: renderCard, showResult: showResult, fitCard: fitCard,
+      openBag: openBag, openPX: openPX, openMates: openMates, openLeave: openLeave, openMenu: openMenu, openHelp: openHelp,
+      showPromo: showPromo, showLevelUp: showLevelUp, openDaily: openDaily, closeModal: closeModal, showLeaveStory: showLeaveStory,
+      renderBarracks: function (t) { barracksTab = t; renderBarracks(renderTitle); },
+      renderShop: function (t) { shopTab = t; renderShop(renderTitle); },
+      renderAlbum: function (t) { albumTab = t; renderAlbum(renderTitle); },
+      renderRank: function (t) { rankTab = t; renderRank(renderTitle); },
+      renderTitle: renderTitle, renderSetup: renderSetup, showEnding: showEnding, stopUrgent: stopUrgent,
+      startCoach: startCoach, endCoach: endCoach
+    }
+  };
 
   var hot = window.claude && window.claude.hot;
   function boot() {

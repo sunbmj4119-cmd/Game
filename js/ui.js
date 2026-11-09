@@ -92,7 +92,7 @@
     toastTimer = setTimeout(function () { t.hidden = true; }, ms || 2200);
   }
 
-  var SCREENS = ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album', 'scr-rank', 'scr-shop'];
+  var SCREENS = ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album', 'scr-rank', 'scr-shop', 'scr-barracks'];
   function showScreen(id) {
     SCREENS.forEach(function (s) { document.getElementById(s).hidden = s !== id; });
     if (id === 'scr-game') requestAnimationFrame(fitCard);
@@ -173,7 +173,7 @@
   /* ── 타이틀 ───────────────────────────── */
   function renderGems() {
     var g = Meta.get().gems;
-    ['#title-gems', '#shop-gems'].forEach(function (s) { var el = $(s); if (el) el.textContent = '💎 ' + num(g); });
+    ['#title-gems', '#shop-gems', '#barracks-gems'].forEach(function (s) { var el = $(s); if (el) el.textContent = '💎 ' + num(g); });
   }
 
   function renderTitle() {
@@ -190,6 +190,17 @@
     $('#daily-best').textContent = d ? '내 최고 ' + num(d.score) + '점' : '오늘 아직 미참가';
     $('#title-streak').hidden = !m.login.streak;
     $('#title-streak').textContent = '🗓️ 연속 출석 ' + m.login.streak + '일';
+    var lv = Meta.level();
+    $('#title-lvnum').textContent = 'Lv.' + lv.lv;
+    $('#title-lvtitle').textContent = lv.title;
+    $('#title-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
+    var ms = Meta.missions();
+    var done = ms.list.filter(function (x) { return x.claimed; }).length;
+    $('#mission-sum').textContent = done + '/3' + (Meta.missionAlert() ? ' · 보상 받기!' : '') + (ms.bonus ? ' ✓' : '');
+    $('#mission-strip').classList.toggle('alert', !!Meta.missionAlert());
+    $('#barracks-badge').hidden = !Meta.missionAlert();
+    $('#shop-badge').hidden = !(m.freeBoxes > 0);
+    $('#album-badge').hidden = !Meta.collectAlert();
     renderGems();
     showScreen('scr-title');
   }
@@ -249,7 +260,7 @@
     var useIns = opts.insurance && Meta.stash('insurance') > 0;
     state = G.newState({
       name: opts.name, start: opts.start, mos: opts.mos, face: opts.face, pace: opts.pace,
-      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns
+      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up
     });
     m.runs = (m.runs || 0) + 1; Meta.save();
     save();
@@ -411,6 +422,15 @@
       '<div class="nametape"><b>' + esc(nm.name) + '</b><span>' + esc(nm.role) + '</span></div>';
     $('#choice-l').textContent = c.l.t;
     $('#choice-r').textContent = c.r.t;
+    var xb = $('#choice-x-btn');
+    xb.hidden = !c.x;
+    if (c.x) {
+      $('#choice-x').textContent = c.x.t;
+      $('#choice-x-need').textContent = c.x.need || '';
+      card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
+    }
+    $('#choices').classList.toggle('three', !!c.x);
+    if (Meta.see(c.key)) card.insertAdjacentHTML('beforeend', '<span class="new-scene">NEW</span>');
     $$('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
     $('#talk-bubble').hidden = true;
     armed = null;
@@ -448,11 +468,14 @@
   function setCardPose(dx, dy) {
     var card = $('#card');
     card.style.transform = 'translate(' + dx + 'px,' + (dy || 0) + 'px) rotate(' + (dx * 0.06) + 'deg)';
-    var side = dx < -14 ? 'l' : dx > 14 ? 'r' : null;
-    var amt = Math.min(1, Math.abs(dx) / 70);
+    var lx = card.querySelector('.card-label.x');
+    var up = lx && dy < -24 && Math.abs(dx) < Math.abs(dy);
+    var side = up ? 'x' : dx < -14 ? 'l' : dx > 14 ? 'r' : null;
+    var amt = up ? Math.min(1, -dy / 70) : Math.min(1, Math.abs(dx) / 70);
     var ll = card.querySelector('.card-label.l'), lr = card.querySelector('.card-label.r');
     if (ll) ll.style.opacity = side === 'l' ? amt : 0;
     if (lr) lr.style.opacity = side === 'r' ? amt : 0;
+    if (lx) lx.style.opacity = side === 'x' ? amt : 0;
     return side;
   }
 
@@ -463,7 +486,7 @@
     $$('.choice').forEach(function (b) { b.classList.toggle('armed', b.dataset.side === side); });
     var card = $('#card');
     card.classList.remove('enter'); card.classList.add('back');
-    setCardPose(side === 'l' ? -46 : 46, 0);
+    if (side === 'x') setCardPose(0, -40); else setCardPose(side === 'l' ? -46 : 46, 0);
     showPreview(side);
     snd('tap');
     toast('한 번 더 누르면 결정!', 1200);
@@ -501,13 +524,16 @@
     card.addEventListener('pointermove', function (e) {
       if (!drag || e.pointerId !== drag.id) return;
       drag.dx = e.clientX - drag.x0;
-      var side = setCardPose(drag.dx, (e.clientY - drag.y0) * 0.15);
+      drag.dy = e.clientY - drag.y0;
+      var hasX = !!$('#card .card-label.x');
+      var side = setCardPose(drag.dx, hasX && drag.dy < 0 ? drag.dy * 0.8 : drag.dy * 0.15);
       if (side !== drag.side) { drag.side = side; showPreview(side); }
     });
     function endDrag(e, cancel) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       var d = drag; drag = null;
       var th = Math.min(110, card.offsetWidth * 0.3);
+      if (!cancel && d.side === 'x' && d.dy < -90) { commit('x'); return; }
       if (!cancel && Math.abs(d.dx) > th) { commit(d.dx < 0 ? 'l' : 'r'); return; }
       card.classList.add('back');
       setCardPose(0, 0);
@@ -527,6 +553,7 @@
       if (document.activeElement === card) return;
       if (e.key === 'ArrowLeft') arm('l');
       if (e.key === 'ArrowRight') arm('r');
+      if (e.key === 'ArrowUp' && !$('#choice-x-btn').hidden) arm('x');
     });
   }
 
@@ -542,10 +569,17 @@
     var w = window.innerWidth;
     card.classList.remove('back', 'enter');
     card.classList.add('fly');
-    card.style.transform = side === 't' ? 'translate(0, 120%) rotate(8deg)' : 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
+    card.style.transform = side === 't' ? 'translate(0, 120%) rotate(8deg)' : side === 'x' ? 'translate(0, -130%) scale(.9)' : 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
     card.style.opacity = '0';
+    undoSnap = state.undo > 0 ? JSON.stringify(state) : null;
     var res = credit(G.choose(state, side));
     save();
+    if (res) {
+      var done = Meta.track('card');
+      if (res.special) { done = done.concat(Meta.track('special')); snd('gem'); }
+      if (res.emergency && !res.timeout) done = done.concat(Meta.track('emer_ok'));
+      missionToast(done);
+    }
     setTimeout(function () {
       if (!res) { busy = false; renderCard(true); return; }
       if (res.timeout) res.say = '⏰ 시간 초과! ' + (res.say || '');
@@ -557,6 +591,7 @@
   function runMini(res) {
     var opts = { stats: state.stats, mos: state.mos, hard: !!G.traitOf(state).watchHard, face: function (w) { return charSVG(w); } };
     JY.Mini.start(res.mini, opts, function (tier) {
+      if (tier === 'great') missionToast(Meta.track('mini_great'));
       var r2 = credit(G.finishMini(state, tier));
       save();
       if (!r2) { busy = false; renderCard(true); return; }
@@ -569,7 +604,24 @@
     });
   }
 
+  function missionToast(done) {
+    if (!done || !done.length) return;
+    var d = done[done.length - 1];
+    setTimeout(function () { toast('🎯 임무 완료: ' + d.text + ' — 막사에서 보상 받기', 2800); snd('coin'); }, 600);
+  }
+
+  function trackEvents(res) {
+    var done = [];
+    (res.events || []).forEach(function (e) {
+      if (e.type === 'promo') done = done.concat(Meta.track('promo'));
+      if (e.type === 'bff') done = done.concat(Meta.track('bff'));
+    });
+    if (state) done = done.concat(Meta.track('days', state.day, true));
+    missionToast(done);
+  }
+
   function afterChoice(res) {
+    trackEvents(res);
     renderHUD();
     renderGems();
     animateDeltas(res.deltas || {});
@@ -618,15 +670,38 @@
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
+      (canUndo(res) ? '<button class="undo-btn" id="undo-btn">⌚ 국방부 시계 되돌리기 <em>' + (JSON.parse(undoSnap).undo) + '회</em></button>' : '') +
       '<span class="tap-next">탭해서 계속 ▶</span></div>';
     box.hidden = false;
     var shownAt = Date.now();
+    var ub = $('#undo-btn');
+    if (ub) ub.onclick = function (e) { e.stopPropagation(); box.onclick = null; box.hidden = true; doUndo(); };
     box.onclick = function () {
       if (Date.now() - shownAt < 350) return;
       box.onclick = null;
       box.hidden = true;
+      undoSnap = null;
       cb();
     };
+  }
+
+  var undoSnap = null;
+  function canUndo(res) {
+    if (!undoSnap) return false;
+    return !(res.events || []).some(function (e) { return e.type === 'gem'; });
+  }
+  function doUndo() {
+    var s2 = JSON.parse(undoSnap);
+    undoSnap = null;
+    s2.undo = Math.max(0, s2.undo - 1);
+    state = G.migrate(s2);
+    G._setCur(state);
+    save();
+    busy = false;
+    snd('reveal');
+    toast('⌚ 국방부 시계를 거꾸로 돌렸다! "…꿈이었나?"', 2400);
+    renderHUD();
+    renderCard(true);
   }
 
   function nextAfterResult(res) {
@@ -748,6 +823,7 @@
       if (u) u.onclick = function () {
         var r = G.useItem(state, sel);
         if (r) {
+          missionToast(Meta.track('item_use'));
           save(); renderHUD(); animateDeltas(r.deltas);
           var moved = Object.keys(r.deltas).some(function (k) { return r.deltas[k]; });
           snd(moved ? 'good' : 'tap');
@@ -803,7 +879,7 @@
     function bind(box) {
       $$('.item', box).forEach(function (b) {
         b.onclick = function () {
-          if (G.buy(state, b.dataset.id)) { bought = true; snd('coin'); save(); renderHUD(); box.innerHTML = html(); bind(box); }
+          if (G.buy(state, b.dataset.id)) { bought = true; snd('coin'); missionToast(Meta.track('px_buy')); save(); renderHUD(); box.innerHTML = html(); bind(box); }
           else toast('돈이 부족하거나 가방이 꽉 찼다.');
         };
       });
@@ -847,6 +923,8 @@
           var r = credit(G.talk(state, w));
           if (!r) return;
           if (r.cooldown) { toast(npcName(w) + ': "' + r.line + '" (수다는 ' + r.cooldown + '일 뒤에)'); return; }
+          missionToast(Meta.track('talk'));
+          trackEvents(r);
           save(); renderHUD(); animateDeltas(r.deltas); snd('tap');
           toast(npcName(w) + ': "' + r.line + '"', 2600);
           var bff = (r.events || []).filter(function (e) { return e.type === 'bff'; })[0];
@@ -860,6 +938,8 @@
           var w = giftFor, item = b.dataset.gift;
           var r = credit(G.gift(state, w, item));
           if (!r) return;
+          missionToast(Meta.track('gift'));
+          trackEvents(r);
           save(); renderHUD(); animateDeltas(r.deltas);
           snd(r.fav ? 'gem' : 'good');
           var msg = r.say || (r.fav ? npcName(w) + ': "이거 내가 제일 좋아하는 거잖아!!"' : npcName(w) + ': "오, 고맙다!"');
@@ -904,6 +984,8 @@
         var res = credit(G.takeLeave(state, n));
         closeModal();
         if (!res) return;
+        if (!state.over) missionToast(Meta.track('leave'));
+        trackEvents(res);
         save();
         renderHUD();
         animateDeltas(res.deltas);
@@ -994,6 +1076,10 @@
     var o = s.over;
     var E = JY.ENDINGS[o.id] || JY.ENDINGS.normal;
     var sc = o.score || G.score(s);
+    var served0 = o.day + (o.good ? 1 : 0);
+    var mdone = Meta.track('days', served0, true);
+    if (o.good) mdone = mdone.concat(Meta.track('discharge'));
+    if (s.daily) mdone = mdone.concat(Meta.track('daily'));
     var r = Meta.finishRun(s);
     lsDel(KEYS.save);
     lastEnd = { s: s, r: r };
@@ -1032,10 +1118,13 @@
       '<ul class="score-parts">' + parts + multLine + '</ul>' +
       '<p class="score-gems">💎 +' + num(gemsTotal) + ' <small>(이번 판 획득 ' + r.runGems + ' · 정산 ' + r.reward + (r.ach.length ? ' · 훈장 ' + (gemsTotal - r.reward - r.runGems) : '') + ')</small></p>' +
       (newEnd || ach ? '<div class="medal-row">' + newEnd + ach + '</div>' : '') +
-      '<p class="score-rank">' + (r.place >= 0 ? '🏅 내 기록 ' + (r.place + 1) + '위' + (r.place === 0 ? ' — 신기록!' : '') : '내 기록 10위 밖') + ' <span id="rank-sync">· 전군 랭킹 확인 중…</span></p>';
+      '<p class="score-rank">' + (r.place >= 0 ? '🏅 내 기록 ' + (r.place + 1) + '위' + (r.place === 0 ? ' — 신기록!' : '') : '내 기록 10위 밖') + ' <span id="rank-sync">· 전군 랭킹 확인 중…</span></p>' +
+      jjamPanel(r, mdone);
 
     showScreen('scr-end');
     if (o.good) { snd('win'); confetti(); } else { snd('fail'); if (JY.buzz) JY.buzz([80, 60, 80, 60, 200]); }
+    if (r.levelUps && r.levelUps.length) setTimeout(function () { showLevelUp(r.levelUps, r.unlocked); }, 1400);
+    else if (r.unlocked && r.unlocked.length) setTimeout(function () { showLevelUp([], r.unlocked); }, 1400);
     JY.Rank.submit(r.record).then(function (x) {
       var el = $('#rank-sync'); if (!el) return;
       el.textContent = x.ok ? (x.changed ? '· 전군 랭킹에 반영됐다!' : '· 전군 랭킹 최고 기록 유지 중') : '· ' + (x.reason || '전군 랭킹 미반영');
@@ -1068,10 +1157,31 @@
     var nm = JY.ACHIEVEMENTS.filter(function (a) { return m.ach[a.id]; }).length;
     $('#album-progress').textContent = albumTab === 'endings' ? n + '/' + ids.length : nm + '/' + JY.ACHIEVEMENTS.length;
     $('#medal-count').textContent = nm + '/' + JY.ACHIEVEMENTS.length;
+    var cp = Meta.collectProgress();
+    $('#scene-count').textContent = Math.round(cp.frac * 100) + '%';
+    if (albumTab === 'scenes') $('#album-progress').textContent = cp.n + '/' + cp.total;
     $$('#album-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === albumTab)); });
     var grid = $('#album-grid');
-    grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : '');
-    if (albumTab === 'endings') {
+    grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : albumTab === 'scenes' ? ' scenes' : '');
+    if (albumTab === 'scenes') {
+      grid.innerHTML = '<div class="collect-head"><b>' + cp.n + ' / ' + cp.total + '</b> 장면 수집 <i class="lv-bar big"><i style="width:' + Math.round(cp.frac * 100) + '%"></i></i>' +
+        '<small>카드는 같아도 장면·질문이 여러 버전이다. 새 장면을 처음 보면 카드에 NEW가 뜬다.</small></div>' +
+        JY.COLLECT_MILESTONES.map(function (ms, i) {
+          var reached = cp.frac >= ms.at, got = m.collectClaimed[i];
+          var cos = ms.cos ? ' + ' + JY.COSMETICS[ms.cos].icon + ' ' + JY.COSMETICS[ms.cos].name : '';
+          return '<div class="milestone' + (got ? ' got' : reached ? ' ready' : '') + '"><span>' + Math.round(ms.at * 100) + '%</span><b>💎' + ms.gem + ' · 🍚' + ms.jjam + cos + '</b>' +
+            (got ? '<em>받음</em>' : reached ? '<button class="btn btn-small btn-primary" data-claimc="' + i + '">받기</button>' : '<em>' + Math.round(ms.at * cp.total) + '장 필요</em>') + '</div>';
+        }).join('');
+      $$('[data-claimc]', grid).forEach(function (b) {
+        b.onclick = function () {
+          var res = Meta.claimCollect(+b.dataset.claimc);
+          if (!res) return;
+          snd('reveal'); confetti(); toast('사건 수첩 보상! 💎 +' + res.ms.gem + ' · 짬 +' + res.ms.jjam);
+          if (res.ups && res.ups.length) showLevelUp(res.ups, []);
+          renderAlbum();
+        };
+      });
+    } else if (albumTab === 'endings') {
       grid.innerHTML = ids.map(function (id) {
         var E = JY.ENDINGS[id];
         if (!got[id]) {
@@ -1156,22 +1266,18 @@
           '<button class="btn btn-small btn-primary" data-buy="' + id + '"' + (m.gems < p.price ? ' disabled' : '') + '>💎 ' + p.price + '</button></div>';
       }).join('') + '</div>';
     } else if (shopTab === 'cos') {
-      body.innerHTML = '<div class="cos-grid">' + JY.COSMETIC_ORDER.map(function (id) {
-        var c = JY.COSMETICS[id], owned = Meta.ownsCos(id), on = m.cos.eq[c.slot] === id;
-        var btn = owned ? '<button class="btn btn-small' + (on ? ' btn-primary' : '') + '" data-equip="' + id + '">' + (on ? '착용 중' : '착용') + '</button>'
-          : c.gacha ? '<span class="gacha-only">보급 상자 ' + (c.gacha === 'legend' ? '전설' : '영웅') + '</span>'
-            : '<button class="btn btn-small btn-primary" data-cos="' + id + '"' + (m.gems < c.price ? ' disabled' : '') + '>💎 ' + c.price + '</button>';
-        return '<div class="cos' + (on ? ' on' : '') + (owned ? ' owned' : '') + '"><i>' + c.icon + '</i><b>' + c.name + '</b><small>' + JY.SLOT_NAMES[c.slot] + '</small>' + btn + '</div>';
-      }).join('') + '</div>';
+      body.innerHTML = cosGrid(true);
     } else {
-      body.innerHTML = '<div class="box-area"><button class="supply-box" id="supply-box" aria-label="보급 상자 열기"><span class="box-emoji">📦</span><b>보급 상자</b><small>💎 ' + JY.BOX.price + '</small></button>' +
+      var fb = m.freeBoxes || 0;
+      body.innerHTML = '<div class="box-area">' + (fb ? '<button class="btn btn-daily" id="free-box">🎁 무료 보급 상자 열기 (' + fb + '개)</button>' : '') + '<button class="supply-box" id="supply-box" aria-label="보급 상자 열기"><span class="box-emoji">📦</span><b>보급 상자</b><small>💎 ' + JY.BOX.price + '</small></button>' +
         '<ul class="box-odds">' + JY.BOX.tiers.map(function (t) {
           var what = t.id === 'common' ? '짬처리권·PX 프리패스·회식권 2개' : t.id === 'rare' ? '투시경·네잎클로버·포상휴가증 2개' : t.id === 'epic' ? '전역 보험 또는 꾸미기(무지개 아프로 포함)' : '전역 왕관 (이미 있으면 💎 100)';
           return '<li><span class="tier" style="background:' + t.color + '">' + t.name + '</span> ' + Math.round(t.p * 100) + '% — ' + what + '</li>';
         }).join('') + '</ul></div>';
       var bx = $('#supply-box');
       if (m.gems < JY.BOX.price) bx.classList.add('poor');
-      bx.onclick = openBoxFlow;
+      bx.onclick = function () { openBoxFlow(false); };
+      var fbb = $('#free-box'); if (fbb) fbb.onclick = function () { openBoxFlow(true); };
     }
     $$('[data-buy]', body).forEach(function (b) {
       b.onclick = function () {
@@ -1188,10 +1294,10 @@
     $$('[data-equip]', body).forEach(function (b) { b.onclick = function () { Meta.equip(b.dataset.equip); snd('tap'); renderShop(); }; });
   }
 
-  function openBoxFlow() {
+  function openBoxFlow(free) {
     var bx = $('#supply-box');
-    if (Meta.get().gems < JY.BOX.price) { toast('다이아가 부족하다. 전역하고 출석하면 모인다!'); return; }
-    var out = Meta.openBox();
+    if (!free && Meta.get().gems < JY.BOX.price) { toast('다이아가 부족하다. 전역하고 출석하면 모인다!'); return; }
+    var out = Meta.openBox(free);
     if (!out) return;
     renderGems();
     bx.classList.add('shake');
@@ -1204,12 +1310,152 @@
       got += out.items.map(function (id) { return '<div class="reveal-item"><i>' + JY.PREMIUM[id].icon + '</i><b>' + JY.PREMIUM[id].name + '</b><small>특급 보급품 창고로</small></div>'; }).join('');
       if (out.gems) got += '<div class="reveal-item"><i>💎</i><b>다이아 ' + out.gems + '</b><small>왕관은 이미 있다! 대신 다이아</small></div>';
       openModal('<div class="reveal" style="--tier:' + out.tier.color + '"><span class="tier big" style="background:' + out.tier.color + '">' + out.tier.name + '</span><h3>보급 상자 개봉!</h3><div class="reveal-items">' + got + '</div>' +
-        '<div class="modal-actions"><button class="btn btn-ghost" data-act="again">하나 더 (💎' + JY.BOX.price + ')</button><button class="btn btn-primary" data-act="close">좋다!</button></div></div>',
+        '<div class="modal-actions"><button class="btn btn-ghost" data-act="again">' + (Meta.get().freeBoxes > 0 ? '무료 상자 하나 더' : '하나 더 (💎' + JY.BOX.price + ')') + '</button><button class="btn btn-primary" data-act="close">좋다!</button></div></div>',
       function (box) {
         box.querySelector('[data-act="close"]').onclick = closeModal;
-        box.querySelector('[data-act="again"]').onclick = function () { closeModal(); openBoxFlow(); };
+        box.querySelector('[data-act="again"]').onclick = function () { closeModal(); openBoxFlow(Meta.get().freeBoxes > 0); };
       }, function () { renderShop(); });
     }, 900);
+  }
+
+  /* ── 짬 · 레벨업 ─────────────────────── */
+  function jjamPanel(r, mdone) {
+    var lv = Meta.level();
+    var m = (mdone || []).map(function (d) { return '<span class="medal-chip">🎯 ' + esc(d.text) + '</span>'; }).join('');
+    return '<div class="jjam-panel"><p>🍚 짬 +' + num(r.jjam) + ' <small>(버틴 날 + 점수' + (r.record.good ? ' + 전역 보너스' : '') + ')</small></p>' +
+      '<p class="lv-line"><em>Lv.' + lv.lv + '</em> ' + esc(lv.title) + ' <i class="lv-bar"><i style="width:' + Math.round(lv.cur / lv.need * 100) + '%"></i></i> <small>' + lv.cur + '/' + lv.need + '</small></p>' +
+      (m ? '<div class="medal-row">' + m + '</div>' : '') +
+      '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.</p></div>';
+  }
+
+  function showLevelUp(ups, unlocked) {
+    var last = ups[ups.length - 1];
+    var lv = Meta.level();
+    var gems = ups.reduce(function (a, u) { return a + u.gem; }, 0), boxes = ups.reduce(function (a, u) { return a + u.box; }, 0);
+    var cos = (unlocked || []).map(function (id) { var c = JY.COSMETICS[id]; return '<div class="reveal-item"><i>' + c.icon + '</i><b>' + c.name + '</b><small>' + JY.SLOT_NAMES[c.slot] + ' 해금! 막사 옷장에서 입기</small></div>'; }).join('');
+    snd('promo'); confetti();
+    openModal('<div class="reveal">' + (last ? '<span class="tier big" style="background:#e0b347;color:#2a2620">짬 레벨 UP</span><h3>Lv.' + last.lv + ' ' + esc(lv.title) + '</h3>' +
+      '<p>💎 +' + gems + (boxes ? ' · 🎁 무료 보급 상자 ' + boxes + '개' : '') + '</p>' : '<h3>새 꾸미기 해금!</h3>') +
+      (cos ? '<div class="reveal-items">' + cos + '</div>' : '') +
+      '<div class="modal-actions"><button class="btn btn-primary" data-act="close">충성!</button></div></div>',
+    function (box) { box.querySelector('[data-act="close"]').onclick = closeModal; });
+  }
+
+  /* ── 옷장 그리드 (상점·막사 공용) ─────── */
+  function cosGrid(shop) {
+    var m = Meta.get();
+    return JY.SLOT_ORDER.map(function (slot) {
+      var items = JY.COSMETIC_ORDER.filter(function (id) { return JY.COSMETICS[id].slot === slot; });
+      return '<h4 class="slot-head">' + JY.SLOT_NAMES[slot] + '</h4><div class="cos-grid">' + items.map(function (id) {
+        var c = JY.COSMETICS[id], owned = Meta.ownsCos(id), on = m.cos.eq[c.slot] === id;
+        var btn;
+        if (owned) btn = '<button class="btn btn-small' + (on ? ' btn-primary' : '') + '" data-equip="' + id + '">' + (on ? '착용 중' : '착용') + '</button>';
+        else if (c.gacha) btn = '<span class="gacha-only">보급 상자 ' + (c.gacha === 'legend' ? '전설' : '영웅') + '</span>';
+        else if (c.unlock) btn = '<span class="gacha-only lock">🔒 ' + esc(Meta.unlockText(c)) + '</span>';
+        else btn = shop ? '<button class="btn btn-small btn-primary" data-cos="' + id + '"' + (m.gems < c.price ? ' disabled' : '') + '>💎 ' + c.price + '</button>' : '<span class="gacha-only">상점 💎' + c.price + '</span>';
+        return '<div class="cos' + (on ? ' on' : '') + (owned ? ' owned' : '') + '"><i>' + c.icon + '</i><b>' + c.name + '</b>' + btn + '</div>';
+      }).join('') + '</div>';
+    }).join('');
+  }
+
+  /* ── 막사: 외모 · 옷장 · 장비 강화 · 임무 ── */
+  var barracksTab = 'face';
+  var barracksBack = null;
+  var FACE_CATS = [
+    { k: 'eyes', name: '눈' }, { k: 'mouth', name: '입' }, { k: 'brows', name: '눈썹' },
+    { k: 'head', name: '얼굴형' }, { k: 'skin', name: '피부' }, { k: 'extras', name: '특징' }
+  ];
+  var SKINS = ['#ffd9b5', '#f6c79c', '#eab386', '#f9d2a8', '#d9a07a'];
+  var EXTRA_NAMES = ['없음', '볼터치', '왕귀', '콧물', '볼터치+왕귀'];
+
+  function faceOpts(k) { return k === 'skin' ? SKINS : JY.FACE_OPTIONS[k]; }
+  function faceIdx(face, k) {
+    var opts = faceOpts(k);
+    if (k === 'extras') { var j = JSON.stringify(face.extras || []); for (var i = 0; i < opts.length; i++) if (JSON.stringify(opts[i]) === j) return i; return 0; }
+    var x = opts.indexOf(face[k]); return x < 0 ? 0 : x;
+  }
+
+  function renderBarracks(back) {
+    if (back) barracksBack = back;
+    $('#btn-barracks-back').onclick = barracksBack || renderTitle;
+    if ($('#scr-barracks').hidden) showScreen('scr-barracks');
+    var m = Meta.get();
+    if (!m.face) { m.face = randomFace(); Meta.save(); }
+    setup.face = m.face;
+    renderGems();
+    var lv = Meta.level();
+    $('#me-big').innerHTML = charSVG('me', { rank: 4 });
+    $('#me-name').textContent = (m.lastName || '나띨빵') + ' ' + Meta.badge();
+    $('#me-lv').textContent = 'Lv.' + lv.lv;
+    $('#me-title').textContent = lv.title;
+    $('#me-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
+    $('#me-lvtext').textContent = lv.cur + ' / ' + lv.need + ' 짬 (다음 레벨 💎20' + (JY.LEVELS.rewards[lv.lv + 1] ? ' + 보너스' : '') + ')';
+    $('#me-jjam').textContent = '🍚 짬 ' + num(m.jjam);
+    $('#mission-badge').textContent = Meta.missionAlert() ? '!' : '';
+    $$('#barracks-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === barracksTab)); });
+    var body = $('#barracks-body');
+    if (barracksTab === 'face') {
+      body.innerHTML = '<div class="face-rows">' + FACE_CATS.map(function (fc) {
+        var opts = faceOpts(fc.k), i = faceIdx(m.face, fc.k);
+        var label = fc.k === 'skin' ? '<i class="skin-dot" style="background:' + opts[i] + '"></i>' : fc.k === 'extras' ? EXTRA_NAMES[i] || i : (i + 1) + '번';
+        return '<div class="face-row"><span>' + fc.name + '</span><button class="btn btn-small" data-face="' + fc.k + '" data-d="-1" aria-label="' + fc.name + ' 이전">◀</button><b>' + label + ' <small>' + (i + 1) + '/' + opts.length + '</small></b><button class="btn btn-small" data-face="' + fc.k + '" data-d="1" aria-label="' + fc.name + ' 다음">▶</button></div>';
+      }).join('') + '</div><div class="modal-actions"><button class="btn btn-ghost" id="face-random">🎲 무작위</button></div>' +
+        '<p class="sub">외모는 무료다. 모자·옷·소품은 옷장에서.</p>';
+      $$('[data-face]', body).forEach(function (b) {
+        b.onclick = function () {
+          var k = b.dataset.face, opts = faceOpts(k), i = faceIdx(m.face, k);
+          var n = (i + (+b.dataset.d) + opts.length) % opts.length;
+          m.face[k] = k === 'extras' ? opts[n].slice() : opts[n];
+          Meta.save(); snd('tap'); renderBarracks();
+        };
+      });
+      $('#face-random').onclick = function () { m.face = randomFace(); Meta.save(); snd('box'); renderBarracks(); };
+    } else if (barracksTab === 'wardrobe') {
+      body.innerHTML = '<p class="sub">레벨·훈장·수집으로 해금하거나 상점에서 산다. 슬롯마다 하나씩 입는다.</p>' + cosGrid(false);
+      $$('[data-equip]', body).forEach(function (b) { b.onclick = function () { Meta.equip(b.dataset.equip); snd('tap'); renderBarracks(); }; });
+    } else if (barracksTab === 'gear') {
+      body.innerHTML = '<p class="sub">짬으로 장비를 강화하면 모든 판에 영구 적용된다. +4부터는 확률! 실패하면 짬 절반을 돌려받는다.</p><div class="gear-list">' +
+        JY.UPGRADES.map(function (u) {
+          var l = Meta.upLevel(u.id), max = l >= 5;
+          var cost = max ? 0 : JY.UPGRADE_COST[l], rate = max ? 1 : JY.UPGRADE_RATE[l];
+          return '<div class="gear-row' + (l ? ' lv' : '') + '"><i>' + u.icon + '</i><div><b>' + u.name + ' <em>+' + l + '</em></b><small>' + u.desc + '</small>' +
+            '<small class="now">현재: ' + (l ? u.per(l) : '없음') + (max ? '' : ' → ' + u.per(l + 1)) + '</small></div>' +
+            (max ? '<span class="gacha-only">MAX</span>' : '<button class="btn btn-small btn-primary" data-up="' + u.id + '"' + (m.jjam < cost ? ' disabled' : '') + '>🍚' + cost + (rate < 1 ? '<br><small>' + Math.round(rate * 100) + '%</small>' : '') + '</button>') + '</div>';
+        }).join('') + '</div>';
+      $$('[data-up]', body).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.up, u = JY.UPGRADES.filter(function (x) { return x.id === id; })[0];
+          b.disabled = true;
+          body.querySelector('.gear-list').classList.add('forging');
+          snd('box');
+          setTimeout(function () {
+            var r = Meta.upgrade(id);
+            if (!r.ok) { toast(r.reason); renderBarracks(); return; }
+            if (r.success) { snd('reveal'); confetti(); toast('🔨 강화 성공! ' + u.icon + ' ' + u.name + ' +' + r.lv, 2600); }
+            else { snd('bad'); if (JY.buzz) JY.buzz([60, 40, 60]); toast('💥 강화 실패… 짬 ' + r.refund + ' 돌려받음. 다시 도전!', 2600); }
+            renderBarracks();
+          }, 700);
+        };
+      });
+    } else {
+      var ms = Meta.missions();
+      body.innerHTML = '<p class="sub">매일 3개. 다 받으면 🎁 무료 보급 상자! (내일 새 임무)</p><div class="mission-list">' + ms.list.map(function (x, i) {
+        var d = Meta.missionDef(x.id), pct = Math.round(x.prog / d.goal * 100);
+        return '<div class="mission' + (x.claimed ? ' claimed' : x.done ? ' done' : '') + '"><div><b>' + esc(d.text) + '</b><i class="lv-bar"><i style="width:' + pct + '%"></i></i><small>' + num(x.prog) + ' / ' + num(d.goal) + ' · 보상 💎' + d.gem + ' 🍚' + d.jjam + '</small></div>' +
+          (x.claimed ? '<em>완료</em>' : x.done ? '<button class="btn btn-small btn-primary" data-claim="' + i + '">받기</button>' : '<em>진행 중</em>') + '</div>';
+      }).join('') + '</div><p class="mission-bonus' + (ms.bonus ? ' got' : '') + '">🎁 전부 완료 보너스: 무료 보급 상자 ' + (ms.bonus ? '— 받음! 상점에서 열기' : '') + '</p>';
+      $$('[data-claim]', body).forEach(function (b) {
+        b.onclick = function () {
+          var res = Meta.claimMission(+b.dataset.claim);
+          if (!res) return;
+          snd('gem');
+          toast('🎯 보상: 💎 +' + res.d.gem + ' · 🍚 짬 +' + res.d.jjam + (res.bonus ? ' · 🎁 무료 상자!' : ''), 2600);
+          if (res.bonus) confetti();
+          if (res.ups && res.ups.length) showLevelUp(res.ups, res.unlocked);
+          renderBarracks();
+        };
+      });
+    }
   }
 
   /* ── 설정 ───────────────────────────── */
@@ -1224,11 +1470,14 @@
     var m = Meta.get();
     var att = Meta.attendance();
     var welcome = m.pendingWelcome;
+    var upd = m.pendingUpdateGift;
     if (welcome) { delete m.pendingWelcome; Meta.save(); }
-    if (!att && !welcome) return;
+    if (upd) { delete m.pendingUpdateGift; Meta.save(); }
+    if (!att && !welcome && !upd) return;
     renderGems();
     var html = '<div class="greet">';
     if (welcome) html += '<h3>입대 환영 선물!</h3><p>💎 <b>50</b> 다이아를 받았다. 상점에서 전역 보험이나 꾸미기를 사 보자.</p>';
+    if (upd) html += '<h3>막사 개방! 🪖</h3><p>새 업데이트: 짬 레벨 · 장비 강화 · 오늘의 임무 · 옷장 · 사건 수첩.<br>그동안의 복무를 인정해 🍚 짬 <b>' + upd.jjam + '</b>, 💎 <b>' + upd.gem + '</b>을 받았다. 막사에서 장비를 강화해 보자!</p>';
     if (att) {
       html += '<h3>출석 체크 🗓️</h3><p>연속 <b>' + att.streak + '일</b> 출석! 💎 <b>+' + att.reward + '</b></p>' +
         '<div class="streak">' + [1, 2, 3, 4, 5, 6, 7].map(function (d) { return '<span class="' + (d <= Math.min(att.streak, 7) ? 'on' : '') + '">' + d + '일</span>'; }).join('') + '</div>' +
@@ -1267,7 +1516,12 @@
     $('#btn-daily').onclick = function () { if (JY.Sound) JY.Sound.unlock(); snd('tap'); openDaily(); };
     $('#btn-album').onclick = function () { albumTab = 'endings'; renderAlbum(renderTitle); };
     $('#btn-rank').onclick = function () { rankTab = 'global'; renderRank(renderTitle); };
-    $('#btn-shop').onclick = function () { shopTab = 'items'; renderShop(renderTitle); };
+    $('#btn-shop').onclick = function () { shopTab = Meta.get().freeBoxes > 0 ? 'box' : 'items'; renderShop(renderTitle); };
+    $('#btn-barracks').onclick = function () { barracksTab = Meta.missionAlert() ? 'mission' : 'face'; renderBarracks(renderTitle); };
+    $('#title-lv').onclick = function () { barracksTab = 'gear'; renderBarracks(renderTitle); };
+    $('#mission-strip').onclick = function () { barracksTab = 'mission'; renderBarracks(renderTitle); };
+    $('#btn-face-edit').onclick = function () { Meta.get().face = setup.face; Meta.save(); barracksTab = 'face'; renderBarracks(function () { setup.face = Meta.get().face; updateSetupPreview(); showScreen('scr-setup'); }); };
+    bindTabs('#barracks-tabs', function (t) { barracksTab = t; renderBarracks(); });
     $('#btn-face').onclick = function () { setup.face = randomFace(); snd('tap'); updateSetupPreview(); };
     $('#btn-reroll').onclick = function () { if (setup.rerolled) return; setup.rerolled = true; snd('box'); drawTraits(); };
     $('#trait-grid').addEventListener('click', function (e) {

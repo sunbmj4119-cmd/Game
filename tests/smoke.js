@@ -70,6 +70,18 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   await shot('02c-shop-box');
   await tap('#btn-shop-back'); await sleep(250);
 
+  // 2b) 막사: 외모 바꾸기, 옷장 (되돌리기 테스트용으로 국방부 시계 +1 장착)
+  await tap('#btn-barracks'); await sleep(300);
+  await tap('[data-face="eyes"][data-d="1"]'); await sleep(150);
+  await shot('02d-barracks-face');
+  await tap('#barracks-tabs [data-tab="wardrobe"]'); await sleep(200);
+  await tap('[data-equip="blush"]'); await sleep(150);
+  await shot('02e-barracks-wardrobe');
+  await tap('#barracks-tabs [data-tab="mission"]'); await sleep(200);
+  await shot('02f-barracks-mission');
+  await tap('#btn-barracks-back'); await sleep(250);
+  await page.evaluate(function () { JY.Meta.get().up.watch = 1; JY.Meta.save(); });
+
   // 3) 입영 통지서: 성격 카드, 보험, 속성 복무
   await tap('#btn-new');
   await page.waitForSelector('#scr-setup:not([hidden])');
@@ -85,7 +97,7 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   await sleep(600);
   await shot('04-game');
 
-  var cards = 0, minis = 0, emergencies = 0, leaveTaken = false, pxDone = false, matesDone = false;
+  var cards = 0, minis = 0, emergencies = 0, leaveTaken = false, pxDone = false, matesDone = false, undoUsed = false, specialUsed = 0;
   var shotResult = false, shotMini = false, shotDrag = false, shotUrgent = false;
   for (var i = 0; i < 200; i++) {
     var st = await page.evaluate(function () {
@@ -127,6 +139,10 @@ function log() { if (verbose) console.log.apply(console, arguments); }
     if (st.result) {
       if (!shotResult) { await shot('05-result'); shotResult = true; }
       await sleep(380);
+      if (!undoUsed && (await page.$('#undo-btn'))) {
+        await shot('05b-undo');
+        await tap('#undo-btn'); undoUsed = true; await sleep(400); continue;
+      }
       await tap('#result'); await sleep(250); continue;
     }
     if (st.urgent) {
@@ -174,6 +190,13 @@ function log() { if (verbose) console.log.apply(console, arguments); }
       }
     }
 
+    // 특수 대답이 있으면 가끔 쓴다
+    if (specialUsed < 2 && (await vis('#choice-x-btn'))) {
+      if (!specialUsed) await shot('04c-special');
+      await tap('#choice-x-btn'); await sleep(120); await tap('#choice-x-btn');
+      specialUsed++; cards++; await sleep(450); continue;
+    }
+
     // 카드 끌어서 넘기기 (가끔은 버튼 두 번, 가끔은 인물 톡)
     var card = await page.$('#card');
     var cb = await card.boundingBox();
@@ -199,6 +222,8 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   if (ended) {
     await sleep(900);
     await shot('11-ending');
+    await sleep(900);
+    if (await vis('#modal')) { await shot('11c-levelup'); await tap('#modal-box [data-act="close"]'); await sleep(250); }
     await page.evaluate(function () { document.getElementById('score-panel').scrollIntoView(); });
     await sleep(200);
     await shot('11b-score');
@@ -208,9 +233,27 @@ function log() { if (verbose) console.log.apply(console, arguments); }
     await shot('12b-rank-mine');
     await tap('#btn-rank-back'); await sleep(200);
     await tap('#btn-end-title'); await sleep(300);
+    if (await vis('#modal')) { await tap('#modal-box [data-act="close"]'); await sleep(200); }
     await tap('#btn-album'); await sleep(250);
     await tap('#album-tabs [data-tab="medals"]'); await sleep(200);
     await shot('13-medals');
+    await tap('#album-tabs [data-tab="scenes"]'); await sleep(200);
+    await shot('13b-scenes');
+    await tap('#btn-album-back'); await sleep(250);
+    // 막사: 장비 강화, 임무 보상
+    await tap('#btn-barracks'); await sleep(250);
+    await tap('#barracks-tabs [data-tab="gear"]'); await sleep(200);
+    var jjamBefore = await page.evaluate(function () { return JY.Meta.get().jjam; });
+    var upBtn = await page.$('[data-up="boots"]:not([disabled])');
+    if (upBtn) { await upBtn.click(); await sleep(900); }
+    var bootsLv = await page.evaluate(function () { return JY.Meta.upLevel('boots'); });
+    if (jjamBefore >= 80 && bootsLv < 1) errors.push('boots upgrade failed with enough jjam: ' + jjamBefore);
+    await shot('15-gear');
+    await tap('#barracks-tabs [data-tab="mission"]'); await sleep(200);
+    var claim = await page.$('[data-claim]');
+    if (claim) { await claim.click(); await sleep(300); if (await vis('#modal')) await tap('#modal-box [data-act="close"]'); }
+    await shot('16-missions');
+    await tap('#btn-barracks-back'); await sleep(250);
     await tap('#btn-album-back'); await sleep(250);
     // 오늘의 작전 시작만 확인
     await tap('#btn-daily'); await sleep(300);
@@ -219,9 +262,9 @@ function log() { if (verbose) console.log.apply(console, arguments); }
     var daily = await page.evaluate(function () { var s = JY.UI._state(); return s && s.daily; });
     if (!daily) errors.push('daily run did not start');
   }
-  var meta = await page.evaluate(function () { var m = JY.Meta.get(); return { gems: m.gems, ach: Object.keys(m.ach).length, records: m.records.length }; });
+  var meta = await page.evaluate(function () { var m = JY.Meta.get(); return { gems: m.gems, jjam: m.jjam, lv: JY.Meta.level().lv, up: m.up, scenes: Object.keys(m.scenes).length, ach: Object.keys(m.ach).length, records: m.records.length }; });
   if (warnings.length) console.log('WARN:\n' + warnings.join('\n'));
-  console.log(JSON.stringify({ cards: cards, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, ended: ended, meta: meta }));
+  console.log(JSON.stringify({ cards: cards, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, undoUsed: undoUsed, specialUsed: specialUsed, ended: ended, meta: meta }));
   await browser.close();
   server.close();
   if (errors.length) { console.error('ERRORS:\n' + errors.join('\n')); process.exit(1); }

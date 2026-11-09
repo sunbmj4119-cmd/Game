@@ -25,9 +25,10 @@
   <!-- 타이틀 -->
   <section id="scr-title" class="screen title-screen">
     <div class="topbar">
+      <button class="lv-chip" id="title-lv" aria-label="막사 열기"><b id="title-lvnum">Lv.1</b><span id="title-lvtitle">짬찌</span><i class="lv-bar"><i id="title-lvbar"></i></i></button>
       <span class="gem-chip" id="title-gems">💎 0</span>
-      <span class="streak-chip" id="title-streak" hidden></span>
     </div>
+    <span class="streak-chip" id="title-streak" hidden></span>
     <div class="title-top">
       <p class="eyebrow">대한민국 육군 · 복무기간 18개월</p>
       <h1 class="logo">전역<span>각</span></h1>
@@ -39,11 +40,13 @@
       <p class="save-info" id="save-info" hidden></p>
       <button class="btn btn-primary" id="btn-new">입대하기</button>
       <button class="btn btn-daily" id="btn-daily">⭐ 오늘의 작전 <small id="daily-best"></small></button>
-      <div class="title-row">
+      <div class="title-row four">
+        <button class="btn btn-ghost btn-tile" id="btn-barracks">🪖<span>막사</span><em class="dot-badge" id="barracks-badge" hidden>!</em></button>
         <button class="btn btn-ghost btn-tile" id="btn-rank">🏆<span>랭킹</span></button>
-        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span></button>
-        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실 <em id="album-count">0/19</em></span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span><em class="dot-badge" id="shop-badge" hidden>!</em></button>
+        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실</span><em class="dot-badge" id="album-badge" hidden>!</em><small id="album-count">0/19</small></button>
       </div>
+      <button class="mission-strip" id="mission-strip"><span>🎯 오늘의 임무</span><b id="mission-sum">0/3</b></button>
     </div>
     <p class="fine">좌우로 넘겨서 선택 · 체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패</p>
   </section>
@@ -61,6 +64,7 @@
         <div class="face-preview" id="face-preview"></div>
         <div class="face-side">
           <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+          <button type="button" class="btn btn-small" id="btn-face-edit">막사에서 꾸미기 🪞</button>
           <p class="field-note" id="cos-note"></p>
         </div>
       </div>
@@ -133,6 +137,7 @@
         <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
+        <button class="choice choice-x" data-side="x" id="choice-x-btn" hidden><span>⭐</span><b id="choice-x"></b><small id="choice-x-need"></small></button>
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
@@ -171,6 +176,7 @@
     </header>
     <div class="tabs" role="tablist" id="album-tabs">
       <button role="tab" data-tab="endings" aria-selected="true">엔딩 도감</button>
+      <button role="tab" data-tab="scenes" aria-selected="false">사건 수첩 <em id="scene-count"></em></button>
       <button role="tab" data-tab="medals" aria-selected="false">훈장 <em id="medal-count"></em></button>
     </div>
     <div class="album-grid" id="album-grid"></div>
@@ -191,6 +197,32 @@
     </div>
     <p class="rank-status" id="rank-status"></p>
     <ol class="rank-list" id="rank-list"></ol>
+  </section>
+
+  <!-- 막사: 내 군인 (외모 · 옷장 · 장비 강화 · 오늘의 임무) -->
+  <section id="scr-barracks" class="screen barracks-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-barracks-back">← 뒤로</button>
+      <h2>막사</h2>
+      <span class="gem-chip" id="barracks-gems">💎 0</span>
+    </header>
+    <div class="me-card">
+      <div class="me-big" id="me-big"></div>
+      <div class="me-info">
+        <b id="me-name">나띨빵</b>
+        <span class="lv-line"><em id="me-lv">Lv.1</em> <span id="me-title">짬찌</span></span>
+        <i class="lv-bar big"><i id="me-lvbar"></i></i>
+        <small id="me-lvtext">0 / 100 짬</small>
+        <span class="jjam-chip" id="me-jjam">🍚 짬 0</span>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="barracks-tabs">
+      <button role="tab" data-tab="face" aria-selected="true">외모</button>
+      <button role="tab" data-tab="wardrobe" aria-selected="false">옷장</button>
+      <button role="tab" data-tab="gear" aria-selected="false">장비 강화</button>
+      <button role="tab" data-tab="mission" aria-selected="false">임무 <em id="mission-badge"></em></button>
+    </div>
+    <div class="barracks-body" id="barracks-body"></div>
   </section>
 
   <!-- 다이아 상점 -->
@@ -226,6 +258,7 @@
 <script src="js/data/chars.js"></script>
 <script src="js/data/cards.js"></script>
 <script src="js/data/cards2.js"></script>
+<script src="js/data/cards3.js"></script>
 <script src="js/data/items.js"></script>
 <script src="js/data/world.js"></script>
 <script src="js/data/shop.js"></script>

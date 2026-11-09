@@ -98,7 +98,7 @@ button { cursor: pointer; }
 .btn-small { font-size: 14px; padding: 6px 14px; border-width: 2px; box-shadow: 0 3px 0 var(--ink); }
 
 /* ── 타이틀 ───────────────────────── */
-.title-screen { justify-content: space-between; text-align: center; gap: 8px; }
+.title-screen { justify-content: space-between; text-align: center; gap: 8px; overflow-y: auto; }
 .title-top { padding-top: 4vh; }
 .eyebrow { margin: 0; font-size: 13px; letter-spacing: .12em; color: var(--muted); }
 .logo {
@@ -119,8 +119,8 @@ button { cursor: pointer; }
 }
 .tagline { margin: 10px 0 0; font-size: 15px; color: var(--muted); }
 .title-crowd {
-  flex: 1;
-  min-height: 140px;
+  flex: 1 1 auto;
+  min-height: 96px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -544,6 +544,7 @@ button { cursor: pointer; }
   max-width: calc(100% - 32px);
   text-align: center;
   animation: toastIn .25s;
+  pointer-events: none;
 }
 
 /* ── 엔딩 ─────────────────────────── */
@@ -924,6 +925,130 @@ button { cursor: pointer; }
 @keyframes urgentShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-1deg); } 75% { transform: translateX(5px) rotate(1deg); } }
 @keyframes boxShake { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 100% { transform: rotate(-4deg); } }
 
+/* ── v3: 짬 레벨 · 막사 · 특수 대답 · 되돌리기 ── */
+.lv-chip {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 6px; column-gap: 6px; align-items: center;
+  border: 2px solid var(--olive-dark); border-radius: 12px; background: var(--paper);
+  padding: 3px 10px 4px; min-width: 150px; text-align: left;
+}
+.lv-chip b { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--olive-dark); }
+.lv-chip span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-chip .lv-bar { grid-column: 1 / -1; }
+.lv-bar { display: block; height: 6px; border-radius: 99px; background: rgba(42, 38, 32, .2); overflow: hidden; }
+.lv-bar > i { display: block; height: 100%; background: repeating-linear-gradient(-45deg, var(--brass) 0 6px, #c99a2e 6px 12px); border-radius: 99px; }
+.lv-bar.big { height: 10px; }
+.title-screen .streak-chip { align-self: flex-end; font-size: 12px; margin-top: -4px; }
+.title-row.four { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.btn-tile { position: relative; }
+.btn-tile small { font-size: 10px; color: var(--muted); }
+.dot-badge { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 11px; background: var(--stamp); color: #fff; border-radius: 99px; min-width: 18px; padding: 0 5px; }
+.mission-strip {
+  display: flex; justify-content: space-between; align-items: center;
+  border: 2px dashed var(--olive-dark); border-radius: var(--r-md); background: transparent;
+  padding: 6px 12px; font-size: 14px;
+}
+.mission-strip b { font-weight: 400; font-family: var(--font-util); font-size: 13px; }
+.mission-strip.alert { border-style: solid; background: #fff3cf; animation: pulse 1.6s ease-in-out infinite; }
+.face-side .btn-small { font-size: 13px; }
+
+.choices.three { grid-template-columns: 1fr 1fr; }
+.choice-x {
+  grid-column: 1 / -1; order: -1;
+  background: #fff3cf; border-color: #b8860b; box-shadow: 0 3px 0 #8a6a18;
+  min-height: 40px; justify-content: center; text-align: center; flex-wrap: wrap; gap: 2px 6px;
+}
+.choice-x b { flex: 0 1 auto; }
+.choice-x small { width: 100%; font-size: 11px; color: #8a6a18; }
+.choice-x.armed { background: #b8860b; color: #fff; }
+.choice-x.armed small { color: #fff3cf; }
+.card-label.x { left: 50%; right: auto; transform: translateX(-50%); top: 12px; background: #b8860b; text-align: center; width: max-content; }
+.new-scene {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  background: var(--stamp); color: #fff; font-family: var(--font-display); font-size: 12px;
+  padding: 1px 8px; border-radius: 99px; transform: rotate(8deg);
+}
+.undo-btn {
+  align-self: flex-start;
+  border: 2px solid var(--olive-dark); border-radius: 99px; background: var(--cream);
+  padding: 4px 12px; font-size: 13px;
+}
+.undo-btn em { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* 엔딩: 짬 */
+.jjam-panel { border-top: 1px dashed rgba(239, 232, 204, .3); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.jjam-panel p { margin: 0; text-align: center; font-size: 16px; }
+.jjam-panel small { font-size: 12px; opacity: .75; }
+.jjam-panel .lv-line { display: flex; align-items: center; gap: 6px; justify-content: center; font-size: 14px; }
+.jjam-panel .lv-line em { font-style: normal; font-family: var(--font-display); color: var(--brass); }
+.jjam-panel .lv-bar { width: 110px; background: rgba(0, 0, 0, .3); }
+.sub-cream { font-size: 12px !important; opacity: .75; }
+
+/* 막사 */
+.barracks-screen { overflow-y: auto; gap: 10px; }
+.me-card { display: flex; gap: 12px; align-items: center; background: var(--olive-dark); color: var(--cream); border-radius: var(--r-lg); padding: 10px; }
+.me-big { width: 120px; height: 138px; flex: none; border-radius: var(--r-md); background: #c9d6dc; overflow: hidden; border: 2px solid var(--ink); }
+.me-big .char { width: 100%; height: 100%; display: block; }
+.me-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.me-info b { font-weight: 400; font-size: 20px; }
+.me-info .lv-line em { font-style: normal; font-family: var(--font-display); color: var(--brass); font-size: 18px; }
+.me-info .lv-bar { background: rgba(0, 0, 0, .35); }
+.me-info small { font-size: 12px; opacity: .8; }
+.jjam-chip { align-self: flex-start; background: var(--brass); color: var(--ink); border-radius: 99px; padding: 1px 10px; font-size: 14px; }
+.barracks-body { display: flex; flex-direction: column; gap: 8px; }
+.face-rows { display: flex; flex-direction: column; gap: 6px; }
+.face-row { display: grid; grid-template-columns: 64px auto 1fr auto; gap: 8px; align-items: center; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 6px 10px; }
+.face-row b { font-weight: 400; text-align: center; }
+.face-row b small { color: var(--muted); font-size: 11px; }
+.skin-dot { display: inline-block; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); vertical-align: middle; }
+.slot-head { margin: 8px 0 4px; font-family: var(--font-display); font-weight: 400; font-size: 17px; color: var(--olive-dark); }
+.gacha-only.lock { color: var(--muted); border-color: var(--muted); }
+.gear-list { display: flex; flex-direction: column; gap: 8px; }
+.gear-list.forging { animation: shake .25s linear 3; }
+.gear-row {
+  display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 8px 10px;
+}
+.gear-row.lv { background: #fff6d8; }
+.gear-row > i { font-style: normal; font-size: 28px; text-align: center; }
+.gear-row div { display: flex; flex-direction: column; min-width: 0; }
+.gear-row b { font-weight: 400; font-size: 16px; }
+.gear-row b em { font-style: normal; font-family: var(--font-display); color: #b8860b; }
+.gear-row small { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.gear-row small.now { color: var(--olive); }
+.gear-row .btn-small { line-height: 1.15; min-width: 64px; }
+.gear-row .btn-small small { color: var(--cream); font-size: 10px; }
+.mission-list { display: flex; flex-direction: column; gap: 8px; }
+.mission {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 10px;
+}
+.mission div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mission b { font-weight: 400; font-size: 15px; }
+.mission small { font-size: 12px; color: var(--muted); }
+.mission em { font-style: normal; font-size: 12px; color: var(--muted); }
+.mission.done { background: #fff3cf; border-color: #b8860b; }
+.mission.claimed { opacity: .6; }
+.mission-bonus { text-align: center; font-size: 14px; border: 2px dashed var(--olive); border-radius: var(--r-md); padding: 8px; margin: 0; }
+.mission-bonus.got { background: #fff3cf; border-style: solid; }
+
+/* 사건 수첩 */
+.album-grid.scenes { display: flex; flex-direction: column; gap: 8px; }
+.collect-head { display: flex; flex-direction: column; gap: 6px; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 12px; }
+.collect-head b { font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--olive-dark); }
+.collect-head small { font-size: 12px; color: var(--muted); }
+.milestone { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: center; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 8px 10px; opacity: .7; }
+.milestone span { font-family: var(--font-display); font-size: 18px; color: var(--olive-dark); }
+.milestone b { font-weight: 400; font-size: 14px; }
+.milestone em { font-style: normal; font-size: 12px; color: var(--muted); }
+.milestone.ready { opacity: 1; background: #fff3cf; border-color: #b8860b; }
+.milestone.got { opacity: 1; }
+
+@media (max-width: 380px) {
+  .title-row.four .btn-tile span { font-size: 12px; }
+  .lv-chip { min-width: 120px; }
+  .face-row { grid-template-columns: 52px auto 1fr auto; }
+}
+
 /* ── 애니메이션 ───────────────────── */
 .char .bob { animation: bob 2.4s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
 .char .eyes { animation: blink 4.2s infinite; transform-origin: center; transform-box: fill-box; }
@@ -968,6 +1093,12 @@ button { cursor: pointer; }
 }
 
 /* 아주 작은 화면(높이) 대응 */
+@media (max-height: 760px) {
+  .title-screen .logo { font-size: clamp(64px, 20vw, 100px); }
+  .title-screen .fine { display: none; }
+  .title-actions { gap: 8px; }
+  .title-actions .btn { padding-block: 9px; }
+}
 @media (max-height: 640px) {
   .prompt { font-size: 15px; min-height: 4em; padding: 7px 10px; }
   .stat-ic { width: 32px; height: 30px; }
@@ -989,9 +1120,10 @@ button { cursor: pointer; }
   <!-- 타이틀 -->
   <section id="scr-title" class="screen title-screen">
     <div class="topbar">
+      <button class="lv-chip" id="title-lv" aria-label="막사 열기"><b id="title-lvnum">Lv.1</b><span id="title-lvtitle">짬찌</span><i class="lv-bar"><i id="title-lvbar"></i></i></button>
       <span class="gem-chip" id="title-gems">💎 0</span>
-      <span class="streak-chip" id="title-streak" hidden></span>
     </div>
+    <span class="streak-chip" id="title-streak" hidden></span>
     <div class="title-top">
       <p class="eyebrow">대한민국 육군 · 복무기간 18개월</p>
       <h1 class="logo">전역<span>각</span></h1>
@@ -1003,11 +1135,13 @@ button { cursor: pointer; }
       <p class="save-info" id="save-info" hidden></p>
       <button class="btn btn-primary" id="btn-new">입대하기</button>
       <button class="btn btn-daily" id="btn-daily">⭐ 오늘의 작전 <small id="daily-best"></small></button>
-      <div class="title-row">
+      <div class="title-row four">
+        <button class="btn btn-ghost btn-tile" id="btn-barracks">🪖<span>막사</span><em class="dot-badge" id="barracks-badge" hidden>!</em></button>
         <button class="btn btn-ghost btn-tile" id="btn-rank">🏆<span>랭킹</span></button>
-        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span></button>
-        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실 <em id="album-count">0/19</em></span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span><em class="dot-badge" id="shop-badge" hidden>!</em></button>
+        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실</span><em class="dot-badge" id="album-badge" hidden>!</em><small id="album-count">0/19</small></button>
       </div>
+      <button class="mission-strip" id="mission-strip"><span>🎯 오늘의 임무</span><b id="mission-sum">0/3</b></button>
     </div>
     <p class="fine">좌우로 넘겨서 선택 · 체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패</p>
   </section>
@@ -1025,6 +1159,7 @@ button { cursor: pointer; }
         <div class="face-preview" id="face-preview"></div>
         <div class="face-side">
           <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+          <button type="button" class="btn btn-small" id="btn-face-edit">막사에서 꾸미기 🪞</button>
           <p class="field-note" id="cos-note"></p>
         </div>
       </div>
@@ -1097,6 +1232,7 @@ button { cursor: pointer; }
         <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
+        <button class="choice choice-x" data-side="x" id="choice-x-btn" hidden><span>⭐</span><b id="choice-x"></b><small id="choice-x-need"></small></button>
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
@@ -1135,6 +1271,7 @@ button { cursor: pointer; }
     </header>
     <div class="tabs" role="tablist" id="album-tabs">
       <button role="tab" data-tab="endings" aria-selected="true">엔딩 도감</button>
+      <button role="tab" data-tab="scenes" aria-selected="false">사건 수첩 <em id="scene-count"></em></button>
       <button role="tab" data-tab="medals" aria-selected="false">훈장 <em id="medal-count"></em></button>
     </div>
     <div class="album-grid" id="album-grid"></div>
@@ -1155,6 +1292,32 @@ button { cursor: pointer; }
     </div>
     <p class="rank-status" id="rank-status"></p>
     <ol class="rank-list" id="rank-list"></ol>
+  </section>
+
+  <!-- 막사: 내 군인 (외모 · 옷장 · 장비 강화 · 오늘의 임무) -->
+  <section id="scr-barracks" class="screen barracks-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-barracks-back">← 뒤로</button>
+      <h2>막사</h2>
+      <span class="gem-chip" id="barracks-gems">💎 0</span>
+    </header>
+    <div class="me-card">
+      <div class="me-big" id="me-big"></div>
+      <div class="me-info">
+        <b id="me-name">나띨빵</b>
+        <span class="lv-line"><em id="me-lv">Lv.1</em> <span id="me-title">짬찌</span></span>
+        <i class="lv-bar big"><i id="me-lvbar"></i></i>
+        <small id="me-lvtext">0 / 100 짬</small>
+        <span class="jjam-chip" id="me-jjam">🍚 짬 0</span>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="barracks-tabs">
+      <button role="tab" data-tab="face" aria-selected="true">외모</button>
+      <button role="tab" data-tab="wardrobe" aria-selected="false">옷장</button>
+      <button role="tab" data-tab="gear" aria-selected="false">장비 강화</button>
+      <button role="tab" data-tab="mission" aria-selected="false">임무 <em id="mission-badge"></em></button>
+    </div>
+    <div class="barracks-body" id="barracks-body"></div>
   </section>
 
   <!-- 다이아 상점 -->
@@ -1509,6 +1672,15 @@ button { cursor: pointer; }
           '<path d="M84 174 L86 204 M116 174 L114 204" stroke="#fff" stroke-width="3" stroke-linecap="round"/>' +
           '<rect x="80" y="214" width="40" height="16" rx="6" fill="#7ab4da" stroke="' + INK + '" stroke-width="2"/>';
         break;
+      case 'dress': // 정복: 짙은 녹색 재킷, 흰 셔츠, 넥타이, 금단추, 약장
+        s = '<path d="' + shoulders + '" fill="#2f4a2a" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M84 170 L100 214 L116 170Z" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
+          '<path d="M96 176 L104 176 L106 206 L100 214 L94 206Z" fill="#26331f"/>' +
+          '<path d="M74 172 L100 232 M126 172 L100 232" stroke="#203520" stroke-width="3"/>' +
+          '<circle cx="100" cy="220" r="3" fill="#e0b347"/>' +
+          '<rect x="120" y="188" width="26" height="9" fill="#c4362b"/><rect x="120" y="188" width="9" height="9" fill="#3a86ff"/><rect x="137" y="188" width="9" height="9" fill="#e0b347"/>' +
+          '<path d="M52 186 Q62 178 74 180" stroke="#e0b347" stroke-width="3" fill="none"/>';
+        break;
       default: // camo 전투복
         s = '<path d="' + shoulders + '" fill="url(#' + camoId + ')" stroke="' + INK + '" stroke-width="3"/>' +
           '<path d="M76 172 L100 194 L124 172" fill="none" stroke="#3e4a28" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -1601,14 +1773,17 @@ button { cursor: pointer; }
     var shape = spec.head || 'round';
     var earX = shape === 'wide' ? 30 : shape === 'egg' ? 44 : 38;
 
-    var defs = '<defs>' + camoPattern(camoId, seed) +
+    var bodyType = spec.body || 'camo';
+    var BODY_CAMO = { pinkcamo: ['#f4a6c3', '#e57aa3', '#fbd3e1', '#c95583'], goldcamo: ['#e8c25a', '#c99a2e', '#f6e3a1', '#8a6a18'] };
+    var bodyCamoId = BODY_CAMO[bodyType] ? id + 'bc' : camoId;
+    var defs = '<defs>' + camoPattern(camoId, seed) + (BODY_CAMO[bodyType] ? camoPattern(bodyCamoId, seed + 7, BODY_CAMO[bodyType]) : '') +
       '<clipPath id="' + clipId + '">' + headPath(shape) + '</clipPath>' +
       '<clipPath id="' + camoId + 'b"><path d="M30 232 Q32 176 100 168 Q168 176 170 232 Z"/></clipPath></defs>';
 
     var svg = '<svg class="char" viewBox="0 0 200 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + defs +
       '<ellipse cx="100" cy="228" rx="70" ry="8" fill="rgba(0,0,0,.12)"/>' +
       '<g class="bob">' +
-      drawBody(spec.body || 'camo', camoId, spec.rank, spec.tag) +
+      drawBody(BODY_CAMO[bodyType] ? 'camo' : bodyType, bodyCamoId, spec.rank, spec.tag) +
       '<g class="head">' +
       drawHairBack(hair) +
       '<circle cx="' + (200 - earX) + '" cy="106" r="' + (big ? 20 : 13) + '" fill="' + skin + '" stroke="' + INK + '" stroke-width="3"/>' +
@@ -3756,6 +3931,677 @@ button { cursor: pointer; }
   JY.CARDS.emergency = EMERGENCY;
 })(window.JY = window.JY || {});
 
+/* js/data/cards3.js */
+/* v3: 같은 질문이 반복되지 않도록
+ *  1) 훈련소·자대 도착을 슬롯별 후보 중 무작위로 (매판 다른 시작)
+ *  2) variants: 한 카드 안에 여러 장면. 나올 때마다 다른 장면(직전과 다르게)
+ *  3) 문자열 배열: 질문/대답/결과 문장을 여러 버전 중 무작위로
+ *  4) x: 조건이 맞을 때만 열리는 세 번째 "특수 대답" (아이템·성격·호감도·플래그)
+ *     + 인물별 공통 특수 대답(JY.SPECIALS) */
+(function (JY) {
+  'use strict';
+
+  function o(t, fx, say, x) {
+    var r = { t: t, fx: fx || {}, say: say || '' };
+    if (x) for (var k in x) r[k] = x[k];
+    return r;
+  }
+
+  /* ───────── 훈련소 후보 카드 ───────── */
+  var TRAIN_MORE = [
+    {
+      id: 'tr_supply', who: 'jogyo', bg: 'barracks', days: 2,
+      text: ['보급품 수령. 조교가 전투복을 던진다. "사이즈 말해!" 받은 건 XL인데 나는 S다.', '보급품 수령 줄. 전투화가 두 치수 크다. 조교는 이미 다음 사람을 보고 있다.'],
+      l: o(['바꿔 달라고 한다', '"교환 가능합니까?"'], { tr: -3, mt: 4 }, ['조교: "군대는 몸을 옷에 맞추는 거다." 그래도 바꿔 줬다.', '조교가 한숨 쉬며 바꿔 줬다. 은근 착하다.']),
+      r: o(['그냥 입는다', '참고 신는다'], { mt: -4, bd: 5 }, ['소매를 세 번 접었다. 동기들이 "허수아비"라고 불렀다.', '걸을 때마다 전투화가 "뽀각" 소리를 낸다. 별명이 생겼다.'])
+    },
+    {
+      id: 'tr_farewell', who: 'mom', bg: 'gate', days: 2,
+      text: ['입영 심사대 앞. 엄마가 손을 놓지 않는다. 뒤에서 조교가 "입소자 들어갑니다!"를 외친다.', '연병장 입소식. 스탠드에서 엄마가 손을 흔든다. 아빠는 휴대폰으로 동영상을 찍고 있다.'],
+      l: o(['씩씩하게 경례', '"충성!" 외치고 돌아선다'], { tr: 4, mt: -3 }, ['엄마가 웃으며 울었다. 뒤돌아서 나도 울었다.', '아빠 영상에 내 뒷모습만 3분 찍혔다고 한다.']),
+      r: o(['엄마를 한 번 더 안는다', '손을 크게 흔든다'], { mt: 6, tr: -3 }, ['조교가 3초 기다려 줬다. 고마운 3초였다.', '조교: "거기, 손 내려!" 그래도 엄마는 봤다.'])
+    },
+    {
+      id: 'tr_snore', who: 'trainee', bg: 'night', days: 4,
+      text: '훈련소 첫날 밤. 생활관 24명 중 7명이 코를 곤다. 오케스트라 공연 중이다.',
+      l: o(['이불 뒤집어쓰고 버틴다', '양을 센다'], { hp: -4, mt: -2 }, ['새벽 2시에 겨우 잠들었다. 기상나팔은 6시였다.', '양 2,000마리째에 기상나팔이 울렸다.']),
+      r: o('옆 동기를 툭 친다', {}, '', {
+        roll: [
+          { p: 0.5, fx: { hp: 4 }, say: '조용해졌다! 그리고 다른 쪽에서 다시 시작됐다.' },
+          { p: 0.5, fx: { bd: -4 }, say: '동기가 깨서 "나 집에 가고 싶어" 하소연을 한 시간 했다.' }
+        ]
+      })
+    },
+    {
+      id: 'tr_ghost', who: 'dumb', bg: 'night', days: 4,
+      text: '박덤벙이 속삭인다. "이 생활관 3번 침상에서 옛날에… 귀신이 나왔대." 내 침상이 3번이다.',
+      l: o(['웃어넘긴다', '"그런 게 어딨어"'], { mt: 2, bd: 2 }, ['밤새 침상 밑에서 바스락 소리가 났다. 쥐였…겠지?', '새벽에 누가 발을 잡았다. 박덤벙이었다. 화장실 같이 가자고.']),
+      r: o('조교에게 침상 교체 요청', { tr: -3, bd: 3 }, '조교: "3번 침상? 나도 그 얘기 들었다." 더 무서워졌다.')
+    },
+    {
+      id: 'tr_crawl', who: 'jogyo', bg: 'training', days: 5,
+      text: ['각개전투. 철조망 아래를 포복으로 통과해야 한다. 흙 맛이 난다.', '각개전투 교장. 조교: "엎드려! 낮은 포복 앞으로!" 앞사람 전투화가 얼굴 앞에 있다.'],
+      l: o(['정석대로 낮은 포복', '팔꿈치로 전진'], { hp: -8, tr: 6 }, ['전투복이 흙색이 됐다. 원래도 흙색이었다.', '팔꿈치가 까졌다. 대신 조교가 "좋아!"라고 했다.']),
+      r: o(['엉덩이 들고 빨리', '옆으로 굴러간다'], { tr: -6, mt: 3 }, ['철조망에 바지가 걸렸다. 조교: "엉덩이 내려!"', '굴러가다 옆 레인 동기와 부딪혔다. 둘 다 다시.'])
+    },
+    {
+      id: 'tr_zero', who: 'jogyo', bg: 'training', days: 5,
+      text: '영점사격. 세 발 쏴서 탄착군을 만들어야 한다. 조교가 옆에서 숨죽이고 지켜본다.',
+      l: o(['숨 참고 세 발', '방아쇠를 짜듯이'], {}, '', {
+        roll: [
+          { p: 0.6, fx: { tr: 8, mt: 4 }, say: ['탄착군 형성! 조교가 "오" 소리를 냈다.', '세 발이 한 구멍에! 나 재능 있나?'] },
+          { p: 0.4, fx: { mt: -4 }, say: ['세 발이 세 대륙에 흩어졌다.', '한 발은 옆 사람 표적에 맞았다.'] }
+        ]
+      }),
+      r: o('조교에게 요령을 묻는다', { tr: 4, bd: 2 }, '"숨 내쉬면서, 방아쇠는 짜듯이." 다음엔 잘할 것 같다.')
+    },
+    {
+      id: 'tr_qna', who: 'jogyo', bg: 'field', days: 5,
+      text: ['조교가 갑자기 지목한다. "훈련병! 군인의 기본자세 다섯 가지 말해 봐!"', '조교: "훈련병! 지금 몇 주차지? 전역까지 며칠 남았지?"'],
+      l: o(['외운 대로 말한다', '자신 있게 대답'], {}, '', {
+        roll: [
+          { p: 0.5, fx: { tr: 8 }, say: ['완벽! 조교가 고개를 끄덕였다.', '정답! 동기들이 박수를 쳤다(속으로).'] },
+          { p: 0.5, fx: { tr: -4, bd: 3 }, say: ['세 번째에서 막혔다. "전우애… 전우… 전투화?"', '"500…40일?" 조교의 눈썹이 올라갔다.'] }
+        ]
+      }),
+      r: o(['"모릅니다!" 당당하게', '"다시 외워 오겠습니다!"'], { bd: 4, tr: -3 }, ['솔직함에 조교가 웃음을 참았다.', '조교: "내일 아침까지." 숙제가 생겼다.'])
+    },
+    {
+      id: 'tr_talent', who: 'jogyo', bg: 'barracks', days: 5,
+      text: '주말 훈련병 장기자랑! 1등은 전화 5분 추가. 조교가 마이크를 내민다.',
+      l: o(['무대에 선다', '비장의 개인기'], {}, '', {
+        roll: [
+          { p: 0.45, fx: { mt: 10, bd: 8 }, say: ['1등! 엄마와 5분 더 통화했다.', '성대모사가 대박. 조교까지 웃었다.'] },
+          { p: 0.55, fx: { bd: 5, mt: -2 }, say: ['박수는 받았다. 1등은 비트박스 동기.', '긴장해서 가사를 까먹었다. 그래도 박수.'] }
+        ]
+      }),
+      r: o(['박수 부대', '탬버린 담당'], { bd: 3 }, ['박수를 치다 손바닥이 빨개졌다.', '탬버린 MVP. 이것도 재능이다.'])
+    },
+    {
+      id: 'tr_call', who: 'phone', bg: 'barracks', days: 5,
+      text: '훈련소 전화 시간. 딱 3분. 누구에게 걸까?',
+      l: o('엄마', { mt: 8 }, ['엄마 목소리를 듣자마자 3분 동안 "응… 응…"만 했다.', '엄마: "밥은?" 나: "응." 엄마: "잠은?" 나: "응." 3분 끝.']),
+      r: o('친구', { mt: 4, bd: 2 }, ['친구: "야 너 군대 갔어? 언제?" 3분이 끝났다.', '친구가 안 받았다. 남은 2분 50초 동안 신호음만 들었다.']),
+      x: o('💌 여자친구', { mt: 10 }, '"사랑해"를 열두 번 하고 끊었다. 줄 선 동기들의 눈빛이 따갑다.', { need: { flag: 'gf' }, add: { gf: 1 } })
+    },
+    {
+      id: 'tr_parcel', who: 'box', bg: 'barracks', days: 5,
+      text: '입소 때 입고 온 옷을 상자에 담아 집으로 보낸다. 편지 한 장을 넣을 수 있다.',
+      l: o(['길게 편지를 쓴다', '또박또박 진심을 쓴다'], { mt: 6, hp: -2 }, ['엄마가 그 편지를 냉장고에 붙였다고 한다.', '아빠가 그 편지를 읽고 방에 들어가서 안 나왔다고 한다.']),
+      r: o(['"잘 있음" 세 글자', '하트만 그린다'], { mt: -2, bd: 3 }, ['엄마가 그 세 글자를 보고 울었다고 한다. 더 미안해졌다.', '엄마: "이게 하트니 감자니?"'])
+    },
+    {
+      id: 'tr_rainmarch', who: 'jogyo', bg: 'rain', days: 5,
+      text: '수료 전 마지막 행군. 하필 비가 온다. 판초 우의 사이로 빗물이 스며든다.',
+      l: o(['끝까지 걷는다', '군가 부르며 걷는다'], { hp: -12, tr: 10, bd: 4 }, ['비와 땀과 눈물이 섞였다. 그래도 완주!', '빗속의 "멸공의 횃불". 영화 주인공 같았다(본인 생각).']),
+      r: o('구급차를 탄다', { hp: -2, tr: -8 }, '구급차 안에서 박덤벙과 눈이 마주쳤다. 또.')
+    }
+  ];
+
+  /* ───────── 자대 도착 후보 ───────── */
+  var ARRIVE_MORE = [
+    {
+      id: 'ja_mess', who: 'cook', bg: 'mess', days: 3,
+      text: '자대 첫 끼. 취사병이 내 식판에 돈가스를 하나 더 얹어준다. "신병 서비스~"',
+      l: o(['감사히 먹는다', '두 개 다 먹는다'], { hp: 6, mt: 4 }, ['자대 생활, 생각보다 괜찮을지도?', '돈가스 두 장. 군대에 와서 처음 행복했다.']),
+      r: o('선임에게 양보한다', { bd: 6, hp: -2 }, '선임: "…너 괜찮은 놈이네." 첫인상 합격.')
+    },
+    {
+      id: 'ja_bunk', who: 'fm', bg: 'barracks', days: 3,
+      text: '침상 배정. 남은 자리는 "문 바로 앞"과 "왕고 옆"이다.',
+      l: o('문 앞', { hp: -3, mt: 2 }, '밤마다 당직사관 발소리를 제일 먼저 듣게 됐다.'),
+      r: o('왕고 옆', { bd: 5, hp: -2 }, '왕고의 코골이와 잠꼬대를 독점하게 됐다. "엄마… 치킨…"', { aff: { malnyeon: 6 } })
+    },
+    {
+      id: 'ja_report', who: 'captain', bg: 'office', days: 3,
+      text: '전입 신고. 중대장 앞에서 자기소개를 해야 한다. 중대장 눈이 반짝인다.',
+      l: o(['"이병 {name}! 전입을 신고합니다!"', '교본대로 신고'], { tr: 6, mt: -2 }, ['중대장: "목소리 좋다! 우리 중대 체질이야!"', '중대장이 만족스럽게 고개를 끄덕였다.']),
+      r: o(['개인기까지 보여준다', '취미를 길게 말한다'], { bd: 6, tr: -2, mt: 3 }, ['성대모사를 했다. 중대장이 웃다가 사레 걸렸다.', '취미 소개가 5분 넘어가자 중대장 눈이 감겼다.'])
+    }
+  ];
+
+  /* ───────── 질문 은행 & 장면 은행 (반복되지만 매번 다른 장면) ───────── */
+  var BANKS = [
+    {
+      id: 'q_senior', who: 'ppaen', bg: 'barracks', repeat: true, cd: 25, w: 2, req: { rank: [1, 4] },
+      variants: [
+        {
+          who: 'ppaen', text: '정뺀질이 진지하게 묻는다. "너 MBTI 뭐냐? 대답 보고 근무 같이 설지 정한다."',
+          l: o('"I입니다… (조용히)"', { mt: 3, bd: -2 }, '정뺀질: "역시. 근무 때 말 안 걸게." 조용한 평화.'),
+          r: o('"E입니다!!!"', { bd: 5, hp: -2 }, '정뺀질: "오~ 그럼 오늘 근무 때 세 시간 수다 각."')
+        },
+        {
+          who: 'malnyeon', noflag: 'malGone', text: '김말년이 누운 채로 묻는다. "짜장이냐 짬뽕이냐. 대답 잘해라. 생활관이 반으로 갈린다."',
+          l: o('"짜장입니다!"', { bd: 4, mt: 2 }, '짜장파 환호. 짬뽕파의 눈빛이 차갑다.'),
+          r: o('"짬뽕입니다!"', { bd: 3, mt: 3 }, '김말년: "…너 내 편이다." 왕고 라인 탑승.', { aff: { malnyeon: 5 } }),
+          x: o('🎤 "짬짜면입니다"', { bd: 8 }, '생활관 통합! 평화의 사도 등극.', { need: { trait: 'insider' } })
+        },
+        {
+          who: 'dumb', text: '박덤벙: "너 민트초코 먹냐? 이거 우정 테스트야."',
+          l: o('"치약 맛이잖아"', { bd: 3 }, '박덤벙: "역시 넌 내 친구야!!" 민초 반대 동맹 결성.', { aff: { dumb: 4 } }),
+          r: o('"민초는 진리지"', { mt: 4, bd: -2 }, '박덤벙이 3초간 말을 잃었다. 우정에 금이 갔다(1시간 동안).')
+        },
+        {
+          who: 'ppaen', text: '정뺀질: "너 롤 티어 뭐냐? 거짓말하면 바로 안다."',
+          l: o('"아이언입니다…"', { mt: -2, bd: 5 }, '정뺀질: "솔직해서 좋다. 나도 브론즈야." 동지가 생겼다.'),
+          r: o('"다이아입니다"', {}, '', {
+            roll: [
+              { p: 0.4, fx: { bd: 6, mt: 4 }, say: '정뺀질: "오… 형님." 생활관 서열이 흔들렸다.' },
+              { p: 0.6, fx: { bd: -6, mt: -3 }, say: '사지방에서 전적 검색을 당했다. 아이언이었다.' }
+            ]
+          })
+        },
+        {
+          who: 'fm', text: '분대장 최원칙이 묻는다. "사회에서 뭐 하다 왔나? 규정상 파악해 둬야 한다."',
+          l: o('"대학생입니다!"', { tr: 3 }, '분대장: "전공은?" 대답하는 순간 엑셀 담당이 됐다.'),
+          r: o('"백수… 였습니다"', { bd: 5, tr: -2 }, '분대장이 처음으로 웃었다. "나도 그랬다."', { aff: { fm: 5 } })
+        },
+        {
+          who: 'malnyeon', noflag: 'malGone', text: '김말년: "야. 깻잎 논쟁 알지? 네 여친이 내 깻잎 떼어주면 괜찮냐?"',
+          l: o('"괜찮습니다"', { bd: 4, mt: -2 }, '생활관 절반이 야유했다. 토론이 새벽 1시까지 이어졌다.'),
+          r: o('"절대 안 됩니다"', { bd: 3, mt: 2 }, '김말년: "질투 많네~" 생활관 절반이 박수쳤다.')
+        },
+        {
+          who: 'ppaen', text: '정뺀질: "우리 생활관에서 누가 제일 잘생겼냐? 솔직하게."',
+          l: o('"정뺀질 일병님입니다"', { bd: 4, mt: -3 }, '정뺀질이 흡족해했다. 양심이 조금 아팠다.', { aff: { ppaen: 6 } }),
+          r: o('"저입니다"', { mt: 5, bd: -3 }, '생활관이 정적에 빠졌다. 그리고 폭소.')
+        },
+        {
+          who: 'dumb', text: '박덤벙: "전역하면 제일 먼저 뭐 할 거야? 난 치킨 열 마리."',
+          l: o('"치킨 열한 마리"', { mt: 4, bd: 3 }, '둘이 치킨 계획표를 짰다. 순살 6, 뼈 5.'),
+          r: o('"하루 종일 잔다"', { hp: 3, mt: 3 }, '박덤벙: "그거 좋다…" 둘이 동시에 하품했다.')
+        },
+        {
+          who: 'malnyeon', noflag: 'malGone', text: '김말년이 묻는다. "부먹이냐 찍먹이냐. 이건 군생활보다 중요하다."',
+          l: o('"부먹입니다"', { bd: 3 }, '김말년: "탕수육은 소스에 적셔야 제맛이지." 합격.', { aff: { malnyeon: 4 } }),
+          r: o('"찍먹입니다"', { mt: 3, bd: -1 }, '김말년: "…바삭함 파구나." 묘한 긴장감.')
+        },
+        {
+          who: 'fm', text: '분대장: "이상형이 뭐냐? 분대원 사기 관리 차원에서 묻는다."',
+          l: o('"걸그룹 OO입니다!"', { bd: 4 }, '분대장: "…나도." 분대장과 공감대가 생겼다.'),
+          r: o('"엄마 같은 사람입니다"', { mt: 3, tr: 3 }, '분대장이 안경을 고쳐 썼다. "…효자군."')
+        },
+        {
+          who: 'ppaen', text: '정뺀질: "너 휴가 나가면 뭐부터 할 거야? 계획 없으면 휴가 아깝다?"',
+          l: o('"PC방 직행"', { mt: 4, hp: -1 }, '정뺀질: "역시. 근데 PC방 가면 시간 순삭이다."'),
+          r: o('"엄마 밥"', { mt: 3, bd: 2 }, '정뺀질도 갑자기 조용해졌다. 다들 엄마 밥이 그립다.')
+        },
+        {
+          who: 'dumb', text: '박덤벙: "야 우리 전역하고도 연락하자. 약속해."',
+          l: o('"당연하지!"', { bd: 6 }, '새끼손가락을 걸었다. 박덤벙이 감동해서 울었다.', { aff: { dumb: 6 } }),
+          r: o('"…일단 전역부터 하자"', { mt: 2, bd: 1 }, '박덤벙: "맞네." 현실적인 우정.')
+        }
+      ]
+    },
+    {
+      id: 'q_officer', who: 'captain', bg: 'office', repeat: true, cd: 40, w: 1.5, req: { rank: [1, 4] },
+      variants: [
+        {
+          who: 'captain', text: '중대장 면담. "군생활 할 만하나? 솔직하게 말해도 된다."',
+          l: o(['"할 만합니다!"', '"아주 좋습니다!"'], { tr: 5, mt: -2 }, ['중대장: "좋다! 열정!" 면담 3분 만에 종료.', '중대장이 "역시 우리 중대!"를 세 번 외쳤다.']),
+          r: o('"솔직히 힘듭니다"', { mt: 5, tr: -2 }, ['중대장이 진지하게 들어줬다. 마음이 조금 풀렸다.', '중대장: "나도 힘들다." 둘이 한숨을 쉬었다.'])
+        },
+        {
+          who: 'lt', text: '소대장: "저… 제 정신교육 시간 어땠어요? 솔직하게요."',
+          l: o('"감동적이었습니다"', { tr: 5, mt: -2 }, '소대장 얼굴이 환해졌다. 다음 주 교육이 두 배 길어졌다.'),
+          r: o('"조금 길었습니다"', { tr: -2, bd: 4 }, '소대장: "…그렇죠?" 다음 주 교육이 10분 줄었다. 생활관 영웅.')
+        },
+        {
+          who: 'haeng', text: '행보관이 묻는다. "너 삽질 몇 년 했냐?"',
+          l: o('"이제 막 배우는 중입니다!"', { tr: 4, hp: -3 }, '행보관: "그럼 오늘 배워라." 삽을 받았다.'),
+          r: o('"삽은 제 인생입니다"', { tr: 6, mt: -3 }, '행보관이 처음으로 손을 내밀었다. 악수했다. 손이 거칠었다.', { aff: { haeng: 6 } })
+        },
+        {
+          who: 'captain', text: '중대장: "자네, 전역하고 뭐 할 건가? 혹시… 직업군인 생각은?"',
+          l: o('"생각해 보겠습니다"', { tr: 6, mt: -3 }, '중대장이 서랍에서 서류를 꺼내려다 멈췄다. 위험했다.'),
+          r: o('"복학합니다!"', { mt: 4, tr: -2 }, '중대장: "…그래, 공부도 중요하지." 아쉬운 눈빛.')
+        },
+        {
+          who: 'general', text: '사단장님 순시 중 갑자기 멈추신다. "자네, 고향이 어딘가?"',
+          l: o('"충성! 서울입니다!"', { tr: 6 }, '사단장님: "서울 촌놈이구먼." 뒤에서 중대장이 숨을 쉬었다.'),
+          r: o('"사단장님과 같은 고향입니다!"', {}, '', {
+            roll: [
+              { p: 0.5, fx: { tr: 10, mt: 4 }, say: '진짜였다! 사단장님이 어깨를 두드려 주셨다.' },
+              { p: 0.5, fx: { tr: -8 }, say: '사단장님: "나는 부산인데?" 중대장이 기절할 뻔했다.' }
+            ]
+          })
+        },
+        {
+          who: 'duty', text: '당직사관: "근무 서면서 이상한 거 못 봤냐? 요즘 부대에 귀신 소문이 돈다."',
+          l: o('"이상 무입니다"', { tr: 4 }, '당직사관: "…그래, 나도 아무것도 못 봤다." 둘 다 떨고 있었다.'),
+          r: o('"하얀 게 지나갔습니다"', { bd: 4, tr: -2 }, '당직사관이 손전등을 두 개 들고 다니기 시작했다.')
+        }
+      ]
+    },
+    {
+      id: 'q_hoobae', who: 'hoobae', bg: 'barracks', repeat: true, cd: 35, w: 1.6, req: { flag: 'hoobae' },
+      variants: [
+        {
+          text: '오순둥: "선임님, 행정반 전화 받을 때 뭐라고 해야 합니까? 또 피자집이라고 할까 봐 무섭습니다…"',
+          l: o('"통신보안! 이병 오순둥입니다"', { bd: 5, tr: 2 }, '오순둥이 100번 따라 했다. 이제 잠꼬대로도 한다.', { aff: { hoobae: 5 } }),
+          r: o('"그냥 피자집 해"', { mt: 4, bd: -2 }, '오순둥: "네?!" 농담인 걸 알아차리는 데 3시간 걸렸다.')
+        },
+        {
+          text: '오순둥: "선임님은 이병 때 안 힘드셨습니까?"',
+          l: o('"엄청 힘들었지"', { bd: 6, mt: -2 }, '라떼 이야기가 아니라 진짜 위로가 됐다. 오순둥 눈이 반짝였다.', { aff: { hoobae: 6 } }),
+          r: o('"난 처음부터 잘했어"', { mt: 4, bd: -3 }, '오순둥이 존경과 의심이 섞인 눈으로 봤다.')
+        },
+        {
+          text: '오순둥: "선임님, 이 관물대 각… 이게 맞습니까?" 관물대가 30도 기울어져 있다.',
+          l: o('같이 다시 잡아준다', { bd: 6, hp: -3 }, '"각은 마음으로 잡는 거야." 명언이 탄생했다.'),
+          r: o('"분대장한테 물어봐"', { tr: 2, bd: -2 }, '오순둥이 분대장에게 갔다. 분대장의 FM 강의 2시간.')
+        },
+        {
+          text: '오순둥: "여자친구가 연락이 안 됩니다… 고무신 거꾸로 신는 겁니까?"',
+          l: o('"바쁜 거야, 기다려 봐"', { bd: 5, mt: -2 }, '다음 날 연락이 왔다. 휴대폰이 고장 났었다고 한다. 오순둥 부활.'),
+          r: o('"초코파이나 먹자"', { bd: 4, mt: 2 }, '초코파이를 먹으며 둘이 아무 말도 안 했다. 그게 위로였다.')
+        },
+        {
+          text: '오순둥이 불침번 교대 시간에 잠이 덜 깬 채 경례한다. 방향이 벽이다.',
+          l: o('조용히 방향을 돌려준다', { bd: 5 }, '오순둥: "충성… 벽님…" 다음 날 기억 못 했다.'),
+          r: o('사진 찍어 두고 싶다(금지)', { mt: 4 }, '눈에만 담았다. 전역 날 꼭 얘기해 줘야지.')
+        }
+      ]
+    },
+    {
+      id: 'mess_day', who: 'cook', bg: 'mess', repeat: true, cd: 20, w: 1.8, req: { rank: [1, 4] },
+      variants: [
+        {
+          text: '오늘 메뉴: 닭볶음탕! 그런데 닭다리가 딱 하나 남았다. 뒤에 선임이 서 있다.',
+          l: o('닭다리를 집는다', { hp: 6, bd: -4 }, '맛있었다. 뒤통수가 따가웠다.'),
+          r: o('선임에게 양보', { bd: 6, hp: -1 }, '선임이 닭다리를 반 잘라서 줬다. 군대 정이다.')
+        },
+        {
+          text: '오늘은 카레데이. 그런데 카레에 감자만 있다. 고기를 찾아 국자로 탐험한다.',
+          l: o('끝까지 고기를 찾는다', { mt: 4, tr: -2 }, '고기 한 조각 발견! 취사병의 눈빛이 날카로웠다.'),
+          r: o('감자 카레로 만족', { hp: 4, mt: -1 }, '감자도 맛있다. 군대가 사람을 겸손하게 만든다.')
+        },
+        {
+          text: '주말 아침 특식: 짜파게티! 생활관 전원이 "물 조절" 장인을 찾는다.',
+          l: o('내가 끓인다', {}, '', {
+            roll: [
+              { p: 0.6, fx: { bd: 8, mt: 4 }, say: '물 조절 완벽! 오늘부터 생활관 셰프.' },
+              { p: 0.4, fx: { bd: -4 }, say: '짜파게티 수프가 됐다. "이건 짜파국인데?"' }
+            ]
+          }),
+          r: o('먹기만 한다', { hp: 4 }, '셰프에게 감사를. 맛있었다.')
+        },
+        {
+          text: '오늘 반찬: 콩자반, 멸치볶음, 김치. 단백질 찾기 대회가 열렸다.',
+          l: o('맛다시 투하', { mt: 4, hp: 2 }, '맛다시는 모든 걸 해결한다. 이것이 군대 마법.'),
+          r: o('PX 냉동으로 보충', { hp: 4, mt: 3 }, '전자레인지 앞이 식당보다 붐볐다.', { money: -4500 })
+        },
+        {
+          text: '전투식량 데이. 발열팩에 물을 붓자 봉지가 부풀어 오른다. 동기가 겁먹었다.',
+          l: o('침착하게 기다린다', { hp: 5 }, '따뜻한 비빔밥 완성. 의외로 맛있다.'),
+          r: o('비상! 하고 소리친다', { bd: 5, tr: -3 }, '생활관이 웃음바다가 됐다. 동기는 진짜 놀랐다.')
+        },
+        {
+          text: '수요일 군대리아 소스 대란! 케첩과 머스터드가 하나씩 남았다.',
+          l: o('케첩', { mt: 3 }, '정석의 맛. 군대리아는 역시 케첩.'),
+          r: o('둘 다 짜서 섞는다', { mt: 5, bd: -2 }, '천재적인 맛. 뒤에 줄 선 사람들은 소스가 없었다.')
+        }
+      ]
+    },
+    {
+      id: 'work_day', who: 'haeng', bg: 'field', repeat: true, cd: 25, w: 1.6, req: { rank: [1, 4] },
+      variants: [
+        {
+          text: '행보관: "연병장 돌 주워라. 손바닥만 한 것부터 손톱만 한 것까지."',
+          l: o(['하나하나 줍는다', '돌과 대화하며 줍는다'], { hp: -6, tr: 5 }, ['돌 312개. 연병장이 반짝인다.', '돌에 이름을 붙이기 시작했다. 위험 신호다.']),
+          r: o('큰 돌만 줍는다', { mt: 3, tr: -4 }, '행보관이 손톱만 한 돌을 하나 들어 보였다. 다시.')
+        },
+        {
+          text: '행보관 창고 정리. 창고 안에 20년 된 삽, 녹슨 양동이, 정체불명의 상자가 있다.',
+          l: o('상자를 열어본다', {}, '', {
+            roll: [
+              { p: 0.35, fx: { mt: 6 }, say: '옛날 선임들의 위문편지 묶음이었다. 감동. 💎 +5', gem: 5 },
+              { p: 0.65, fx: { hp: -3, mt: -2 }, say: '먼지 폭탄이었다. 기침이 30분 갔다.' }
+            ]
+          }),
+          r: o('시키는 것만 한다', { tr: 4, hp: -4 }, '행보관: "그 상자는 건드리지 마라." 더 궁금해졌다.')
+        },
+        {
+          text: '사격장 표적지 교체 작업. 표적지가 바람에 날아가 산으로 간다.',
+          l: o('쫓아간다', { hp: -8, tr: 6 }, '산 중턱에서 표적지 회수. 고라니가 쳐다봤다.'),
+          r: o('새 표적지를 쓴다', { mt: 2, tr: -3 }, '행보관: "표적지 한 장도 세금이다."')
+        },
+        {
+          text: '분리수거장 정리. 누군가 페트병에 라면 국물을 그대로 넣어 놨다.',
+          l: o('묵묵히 헹군다', { hp: -3, tr: 4, mt: -2 }, '세상의 정의는 이런 데서 시작된다.'),
+          r: o('범인을 찾는다', { bd: -3, mt: 4 }, '범인은 정뺀질이었다. 증거: 라면 국물 냄새.', { aff: { ppaen: -4 } })
+        },
+        {
+          text: '페인트칠 작업. 행보관: "생활관 벽, 오늘 안에 다 칠한다." 붓은 칫솔만 하다.',
+          l: o('정성껏 칠한다', { hp: -6, tr: 6 }, '벽에 내 영혼이 스며들었다. 그리고 페인트 냄새도.'),
+          r: o('롤러를 찾아온다', { tr: 2, mt: 3 }, '롤러를 쓰자 30분 만에 끝. 행보관: "…머리 좋네."')
+        },
+        {
+          text: '배수로 정비. 낙엽과 흙이 꽉 막혀 있다. 행보관이 삽 두 자루를 내민다.',
+          l: o(['두 자루 다 받는다', '양손 삽질'], { hp: -8, tr: 7 }, ['양손 삽질 장인 탄생.', '팔이 내 팔이 아닌 것 같다. 행보관: "제법이다."'], { aff: { haeng: 4 } }),
+          r: o('한 자루만', { hp: -4, tr: 2 }, '나머지 한 자루는 박덤벙에게 갔다. 미안.')
+        }
+      ]
+    },
+    {
+      id: 'night_event', who: 'me', bg: 'night', repeat: true, cd: 25, w: 1.5, req: { rank: [1, 4] },
+      variants: [
+        {
+          who: 'malnyeon', noflag: 'malGone', text: '새벽 2시. 김말년이 잠꼬대를 한다. "충성… 충성… 엄마… 치킨…"',
+          l: o('조용히 듣는다', { mt: 3 }, '왕고도 사람이었다. 마음이 짠해졌다.'),
+          r: o('녹음하고 싶다(금지)', { mt: 5, tr: -2 }, '참았다. 대신 다음 날 아침에 성대모사를 했다.')
+        },
+        {
+          who: 'dumb', text: '새벽에 박덤벙이 흔든다. "야… 화장실 같이 가 줘. 무서워."',
+          l: o('같이 간다', { bd: 6, hp: -3 }, '복도에서 둘이 손잡고 걸었다. 당직사관이 봤다. 아무 말 안 했다.', { aff: { dumb: 5 } }),
+          r: o('"혼자 가"', { hp: 3, bd: -4 }, '박덤벙이 아침까지 참았다고 한다.')
+        },
+        {
+          who: 'ppaen', text: '소등 후 정뺀질 이불 속에서 휴대폰 불빛이 새어 나온다. 반납 시간은 지났다.',
+          l: o('모른 척한다', { bd: 4, tr: -2 }, '다음 날 정뺀질이 바나나우유를 줬다. 입막음 비용.'),
+          r: o('"걸린다, 넣어"', { tr: 3, bd: -1 }, '정뺀질이 넣었다. 5분 뒤 당직사관이 들어왔다. 생명의 은인.', { aff: { ppaen: 5 } })
+        },
+        {
+          who: 'me', text: '잠이 안 온다. 천장을 보며 전역까지 남은 날을 계산한다. D-{left}.',
+          l: o('나눗셈을 해 본다', { mt: -2, hp: 2 }, '{left}일 ÷ 7 = 몇 주… 계산하다 잠들었다.'),
+          r: o('전역 후 계획을 세운다', { mt: 4 }, '계획 1번: 늦잠. 2번: 늦잠. 3번: 치킨.')
+        },
+        {
+          who: 'duty', text: '새벽 순찰 중인 당직사관이 생활관 문을 살짝 연다. 나는 눈을 뜨고 있다.',
+          l: o('자는 척한다', { mt: 2 }, '당직사관이 이불을 덮어주고 갔다. …응?'),
+          r: o('눈이 마주친다', { tr: -2, bd: 3 }, '당직사관: "…자라." 둘 다 민망했다.')
+        }
+      ]
+    },
+    {
+      id: 'phone_time', who: 'phone', bg: 'barracks', repeat: true, cd: 25, w: 1.6, req: { rank: [1, 4] },
+      variants: [
+        {
+          text: '휴대폰 시간. 단톡방에 읽지 않은 메시지 999+. 친구들은 여행 사진을 올리고 있다.',
+          l: o('다 읽는다', { mt: -4, bd: 2 }, '부러움 999+. 나도 전역하면 간다.'),
+          r: o('조용히 나간다', { mt: 3 }, '디지털 디톡스. 마음이 편해졌다.')
+        },
+        {
+          text: '휴대폰 시간. 쇼핑앱 장바구니에 전역 후 살 것들이 쌓여 간다.',
+          l: o('장바구니에 더 담는다', { mt: 5 }, '장바구니 금액: 전역 통장의 3배.'),
+          r: o('결제한다(배송지: 집)', { mt: 6 }, '엄마: "이게 뭐니?" 택배가 먼저 전역했다.', { money: -30000 })
+        },
+        {
+          text: '휴대폰 시간. 엄마가 영상통화를 걸었다. 뒤에 강아지가 보인다.',
+          l: o('강아지랑 대화한다', { mt: 8 }, '강아지가 나를 못 알아봤다. 짖었다. 마음이 아팠다.'),
+          r: o('엄마랑 수다', { mt: 6, bd: -1 }, '엄마: "살 빠졌네?" 군대 다이어트 성공.')
+        },
+        {
+          text: '휴대폰 시간. 주식 앱을 켜 본다. 빨간색과 파란색이 춤을 춘다.',
+          l: o('조금 사 본다', {}, '', {
+            roll: [
+              { p: 0.45, fx: { mt: 6 }, say: '올랐다! 치킨 한 마리 값을 벌었다.', money: 20000 },
+              { p: 0.55, fx: { mt: -5 }, say: '파란색. 오늘 PX는 못 간다.', money: -20000 }
+            ]
+          }),
+          r: o('앱을 지운다', { mt: 2, tr: 1 }, '현명하다. 적금이 최고의 투자다.')
+        },
+        {
+          text: '휴대폰 시간. 걸그룹 신곡 뮤직비디오가 떴다. 생활관 전원이 내 휴대폰 앞으로 모인다.',
+          l: o('같이 본다', { bd: 6, mt: 3 }, '30명이 휴대폰 하나에 모였다. 화면이 안 보였다. 그래도 좋았다.'),
+          r: o('이어폰 끼고 혼자 본다', { mt: 5, bd: -3 }, '뒤에서 30명의 숨소리가 들렸다.')
+        },
+        {
+          text: '휴대폰 시간. 전역한 선임에게 연락이 왔다. "야 사회 좋다~ 너도 금방이야."',
+          l: o('"부럽습니다…"', { mt: -2, bd: 2 }, '선임이 치킨 기프티콘을 보냈다. 쓸 수가 없다. 고문이다.'),
+          r: o('"저도 곧 나갑니다!"', { mt: 4 }, '전역 D-day 계산기를 켰다. 아직 멀었다.')
+        }
+      ]
+    }
+  ];
+
+  /* ───────── 기존 카드에 장면 추가 (반복될 때 다르게) ───────── */
+  var PATCH = {
+    phone_return: [
+      {
+        text: '휴대폰 반납 3분 전. 장바구니 결제 버튼에 손가락이 올라가 있다. 품절 임박!',
+        l: o('반납한다', { tr: 5, mt: -5 }, '다음 날 품절. 군대는 쇼핑도 전략이다.'),
+        r: o('결제부터!', {}, '', {
+          roll: [
+            { p: 0.55, fx: { tr: -12 }, say: '결제 완료와 동시에 당직사관 등장. 일주일 사용 정지.' },
+            { p: 0.45, fx: { mt: 8 }, say: '결제 성공! 택배는 집으로. 엄마가 놀랄 것이다.' }
+          ]
+        })
+      },
+      {
+        text: '휴대폰 반납 시간인데 여자친구(혹은 엄마)와 통화가 끝나지 않는다.',
+        l: o('"사랑해, 끊을게!"', { tr: 5, mt: -3 }, '반납함 앞에서 마지막 "사랑해". 줄 선 사람들이 고개를 돌렸다.'),
+        r: o('복도로 숨는다', {}, '', {
+          roll: [
+            { p: 0.5, fx: { tr: -12 }, say: '복도 끝에 당직사관이 서 있었다.' },
+            { p: 0.5, fx: { mt: 8 }, say: '5분 더 통화 성공. 심장이 터질 뻔했다.' }
+          ]
+        })
+      }
+    ],
+    tylenol: [
+      {
+        who: 'medic', text: '의무대. 손가락이 베였다고 하자 의무병이 빨간약을 꺼낸다. "어디든 이거면 됩니다."',
+        l: o('빨간약을 바른다', { hp: 4 }, '손가락이 빨개졌다. 마음은 편해졌다.'),
+        r: o('"좀 더 제대로…"', {}, '', {
+          roll: [
+            { p: 0.5, fx: { hp: 10 }, say: '군의관이 직접 봐줬다. 꿰맬 필요는 없었다.' },
+            { p: 0.5, fx: { tr: -6, mt: -3 }, say: '"빨간약 세 번 발라." 처방이 업그레이드됐다.' }
+          ]
+        })
+      }
+    ],
+    haeng_call: [
+      {
+        text: '방송: "{rank} {name}, 행정반으로." 생활관 전원이 나를 측은하게 본다.',
+        l: o('뛰어간다', { hp: -8, tr: 8 }, '행보관: "왔냐? 창고 열쇠 받아라." 오늘 하루가 정해졌다.'),
+        r: o('천천히 걸어간다', {}, '', {
+          roll: [
+            { p: 0.5, fx: { tr: -8 }, say: '행보관: "걸어서 왔냐?" 삽이 두 배가 됐다.' },
+            { p: 0.5, fx: { mt: 5 }, say: '도착하니 정뺀질이 이미 끌려가 있었다. 오해였다.' }
+          ]
+        })
+      },
+      {
+        text: '행보관이 생활관 문을 열고 둘러본다. "할 일 없는 사람?" 눈이 마주쳤다.',
+        l: o('"제가 하겠습니다!"', { hp: -8, tr: 9 }, '자원은 군대에서 가장 위험한 단어다. 오늘 작업 4시간.'),
+        r: o('책을 펼친다', { mt: 4, tr: -6 }, '책이 거꾸로였다. 행보관이 그걸 봤다.')
+      }
+    ],
+    snoring: [
+      {
+        text: '새벽 3시. 옆 침상 동기가 이를 간다. 뽀드득 뽀드득. 맷돌 소리 같다.',
+        l: o('수건을 물려준다(조심히)', {}, '', {
+          roll: [
+            { p: 0.5, fx: { hp: 8 }, say: '조용해졌다. 내일 아침 동기는 수건을 물고 일어날 것이다.' },
+            { p: 0.5, fx: { bd: -8 }, say: '동기가 깼다. "너 뭐 하냐?" 설명하기 어려웠다.' }
+          ]
+        }),
+        r: o('이어폰으로 막는다', { hp: -4, mt: -2 }, '이어폰을 뚫고 들어온다. 맷돌은 강하다.')
+      }
+    ],
+    ramen_party: [
+      {
+        text: '소등 후 박덤벙이 속삭인다. "나 냉동 만두 몰래 데워 왔어. 같이 먹을래?"',
+        l: o('먹는다', { bd: 8, hp: 3 }, '', {
+          roll: [
+            { p: 0.7, fx: { mt: 6 }, say: '어둠 속의 만두는 미슐랭 3스타였다.' },
+            { p: 0.3, fx: { tr: -10 }, say: '만두 냄새가 복도까지 퍼졌다. 당직사관 출동.' }
+          ]
+        }),
+        r: o('자는 척', { hp: 4, bd: -4 }, '만두 냄새를 맡으며 잠드는 건 고문이었다.')
+      }
+    ],
+    gundaeria: [
+      {
+        text: '수요일 군대리아. 그런데 빵이 패티보다 작다. 패티가 빵 밖으로 탈출 중이다.',
+        l: o('패티를 접어 넣는다', { mt: 5, hp: 3 }, '접이식 군대리아 완성. 특허를 내고 싶다.'),
+        r: o('패티 따로, 빵 따로', { mt: 2, hp: 4 }, '그건 그냥 고기랑 빵이었다. 그래도 맛있다.')
+      }
+    ],
+    nightwatch: [
+      {
+        text: '불침번. 복도 끝 형광등이 깜빡인다. 시계는 4시 10분에서 멈춘 것 같다.',
+        l: o('버틴다!', {}, '', { mini: 'watch' }),
+        r: o('벽에 기대 본다', {}, '', {
+          roll: [
+            { p: 0.5, fx: { tr: -15 }, say: '벽에 기댄 채 잠들었다. 당직사관이 사진을 찍었다(지웠다고 한다).' },
+            { p: 0.5, fx: { hp: 6 }, say: '10초만 기댔다. 그 10초가 꿀이었다.' }
+          ]
+        })
+      }
+    ],
+    locker_check: [
+      {
+        text: '관물대 검사. 내 관물대에 몰래 가져온 고데기… 아니 휴대폰 보조배터리 5개가 있다.',
+        l: o('자진 신고', { tr: 5, mt: -5 }, '"왜 5개나?" 대답할 수 없었다.'),
+        r: o('수건으로 덮는다', {}, '', {
+          roll: [
+            { p: 0.5, fx: { mt: 7 }, say: '수건 작전 성공.' },
+            { p: 0.5, fx: { tr: -11 }, say: '수건이 너무 볼록했다.' }
+          ]
+        })
+      }
+    ],
+    warn_mt_low: [
+      {
+        who: 'dumb', text: '박덤벙이 다가온다. "너 요즘 표정이 안 좋아… 나랑 같이 연병장 한 바퀴 걸을래?"',
+        l: o('같이 걷는다', { mt: 16, bd: 3 }, '아무 말 없이 걸었는데 이상하게 괜찮아졌다.', { aff: { dumb: 6 } }),
+        r: o('"괜찮아"', { mt: -3 }, '괜찮지 않았다. 박덤벙은 그걸 알았다.')
+      },
+      {
+        who: 'phone', text: '엄마 전화: "아들, 목소리가 왜 그래? 무슨 일 있어?"',
+        l: o('털어놓는다', { mt: 16 }, '엄마: "힘들면 힘들다고 해도 돼." 눈물이 났다. 개운해졌다.'),
+        r: o('"아니야 괜찮아"', { mt: -3, hp: 1 }, '엄마는 다 알면서 모른 척해 줬다.')
+      }
+    ],
+    warn_hp_low: [
+      {
+        who: 'doc', text: '군의관: "너 몸무게 몇 킬로 빠졌냐? 오늘은 열외다. 이건 명령이다."',
+        l: o('열외한다', { hp: 16, tr: -4 }, '하루 종일 잤다. 몸이 기억해 냈다, 쉬는 법을.'),
+        r: o('"버틸 수 있습니다!"', { hp: -3, tr: 5 }, '군의관: "…타이레놀이라도 먹어."')
+      },
+      {
+        who: 'cook', text: '취사병이 몰래 삼계탕 한 그릇을 퍼준다. "너 쓰러지겠다. 이거 먹어."',
+        l: o('먹는다', { hp: 15 }, '뜨끈한 국물이 내장을 깨웠다. 살았다.'),
+        r: o('사양한다', { hp: -2, bd: 3 }, '취사병이 서운해했다. 그래도 내일 또 퍼줄 것 같다.')
+      }
+    ],
+    warn_hp_high: [
+      {
+        who: 'fm', text: '분대장: "너 체력 남아돌지? 이번 체육대회 전 종목 출전이다. 규정상 최강자가 나간다."',
+        l: o('일부만 나간다', { hp: -12, mt: 3 }, '줄다리기만 나갔다. 적당히 지쳤다. 이게 맞다.'),
+        r: o('전 종목 출전!', { hp: 5, tr: 8 }, '중대장이 "부사관…" 단어를 꺼내기 시작했다.')
+      }
+    ],
+    warn_mt_high: [
+      {
+        who: 'dumb', text: '박덤벙: "너 요즘 왜 이렇게 해맑아…? 제설하면서 웃는 거 처음 봤어. 무서워."',
+        l: o('정신 차린다', { mt: -12 }, '거울을 봤다. 확실히 너무 해맑았다.'),
+        r: o('해맑게 웃는다', { mt: 8, bd: -4 }, '박덤벙이 한 걸음 물러섰다.')
+      }
+    ],
+    warn_tr_low: [
+      {
+        who: 'haeng', text: '행보관: "너 요즘 자주 보인다? 나쁜 의미로."',
+        l: o('반성한다', { tr: 12, mt: -6 }, '행보관과 삽질 데이트 3시간. 신뢰가 조금 회복됐다.'),
+        r: o('웃으며 넘긴다', {}, '', {
+          roll: [
+            { p: 0.5, fx: { tr: 7, mt: 4 }, say: '행보관도 피식 웃었다. 위기 모면.' },
+            { p: 0.5, fx: { tr: -5 }, say: '행보관은 웃지 않았다.' }
+          ]
+        })
+      }
+    ],
+    warn_tr_high: [
+      {
+        who: 'lt', text: '소대장: "{rank}님… 솔직히 저보다 소대를 더 잘 아시잖아요. 장기복무 같이 하실래요?"',
+        l: o('정중히 사양', { tr: -12, mt: 3 }, '소대장이 시무룩해졌다. 하지만 내 전역은 지켰다.'),
+        r: o('"생각해 볼게요"', { tr: 8, mt: -5 }, '소대장이 신청서 양식을 출력했다. 컬러로.')
+      }
+    ],
+    warn_bd_low: [
+      {
+        who: 'ppaen', text: '정뺀질: "야, 너 요즘 생활관 투명인간이야? 오늘 야식 같이 먹자. 네가 사."',
+        l: o('같이 먹는다(내가 산다)', { bd: 14 }, '치킨 한 마리에 생활관 복귀. 가성비 좋았다.', { money: -18000 }),
+        r: o('거절한다', { mt: 4, bd: -5 }, '정뺀질: "후회할걸~" 조금 후회했다.')
+      }
+    ],
+    warn_bd_high: [
+      {
+        who: 'dumb', text: '박덤벙: "야, 다들 너만 믿어. 이번에 단체로 중대장님께 건의하자. 회식 두 번! 네가 대표로."',
+        l: o('말린다', { bd: -12, tr: 5 }, '"회식은 한 번이면 충분해." 다들 아쉬워했다.'),
+        r: o('대표로 나선다', { bd: 10, tr: -12 }, '중대장이 건의서를 한참 봤다. 내 이름이 맨 위에 있었다.')
+      }
+    ]
+  };
+
+  /* ───────── 문장만 여러 버전 (같은 장면, 다른 말투) ───────── */
+  var TEXTS = {
+    shooting: ['사격 훈련! 20발 중 18발 이상이면 특등사수, 포상휴가다.', '기록사격 날. 사로에 엎드리자 심장 소리가 총소리보다 크다. 18발이면 특등사수!', '사격장. 바람이 분다. 분대장: "바람 생각하지 마. 그냥 쏴." 특등사수는 포상휴가.'],
+    pt_test: ['체력측정! 3km 달리기, 팔굽혀펴기, 윗몸일으키기. 특급전사면 포상휴가!', '특급전사 도전의 날. 3km 출발선에 섰다. 옆 사람이 벌써 헉헉댄다.', '체력측정 날 아침. 중대장: "특급전사 나오면 포상휴가 쏜다!" 다들 눈빛이 달라졌다.'],
+    cctv: ['CCTV 감시 근무. 화면 16개가 전부 똑같아 보인다.', 'CCTV 근무 2시간째. 화면 속 나뭇잎 하나가 움직일 때마다 심장이 뛴다.'],
+    amguho: ['근무 투입 전 암구호 확인. 문어는 "짜장"인데… 답어가 기억이 안 난다.', '오늘 암구호: 문어 "삼겹살". 답어는… 분명 고기 종류였는데.'],
+    alert_5min: ['새벽 2시 방송: "5분대기조 출동! 실제 상황이다!" 군장을 챙겨라!', '사이렌! "5분대기조, 연병장 집결!" 꿈인지 현실인지 모르겠다.'],
+    snow_alert: ['새벽 4시 방송: "전 병력 제설 작업 준비. 적설량 15cm." 하늘에서 쓰레기가 내린다.', '창밖이 하얗다. 아름답다고 생각한 순간 방송이 울린다. "제설!"', '밤새 눈이 30cm. 행보관이 넉가래를 들고 생활관 앞에 서 있다.'],
+    football: ['주말 축구. 중대장님이 직접 뛰신다. 공이 굴러왔다. 중대장님이 "패스!"를 외친다.', '중대 대항 축구 결승. 중대장님이 골대 앞에서 손을 흔든다. 공은 내 발에 있다.'],
+    mom_box: ['엄마의 소포 도착! 상자에 큰 글씨로 "아들♥"이라고 써 있다. 선임들이 보고 있다.', '택배 도착. 상자가 엄청 무겁다. 열어 보니 반찬통 7개와 편지 한 장.']
+  };
+
+  /* ───────── 인물별 공통 특수 대답 (조건이 맞으면 세 번째 선택지로 등장) ───────── */
+  JY.SPECIALS = {
+    dumb: [o('🍫 초코파이로 해결', { bd: 6, mt: 2 }, ['박덤벙: "초코파이면 다 용서돼!" 문제가 녹아 없어졌다.', '초코파이 하나에 박덤벙이 세상을 다 가진 표정이다.'], { need: { item: 'chocopie' }, aff: { dumb: 6 } })],
+    malnyeon: [o('🍜 불닭 나눠 먹기', { bd: 6, mt: 3 }, ['김말년: "역시 넌 센스가 있어~" 매운맛으로 대동단결.', '둘이 눈물 흘리며 불닭을 먹었다. 왕고 라인 확정.'], { need: { item: 'buldak' }, aff: { malnyeon: 6 } })],
+    fm: [o('🥾 광낸 전투화로 어필', { tr: 6, bd: 2 }, ['분대장이 내 전투화에 비친 자기 얼굴을 봤다. "…합격."', '분대장: "규정 이상의 광택이다." 최고의 칭찬.'], { need: { item: 'polish' }, aff: { fm: 6 } })],
+    ppaen: [o('🍌 바나나우유로 회유', { bd: 5, mt: 2 }, ['정뺀질: "역시 넌 말이 통해~" 거래 성립.', '바나나우유 하나로 정뺀질이 순한 양이 됐다.'], { need: { item: 'banana' }, aff: { ppaen: 6 } })],
+    hoobae: [o('💬 다정하게 챙긴다', { bd: 6, mt: 3 }, ['오순둥: "선임님… 평생 따르겠습니다!"', '오순둥이 헬멧을 고쳐 쓰며 웃었다.'], { need: { aff: { hoobae: [50, 100] } }, aff: { hoobae: 4 } })],
+    haeng: [o('⚡ 에너지 드링크를 건넨다', { tr: 6, hp: 3 }, ['행보관: "…센스 있네." 오늘 작업량이 줄었다.', '행보관이 원샷하고 말했다. "너는 오늘 열외."'], { need: { item: 'hot6' }, aff: { haeng: 8 } })],
+    cat: [o('🥫 참치캔을 딴다', { mt: 8 }, ['짬타이거가 0.3초 만에 달려왔다. 세상 평화.', '참치 냄새에 짬타이거가 골골송을 불렀다.'], { need: { item: 'tuna' }, aff: { cat: 10 } })],
+    cook: [o('🌶️ 맛다시로 협상', { mt: 6, bd: 2 }, ['취사병: "…다음에 고기 한 점 더 줄게." 거래 성립.', '맛다시 하나로 오늘 식판이 업그레이드됐다.'], { need: { item: 'matdasi' } })],
+    captain: [o('🎤 분위기 메이커 발동', { tr: 5, bd: 4 }, ['중대장이 박장대소했다. 상황이 웃음으로 끝났다.', '중대장: "자네 덕분에 중대 분위기가 산다!"'], { need: { trait: 'insider' } })],
+    lt: [o('📏 FM으로 정리해 드린다', { tr: 8, mt: -2 }, ['소대장: "천재세요?" 소대장 업무가 반으로 줄었다.', '표 하나로 정리해 드렸다. 소대장이 출력해서 액자에 넣었다.'], { need: { trait: 'fm' } })],
+    gf: [o('💐 꽃 배달을 보낸다', { mt: 6 }, ['여자친구: "부대에서 어떻게 보냈어?!" 감동 대성공.', '꽃 배달 카드에 "기다려 줘서 고마워"라고 썼다.'], { need: { money: 30000 }, money: -30000, add: { gf: 1 } })],
+    mom: [o('📸 초코파이 인증샷', { mt: 6 }, ['엄마: "잘 먹고 다니네!" 걱정이 반으로 줄었다고 한다.', '엄마가 그 사진을 가족 단톡방 프로필로 바꿨다.'], { need: { item: 'chocopie' } })],
+    general: [o('🏅 특급전사 배지로 어필', { tr: 10 }, ['사단장님: "자네가 그 특급전사인가!" 악수를 받았다.', '사단장님이 배지를 보고 엄지를 들어 주셨다.'], { need: { flag: 'special' } })],
+    boar: [o('🥫 참치캔을 던져 유인', { tr: 5, hp: 2 }, ['멧돼지가 참치캔을 물고 산으로 돌아갔다. 평화적 해결.', '참치캔 작전 성공. 중대장이 "창의적"이라며 웃었다.'], { need: { item: 'tuna' } })],
+    duty: [o('☕ PX 커피를 건넨다', { tr: 5 }, ['당직사관: "…고맙다. 오늘은 봐준다."', '커피 한 잔에 당직사관의 눈빛이 부드러워졌다.'], { need: { money: 3000 }, money: -3000 })]
+  };
+
+  /* ───────── 등록 ───────── */
+  JY.CARDS.training = JY.CARDS.training.concat(TRAIN_MORE);
+  JY.CARDS.arrival = JY.CARDS.arrival.concat(ARRIVE_MORE);
+  JY.CARDS.pool = JY.CARDS.pool.concat(BANKS);
+  // 매판 훈련소·자대 도착 구성: 슬롯마다 후보 중 하나, pool은 n장
+  JY.CARDS.openingSlots = [
+    { pick: ['tr_barber', 'tr_supply', 'tr_farewell'] },
+    { pick: ['tr_firstnight', 'tr_snore', 'tr_ghost'] },
+    { pool: ['tr_gas', 'tr_religion', 'tr_grenade', 'tr_letter', 'tr_crawl', 'tr_zero', 'tr_qna', 'tr_talent', 'tr_call', 'tr_parcel'], n: 4 },
+    { pick: ['tr_march', 'tr_rainmarch'] },
+    { pick: ['tr_assign'] },
+    { pick: ['ja_arrive'] },
+    { pool: ['ja_memory', 'ja_gf', 'ja_mess', 'ja_bunk', 'ja_report'], n: 2 }
+  ];
+
+  var all = {};
+  ['training', 'arrival', 'returns', 'pool'].forEach(function (g) { JY.CARDS[g].forEach(function (c) { all[c.id] = c; }); });
+  for (var id in PATCH) if (all[id]) all[id].variants = (all[id].variants || []).concat(PATCH[id]);
+  for (var tid in TEXTS) if (all[tid]) all[tid].text = TEXTS[tid];
+  if (all.tr_assign) all.tr_assign.days = 'fill';
+  // 자대 도착 첫 카드도 장면 여러 개
+  if (all.ja_arrive) all.ja_arrive.variants = [
+    {
+      who: 'ppaen', text: '자대 도착. 맞선임 정뺀질이 반긴다. "어서 와~ 여기서 꿀 빠는 법 알려줄게. 일단 청소는…"',
+      l: o('"잘 부탁드립니다!"', { bd: 5, tr: -2 }, '정뺀질의 꿀팁 1번: 청소는 신병이 한다. 꿀팁이 아니었다.'),
+      r: o('"청소는 다 같이 하는 거 아닙니까?"', { tr: 4, bd: -4 }, '정뺀질: "…오, 요즘 신병은 다르네."', { aff: { ppaen: -3 } })
+    },
+    {
+      who: 'haeng', text: '자대 도착. 행보관이 위아래로 훑어본다. "삽은 잡아 봤냐?"',
+      l: o('"잡아 봤습니다!"', { tr: 4, hp: -3 }, '행보관이 삽을 건넸다. 환영 선물이었다.', { aff: { haeng: 4 } }),
+      r: o('"삽이… 뭡니까?"', { bd: 5, tr: -4 }, '행보관이 웃었다. 처음이자 마지막 웃음이었다.')
+    }
+  ];
+})(window.JY = window.JY || {});
+
 /* js/data/items.js */
 /* PX 물품 & 엔딩 데이터 */
 (function (JY) {
@@ -4010,10 +4856,75 @@ button { cursor: pointer; }
     cateears: { slot: 'hat', name: '고양이 귀', icon: '🐱', price: 50, hat: 'cateears' },
     gold: { slot: 'hat', name: '황금 헬멧', icon: '🪖', price: 80, hat: 'gold' },
     afro: { slot: 'hat', name: '무지개 아프로', icon: '🌈', price: 0, gacha: 'epic', hat: 'afro' },
-    crown: { slot: 'hat', name: '전역 왕관', icon: '👑', price: 0, gacha: 'legend', hat: 'crown' }
+    crown: { slot: 'hat', name: '전역 왕관', icon: '👑', price: 0, gacha: 'legend', hat: 'crown' },
+    // v3: 레벨·업적·수집으로 여는 꾸미기 + 옷·소품 슬롯
+    beanie: { slot: 'hat', name: '털모자', icon: '🧶', price: 0, unlock: { level: 2 }, hat: 'beanie' },
+    chefhat: { slot: 'hat', name: '취사병 모자', icon: '👨‍🍳', price: 0, unlock: { mosOut: 'cook' }, hat: 'chef' },
+    jogyohat: { slot: 'hat', name: '조교 모자', icon: '📣', price: 0, unlock: { unitOut: 'recruit' }, hat: 'jogyo' },
+    kkal: { slot: 'body', name: '전설의 깔깔이', icon: '🧥', price: 30, body: 'kkal' },
+    pt: { slot: 'body', name: '군 체육복', icon: '🏃', price: 0, unlock: { level: 3 }, body: 'pt' },
+    pinkcamo: { slot: 'body', name: '핑크 전투복', icon: '🎀', price: 0, unlock: { level: 6 }, body: 'pinkcamo' },
+    dress: { slot: 'body', name: '전역 정복', icon: '🎖️', price: 0, unlock: { level: 10 }, body: 'dress' },
+    goldcamo: { slot: 'body', name: '황금 전투복', icon: '🏆', price: 0, unlock: { collect: 1 }, body: 'goldcamo' },
+    shovel: { slot: 'prop', name: '삽돌이', icon: '⛏️', price: 25, prop: 'shovel' },
+    chocopie: { slot: 'prop', name: '초코파이', icon: '🍫', price: 15, prop: 'chocopie' },
+    phoneprop: { slot: 'prop', name: '휴대폰', icon: '📱', price: 0, unlock: { level: 4 }, prop: 'phone' },
+    megaphone: { slot: 'prop', name: '확성기', icon: '📢', price: 0, unlock: { level: 8 }, prop: 'megaphone' },
+    flower: { slot: 'prop', name: '꽃다발', icon: '💐', price: 0, unlock: { ach: 'gf' }, prop: 'flower' },
+    mic: { slot: 'prop', name: '노래자랑 마이크', icon: '🎤', price: 0, unlock: { collect: 0.5 }, prop: 'mic' }
   };
-  JY.COSMETIC_ORDER = ['blush', 'mustache', 'headband', 'sunglasses', 'sparkle', 'beret', 'cateears', 'gold', 'afro', 'crown'];
-  JY.SLOT_NAMES = { hat: '모자', face: '얼굴', fx: '효과' };
+  JY.COSMETIC_ORDER = ['blush', 'mustache', 'headband', 'sunglasses', 'sparkle', 'beret', 'cateears', 'gold', 'afro', 'crown',
+    'beanie', 'chefhat', 'jogyohat', 'kkal', 'pt', 'pinkcamo', 'dress', 'goldcamo', 'shovel', 'chocopie', 'phoneprop', 'megaphone', 'flower', 'mic'];
+  JY.SLOT_NAMES = { hat: '모자', face: '얼굴', fx: '효과', body: '옷', prop: '소품' };
+  JY.SLOT_ORDER = ['hat', 'face', 'fx', 'body', 'prop'];
+
+  /* ── 짬(경험치) · 레벨 ─────────────────── */
+  JY.LEVELS = {
+    need: function (lv) { return 100 * (lv - 1) * lv / 2; }, // lv 레벨이 되기 위한 누적 짬
+    titles: [[1, '짬찌'], [3, '짬 좀 먹은'], [5, '짬밥 전문가'], [8, '짬장'], [12, '짬신'], [16, '짬의 전설'], [20, '국방부 시계']],
+    rewards: { 5: { box: 1 }, 10: { box: 1, gem: 50 }, 15: { box: 2, gem: 100 }, 20: { box: 3, gem: 200 } }
+  };
+
+  /* ── 장비 강화: 짬으로 영구 강화 (+4, +5는 확률) ── */
+  JY.UPGRADES = [
+    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력 소모 -5% / 강', per: function (l) { return '체력 소모 -' + l * 5 + '%'; } },
+    { id: 'helmet', icon: '🪖', name: '방탄모', desc: '위험 구간(20 이하·80 이상)에서 더 위험해지는 변화 -8% / 강', per: function (l) { return '위험 완충 ' + l * 8 + '%'; } },
+    { id: 'notebook', icon: '📓', name: '수양록', desc: '판 시작 때 투시경 카드 3장 / 강', per: function (l) { return '시작 투시 ' + l * 3 + '장'; } },
+    { id: 'wallet', icon: '👛', name: '지갑', desc: '월급 현금 +5%, PX 할인 4% / 강', per: function (l) { return '월급 +' + l * 5 + '% · PX -' + l * 4 + '%'; } },
+    { id: 'pack', icon: '🎒', name: '군용 배낭', desc: '아이템 회복량 +10% / 강', per: function (l) { return '아이템 +' + l * 10 + '%'; } },
+    { id: 'tag', icon: '🏷️', name: '명찰', desc: '동료 호감도 상승 +12% / 강', per: function (l) { return '호감도 +' + l * 12 + '%'; } },
+    { id: 'watch', icon: '⌚', name: '국방부 시계', desc: '방금 선택을 되돌리는 횟수 (+1: 1회, +3: 2회, +5: 3회)', per: function (l) { return '되돌리기 ' + ([0, 1, 1, 2, 2, 3][l] || 0) + '회'; } },
+    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택이 유리해질 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
+  ];
+  JY.UPGRADE_COST = [80, 160, 300, 500, 800];  // +1 ~ +5
+  JY.UPGRADE_RATE = [1, 1, 1, 0.8, 0.6];       // 성공 확률 (실패하면 짬 절반 돌려받음)
+
+  /* ── 오늘의 임무: 날짜마다 3개 ─────────── */
+  JY.MISSIONS = [
+    { id: 'cards30', type: 'card', goal: 30, text: '카드 30장 넘기기', gem: 10, jjam: 30 },
+    { id: 'cards80', type: 'card', goal: 80, text: '카드 80장 넘기기', gem: 15, jjam: 50 },
+    { id: 'special2', type: 'special', goal: 2, text: '특수 대답 2번 쓰기', gem: 12, jjam: 30 },
+    { id: 'emer2', type: 'emer_ok', goal: 2, text: '돌발 상황 2번 제한 시간 안에 대응', gem: 12, jjam: 40 },
+    { id: 'mini1', type: 'mini_great', goal: 1, text: '미니게임 대성공 1번', gem: 10, jjam: 30 },
+    { id: 'gift2', type: 'gift', goal: 2, text: '동료에게 선물 2번', gem: 10, jjam: 30 },
+    { id: 'talk3', type: 'talk', goal: 3, text: '동료와 수다 3번', gem: 8, jjam: 25 },
+    { id: 'px5', type: 'px_buy', goal: 5, text: 'PX에서 물건 5개 사기', gem: 8, jjam: 25 },
+    { id: 'item3', type: 'item_use', goal: 3, text: '아이템 3개 사용', gem: 8, jjam: 25 },
+    { id: 'leave1', type: 'leave', goal: 1, text: '휴가 1번 다녀오기', gem: 10, jjam: 30 },
+    { id: 'promo2', type: 'promo', goal: 2, text: '진급 2번 하기', gem: 10, jjam: 30 },
+    { id: 'days300', type: 'days', goal: 300, max: true, text: '한 판에서 300일 이상 버티기', gem: 15, jjam: 50 },
+    { id: 'out1', type: 'discharge', goal: 1, text: '전역하기', gem: 20, jjam: 60 },
+    { id: 'daily1', type: 'daily', goal: 1, text: '오늘의 작전 끝까지 하기', gem: 15, jjam: 40 },
+    { id: 'bff1', type: 'bff', goal: 1, text: '절친 1명 만들기', gem: 15, jjam: 40 }
+  ];
+
+  /* ── 사건 수첩: 본 장면 수집 보상 ─────── */
+  JY.COLLECT_MILESTONES = [
+    { at: 0.25, gem: 30, jjam: 50 },
+    { at: 0.5, gem: 60, jjam: 100, cos: 'mic' },
+    { at: 0.75, gem: 100, jjam: 150 },
+    { at: 1, gem: 200, jjam: 300, cos: 'goldcamo' }
+  ];
 
   /* 보급 상자: 30💎 */
   JY.BOX = {
@@ -4191,8 +5102,8 @@ button { cursor: pointer; }
    * 카드 전체 평균이 체력·멘탈은 살짝 마이너스(시간이 갈수록 지친다 → 아이템·휴가로 회복),
    * 신뢰·전우애는 0 근처가 되도록 맞춘 값. tools/simulate.js로 검증. */
   var BALANCE = {
-    pos: { hp: 1.0, mt: 0.75, tr: 0.85, bd: 0.6 },
-    neg: { hp: 0.72, mt: 1.25, tr: 1.14, bd: 1.6 }
+    pos: { hp: 1.0, mt: 0.62, tr: 0.8, bd: 0.55 },
+    neg: { hp: 0.72, mt: 1.3, tr: 1.15, bd: 1.6 }
   };
   function tuneFx(fx) {
     if (!fx) return;
@@ -4203,15 +5114,18 @@ button { cursor: pointer; }
       fx[k] = t === 0 ? (v > 0 ? 1 : -1) : t;
     }
   }
+  function tuneOpt(op) {
+    if (!op || op.tuned) return;
+    op.tuned = true;
+    tuneFx(op.fx);
+    asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
+    asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
+  }
   function tuneCard(c) {
     if (c.tuned || (c.req && c.req.stat)) return; // 위기 경고 카드는 원래 수치 그대로
     c.tuned = true;
-    [c.l, c.r, c.t].forEach(function (op) {
-      if (!op) return;
-      tuneFx(op.fx);
-      asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
-      asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
-    });
+    [c.l, c.r, c.t, c.x].forEach(tuneOpt);
+    asArr(c.variants).forEach(function (v) { [v.l, v.r, v.t, v.x].forEach(tuneOpt); });
   }
 
   var INDEX = null;
@@ -4219,6 +5133,7 @@ button { cursor: pointer; }
     if (INDEX) return INDEX;
     INDEX = {};
     var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, JY.CARDS.emergency || [], SPECIAL];
+    if (JY.SPECIALS) for (var sw in JY.SPECIALS) JY.SPECIALS[sw].forEach(tuneOpt);
     for (var g = 0; g < groups.length; g++) for (var i = 0; i < groups[g].length; i++) {
       tuneCard(groups[g][i]);
       INDEX[groups[g][i].id] = groups[g][i];
@@ -4239,7 +5154,7 @@ button { cursor: pointer; }
     var end = addMonths(start, 18) - DAY; // 전역일 = 입대일 + 18개월 - 1일
     var st = MOS[mos].start;
     var state = {
-      v: 2,
+      v: 3,
       name: (opts.name || '나띨빵').slice(0, 8),
       face: opts.face || null,
       mos: mos,
@@ -4277,6 +5192,11 @@ button { cursor: pointer; }
       talkDay: {},
       bffs: {},
       insurance: opts.insurance ? 1 : 0,
+      up: opts.up || {},
+      undo: 0,
+      cv: null,
+      vlast: {},
+      specials: 0,
       insight: 0,
       luck: 0,
       gems: 0,
@@ -4294,10 +5214,27 @@ button { cursor: pointer; }
     asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
     if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
     if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
-    var seq = JY.CARDS.training.concat(JY.CARDS.arrival);
-    for (var i = 0; i < seq.length; i++) state.queue.push(seq[i].id);
+    var up = state.up;
+    state.insight += 3 * (up.notebook || 0);
+    state.undo = [0, 1, 1, 2, 2, 3][up.watch || 0] || 0;
+    state.queue = openingQueue();
     nextCard(state);
     return state;
+  }
+
+  // 매판 다른 시작: 슬롯마다 후보 중 하나(또는 n장)
+  function openingQueue() {
+    var slots = JY.CARDS.openingSlots;
+    if (!slots) return JY.CARDS.training.concat(JY.CARDS.arrival).map(function (c) { return c.id; });
+    var q = [];
+    slots.forEach(function (sl) {
+      if (sl.pick) q.push(sl.pick[randInt(0, sl.pick.length - 1)]);
+      else if (sl.pool) {
+        var bag = sl.pool.slice();
+        for (var i = 0; i < sl.n && bag.length; i++) q.push(bag.splice(randInt(0, bag.length - 1), 1)[0]);
+      }
+    });
+    return q;
   }
 
   /* ── 조건 검사 ───────────────────────────── */
@@ -4386,7 +5323,78 @@ button { cursor: pointer; }
     }
     if (!id) id = pickRandom(s);
     s.current = id;
+    pickVariant(s, getCardDef(id));
     return id;
+  }
+
+  /* ── 장면 변형: 한 카드 안의 여러 장면, 여러 말투 ─── */
+  function variantOk(s, v) {
+    if (!v) return true;
+    var req = v.req || {};
+    if (v.flag) req = { flag: v.flag, noflag: req.noflag };
+    if (v.noflag) req = { flag: req.flag, noflag: v.noflag };
+    return checkReq(s, req);
+  }
+  function pickVariant(s, c) {
+    s.cv = { id: c ? c.id : null, v: 0, k: randInt(0, 1 << 20) };
+    if (!c || !c.variants || !c.variants.length) return;
+    var opts = [];
+    if (c.text && c.l && variantOk(s, c)) opts.push(0);
+    c.variants.forEach(function (v, i) { if (variantOk(s, v)) opts.push(i + 1); });
+    if (!opts.length) return;
+    var last = s.vlast[c.id];
+    var pool = opts.length > 1 ? opts.filter(function (i) { return i !== last; }) : opts;
+    s.cv.v = pool[randInt(0, pool.length - 1)];
+    s.vlast[c.id] = s.cv.v;
+  }
+  function pickStr(x, k) { return Array.isArray(x) ? x[k % x.length] : x; }
+  // 지금 카드의 실제 모습 (변형 적용)
+  function view(s) {
+    var c = getCardDef(s.current);
+    if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
+    if (!s.cv || s.cv.id !== c.id) pickVariant(s, c);
+    var v = s.cv.v ? c.variants[s.cv.v - 1] : null;
+    var b = v || c;
+    return {
+      c: c, v: v, key: c.id + (s.cv.v ? '#' + s.cv.v : ''),
+      who: b.who || c.who, bg: b.bg || c.bg,
+      text: pickStr(b.text || c.text, s.cv.k),
+      l: b.l || c.l, r: b.r || c.r, t: b.t || c.t, x: b.x || (v ? null : c.x)
+    };
+  }
+
+  /* ── 특수 대답: 조건이 맞으면 열리는 세 번째 선택지 ─── */
+  function needOk(s, need) {
+    if (!need) return true;
+    if (need.item && !(s.items[need.item] > 0)) return false;
+    if (need.money && s.money < need.money) return false;
+    if (need.flag && !s.flags[need.flag]) return false;
+    if (need.trait && s.trait !== need.trait) return false;
+    if (need.aff) for (var a in need.aff) { var av = s.aff[a] || 0; if (av < need.aff[a][0] || av > need.aff[a][1]) return false; }
+    return true;
+  }
+  function needLabel(need) {
+    if (!need) return '';
+    if (need.item && JY.ITEMS[need.item]) return JY.ITEMS[need.item].icon + ' ' + JY.ITEMS[need.item].name + ' 1개 사용';
+    if (need.money) return '💸 ' + need.money.toLocaleString('ko-KR') + '원';
+    if (need.trait && JY.TRAITS[need.trait]) return JY.TRAITS[need.trait].emoji + ' ' + JY.TRAITS[need.trait].name + ' 성격';
+    if (need.aff) { var w = Object.keys(need.aff)[0]; return '💗 ' + (JY.CHARS[w] ? JY.CHARS[w].name : w) + ' 호감도 ' + need.aff[w][0] + '+'; }
+    if (need.flag) return '✦ 특별 조건';
+    return '';
+  }
+  function specialFor(s, vw) {
+    if (s.rank < 0) return null;
+    if (vw.x && needOk(s, vw.x.need)) return vw.x;
+    var list = JY.SPECIALS && JY.SPECIALS[vw.who];
+    if (!list || vw.c.id === 'quiet') return null;
+    for (var i = 0; i < list.length; i++) {
+      var sp = list[i];
+      if (!needOk(s, sp.need)) continue;
+      // 아이템을 쓰지 않는 특수 대답은 절반 확률로만 열린다 (매번 쉬운 길이 있으면 재미없다)
+      if (!(sp.need && sp.need.item) && (s.cv.k >> 16) % 2) continue;
+      return sp;
+    }
+    return null;
   }
 
   /* ── 텍스트 치환 ─────────────────────────── */
@@ -4402,16 +5410,17 @@ button { cursor: pointer; }
   }
 
   function currentCard(s) {
-    var c = getCardDef(s.current);
-    if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
+    var vw = view(s), c = vw.c, k = s.cv.k;
     var res = {
-      id: c.id, who: c.who, bg: c.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
+      id: c.id, key: vw.key, who: vw.who, bg: vw.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
       catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
-      text: fill(s, c.text),
-      l: { t: fill(s, c.l.t), preview: preview(c.l, s) },
-      r: { t: fill(s, c.r.t), preview: preview(c.r, s) }
+      text: fill(s, vw.text),
+      l: { t: fill(s, pickStr(vw.l.t, k >> 4)), preview: preview(vw.l, s) },
+      r: { t: fill(s, pickStr(vw.r.t, k >> 8)), preview: preview(vw.r, s) }
     };
-    if (c.t) res.t = { t: fill(s, c.t.t) };
+    if (vw.t) res.t = { t: fill(s, pickStr(vw.t.t, k >> 12)) };
+    var sp = specialFor(s, vw);
+    if (sp) res.x = { t: fill(s, pickStr(sp.t, k >> 14)), preview: preview(sp, s), need: needLabel(sp.need) };
     return res;
   }
 
@@ -4452,7 +5461,8 @@ button { cursor: pointer; }
     }
     if (opt.roll) {
       extra = roll();
-      var lucky = s.luck > 0 || (traitOf(s).luck && rand() < traitOf(s).luck);
+      var luckP = (traitOf(s).luck || 0) + 0.08 * (s.up.charm || 0);
+      var lucky = s.luck > 0 || (luckP > 0 && rand() < luckP);
       if (lucky) {
         var second = roll();
         var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
@@ -4462,6 +5472,8 @@ button { cursor: pointer; }
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
     }
+    if (Array.isArray(out.say)) out.say = out.say[randInt(0, out.say.length - 1)];
+    if (extra && Array.isArray(extra.say)) extra = Object.assign({}, extra, { say: extra.say[randInt(0, extra.say.length - 1)] });
     if (extra) {
       for (k in extra) {
         if (k === 'fx') { for (var f in extra.fx) out.fx[f] = (out.fx[f] || 0) + extra.fx[f]; }
@@ -4483,6 +5495,10 @@ button { cursor: pointer; }
     s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
     if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
     srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
+    var up = s.up || {};
+    if (k === 'hp' && v < 0 && up.boots) m *= 1 - 0.05 * up.boots;
+    // 방탄모: 위험 구간에서 더 위험해지는 쪽 변화 완화
+    if (up.helmet && ((s.stats[k] <= 20 && v < 0) || (s.stats[k] >= 80 && v > 0))) m *= 1 - 0.08 * up.helmet;
     return m;
   }
 
@@ -4534,6 +5550,7 @@ button { cursor: pointer; }
   function changeAff(s, who, n, res) {
     if (!JY.NPCS || !JY.NPCS[who] || !n) return;
     if (who === 'cat' && traitOf(s).catW) n *= 2;
+    if (n > 0 && s.up && s.up.tag) n *= 1 + 0.12 * s.up.tag;
     var before = s.aff[who] || 0;
     var after = clamp(Math.round(before + n), 0, 100);
     s.aff[who] = after;
@@ -4647,7 +5664,7 @@ button { cursor: pointer; }
     var pay = PAY[s.rank];
     var save = Math.min(SAVE_MONTHLY, pay);
     s.savings += save;
-    s.money += pay - save;
+    s.money += Math.round((pay - save) * (1 + 0.05 * ((s.up && s.up.wallet) || 0)));
     res.events.push({ type: 'pay', n: pay, cash: pay - save, save: save });
   }
 
@@ -4672,6 +5689,7 @@ button { cursor: pointer; }
 
   function cardDays(s, c, out) {
     if (out && out.days) return out.days;
+    if (c.days === 'fill') return Math.max(1, TRAIN_DAYS - s.day);
     if (c.days) return c.days;
     return randInt(3, 6) * s.pace;
   }
@@ -4700,13 +5718,22 @@ button { cursor: pointer; }
   function choose(s, side) {
     if (s.over || s.pendingMini) return null;
     CUR = s;
-    var c = getCardDef(s.current);
-    var opt = side === 'l' || side === 'left' ? c.l : side === 't' && c.t ? c.t : c.r;
+    var vw = view(s), c = vw.c;
+    var opt;
+    if (side === 'x') {
+      opt = specialFor(s, vw);
+      if (!opt) return null;
+      if (opt.need && opt.need.item) s.items[opt.need.item] -= 1;
+      s.specials += 1;
+    } else opt = side === 'l' || side === 'left' ? vw.l : side === 't' && vw.t ? vw.t : vw.r;
     var out = resolveOutcome(s, opt);
     var res = newRes();
+    res.scene = vw.key;
+    res.special = side === 'x';
     applyOutcome(s, out, res);
     s.seen[c.id] = s.day;
-    s.lastWho = c.who;
+    s.lastWho = vw.who;
+    c = { id: c.id, who: vw.who, urgent: c.urgent };
     if (c.urgent) {
       s.emer.count += 1;
       if (side !== 't') s.emer.ok += 1;
@@ -4720,12 +5747,13 @@ button { cursor: pointer; }
       if (d) changeAff(s, c.who, d * 0.6, res);
     }
     if (res.ending) { end(s, res.ending, res); return res; }
+    var def = getCardDef(c.id);
     if (out.mini) {
-      s.pendingMini = { id: out.mini, days: cardDays(s, c, out) };
+      s.pendingMini = { id: out.mini, days: cardDays(s, def, out) };
       res.mini = out.mini;
       return res;
     }
-    return finishTurn(s, res, cardDays(s, c, out));
+    return finishTurn(s, res, cardDays(s, def, out));
   }
 
   function finishMini(s, tier) {
@@ -4855,6 +5883,7 @@ button { cursor: pointer; }
   function pxDiscount(s) {
     var keep = 1;
     if (unitOf(s).pxDiscount) keep *= 1 - unitOf(s).pxDiscount;
+    if (s.up && s.up.wallet) keep *= 1 - 0.04 * s.up.wallet;
     if (s.bffs.ppaen && JY.NPCS) keep *= 1 - (JY.NPCS.ppaen.perk.pxDiscount || 0);
     s.conds.forEach(function (c) { if (condDef(c.id).pxDiscount) keep *= 1 - condDef(c.id).pxDiscount; });
     return 1 - keep;
@@ -4894,6 +5923,7 @@ button { cursor: pointer; }
     s.items[id] -= 1;
     var fx = {};
     var mult = JY.FOOD && JY.FOOD[id] && traitOf(s).itemMult ? traitOf(s).itemMult : 1;
+    mult *= 1 + 0.1 * ((s.up && s.up.pack) || 0); // 군용 배낭 강화
     for (var k in it.fx) fx[k] = Math.round(it.fx[k] * (it.fx[k] > 0 ? mult : 1));
     applyStats(s, fx, res, true);
     return res;
@@ -5023,7 +6053,11 @@ button { cursor: pointer; }
     if (s.insurance === undefined) s.insurance = 0;
     if (!s.unit) s.unit = 'gop';
     if (s.rng === undefined) s.rng = null;
-    s.v = 2;
+    if (!s.up) s.up = {};
+    if (s.undo === undefined) s.undo = 0;
+    if (!s.vlast) s.vlast = {};
+    if (s.specials === undefined) s.specials = 0;
+    s.v = 3;
     return s;
   }
 
@@ -5038,7 +6072,7 @@ button { cursor: pointer; }
     dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
     unitOf: unitOf, traitOf: traitOf, condDef: condDef,
-    _index: index, _eligible: eligible, _checkReq: checkReq, _setCur: function (s) { CUR = s; }
+    _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});
 
@@ -5060,8 +6094,9 @@ button { cursor: pointer; }
       v: 2, endings: {}, runs: 0, discharges: 0, fails: 0, best: 0,
       gems: 0, gemsTotal: 0, welcome: false,
       stash: {}, cos: { owned: {}, eq: { hat: null, face: null, fx: null } },
-      ach: {}, stats: { emer: 0, miniGreat: 0, units: {} },
-      records: [], daily: {}, login: { last: null, streak: 0 }, lastName: ''
+      ach: {}, stats: { emer: 0, miniGreat: 0, units: {}, mosOut: {} },
+      records: [], daily: {}, login: { last: null, streak: 0 }, lastName: '',
+      jjam: 0, jjamTotal: 0, up: {}, missions: null, scenes: {}, collectClaimed: {}, freeBoxes: 0, v3gift: false
     };
   }
 
@@ -5069,9 +6104,17 @@ button { cursor: pointer; }
     var m = lsGet(KEY) || {};
     var b = blank();
     for (var k in b) if (m[k] === undefined) m[k] = b[k];
-    m.cos.owned = m.cos.owned || {}; m.cos.eq = m.cos.eq || { hat: null, face: null, fx: null };
-    m.stats.units = m.stats.units || {};
-    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; }
+    m.cos.owned = m.cos.owned || {}; m.cos.eq = m.cos.eq || {};
+    ['hat', 'face', 'fx', 'body', 'prop'].forEach(function (k) { if (m.cos.eq[k] === undefined) m.cos.eq[k] = null; });
+    m.stats.units = m.stats.units || {}; m.stats.mosOut = m.stats.mosOut || {};
+    m.up = m.up || {}; m.scenes = m.scenes || {}; m.collectClaimed = m.collectClaimed || {};
+    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; }
+    if (!m.v3gift) { // 업데이트 선물: 그동안 플레이한 만큼 짬
+      m.v3gift = true;
+      var g = Math.min(600, 80 + (m.runs || 0) * 60);
+      m.jjam += g; m.jjamTotal += g; m.gems += 30; m.gemsTotal += 30;
+      m.pendingUpdateGift = { jjam: g, gem: 30 };
+    }
     M = m;
     save();
     return M;
@@ -5124,7 +6167,7 @@ button { cursor: pointer; }
   function ownsCos(id) { return !!get().cos.owned[id]; }
   function buyCos(id) {
     var c = JY.COSMETICS[id];
-    if (!c || c.gacha || ownsCos(id) || !spend(c.price)) return false;
+    if (!c || c.gacha || c.unlock || ownsCos(id) || !spend(c.price)) return false;
     get().cos.owned[id] = true;
     equip(id);
     return true;
@@ -5137,7 +6180,7 @@ button { cursor: pointer; }
   }
   function equipped() {
     var eq = get().cos.eq, list = [];
-    ['hat', 'face', 'fx'].forEach(function (s) { if (eq[s] && JY.COSMETICS[eq[s]]) list.push(eq[s]); });
+    (JY.SLOT_ORDER || ['hat', 'face', 'fx']).forEach(function (s) { if (eq[s] && JY.COSMETICS[eq[s]] && get().cos.owned[eq[s]]) list.push(eq[s]); });
     return list;
   }
   // 캐릭터 스펙에 꾸미기 적용
@@ -5147,15 +6190,18 @@ button { cursor: pointer; }
       if (c.hat) spec.hat = c.hat;
       if (c.eyes) spec.eyes = c.eyes;
       if (c.extras) spec.extras = (spec.extras || []).concat(c.extras);
+      if (c.body) spec.body = c.body;
+      if (c.prop && !spec.prop) spec.prop = c.prop;
     });
     return spec;
   }
   function badge() { return equipped().map(function (id) { return JY.COSMETICS[id].icon; }).join(''); }
 
   /* 보급 상자 */
-  function openBox() {
+  function openBox(free) {
     var B = JY.BOX;
-    if (!spend(B.price)) return null;
+    if (free) { if (!(get().freeBoxes > 0)) return null; get().freeBoxes -= 1; }
+    else if (!spend(B.price)) return null;
     var r = Math.random(), acc = 0, tier = B.tiers[0];
     for (var i = 0; i < B.tiers.length; i++) { acc += B.tiers[i].p; if (r < acc) { tier = B.tiers[i]; break; } }
     var m = get(), out = { tier: tier, items: [], cos: null, gems: 0 };
@@ -5164,7 +6210,7 @@ button { cursor: pointer; }
       if (!m.cos.owned[tier.legendCos]) { m.cos.owned[tier.legendCos] = true; out.cos = tier.legendCos; }
       else { out.gems = tier.gems; addGems(tier.gems); }
     } else if (tier.cosmetic) {
-      var cands = JY.COSMETIC_ORDER.filter(function (id) { var c = JY.COSMETICS[id]; return !m.cos.owned[id] && (!c.gacha || c.gacha === 'epic'); });
+      var cands = JY.COSMETIC_ORDER.filter(function (id) { var c = JY.COSMETICS[id]; return !m.cos.owned[id] && !c.unlock && (!c.gacha || c.gacha === 'epic'); });
       if (cands.length && Math.random() < 0.6) { var pick = cands[Math.floor(Math.random() * cands.length)]; m.cos.owned[pick] = true; out.cos = pick; }
       else tier.pool.forEach(giveItem);
     } else {
@@ -5195,7 +6241,7 @@ button { cursor: pointer; }
     var newEndings = o.list.filter(function (id) { return !m.endings[id]; });
     o.list.forEach(function (id) { m.endings[id] = (m.endings[id] || 0) + 1; });
     m.best = Math.max(m.best || 0, o.day);
-    if (o.good) { m.discharges += 1; m.stats.units[s.unit] = (m.stats.units[s.unit] || 0) + 1; } else m.fails += 1;
+    if (o.good) { m.discharges += 1; m.stats.units[s.unit] = (m.stats.units[s.unit] || 0) + 1; m.stats.mosOut[s.mos] = (m.stats.mosOut[s.mos] || 0) + 1; } else m.fails += 1;
     m.stats.emer += s.emer.count;
     m.stats.miniGreat += s.minis.great;
 
@@ -5243,15 +6289,179 @@ button { cursor: pointer; }
     if (sc.total >= 20000) ids.push('score20k');
     if (m.fails >= 10) ids.push('fail10');
     var ach = unlock(ids);
+    // 짬: 버틴 날 + 점수 + 전역 보너스
+    var served = o.good ? s.total + 1 : o.day;
+    var jj = Math.floor(served / 4) + Math.floor(sc.total / 150) + (o.good ? 30 : 0);
+    if (s.daily) jj = Math.round(jj * 1.2);
+    var jr = addJjam(jj);
     save();
-    return { reward: reward, newEndings: newEndings, ach: ach, place: place, record: rec, dailyFirst: dailyFirst, runGems: s.gems };
+    return { reward: reward, newEndings: newEndings, ach: ach, place: place, record: rec, dailyFirst: dailyFirst, runGems: s.gems, jjam: jj, levelUps: jr.ups, unlocked: jr.unlocked };
+  }
+
+
+  /* ── 짬 · 레벨 ─────────────────────────── */
+  function lvInfo(total) {
+    var L = JY.LEVELS, lv = 1;
+    while (L.need(lv + 1) <= total) lv++;
+    var base = L.need(lv), next = L.need(lv + 1);
+    var title = L.titles[0][1];
+    L.titles.forEach(function (t) { if (lv >= t[0]) title = t[1]; });
+    return { lv: lv, cur: total - base, need: next - base, title: title, total: total };
+  }
+  function level() { return lvInfo(get().jjamTotal || 0); }
+  function addJjam(n) {
+    var m = get();
+    n = Math.max(0, Math.round(n || 0));
+    var before = lvInfo(m.jjamTotal).lv;
+    m.jjam += n; m.jjamTotal += n;
+    var after = lvInfo(m.jjamTotal).lv, ups = [];
+    for (var L = before + 1; L <= after; L++) {
+      var rw = { lv: L, gem: 20, box: 0 };
+      var extra = JY.LEVELS.rewards[L];
+      if (extra) { rw.gem += extra.gem || 0; rw.box += extra.box || 0; }
+      addGems(rw.gem);
+      m.freeBoxes = (m.freeBoxes || 0) + rw.box;
+      ups.push(rw);
+    }
+    var unlocked = checkUnlocks();
+    save();
+    return { n: n, ups: ups, unlocked: unlocked };
+  }
+
+  /* ── 꾸미기 해금 조건 ─────────────────── */
+  function unlockText(c) {
+    var u = c.unlock || {};
+    if (u.level) return '짬 레벨 ' + u.level;
+    if (u.ach) { var a = JY.ACHIEVEMENTS.filter(function (x) { return x.id === u.ach; })[0]; return '훈장: ' + (a ? a.name : u.ach); }
+    if (u.mosOut) return JY.Game.MOS[u.mosOut].name + '(으)로 전역';
+    if (u.unitOut) return JY.UNITS[u.unitOut].short + ' 부대에서 전역';
+    if (u.collect) return '사건 수첩 ' + Math.round(u.collect * 100) + '%';
+    return '';
+  }
+  function unlockOk(c) {
+    var u = c.unlock, m = get();
+    if (!u) return false;
+    if (u.level) return level().lv >= u.level;
+    if (u.ach) return !!m.ach[u.ach];
+    if (u.mosOut) return !!m.stats.mosOut[u.mosOut];
+    if (u.unitOut) return !!m.stats.units[u.unitOut];
+    if (u.collect) return collectProgress().frac >= u.collect;
+    return false;
+  }
+  function checkUnlocks() {
+    var m = get(), got = [];
+    JY.COSMETIC_ORDER.forEach(function (id) {
+      var c = JY.COSMETICS[id];
+      if (c.unlock && !m.cos.owned[id] && unlockOk(c)) { m.cos.owned[id] = true; got.push(id); }
+    });
+    if (got.length) save();
+    return got;
+  }
+
+  /* ── 장비 강화 ─────────────────────────── */
+  function upLevel(id) { return get().up[id] || 0; }
+  function upgrade(id) {
+    var m = get(), lv = upLevel(id);
+    if (lv >= 5) return { ok: false, reason: '이미 최대 강화(+5)다.' };
+    var cost = JY.UPGRADE_COST[lv];
+    if (m.jjam < cost) return { ok: false, reason: '짬이 부족하다. (' + cost + ' 필요)' };
+    m.jjam -= cost;
+    var rate = JY.UPGRADE_RATE[lv];
+    var success = Math.random() < rate;
+    var refund = 0;
+    if (success) m.up[id] = lv + 1;
+    else { refund = Math.floor(cost / 2); m.jjam += refund; }
+    save();
+    return { ok: true, success: success, lv: m.up[id] || lv, cost: cost, refund: refund, rate: rate };
+  }
+
+  /* ── 오늘의 임무 ───────────────────────── */
+  function missionDef(id) { return JY.MISSIONS.filter(function (x) { return x.id === id; })[0]; }
+  function missions() {
+    var m = get(), t = today();
+    if (!m.missions || m.missions.date !== t) {
+      var r = JY.art.mulberry(JY.art.hash('mission-' + t));
+      var pool = JY.MISSIONS.slice(), list = [], types = {};
+      while (list.length < 3 && pool.length) {
+        var d = pool.splice(Math.floor(r() * pool.length), 1)[0];
+        if (types[d.type]) continue;
+        types[d.type] = 1;
+        list.push({ id: d.id, prog: 0, done: false, claimed: false });
+      }
+      m.missions = { date: t, list: list, bonus: false };
+      save();
+    }
+    return m.missions;
+  }
+  function track(type, n, isMax) {
+    var ms = missions(), done = [], changed = false;
+    ms.list.forEach(function (x) {
+      var d = missionDef(x.id);
+      if (!d || d.type !== type || x.done) return;
+      if (d.max || isMax) x.prog = Math.max(x.prog, n || 0);
+      else x.prog += (n === undefined ? 1 : n);
+      changed = true;
+      if (x.prog >= d.goal) { x.prog = d.goal; x.done = true; done.push(d); }
+    });
+    if (changed) save();
+    return done;
+  }
+  function claimMission(i) {
+    var ms = missions(), x = ms.list[i];
+    if (!x || !x.done || x.claimed) return null;
+    var d = missionDef(x.id);
+    x.claimed = true;
+    addGems(d.gem);
+    var jr = addJjam(d.jjam);
+    var bonus = false;
+    if (!ms.bonus && ms.list.every(function (y) { return y.claimed; })) { ms.bonus = true; get().freeBoxes = (get().freeBoxes || 0) + 1; bonus = true; }
+    save();
+    return { d: d, bonus: bonus, ups: jr.ups, unlocked: jr.unlocked };
+  }
+  function missionAlert() { var ms = missions(); return ms.list.filter(function (x) { return x.done && !x.claimed; }).length; }
+
+  /* ── 사건 수첩 (본 장면 모으기) ──────────── */
+  var SCENE_TOTAL = 0;
+  function sceneTotal() {
+    if (SCENE_TOTAL) return SCENE_TOTAL;
+    var idx = JY.Game._index(), n = 0;
+    for (var id in idx) { var c = idx[id]; if (c.text && c.l) n++; n += (c.variants || []).length; }
+    SCENE_TOTAL = n;
+    return n;
+  }
+  function see(key) {
+    var m = get();
+    if (!key || m.scenes[key]) return false;
+    m.scenes[key] = 1; save();
+    return true;
+  }
+  function collectProgress() {
+    var n = Object.keys(get().scenes).length, t = sceneTotal();
+    return { n: n, total: t, frac: t ? Math.min(1, n / t) : 0 };
+  }
+  function claimCollect(i) {
+    var m = get(), ms = JY.COLLECT_MILESTONES[i];
+    if (!ms || m.collectClaimed[i] || collectProgress().frac < ms.at) return null;
+    m.collectClaimed[i] = true;
+    addGems(ms.gem);
+    var jr = addJjam(ms.jjam);
+    if (ms.cos) { m.cos.owned[ms.cos] = true; }
+    save();
+    return { ms: ms, ups: jr.ups };
+  }
+  function collectAlert() {
+    var m = get(), f = collectProgress().frac;
+    return JY.COLLECT_MILESTONES.filter(function (ms, i) { return f >= ms.at && !m.collectClaimed[i]; }).length;
   }
 
   JY.Meta = {
     load: load, save: save, get: get, addGems: addGems, spend: spend, attendance: attendance,
     stash: stash, buyPremium: buyPremium, useStash: useStash,
     ownsCos: ownsCos, buyCos: buyCos, equip: equip, equipped: equipped, dress: dress, badge: badge,
-    openBox: openBox, unlock: unlock, finishRun: finishRun
+    openBox: openBox, unlock: unlock, finishRun: finishRun,
+    level: level, lvInfo: lvInfo, addJjam: addJjam, unlockText: unlockText, checkUnlocks: checkUnlocks,
+    upLevel: upLevel, upgrade: upgrade, missions: missions, missionDef: missionDef, track: track, claimMission: claimMission, missionAlert: missionAlert,
+    see: see, collectProgress: collectProgress, claimCollect: claimCollect, collectAlert: collectAlert, sceneTotal: sceneTotal
   };
 })(window.JY = window.JY || {});
 
@@ -6058,7 +7268,7 @@ button { cursor: pointer; }
     toastTimer = setTimeout(function () { t.hidden = true; }, ms || 2200);
   }
 
-  var SCREENS = ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album', 'scr-rank', 'scr-shop'];
+  var SCREENS = ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album', 'scr-rank', 'scr-shop', 'scr-barracks'];
   function showScreen(id) {
     SCREENS.forEach(function (s) { document.getElementById(s).hidden = s !== id; });
     if (id === 'scr-game') requestAnimationFrame(fitCard);
@@ -6139,7 +7349,7 @@ button { cursor: pointer; }
   /* ── 타이틀 ───────────────────────────── */
   function renderGems() {
     var g = Meta.get().gems;
-    ['#title-gems', '#shop-gems'].forEach(function (s) { var el = $(s); if (el) el.textContent = '💎 ' + num(g); });
+    ['#title-gems', '#shop-gems', '#barracks-gems'].forEach(function (s) { var el = $(s); if (el) el.textContent = '💎 ' + num(g); });
   }
 
   function renderTitle() {
@@ -6156,6 +7366,17 @@ button { cursor: pointer; }
     $('#daily-best').textContent = d ? '내 최고 ' + num(d.score) + '점' : '오늘 아직 미참가';
     $('#title-streak').hidden = !m.login.streak;
     $('#title-streak').textContent = '🗓️ 연속 출석 ' + m.login.streak + '일';
+    var lv = Meta.level();
+    $('#title-lvnum').textContent = 'Lv.' + lv.lv;
+    $('#title-lvtitle').textContent = lv.title;
+    $('#title-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
+    var ms = Meta.missions();
+    var done = ms.list.filter(function (x) { return x.claimed; }).length;
+    $('#mission-sum').textContent = done + '/3' + (Meta.missionAlert() ? ' · 보상 받기!' : '') + (ms.bonus ? ' ✓' : '');
+    $('#mission-strip').classList.toggle('alert', !!Meta.missionAlert());
+    $('#barracks-badge').hidden = !Meta.missionAlert();
+    $('#shop-badge').hidden = !(m.freeBoxes > 0);
+    $('#album-badge').hidden = !Meta.collectAlert();
     renderGems();
     showScreen('scr-title');
   }
@@ -6215,7 +7436,7 @@ button { cursor: pointer; }
     var useIns = opts.insurance && Meta.stash('insurance') > 0;
     state = G.newState({
       name: opts.name, start: opts.start, mos: opts.mos, face: opts.face, pace: opts.pace,
-      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns
+      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns, up: Meta.get().up
     });
     m.runs = (m.runs || 0) + 1; Meta.save();
     save();
@@ -6377,6 +7598,15 @@ button { cursor: pointer; }
       '<div class="nametape"><b>' + esc(nm.name) + '</b><span>' + esc(nm.role) + '</span></div>';
     $('#choice-l').textContent = c.l.t;
     $('#choice-r').textContent = c.r.t;
+    var xb = $('#choice-x-btn');
+    xb.hidden = !c.x;
+    if (c.x) {
+      $('#choice-x').textContent = c.x.t;
+      $('#choice-x-need').textContent = c.x.need || '';
+      card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
+    }
+    $('#choices').classList.toggle('three', !!c.x);
+    if (Meta.see(c.key)) card.insertAdjacentHTML('beforeend', '<span class="new-scene">NEW</span>');
     $$('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
     $('#talk-bubble').hidden = true;
     armed = null;
@@ -6414,11 +7644,14 @@ button { cursor: pointer; }
   function setCardPose(dx, dy) {
     var card = $('#card');
     card.style.transform = 'translate(' + dx + 'px,' + (dy || 0) + 'px) rotate(' + (dx * 0.06) + 'deg)';
-    var side = dx < -14 ? 'l' : dx > 14 ? 'r' : null;
-    var amt = Math.min(1, Math.abs(dx) / 70);
+    var lx = card.querySelector('.card-label.x');
+    var up = lx && dy < -24 && Math.abs(dx) < Math.abs(dy);
+    var side = up ? 'x' : dx < -14 ? 'l' : dx > 14 ? 'r' : null;
+    var amt = up ? Math.min(1, -dy / 70) : Math.min(1, Math.abs(dx) / 70);
     var ll = card.querySelector('.card-label.l'), lr = card.querySelector('.card-label.r');
     if (ll) ll.style.opacity = side === 'l' ? amt : 0;
     if (lr) lr.style.opacity = side === 'r' ? amt : 0;
+    if (lx) lx.style.opacity = side === 'x' ? amt : 0;
     return side;
   }
 
@@ -6429,7 +7662,7 @@ button { cursor: pointer; }
     $$('.choice').forEach(function (b) { b.classList.toggle('armed', b.dataset.side === side); });
     var card = $('#card');
     card.classList.remove('enter'); card.classList.add('back');
-    setCardPose(side === 'l' ? -46 : 46, 0);
+    if (side === 'x') setCardPose(0, -40); else setCardPose(side === 'l' ? -46 : 46, 0);
     showPreview(side);
     snd('tap');
     toast('한 번 더 누르면 결정!', 1200);
@@ -6467,13 +7700,16 @@ button { cursor: pointer; }
     card.addEventListener('pointermove', function (e) {
       if (!drag || e.pointerId !== drag.id) return;
       drag.dx = e.clientX - drag.x0;
-      var side = setCardPose(drag.dx, (e.clientY - drag.y0) * 0.15);
+      drag.dy = e.clientY - drag.y0;
+      var hasX = !!$('#card .card-label.x');
+      var side = setCardPose(drag.dx, hasX && drag.dy < 0 ? drag.dy * 0.8 : drag.dy * 0.15);
       if (side !== drag.side) { drag.side = side; showPreview(side); }
     });
     function endDrag(e, cancel) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       var d = drag; drag = null;
       var th = Math.min(110, card.offsetWidth * 0.3);
+      if (!cancel && d.side === 'x' && d.dy < -90) { commit('x'); return; }
       if (!cancel && Math.abs(d.dx) > th) { commit(d.dx < 0 ? 'l' : 'r'); return; }
       card.classList.add('back');
       setCardPose(0, 0);
@@ -6493,6 +7729,7 @@ button { cursor: pointer; }
       if (document.activeElement === card) return;
       if (e.key === 'ArrowLeft') arm('l');
       if (e.key === 'ArrowRight') arm('r');
+      if (e.key === 'ArrowUp' && !$('#choice-x-btn').hidden) arm('x');
     });
   }
 
@@ -6508,10 +7745,17 @@ button { cursor: pointer; }
     var w = window.innerWidth;
     card.classList.remove('back', 'enter');
     card.classList.add('fly');
-    card.style.transform = side === 't' ? 'translate(0, 120%) rotate(8deg)' : 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
+    card.style.transform = side === 't' ? 'translate(0, 120%) rotate(8deg)' : side === 'x' ? 'translate(0, -130%) scale(.9)' : 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
     card.style.opacity = '0';
+    undoSnap = state.undo > 0 ? JSON.stringify(state) : null;
     var res = credit(G.choose(state, side));
     save();
+    if (res) {
+      var done = Meta.track('card');
+      if (res.special) { done = done.concat(Meta.track('special')); snd('gem'); }
+      if (res.emergency && !res.timeout) done = done.concat(Meta.track('emer_ok'));
+      missionToast(done);
+    }
     setTimeout(function () {
       if (!res) { busy = false; renderCard(true); return; }
       if (res.timeout) res.say = '⏰ 시간 초과! ' + (res.say || '');
@@ -6523,6 +7767,7 @@ button { cursor: pointer; }
   function runMini(res) {
     var opts = { stats: state.stats, mos: state.mos, hard: !!G.traitOf(state).watchHard, face: function (w) { return charSVG(w); } };
     JY.Mini.start(res.mini, opts, function (tier) {
+      if (tier === 'great') missionToast(Meta.track('mini_great'));
       var r2 = credit(G.finishMini(state, tier));
       save();
       if (!r2) { busy = false; renderCard(true); return; }
@@ -6535,7 +7780,24 @@ button { cursor: pointer; }
     });
   }
 
+  function missionToast(done) {
+    if (!done || !done.length) return;
+    var d = done[done.length - 1];
+    setTimeout(function () { toast('🎯 임무 완료: ' + d.text + ' — 막사에서 보상 받기', 2800); snd('coin'); }, 600);
+  }
+
+  function trackEvents(res) {
+    var done = [];
+    (res.events || []).forEach(function (e) {
+      if (e.type === 'promo') done = done.concat(Meta.track('promo'));
+      if (e.type === 'bff') done = done.concat(Meta.track('bff'));
+    });
+    if (state) done = done.concat(Meta.track('days', state.day, true));
+    missionToast(done);
+  }
+
   function afterChoice(res) {
+    trackEvents(res);
     renderHUD();
     renderGems();
     animateDeltas(res.deltas || {});
@@ -6584,15 +7846,38 @@ button { cursor: pointer; }
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
+      (canUndo(res) ? '<button class="undo-btn" id="undo-btn">⌚ 국방부 시계 되돌리기 <em>' + (JSON.parse(undoSnap).undo) + '회</em></button>' : '') +
       '<span class="tap-next">탭해서 계속 ▶</span></div>';
     box.hidden = false;
     var shownAt = Date.now();
+    var ub = $('#undo-btn');
+    if (ub) ub.onclick = function (e) { e.stopPropagation(); box.onclick = null; box.hidden = true; doUndo(); };
     box.onclick = function () {
       if (Date.now() - shownAt < 350) return;
       box.onclick = null;
       box.hidden = true;
+      undoSnap = null;
       cb();
     };
+  }
+
+  var undoSnap = null;
+  function canUndo(res) {
+    if (!undoSnap) return false;
+    return !(res.events || []).some(function (e) { return e.type === 'gem'; });
+  }
+  function doUndo() {
+    var s2 = JSON.parse(undoSnap);
+    undoSnap = null;
+    s2.undo = Math.max(0, s2.undo - 1);
+    state = G.migrate(s2);
+    G._setCur(state);
+    save();
+    busy = false;
+    snd('reveal');
+    toast('⌚ 국방부 시계를 거꾸로 돌렸다! "…꿈이었나?"', 2400);
+    renderHUD();
+    renderCard(true);
   }
 
   function nextAfterResult(res) {
@@ -6714,6 +7999,7 @@ button { cursor: pointer; }
       if (u) u.onclick = function () {
         var r = G.useItem(state, sel);
         if (r) {
+          missionToast(Meta.track('item_use'));
           save(); renderHUD(); animateDeltas(r.deltas);
           var moved = Object.keys(r.deltas).some(function (k) { return r.deltas[k]; });
           snd(moved ? 'good' : 'tap');
@@ -6769,7 +8055,7 @@ button { cursor: pointer; }
     function bind(box) {
       $$('.item', box).forEach(function (b) {
         b.onclick = function () {
-          if (G.buy(state, b.dataset.id)) { bought = true; snd('coin'); save(); renderHUD(); box.innerHTML = html(); bind(box); }
+          if (G.buy(state, b.dataset.id)) { bought = true; snd('coin'); missionToast(Meta.track('px_buy')); save(); renderHUD(); box.innerHTML = html(); bind(box); }
           else toast('돈이 부족하거나 가방이 꽉 찼다.');
         };
       });
@@ -6813,6 +8099,8 @@ button { cursor: pointer; }
           var r = credit(G.talk(state, w));
           if (!r) return;
           if (r.cooldown) { toast(npcName(w) + ': "' + r.line + '" (수다는 ' + r.cooldown + '일 뒤에)'); return; }
+          missionToast(Meta.track('talk'));
+          trackEvents(r);
           save(); renderHUD(); animateDeltas(r.deltas); snd('tap');
           toast(npcName(w) + ': "' + r.line + '"', 2600);
           var bff = (r.events || []).filter(function (e) { return e.type === 'bff'; })[0];
@@ -6826,6 +8114,8 @@ button { cursor: pointer; }
           var w = giftFor, item = b.dataset.gift;
           var r = credit(G.gift(state, w, item));
           if (!r) return;
+          missionToast(Meta.track('gift'));
+          trackEvents(r);
           save(); renderHUD(); animateDeltas(r.deltas);
           snd(r.fav ? 'gem' : 'good');
           var msg = r.say || (r.fav ? npcName(w) + ': "이거 내가 제일 좋아하는 거잖아!!"' : npcName(w) + ': "오, 고맙다!"');
@@ -6870,6 +8160,8 @@ button { cursor: pointer; }
         var res = credit(G.takeLeave(state, n));
         closeModal();
         if (!res) return;
+        if (!state.over) missionToast(Meta.track('leave'));
+        trackEvents(res);
         save();
         renderHUD();
         animateDeltas(res.deltas);
@@ -6960,6 +8252,10 @@ button { cursor: pointer; }
     var o = s.over;
     var E = JY.ENDINGS[o.id] || JY.ENDINGS.normal;
     var sc = o.score || G.score(s);
+    var served0 = o.day + (o.good ? 1 : 0);
+    var mdone = Meta.track('days', served0, true);
+    if (o.good) mdone = mdone.concat(Meta.track('discharge'));
+    if (s.daily) mdone = mdone.concat(Meta.track('daily'));
     var r = Meta.finishRun(s);
     lsDel(KEYS.save);
     lastEnd = { s: s, r: r };
@@ -6998,10 +8294,13 @@ button { cursor: pointer; }
       '<ul class="score-parts">' + parts + multLine + '</ul>' +
       '<p class="score-gems">💎 +' + num(gemsTotal) + ' <small>(이번 판 획득 ' + r.runGems + ' · 정산 ' + r.reward + (r.ach.length ? ' · 훈장 ' + (gemsTotal - r.reward - r.runGems) : '') + ')</small></p>' +
       (newEnd || ach ? '<div class="medal-row">' + newEnd + ach + '</div>' : '') +
-      '<p class="score-rank">' + (r.place >= 0 ? '🏅 내 기록 ' + (r.place + 1) + '위' + (r.place === 0 ? ' — 신기록!' : '') : '내 기록 10위 밖') + ' <span id="rank-sync">· 전군 랭킹 확인 중…</span></p>';
+      '<p class="score-rank">' + (r.place >= 0 ? '🏅 내 기록 ' + (r.place + 1) + '위' + (r.place === 0 ? ' — 신기록!' : '') : '내 기록 10위 밖') + ' <span id="rank-sync">· 전군 랭킹 확인 중…</span></p>' +
+      jjamPanel(r, mdone);
 
     showScreen('scr-end');
     if (o.good) { snd('win'); confetti(); } else { snd('fail'); if (JY.buzz) JY.buzz([80, 60, 80, 60, 200]); }
+    if (r.levelUps && r.levelUps.length) setTimeout(function () { showLevelUp(r.levelUps, r.unlocked); }, 1400);
+    else if (r.unlocked && r.unlocked.length) setTimeout(function () { showLevelUp([], r.unlocked); }, 1400);
     JY.Rank.submit(r.record).then(function (x) {
       var el = $('#rank-sync'); if (!el) return;
       el.textContent = x.ok ? (x.changed ? '· 전군 랭킹에 반영됐다!' : '· 전군 랭킹 최고 기록 유지 중') : '· ' + (x.reason || '전군 랭킹 미반영');
@@ -7034,10 +8333,31 @@ button { cursor: pointer; }
     var nm = JY.ACHIEVEMENTS.filter(function (a) { return m.ach[a.id]; }).length;
     $('#album-progress').textContent = albumTab === 'endings' ? n + '/' + ids.length : nm + '/' + JY.ACHIEVEMENTS.length;
     $('#medal-count').textContent = nm + '/' + JY.ACHIEVEMENTS.length;
+    var cp = Meta.collectProgress();
+    $('#scene-count').textContent = Math.round(cp.frac * 100) + '%';
+    if (albumTab === 'scenes') $('#album-progress').textContent = cp.n + '/' + cp.total;
     $$('#album-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === albumTab)); });
     var grid = $('#album-grid');
-    grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : '');
-    if (albumTab === 'endings') {
+    grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : albumTab === 'scenes' ? ' scenes' : '');
+    if (albumTab === 'scenes') {
+      grid.innerHTML = '<div class="collect-head"><b>' + cp.n + ' / ' + cp.total + '</b> 장면 수집 <i class="lv-bar big"><i style="width:' + Math.round(cp.frac * 100) + '%"></i></i>' +
+        '<small>카드는 같아도 장면·질문이 여러 버전이다. 새 장면을 처음 보면 카드에 NEW가 뜬다.</small></div>' +
+        JY.COLLECT_MILESTONES.map(function (ms, i) {
+          var reached = cp.frac >= ms.at, got = m.collectClaimed[i];
+          var cos = ms.cos ? ' + ' + JY.COSMETICS[ms.cos].icon + ' ' + JY.COSMETICS[ms.cos].name : '';
+          return '<div class="milestone' + (got ? ' got' : reached ? ' ready' : '') + '"><span>' + Math.round(ms.at * 100) + '%</span><b>💎' + ms.gem + ' · 🍚' + ms.jjam + cos + '</b>' +
+            (got ? '<em>받음</em>' : reached ? '<button class="btn btn-small btn-primary" data-claimc="' + i + '">받기</button>' : '<em>' + Math.round(ms.at * cp.total) + '장 필요</em>') + '</div>';
+        }).join('');
+      $$('[data-claimc]', grid).forEach(function (b) {
+        b.onclick = function () {
+          var res = Meta.claimCollect(+b.dataset.claimc);
+          if (!res) return;
+          snd('reveal'); confetti(); toast('사건 수첩 보상! 💎 +' + res.ms.gem + ' · 짬 +' + res.ms.jjam);
+          if (res.ups && res.ups.length) showLevelUp(res.ups, []);
+          renderAlbum();
+        };
+      });
+    } else if (albumTab === 'endings') {
       grid.innerHTML = ids.map(function (id) {
         var E = JY.ENDINGS[id];
         if (!got[id]) {
@@ -7122,22 +8442,18 @@ button { cursor: pointer; }
           '<button class="btn btn-small btn-primary" data-buy="' + id + '"' + (m.gems < p.price ? ' disabled' : '') + '>💎 ' + p.price + '</button></div>';
       }).join('') + '</div>';
     } else if (shopTab === 'cos') {
-      body.innerHTML = '<div class="cos-grid">' + JY.COSMETIC_ORDER.map(function (id) {
-        var c = JY.COSMETICS[id], owned = Meta.ownsCos(id), on = m.cos.eq[c.slot] === id;
-        var btn = owned ? '<button class="btn btn-small' + (on ? ' btn-primary' : '') + '" data-equip="' + id + '">' + (on ? '착용 중' : '착용') + '</button>'
-          : c.gacha ? '<span class="gacha-only">보급 상자 ' + (c.gacha === 'legend' ? '전설' : '영웅') + '</span>'
-            : '<button class="btn btn-small btn-primary" data-cos="' + id + '"' + (m.gems < c.price ? ' disabled' : '') + '>💎 ' + c.price + '</button>';
-        return '<div class="cos' + (on ? ' on' : '') + (owned ? ' owned' : '') + '"><i>' + c.icon + '</i><b>' + c.name + '</b><small>' + JY.SLOT_NAMES[c.slot] + '</small>' + btn + '</div>';
-      }).join('') + '</div>';
+      body.innerHTML = cosGrid(true);
     } else {
-      body.innerHTML = '<div class="box-area"><button class="supply-box" id="supply-box" aria-label="보급 상자 열기"><span class="box-emoji">📦</span><b>보급 상자</b><small>💎 ' + JY.BOX.price + '</small></button>' +
+      var fb = m.freeBoxes || 0;
+      body.innerHTML = '<div class="box-area">' + (fb ? '<button class="btn btn-daily" id="free-box">🎁 무료 보급 상자 열기 (' + fb + '개)</button>' : '') + '<button class="supply-box" id="supply-box" aria-label="보급 상자 열기"><span class="box-emoji">📦</span><b>보급 상자</b><small>💎 ' + JY.BOX.price + '</small></button>' +
         '<ul class="box-odds">' + JY.BOX.tiers.map(function (t) {
           var what = t.id === 'common' ? '짬처리권·PX 프리패스·회식권 2개' : t.id === 'rare' ? '투시경·네잎클로버·포상휴가증 2개' : t.id === 'epic' ? '전역 보험 또는 꾸미기(무지개 아프로 포함)' : '전역 왕관 (이미 있으면 💎 100)';
           return '<li><span class="tier" style="background:' + t.color + '">' + t.name + '</span> ' + Math.round(t.p * 100) + '% — ' + what + '</li>';
         }).join('') + '</ul></div>';
       var bx = $('#supply-box');
       if (m.gems < JY.BOX.price) bx.classList.add('poor');
-      bx.onclick = openBoxFlow;
+      bx.onclick = function () { openBoxFlow(false); };
+      var fbb = $('#free-box'); if (fbb) fbb.onclick = function () { openBoxFlow(true); };
     }
     $$('[data-buy]', body).forEach(function (b) {
       b.onclick = function () {
@@ -7154,10 +8470,10 @@ button { cursor: pointer; }
     $$('[data-equip]', body).forEach(function (b) { b.onclick = function () { Meta.equip(b.dataset.equip); snd('tap'); renderShop(); }; });
   }
 
-  function openBoxFlow() {
+  function openBoxFlow(free) {
     var bx = $('#supply-box');
-    if (Meta.get().gems < JY.BOX.price) { toast('다이아가 부족하다. 전역하고 출석하면 모인다!'); return; }
-    var out = Meta.openBox();
+    if (!free && Meta.get().gems < JY.BOX.price) { toast('다이아가 부족하다. 전역하고 출석하면 모인다!'); return; }
+    var out = Meta.openBox(free);
     if (!out) return;
     renderGems();
     bx.classList.add('shake');
@@ -7170,12 +8486,152 @@ button { cursor: pointer; }
       got += out.items.map(function (id) { return '<div class="reveal-item"><i>' + JY.PREMIUM[id].icon + '</i><b>' + JY.PREMIUM[id].name + '</b><small>특급 보급품 창고로</small></div>'; }).join('');
       if (out.gems) got += '<div class="reveal-item"><i>💎</i><b>다이아 ' + out.gems + '</b><small>왕관은 이미 있다! 대신 다이아</small></div>';
       openModal('<div class="reveal" style="--tier:' + out.tier.color + '"><span class="tier big" style="background:' + out.tier.color + '">' + out.tier.name + '</span><h3>보급 상자 개봉!</h3><div class="reveal-items">' + got + '</div>' +
-        '<div class="modal-actions"><button class="btn btn-ghost" data-act="again">하나 더 (💎' + JY.BOX.price + ')</button><button class="btn btn-primary" data-act="close">좋다!</button></div></div>',
+        '<div class="modal-actions"><button class="btn btn-ghost" data-act="again">' + (Meta.get().freeBoxes > 0 ? '무료 상자 하나 더' : '하나 더 (💎' + JY.BOX.price + ')') + '</button><button class="btn btn-primary" data-act="close">좋다!</button></div></div>',
       function (box) {
         box.querySelector('[data-act="close"]').onclick = closeModal;
-        box.querySelector('[data-act="again"]').onclick = function () { closeModal(); openBoxFlow(); };
+        box.querySelector('[data-act="again"]').onclick = function () { closeModal(); openBoxFlow(Meta.get().freeBoxes > 0); };
       }, function () { renderShop(); });
     }, 900);
+  }
+
+  /* ── 짬 · 레벨업 ─────────────────────── */
+  function jjamPanel(r, mdone) {
+    var lv = Meta.level();
+    var m = (mdone || []).map(function (d) { return '<span class="medal-chip">🎯 ' + esc(d.text) + '</span>'; }).join('');
+    return '<div class="jjam-panel"><p>🍚 짬 +' + num(r.jjam) + ' <small>(버틴 날 + 점수' + (r.record.good ? ' + 전역 보너스' : '') + ')</small></p>' +
+      '<p class="lv-line"><em>Lv.' + lv.lv + '</em> ' + esc(lv.title) + ' <i class="lv-bar"><i style="width:' + Math.round(lv.cur / lv.need * 100) + '%"></i></i> <small>' + lv.cur + '/' + lv.need + '</small></p>' +
+      (m ? '<div class="medal-row">' + m + '</div>' : '') +
+      '<p class="sub-cream">짬으로 막사에서 장비를 강화하면 다음 판이 더 수월해진다.</p></div>';
+  }
+
+  function showLevelUp(ups, unlocked) {
+    var last = ups[ups.length - 1];
+    var lv = Meta.level();
+    var gems = ups.reduce(function (a, u) { return a + u.gem; }, 0), boxes = ups.reduce(function (a, u) { return a + u.box; }, 0);
+    var cos = (unlocked || []).map(function (id) { var c = JY.COSMETICS[id]; return '<div class="reveal-item"><i>' + c.icon + '</i><b>' + c.name + '</b><small>' + JY.SLOT_NAMES[c.slot] + ' 해금! 막사 옷장에서 입기</small></div>'; }).join('');
+    snd('promo'); confetti();
+    openModal('<div class="reveal">' + (last ? '<span class="tier big" style="background:#e0b347;color:#2a2620">짬 레벨 UP</span><h3>Lv.' + last.lv + ' ' + esc(lv.title) + '</h3>' +
+      '<p>💎 +' + gems + (boxes ? ' · 🎁 무료 보급 상자 ' + boxes + '개' : '') + '</p>' : '<h3>새 꾸미기 해금!</h3>') +
+      (cos ? '<div class="reveal-items">' + cos + '</div>' : '') +
+      '<div class="modal-actions"><button class="btn btn-primary" data-act="close">충성!</button></div></div>',
+    function (box) { box.querySelector('[data-act="close"]').onclick = closeModal; });
+  }
+
+  /* ── 옷장 그리드 (상점·막사 공용) ─────── */
+  function cosGrid(shop) {
+    var m = Meta.get();
+    return JY.SLOT_ORDER.map(function (slot) {
+      var items = JY.COSMETIC_ORDER.filter(function (id) { return JY.COSMETICS[id].slot === slot; });
+      return '<h4 class="slot-head">' + JY.SLOT_NAMES[slot] + '</h4><div class="cos-grid">' + items.map(function (id) {
+        var c = JY.COSMETICS[id], owned = Meta.ownsCos(id), on = m.cos.eq[c.slot] === id;
+        var btn;
+        if (owned) btn = '<button class="btn btn-small' + (on ? ' btn-primary' : '') + '" data-equip="' + id + '">' + (on ? '착용 중' : '착용') + '</button>';
+        else if (c.gacha) btn = '<span class="gacha-only">보급 상자 ' + (c.gacha === 'legend' ? '전설' : '영웅') + '</span>';
+        else if (c.unlock) btn = '<span class="gacha-only lock">🔒 ' + esc(Meta.unlockText(c)) + '</span>';
+        else btn = shop ? '<button class="btn btn-small btn-primary" data-cos="' + id + '"' + (m.gems < c.price ? ' disabled' : '') + '>💎 ' + c.price + '</button>' : '<span class="gacha-only">상점 💎' + c.price + '</span>';
+        return '<div class="cos' + (on ? ' on' : '') + (owned ? ' owned' : '') + '"><i>' + c.icon + '</i><b>' + c.name + '</b>' + btn + '</div>';
+      }).join('') + '</div>';
+    }).join('');
+  }
+
+  /* ── 막사: 외모 · 옷장 · 장비 강화 · 임무 ── */
+  var barracksTab = 'face';
+  var barracksBack = null;
+  var FACE_CATS = [
+    { k: 'eyes', name: '눈' }, { k: 'mouth', name: '입' }, { k: 'brows', name: '눈썹' },
+    { k: 'head', name: '얼굴형' }, { k: 'skin', name: '피부' }, { k: 'extras', name: '특징' }
+  ];
+  var SKINS = ['#ffd9b5', '#f6c79c', '#eab386', '#f9d2a8', '#d9a07a'];
+  var EXTRA_NAMES = ['없음', '볼터치', '왕귀', '콧물', '볼터치+왕귀'];
+
+  function faceOpts(k) { return k === 'skin' ? SKINS : JY.FACE_OPTIONS[k]; }
+  function faceIdx(face, k) {
+    var opts = faceOpts(k);
+    if (k === 'extras') { var j = JSON.stringify(face.extras || []); for (var i = 0; i < opts.length; i++) if (JSON.stringify(opts[i]) === j) return i; return 0; }
+    var x = opts.indexOf(face[k]); return x < 0 ? 0 : x;
+  }
+
+  function renderBarracks(back) {
+    if (back) barracksBack = back;
+    $('#btn-barracks-back').onclick = barracksBack || renderTitle;
+    if ($('#scr-barracks').hidden) showScreen('scr-barracks');
+    var m = Meta.get();
+    if (!m.face) { m.face = randomFace(); Meta.save(); }
+    setup.face = m.face;
+    renderGems();
+    var lv = Meta.level();
+    $('#me-big').innerHTML = charSVG('me', { rank: 4 });
+    $('#me-name').textContent = (m.lastName || '나띨빵') + ' ' + Meta.badge();
+    $('#me-lv').textContent = 'Lv.' + lv.lv;
+    $('#me-title').textContent = lv.title;
+    $('#me-lvbar').style.width = Math.round(lv.cur / lv.need * 100) + '%';
+    $('#me-lvtext').textContent = lv.cur + ' / ' + lv.need + ' 짬 (다음 레벨 💎20' + (JY.LEVELS.rewards[lv.lv + 1] ? ' + 보너스' : '') + ')';
+    $('#me-jjam').textContent = '🍚 짬 ' + num(m.jjam);
+    $('#mission-badge').textContent = Meta.missionAlert() ? '!' : '';
+    $$('#barracks-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === barracksTab)); });
+    var body = $('#barracks-body');
+    if (barracksTab === 'face') {
+      body.innerHTML = '<div class="face-rows">' + FACE_CATS.map(function (fc) {
+        var opts = faceOpts(fc.k), i = faceIdx(m.face, fc.k);
+        var label = fc.k === 'skin' ? '<i class="skin-dot" style="background:' + opts[i] + '"></i>' : fc.k === 'extras' ? EXTRA_NAMES[i] || i : (i + 1) + '번';
+        return '<div class="face-row"><span>' + fc.name + '</span><button class="btn btn-small" data-face="' + fc.k + '" data-d="-1" aria-label="' + fc.name + ' 이전">◀</button><b>' + label + ' <small>' + (i + 1) + '/' + opts.length + '</small></b><button class="btn btn-small" data-face="' + fc.k + '" data-d="1" aria-label="' + fc.name + ' 다음">▶</button></div>';
+      }).join('') + '</div><div class="modal-actions"><button class="btn btn-ghost" id="face-random">🎲 무작위</button></div>' +
+        '<p class="sub">외모는 무료다. 모자·옷·소품은 옷장에서.</p>';
+      $$('[data-face]', body).forEach(function (b) {
+        b.onclick = function () {
+          var k = b.dataset.face, opts = faceOpts(k), i = faceIdx(m.face, k);
+          var n = (i + (+b.dataset.d) + opts.length) % opts.length;
+          m.face[k] = k === 'extras' ? opts[n].slice() : opts[n];
+          Meta.save(); snd('tap'); renderBarracks();
+        };
+      });
+      $('#face-random').onclick = function () { m.face = randomFace(); Meta.save(); snd('box'); renderBarracks(); };
+    } else if (barracksTab === 'wardrobe') {
+      body.innerHTML = '<p class="sub">레벨·훈장·수집으로 해금하거나 상점에서 산다. 슬롯마다 하나씩 입는다.</p>' + cosGrid(false);
+      $$('[data-equip]', body).forEach(function (b) { b.onclick = function () { Meta.equip(b.dataset.equip); snd('tap'); renderBarracks(); }; });
+    } else if (barracksTab === 'gear') {
+      body.innerHTML = '<p class="sub">짬으로 장비를 강화하면 모든 판에 영구 적용된다. +4부터는 확률! 실패하면 짬 절반을 돌려받는다.</p><div class="gear-list">' +
+        JY.UPGRADES.map(function (u) {
+          var l = Meta.upLevel(u.id), max = l >= 5;
+          var cost = max ? 0 : JY.UPGRADE_COST[l], rate = max ? 1 : JY.UPGRADE_RATE[l];
+          return '<div class="gear-row' + (l ? ' lv' : '') + '"><i>' + u.icon + '</i><div><b>' + u.name + ' <em>+' + l + '</em></b><small>' + u.desc + '</small>' +
+            '<small class="now">현재: ' + (l ? u.per(l) : '없음') + (max ? '' : ' → ' + u.per(l + 1)) + '</small></div>' +
+            (max ? '<span class="gacha-only">MAX</span>' : '<button class="btn btn-small btn-primary" data-up="' + u.id + '"' + (m.jjam < cost ? ' disabled' : '') + '>🍚' + cost + (rate < 1 ? '<br><small>' + Math.round(rate * 100) + '%</small>' : '') + '</button>') + '</div>';
+        }).join('') + '</div>';
+      $$('[data-up]', body).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.up, u = JY.UPGRADES.filter(function (x) { return x.id === id; })[0];
+          b.disabled = true;
+          body.querySelector('.gear-list').classList.add('forging');
+          snd('box');
+          setTimeout(function () {
+            var r = Meta.upgrade(id);
+            if (!r.ok) { toast(r.reason); renderBarracks(); return; }
+            if (r.success) { snd('reveal'); confetti(); toast('🔨 강화 성공! ' + u.icon + ' ' + u.name + ' +' + r.lv, 2600); }
+            else { snd('bad'); if (JY.buzz) JY.buzz([60, 40, 60]); toast('💥 강화 실패… 짬 ' + r.refund + ' 돌려받음. 다시 도전!', 2600); }
+            renderBarracks();
+          }, 700);
+        };
+      });
+    } else {
+      var ms = Meta.missions();
+      body.innerHTML = '<p class="sub">매일 3개. 다 받으면 🎁 무료 보급 상자! (내일 새 임무)</p><div class="mission-list">' + ms.list.map(function (x, i) {
+        var d = Meta.missionDef(x.id), pct = Math.round(x.prog / d.goal * 100);
+        return '<div class="mission' + (x.claimed ? ' claimed' : x.done ? ' done' : '') + '"><div><b>' + esc(d.text) + '</b><i class="lv-bar"><i style="width:' + pct + '%"></i></i><small>' + num(x.prog) + ' / ' + num(d.goal) + ' · 보상 💎' + d.gem + ' 🍚' + d.jjam + '</small></div>' +
+          (x.claimed ? '<em>완료</em>' : x.done ? '<button class="btn btn-small btn-primary" data-claim="' + i + '">받기</button>' : '<em>진행 중</em>') + '</div>';
+      }).join('') + '</div><p class="mission-bonus' + (ms.bonus ? ' got' : '') + '">🎁 전부 완료 보너스: 무료 보급 상자 ' + (ms.bonus ? '— 받음! 상점에서 열기' : '') + '</p>';
+      $$('[data-claim]', body).forEach(function (b) {
+        b.onclick = function () {
+          var res = Meta.claimMission(+b.dataset.claim);
+          if (!res) return;
+          snd('gem');
+          toast('🎯 보상: 💎 +' + res.d.gem + ' · 🍚 짬 +' + res.d.jjam + (res.bonus ? ' · 🎁 무료 상자!' : ''), 2600);
+          if (res.bonus) confetti();
+          if (res.ups && res.ups.length) showLevelUp(res.ups, res.unlocked);
+          renderBarracks();
+        };
+      });
+    }
   }
 
   /* ── 설정 ───────────────────────────── */
@@ -7190,11 +8646,14 @@ button { cursor: pointer; }
     var m = Meta.get();
     var att = Meta.attendance();
     var welcome = m.pendingWelcome;
+    var upd = m.pendingUpdateGift;
     if (welcome) { delete m.pendingWelcome; Meta.save(); }
-    if (!att && !welcome) return;
+    if (upd) { delete m.pendingUpdateGift; Meta.save(); }
+    if (!att && !welcome && !upd) return;
     renderGems();
     var html = '<div class="greet">';
     if (welcome) html += '<h3>입대 환영 선물!</h3><p>💎 <b>50</b> 다이아를 받았다. 상점에서 전역 보험이나 꾸미기를 사 보자.</p>';
+    if (upd) html += '<h3>막사 개방! 🪖</h3><p>새 업데이트: 짬 레벨 · 장비 강화 · 오늘의 임무 · 옷장 · 사건 수첩.<br>그동안의 복무를 인정해 🍚 짬 <b>' + upd.jjam + '</b>, 💎 <b>' + upd.gem + '</b>을 받았다. 막사에서 장비를 강화해 보자!</p>';
     if (att) {
       html += '<h3>출석 체크 🗓️</h3><p>연속 <b>' + att.streak + '일</b> 출석! 💎 <b>+' + att.reward + '</b></p>' +
         '<div class="streak">' + [1, 2, 3, 4, 5, 6, 7].map(function (d) { return '<span class="' + (d <= Math.min(att.streak, 7) ? 'on' : '') + '">' + d + '일</span>'; }).join('') + '</div>' +
@@ -7233,7 +8692,12 @@ button { cursor: pointer; }
     $('#btn-daily').onclick = function () { if (JY.Sound) JY.Sound.unlock(); snd('tap'); openDaily(); };
     $('#btn-album').onclick = function () { albumTab = 'endings'; renderAlbum(renderTitle); };
     $('#btn-rank').onclick = function () { rankTab = 'global'; renderRank(renderTitle); };
-    $('#btn-shop').onclick = function () { shopTab = 'items'; renderShop(renderTitle); };
+    $('#btn-shop').onclick = function () { shopTab = Meta.get().freeBoxes > 0 ? 'box' : 'items'; renderShop(renderTitle); };
+    $('#btn-barracks').onclick = function () { barracksTab = Meta.missionAlert() ? 'mission' : 'face'; renderBarracks(renderTitle); };
+    $('#title-lv').onclick = function () { barracksTab = 'gear'; renderBarracks(renderTitle); };
+    $('#mission-strip').onclick = function () { barracksTab = 'mission'; renderBarracks(renderTitle); };
+    $('#btn-face-edit').onclick = function () { Meta.get().face = setup.face; Meta.save(); barracksTab = 'face'; renderBarracks(function () { setup.face = Meta.get().face; updateSetupPreview(); showScreen('scr-setup'); }); };
+    bindTabs('#barracks-tabs', function (t) { barracksTab = t; renderBarracks(); });
     $('#btn-face').onclick = function () { setup.face = randomFace(); snd('tap'); updateSetupPreview(); };
     $('#btn-reroll').onclick = function () { if (setup.rerolled) return; setup.rerolled = true; snd('box'); drawTraits(); };
     $('#trait-grid').addEventListener('click', function (e) {

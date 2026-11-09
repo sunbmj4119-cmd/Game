@@ -8,7 +8,7 @@ var vm = require('vm');
 
 global.window = global;
 var root = path.join(__dirname, '..');
-['js/data/chars.js', 'js/data/cards.js', 'js/data/cards2.js', 'js/data/items.js', 'js/data/world.js', 'js/data/shop.js', 'js/core.js'].forEach(function (f) {
+['js/data/chars.js', 'js/data/cards.js', 'js/data/cards2.js', 'js/data/cards3.js', 'js/data/items.js', 'js/data/world.js', 'js/data/shop.js', 'js/core.js'].forEach(function (f) {
   vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
 });
 var JY = global.JY;
@@ -42,8 +42,10 @@ function score(s, fx, opt) {
 }
 
 function smartChoose(s) {
-  var c = G.getCardDef(s.current);
-  var a = score(s, expected(s, c.l), c.l), b = score(s, expected(s, c.r), c.r);
+  var v = G._view(s);
+  var a = score(s, expected(s, v.l), v.l), b = score(s, expected(s, v.r), v.r);
+  var sp = G._special(s);
+  if (sp) { var x = score(s, expected(s, sp), sp); if (x > a && x > b) return 'x'; }
   return a >= b ? 'l' : 'r';
 }
 

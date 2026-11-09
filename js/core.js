@@ -123,8 +123,8 @@
    * 카드 전체 평균이 체력·멘탈은 살짝 마이너스(시간이 갈수록 지친다 → 아이템·휴가로 회복),
    * 신뢰·전우애는 0 근처가 되도록 맞춘 값. tools/simulate.js로 검증. */
   var BALANCE = {
-    pos: { hp: 1.0, mt: 0.75, tr: 0.85, bd: 0.6 },
-    neg: { hp: 0.72, mt: 1.25, tr: 1.14, bd: 1.6 }
+    pos: { hp: 1.0, mt: 0.62, tr: 0.8, bd: 0.55 },
+    neg: { hp: 0.72, mt: 1.3, tr: 1.15, bd: 1.6 }
   };
   function tuneFx(fx) {
     if (!fx) return;
@@ -135,15 +135,18 @@
       fx[k] = t === 0 ? (v > 0 ? 1 : -1) : t;
     }
   }
+  function tuneOpt(op) {
+    if (!op || op.tuned) return;
+    op.tuned = true;
+    tuneFx(op.fx);
+    asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
+    asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
+  }
   function tuneCard(c) {
     if (c.tuned || (c.req && c.req.stat)) return; // 위기 경고 카드는 원래 수치 그대로
     c.tuned = true;
-    [c.l, c.r, c.t].forEach(function (op) {
-      if (!op) return;
-      tuneFx(op.fx);
-      asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
-      asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
-    });
+    [c.l, c.r, c.t, c.x].forEach(tuneOpt);
+    asArr(c.variants).forEach(function (v) { [v.l, v.r, v.t, v.x].forEach(tuneOpt); });
   }
 
   var INDEX = null;
@@ -151,6 +154,7 @@
     if (INDEX) return INDEX;
     INDEX = {};
     var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, JY.CARDS.emergency || [], SPECIAL];
+    if (JY.SPECIALS) for (var sw in JY.SPECIALS) JY.SPECIALS[sw].forEach(tuneOpt);
     for (var g = 0; g < groups.length; g++) for (var i = 0; i < groups[g].length; i++) {
       tuneCard(groups[g][i]);
       INDEX[groups[g][i].id] = groups[g][i];
@@ -171,7 +175,7 @@
     var end = addMonths(start, 18) - DAY; // 전역일 = 입대일 + 18개월 - 1일
     var st = MOS[mos].start;
     var state = {
-      v: 2,
+      v: 3,
       name: (opts.name || '나띨빵').slice(0, 8),
       face: opts.face || null,
       mos: mos,
@@ -209,6 +213,11 @@
       talkDay: {},
       bffs: {},
       insurance: opts.insurance ? 1 : 0,
+      up: opts.up || {},
+      undo: 0,
+      cv: null,
+      vlast: {},
+      specials: 0,
       insight: 0,
       luck: 0,
       gems: 0,
@@ -226,10 +235,27 @@
     asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
     if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
     if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
-    var seq = JY.CARDS.training.concat(JY.CARDS.arrival);
-    for (var i = 0; i < seq.length; i++) state.queue.push(seq[i].id);
+    var up = state.up;
+    state.insight += 3 * (up.notebook || 0);
+    state.undo = [0, 1, 1, 2, 2, 3][up.watch || 0] || 0;
+    state.queue = openingQueue();
     nextCard(state);
     return state;
+  }
+
+  // 매판 다른 시작: 슬롯마다 후보 중 하나(또는 n장)
+  function openingQueue() {
+    var slots = JY.CARDS.openingSlots;
+    if (!slots) return JY.CARDS.training.concat(JY.CARDS.arrival).map(function (c) { return c.id; });
+    var q = [];
+    slots.forEach(function (sl) {
+      if (sl.pick) q.push(sl.pick[randInt(0, sl.pick.length - 1)]);
+      else if (sl.pool) {
+        var bag = sl.pool.slice();
+        for (var i = 0; i < sl.n && bag.length; i++) q.push(bag.splice(randInt(0, bag.length - 1), 1)[0]);
+      }
+    });
+    return q;
   }
 
   /* ── 조건 검사 ───────────────────────────── */
@@ -318,7 +344,78 @@
     }
     if (!id) id = pickRandom(s);
     s.current = id;
+    pickVariant(s, getCardDef(id));
     return id;
+  }
+
+  /* ── 장면 변형: 한 카드 안의 여러 장면, 여러 말투 ─── */
+  function variantOk(s, v) {
+    if (!v) return true;
+    var req = v.req || {};
+    if (v.flag) req = { flag: v.flag, noflag: req.noflag };
+    if (v.noflag) req = { flag: req.flag, noflag: v.noflag };
+    return checkReq(s, req);
+  }
+  function pickVariant(s, c) {
+    s.cv = { id: c ? c.id : null, v: 0, k: randInt(0, 1 << 20) };
+    if (!c || !c.variants || !c.variants.length) return;
+    var opts = [];
+    if (c.text && c.l && variantOk(s, c)) opts.push(0);
+    c.variants.forEach(function (v, i) { if (variantOk(s, v)) opts.push(i + 1); });
+    if (!opts.length) return;
+    var last = s.vlast[c.id];
+    var pool = opts.length > 1 ? opts.filter(function (i) { return i !== last; }) : opts;
+    s.cv.v = pool[randInt(0, pool.length - 1)];
+    s.vlast[c.id] = s.cv.v;
+  }
+  function pickStr(x, k) { return Array.isArray(x) ? x[k % x.length] : x; }
+  // 지금 카드의 실제 모습 (변형 적용)
+  function view(s) {
+    var c = getCardDef(s.current);
+    if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
+    if (!s.cv || s.cv.id !== c.id) pickVariant(s, c);
+    var v = s.cv.v ? c.variants[s.cv.v - 1] : null;
+    var b = v || c;
+    return {
+      c: c, v: v, key: c.id + (s.cv.v ? '#' + s.cv.v : ''),
+      who: b.who || c.who, bg: b.bg || c.bg,
+      text: pickStr(b.text || c.text, s.cv.k),
+      l: b.l || c.l, r: b.r || c.r, t: b.t || c.t, x: b.x || (v ? null : c.x)
+    };
+  }
+
+  /* ── 특수 대답: 조건이 맞으면 열리는 세 번째 선택지 ─── */
+  function needOk(s, need) {
+    if (!need) return true;
+    if (need.item && !(s.items[need.item] > 0)) return false;
+    if (need.money && s.money < need.money) return false;
+    if (need.flag && !s.flags[need.flag]) return false;
+    if (need.trait && s.trait !== need.trait) return false;
+    if (need.aff) for (var a in need.aff) { var av = s.aff[a] || 0; if (av < need.aff[a][0] || av > need.aff[a][1]) return false; }
+    return true;
+  }
+  function needLabel(need) {
+    if (!need) return '';
+    if (need.item && JY.ITEMS[need.item]) return JY.ITEMS[need.item].icon + ' ' + JY.ITEMS[need.item].name + ' 1개 사용';
+    if (need.money) return '💸 ' + need.money.toLocaleString('ko-KR') + '원';
+    if (need.trait && JY.TRAITS[need.trait]) return JY.TRAITS[need.trait].emoji + ' ' + JY.TRAITS[need.trait].name + ' 성격';
+    if (need.aff) { var w = Object.keys(need.aff)[0]; return '💗 ' + (JY.CHARS[w] ? JY.CHARS[w].name : w) + ' 호감도 ' + need.aff[w][0] + '+'; }
+    if (need.flag) return '✦ 특별 조건';
+    return '';
+  }
+  function specialFor(s, vw) {
+    if (s.rank < 0) return null;
+    if (vw.x && needOk(s, vw.x.need)) return vw.x;
+    var list = JY.SPECIALS && JY.SPECIALS[vw.who];
+    if (!list || vw.c.id === 'quiet') return null;
+    for (var i = 0; i < list.length; i++) {
+      var sp = list[i];
+      if (!needOk(s, sp.need)) continue;
+      // 아이템을 쓰지 않는 특수 대답은 절반 확률로만 열린다 (매번 쉬운 길이 있으면 재미없다)
+      if (!(sp.need && sp.need.item) && (s.cv.k >> 16) % 2) continue;
+      return sp;
+    }
+    return null;
   }
 
   /* ── 텍스트 치환 ─────────────────────────── */
@@ -334,16 +431,17 @@
   }
 
   function currentCard(s) {
-    var c = getCardDef(s.current);
-    if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
+    var vw = view(s), c = vw.c, k = s.cv.k;
     var res = {
-      id: c.id, who: c.who, bg: c.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
+      id: c.id, key: vw.key, who: vw.who, bg: vw.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
       catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
-      text: fill(s, c.text),
-      l: { t: fill(s, c.l.t), preview: preview(c.l, s) },
-      r: { t: fill(s, c.r.t), preview: preview(c.r, s) }
+      text: fill(s, vw.text),
+      l: { t: fill(s, pickStr(vw.l.t, k >> 4)), preview: preview(vw.l, s) },
+      r: { t: fill(s, pickStr(vw.r.t, k >> 8)), preview: preview(vw.r, s) }
     };
-    if (c.t) res.t = { t: fill(s, c.t.t) };
+    if (vw.t) res.t = { t: fill(s, pickStr(vw.t.t, k >> 12)) };
+    var sp = specialFor(s, vw);
+    if (sp) res.x = { t: fill(s, pickStr(sp.t, k >> 14)), preview: preview(sp, s), need: needLabel(sp.need) };
     return res;
   }
 
@@ -384,7 +482,8 @@
     }
     if (opt.roll) {
       extra = roll();
-      var lucky = s.luck > 0 || (traitOf(s).luck && rand() < traitOf(s).luck);
+      var luckP = (traitOf(s).luck || 0) + 0.08 * (s.up.charm || 0);
+      var lucky = s.luck > 0 || (luckP > 0 && rand() < luckP);
       if (lucky) {
         var second = roll();
         var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
@@ -394,6 +493,8 @@
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
     }
+    if (Array.isArray(out.say)) out.say = out.say[randInt(0, out.say.length - 1)];
+    if (extra && Array.isArray(extra.say)) extra = Object.assign({}, extra, { say: extra.say[randInt(0, extra.say.length - 1)] });
     if (extra) {
       for (k in extra) {
         if (k === 'fx') { for (var f in extra.fx) out.fx[f] = (out.fx[f] || 0) + extra.fx[f]; }
@@ -415,6 +516,10 @@
     s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
     if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
     srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
+    var up = s.up || {};
+    if (k === 'hp' && v < 0 && up.boots) m *= 1 - 0.05 * up.boots;
+    // 방탄모: 위험 구간에서 더 위험해지는 쪽 변화 완화
+    if (up.helmet && ((s.stats[k] <= 20 && v < 0) || (s.stats[k] >= 80 && v > 0))) m *= 1 - 0.08 * up.helmet;
     return m;
   }
 
@@ -466,6 +571,7 @@
   function changeAff(s, who, n, res) {
     if (!JY.NPCS || !JY.NPCS[who] || !n) return;
     if (who === 'cat' && traitOf(s).catW) n *= 2;
+    if (n > 0 && s.up && s.up.tag) n *= 1 + 0.12 * s.up.tag;
     var before = s.aff[who] || 0;
     var after = clamp(Math.round(before + n), 0, 100);
     s.aff[who] = after;
@@ -579,7 +685,7 @@
     var pay = PAY[s.rank];
     var save = Math.min(SAVE_MONTHLY, pay);
     s.savings += save;
-    s.money += pay - save;
+    s.money += Math.round((pay - save) * (1 + 0.05 * ((s.up && s.up.wallet) || 0)));
     res.events.push({ type: 'pay', n: pay, cash: pay - save, save: save });
   }
 
@@ -604,6 +710,7 @@
 
   function cardDays(s, c, out) {
     if (out && out.days) return out.days;
+    if (c.days === 'fill') return Math.max(1, TRAIN_DAYS - s.day);
     if (c.days) return c.days;
     return randInt(3, 6) * s.pace;
   }
@@ -632,13 +739,22 @@
   function choose(s, side) {
     if (s.over || s.pendingMini) return null;
     CUR = s;
-    var c = getCardDef(s.current);
-    var opt = side === 'l' || side === 'left' ? c.l : side === 't' && c.t ? c.t : c.r;
+    var vw = view(s), c = vw.c;
+    var opt;
+    if (side === 'x') {
+      opt = specialFor(s, vw);
+      if (!opt) return null;
+      if (opt.need && opt.need.item) s.items[opt.need.item] -= 1;
+      s.specials += 1;
+    } else opt = side === 'l' || side === 'left' ? vw.l : side === 't' && vw.t ? vw.t : vw.r;
     var out = resolveOutcome(s, opt);
     var res = newRes();
+    res.scene = vw.key;
+    res.special = side === 'x';
     applyOutcome(s, out, res);
     s.seen[c.id] = s.day;
-    s.lastWho = c.who;
+    s.lastWho = vw.who;
+    c = { id: c.id, who: vw.who, urgent: c.urgent };
     if (c.urgent) {
       s.emer.count += 1;
       if (side !== 't') s.emer.ok += 1;
@@ -652,12 +768,13 @@
       if (d) changeAff(s, c.who, d * 0.6, res);
     }
     if (res.ending) { end(s, res.ending, res); return res; }
+    var def = getCardDef(c.id);
     if (out.mini) {
-      s.pendingMini = { id: out.mini, days: cardDays(s, c, out) };
+      s.pendingMini = { id: out.mini, days: cardDays(s, def, out) };
       res.mini = out.mini;
       return res;
     }
-    return finishTurn(s, res, cardDays(s, c, out));
+    return finishTurn(s, res, cardDays(s, def, out));
   }
 
   function finishMini(s, tier) {
@@ -787,6 +904,7 @@
   function pxDiscount(s) {
     var keep = 1;
     if (unitOf(s).pxDiscount) keep *= 1 - unitOf(s).pxDiscount;
+    if (s.up && s.up.wallet) keep *= 1 - 0.04 * s.up.wallet;
     if (s.bffs.ppaen && JY.NPCS) keep *= 1 - (JY.NPCS.ppaen.perk.pxDiscount || 0);
     s.conds.forEach(function (c) { if (condDef(c.id).pxDiscount) keep *= 1 - condDef(c.id).pxDiscount; });
     return 1 - keep;
@@ -826,6 +944,7 @@
     s.items[id] -= 1;
     var fx = {};
     var mult = JY.FOOD && JY.FOOD[id] && traitOf(s).itemMult ? traitOf(s).itemMult : 1;
+    mult *= 1 + 0.1 * ((s.up && s.up.pack) || 0); // 군용 배낭 강화
     for (var k in it.fx) fx[k] = Math.round(it.fx[k] * (it.fx[k] > 0 ? mult : 1));
     applyStats(s, fx, res, true);
     return res;
@@ -955,7 +1074,11 @@
     if (s.insurance === undefined) s.insurance = 0;
     if (!s.unit) s.unit = 'gop';
     if (s.rng === undefined) s.rng = null;
-    s.v = 2;
+    if (!s.up) s.up = {};
+    if (s.undo === undefined) s.undo = 0;
+    if (!s.vlast) s.vlast = {};
+    if (s.specials === undefined) s.specials = 0;
+    s.v = 3;
     return s;
   }
 
@@ -970,6 +1093,6 @@
     dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
     unitOf: unitOf, traitOf: traitOf, condDef: condDef,
-    _index: index, _eligible: eligible, _checkReq: checkReq, _setCur: function (s) { CUR = s; }
+    _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});

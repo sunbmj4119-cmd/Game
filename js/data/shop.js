@@ -25,10 +25,75 @@
     cateears: { slot: 'hat', name: '고양이 귀', icon: '🐱', price: 50, hat: 'cateears' },
     gold: { slot: 'hat', name: '황금 헬멧', icon: '🪖', price: 80, hat: 'gold' },
     afro: { slot: 'hat', name: '무지개 아프로', icon: '🌈', price: 0, gacha: 'epic', hat: 'afro' },
-    crown: { slot: 'hat', name: '전역 왕관', icon: '👑', price: 0, gacha: 'legend', hat: 'crown' }
+    crown: { slot: 'hat', name: '전역 왕관', icon: '👑', price: 0, gacha: 'legend', hat: 'crown' },
+    // v3: 레벨·업적·수집으로 여는 꾸미기 + 옷·소품 슬롯
+    beanie: { slot: 'hat', name: '털모자', icon: '🧶', price: 0, unlock: { level: 2 }, hat: 'beanie' },
+    chefhat: { slot: 'hat', name: '취사병 모자', icon: '👨‍🍳', price: 0, unlock: { mosOut: 'cook' }, hat: 'chef' },
+    jogyohat: { slot: 'hat', name: '조교 모자', icon: '📣', price: 0, unlock: { unitOut: 'recruit' }, hat: 'jogyo' },
+    kkal: { slot: 'body', name: '전설의 깔깔이', icon: '🧥', price: 30, body: 'kkal' },
+    pt: { slot: 'body', name: '군 체육복', icon: '🏃', price: 0, unlock: { level: 3 }, body: 'pt' },
+    pinkcamo: { slot: 'body', name: '핑크 전투복', icon: '🎀', price: 0, unlock: { level: 6 }, body: 'pinkcamo' },
+    dress: { slot: 'body', name: '전역 정복', icon: '🎖️', price: 0, unlock: { level: 10 }, body: 'dress' },
+    goldcamo: { slot: 'body', name: '황금 전투복', icon: '🏆', price: 0, unlock: { collect: 1 }, body: 'goldcamo' },
+    shovel: { slot: 'prop', name: '삽돌이', icon: '⛏️', price: 25, prop: 'shovel' },
+    chocopie: { slot: 'prop', name: '초코파이', icon: '🍫', price: 15, prop: 'chocopie' },
+    phoneprop: { slot: 'prop', name: '휴대폰', icon: '📱', price: 0, unlock: { level: 4 }, prop: 'phone' },
+    megaphone: { slot: 'prop', name: '확성기', icon: '📢', price: 0, unlock: { level: 8 }, prop: 'megaphone' },
+    flower: { slot: 'prop', name: '꽃다발', icon: '💐', price: 0, unlock: { ach: 'gf' }, prop: 'flower' },
+    mic: { slot: 'prop', name: '노래자랑 마이크', icon: '🎤', price: 0, unlock: { collect: 0.5 }, prop: 'mic' }
   };
-  JY.COSMETIC_ORDER = ['blush', 'mustache', 'headband', 'sunglasses', 'sparkle', 'beret', 'cateears', 'gold', 'afro', 'crown'];
-  JY.SLOT_NAMES = { hat: '모자', face: '얼굴', fx: '효과' };
+  JY.COSMETIC_ORDER = ['blush', 'mustache', 'headband', 'sunglasses', 'sparkle', 'beret', 'cateears', 'gold', 'afro', 'crown',
+    'beanie', 'chefhat', 'jogyohat', 'kkal', 'pt', 'pinkcamo', 'dress', 'goldcamo', 'shovel', 'chocopie', 'phoneprop', 'megaphone', 'flower', 'mic'];
+  JY.SLOT_NAMES = { hat: '모자', face: '얼굴', fx: '효과', body: '옷', prop: '소품' };
+  JY.SLOT_ORDER = ['hat', 'face', 'fx', 'body', 'prop'];
+
+  /* ── 짬(경험치) · 레벨 ─────────────────── */
+  JY.LEVELS = {
+    need: function (lv) { return 100 * (lv - 1) * lv / 2; }, // lv 레벨이 되기 위한 누적 짬
+    titles: [[1, '짬찌'], [3, '짬 좀 먹은'], [5, '짬밥 전문가'], [8, '짬장'], [12, '짬신'], [16, '짬의 전설'], [20, '국방부 시계']],
+    rewards: { 5: { box: 1 }, 10: { box: 1, gem: 50 }, 15: { box: 2, gem: 100 }, 20: { box: 3, gem: 200 } }
+  };
+
+  /* ── 장비 강화: 짬으로 영구 강화 (+4, +5는 확률) ── */
+  JY.UPGRADES = [
+    { id: 'boots', icon: '🥾', name: '전투화', desc: '체력 소모 -5% / 강', per: function (l) { return '체력 소모 -' + l * 5 + '%'; } },
+    { id: 'helmet', icon: '🪖', name: '방탄모', desc: '위험 구간(20 이하·80 이상)에서 더 위험해지는 변화 -8% / 강', per: function (l) { return '위험 완충 ' + l * 8 + '%'; } },
+    { id: 'notebook', icon: '📓', name: '수양록', desc: '판 시작 때 투시경 카드 3장 / 강', per: function (l) { return '시작 투시 ' + l * 3 + '장'; } },
+    { id: 'wallet', icon: '👛', name: '지갑', desc: '월급 현금 +5%, PX 할인 4% / 강', per: function (l) { return '월급 +' + l * 5 + '% · PX -' + l * 4 + '%'; } },
+    { id: 'pack', icon: '🎒', name: '군용 배낭', desc: '아이템 회복량 +10% / 강', per: function (l) { return '아이템 +' + l * 10 + '%'; } },
+    { id: 'tag', icon: '🏷️', name: '명찰', desc: '동료 호감도 상승 +12% / 강', per: function (l) { return '호감도 +' + l * 12 + '%'; } },
+    { id: 'watch', icon: '⌚', name: '국방부 시계', desc: '방금 선택을 되돌리는 횟수 (+1: 1회, +3: 2회, +5: 3회)', per: function (l) { return '되돌리기 ' + ([0, 1, 1, 2, 2, 3][l] || 0) + '회'; } },
+    { id: 'charm', icon: '🧿', name: '부적', desc: '운에 맡기는 선택이 유리해질 확률 +8% / 강', per: function (l) { return '행운 +' + l * 8 + '%'; } }
+  ];
+  JY.UPGRADE_COST = [80, 160, 300, 500, 800];  // +1 ~ +5
+  JY.UPGRADE_RATE = [1, 1, 1, 0.8, 0.6];       // 성공 확률 (실패하면 짬 절반 돌려받음)
+
+  /* ── 오늘의 임무: 날짜마다 3개 ─────────── */
+  JY.MISSIONS = [
+    { id: 'cards30', type: 'card', goal: 30, text: '카드 30장 넘기기', gem: 10, jjam: 30 },
+    { id: 'cards80', type: 'card', goal: 80, text: '카드 80장 넘기기', gem: 15, jjam: 50 },
+    { id: 'special2', type: 'special', goal: 2, text: '특수 대답 2번 쓰기', gem: 12, jjam: 30 },
+    { id: 'emer2', type: 'emer_ok', goal: 2, text: '돌발 상황 2번 제한 시간 안에 대응', gem: 12, jjam: 40 },
+    { id: 'mini1', type: 'mini_great', goal: 1, text: '미니게임 대성공 1번', gem: 10, jjam: 30 },
+    { id: 'gift2', type: 'gift', goal: 2, text: '동료에게 선물 2번', gem: 10, jjam: 30 },
+    { id: 'talk3', type: 'talk', goal: 3, text: '동료와 수다 3번', gem: 8, jjam: 25 },
+    { id: 'px5', type: 'px_buy', goal: 5, text: 'PX에서 물건 5개 사기', gem: 8, jjam: 25 },
+    { id: 'item3', type: 'item_use', goal: 3, text: '아이템 3개 사용', gem: 8, jjam: 25 },
+    { id: 'leave1', type: 'leave', goal: 1, text: '휴가 1번 다녀오기', gem: 10, jjam: 30 },
+    { id: 'promo2', type: 'promo', goal: 2, text: '진급 2번 하기', gem: 10, jjam: 30 },
+    { id: 'days300', type: 'days', goal: 300, max: true, text: '한 판에서 300일 이상 버티기', gem: 15, jjam: 50 },
+    { id: 'out1', type: 'discharge', goal: 1, text: '전역하기', gem: 20, jjam: 60 },
+    { id: 'daily1', type: 'daily', goal: 1, text: '오늘의 작전 끝까지 하기', gem: 15, jjam: 40 },
+    { id: 'bff1', type: 'bff', goal: 1, text: '절친 1명 만들기', gem: 15, jjam: 40 }
+  ];
+
+  /* ── 사건 수첩: 본 장면 수집 보상 ─────── */
+  JY.COLLECT_MILESTONES = [
+    { at: 0.25, gem: 30, jjam: 50 },
+    { at: 0.5, gem: 60, jjam: 100, cos: 'mic' },
+    { at: 0.75, gem: 100, jjam: 150 },
+    { at: 1, gem: 200, jjam: 300, cos: 'goldcamo' }
+  ];
 
   /* 보급 상자: 30💎 */
   JY.BOX = {

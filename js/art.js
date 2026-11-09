@@ -321,6 +321,15 @@
           '<path d="M84 174 L86 204 M116 174 L114 204" stroke="#fff" stroke-width="3" stroke-linecap="round"/>' +
           '<rect x="80" y="214" width="40" height="16" rx="6" fill="#7ab4da" stroke="' + INK + '" stroke-width="2"/>';
         break;
+      case 'dress': // 정복: 짙은 녹색 재킷, 흰 셔츠, 넥타이, 금단추, 약장
+        s = '<path d="' + shoulders + '" fill="#2f4a2a" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M84 170 L100 214 L116 170Z" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
+          '<path d="M96 176 L104 176 L106 206 L100 214 L94 206Z" fill="#26331f"/>' +
+          '<path d="M74 172 L100 232 M126 172 L100 232" stroke="#203520" stroke-width="3"/>' +
+          '<circle cx="100" cy="220" r="3" fill="#e0b347"/>' +
+          '<rect x="120" y="188" width="26" height="9" fill="#c4362b"/><rect x="120" y="188" width="9" height="9" fill="#3a86ff"/><rect x="137" y="188" width="9" height="9" fill="#e0b347"/>' +
+          '<path d="M52 186 Q62 178 74 180" stroke="#e0b347" stroke-width="3" fill="none"/>';
+        break;
       default: // camo 전투복
         s = '<path d="' + shoulders + '" fill="url(#' + camoId + ')" stroke="' + INK + '" stroke-width="3"/>' +
           '<path d="M76 172 L100 194 L124 172" fill="none" stroke="#3e4a28" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -413,14 +422,17 @@
     var shape = spec.head || 'round';
     var earX = shape === 'wide' ? 30 : shape === 'egg' ? 44 : 38;
 
-    var defs = '<defs>' + camoPattern(camoId, seed) +
+    var bodyType = spec.body || 'camo';
+    var BODY_CAMO = { pinkcamo: ['#f4a6c3', '#e57aa3', '#fbd3e1', '#c95583'], goldcamo: ['#e8c25a', '#c99a2e', '#f6e3a1', '#8a6a18'] };
+    var bodyCamoId = BODY_CAMO[bodyType] ? id + 'bc' : camoId;
+    var defs = '<defs>' + camoPattern(camoId, seed) + (BODY_CAMO[bodyType] ? camoPattern(bodyCamoId, seed + 7, BODY_CAMO[bodyType]) : '') +
       '<clipPath id="' + clipId + '">' + headPath(shape) + '</clipPath>' +
       '<clipPath id="' + camoId + 'b"><path d="M30 232 Q32 176 100 168 Q168 176 170 232 Z"/></clipPath></defs>';
 
     var svg = '<svg class="char" viewBox="0 0 200 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + defs +
       '<ellipse cx="100" cy="228" rx="70" ry="8" fill="rgba(0,0,0,.12)"/>' +
       '<g class="bob">' +
-      drawBody(spec.body || 'camo', camoId, spec.rank, spec.tag) +
+      drawBody(BODY_CAMO[bodyType] ? 'camo' : bodyType, bodyCamoId, spec.rank, spec.tag) +
       '<g class="head">' +
       drawHairBack(hair) +
       '<circle cx="' + (200 - earX) + '" cy="106" r="' + (big ? 20 : 13) + '" fill="' + skin + '" stroke="' + INK + '" stroke-width="3"/>' +

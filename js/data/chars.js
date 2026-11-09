@@ -84,6 +84,14 @@
       name: '문서준', role: '상병 · 행정병',
       spec: { seed: 'clerk', eyes: 'spiral', mouth: 'wavy', hat: 'none', rank: 'e3', extras: ['glasses', 'sweat'], prop: 'clipboard' }
     },
+    trainee: {
+      name: '훈련병 김눈물', role: '훈련병 · 3주차',
+      spec: { seed: 'trainee', eyes: 'teary', brows: 'worried', mouth: 'wavy', hat: 'helmetBig', rank: 'e0', extras: ['sweat'] }
+    },
+    idol: {
+      name: '차반짝', role: '이병 · 전직 아이돌',
+      spec: { seed: 'idol', skin: '#ffe3c8', eyes: 'sparkle', brows: 'normal', mouth: 'grin', hat: 'none', hair: 'side', rank: 'e1', extras: ['sparkles', 'blush'] }
+    },
     cat: { name: '짬타이거', role: '부대 고양이 · 짬 9년차', special: 'cat' },
     boar: { name: '멧돼지', role: '불청객 · 산에서 옴', special: 'boar' },
     speaker: { name: '중대 방송', role: '스피커', special: 'speaker' },

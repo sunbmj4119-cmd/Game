@@ -13,6 +13,9 @@
   var LEAVE_ON_PROMO = [0, 4, 8, 8, 8]; // 이병(신병위로) 4 + 연가 24일을 진급마다 나눠 지급
   var LEAVE_GAP = 20; // 휴가 사이 최소 간격(일)
   var LEAVE_MAX = 15; // 한 번에 쓸 수 있는 최대 휴가
+  var EMER_BASE = 0.08; // 카드마다 돌발 상황이 터질 기본 확률
+  var COND_CHANCE = 0.4; // 매달 1일 주간 상황이 시작될 확률
+  var BFF = 70; // 절친 기준 호감도
 
   var MOS = {
     infantry: { name: '소총수', emoji: '🎯', start: { hp: 58, mt: 50, tr: 45, bd: 50 }, boost: null,
@@ -100,11 +103,21 @@
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   }
 
-  /* ── 유틸 ───────────────────────────────── */
-  function rand() { return (JY.rand || Math.random)(); }
+  /* ── 난수: 오늘의 작전은 시드 고정 ─────────── */
+  var CUR = null;
+  function rand() {
+    if (CUR && typeof CUR.rng === 'number') {
+      CUR.rng = (CUR.rng + 0x6D2B79F5) | 0;
+      var t = Math.imul(CUR.rng ^ (CUR.rng >>> 15), 1 | CUR.rng);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    return (JY.rand || Math.random)();
+  }
   function randInt(a, b) { return a + Math.floor(rand() * (b - a + 1)); }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function asArr(x) { return x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]; }
+  function seedFrom(str) { var h = 2166136261; str = String(str); for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 
   /* 밸런스 조정표: 카드에 적힌 수치를 불러올 때 한 번 보정한다.
    * 카드 전체 평균이 체력·멘탈은 살짝 마이너스(시간이 갈수록 지친다 → 아이템·휴가로 회복),
@@ -125,10 +138,11 @@
   function tuneCard(c) {
     if (c.tuned || (c.req && c.req.stat)) return; // 위기 경고 카드는 원래 수치 그대로
     c.tuned = true;
-    [c.l, c.r].forEach(function (o) {
-      tuneFx(o.fx);
-      asArr(o.roll).forEach(function (r) { tuneFx(r.fx); });
-      asArr(o.cases).forEach(function (r) { tuneFx(r.fx); });
+    [c.l, c.r, c.t].forEach(function (op) {
+      if (!op) return;
+      tuneFx(op.fx);
+      asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
+      asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
     });
   }
 
@@ -136,7 +150,7 @@
   function index() {
     if (INDEX) return INDEX;
     INDEX = {};
-    var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, SPECIAL];
+    var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, JY.CARDS.emergency || [], SPECIAL];
     for (var g = 0; g < groups.length; g++) for (var i = 0; i < groups[g].length; i++) {
       tuneCard(groups[g][i]);
       INDEX[groups[g][i].id] = groups[g][i];
@@ -144,6 +158,10 @@
     return INDEX;
   }
   function getCardDef(id) { return index()[id]; }
+
+  function unitOf(s) { return (JY.UNITS && JY.UNITS[s.unit]) || {}; }
+  function traitOf(s) { return (JY.TRAITS && JY.TRAITS[s.trait]) || {}; }
+  function condDef(id) { return (JY.CONDITIONS && JY.CONDITIONS[id]) || {}; }
 
   /* ── 새 게임 ─────────────────────────────── */
   function newState(opts) {
@@ -153,11 +171,13 @@
     var end = addMonths(start, 18) - DAY; // 전역일 = 입대일 + 18개월 - 1일
     var st = MOS[mos].start;
     var state = {
-      v: 1,
+      v: 2,
       name: (opts.name || '나띨빵').slice(0, 8),
       face: opts.face || null,
       mos: mos,
       pace: opts.pace === 3 ? 3 : 1,
+      daily: opts.daily || null,
+      rng: typeof opts.seed === 'number' ? (opts.seed | 0) : null,
       start: start,
       end: end,
       total: Math.round((end - start) / DAY),
@@ -183,10 +203,29 @@
       season: seasonOf(ymd(start).m),
       cards: 0,
       minis: { played: 0, great: 0 },
+      emer: { count: 0, ok: 0, since: 0 },
+      conds: [],
+      aff: {},
+      talkDay: {},
+      bffs: {},
+      insurance: opts.insurance ? 1 : 0,
+      insight: 0,
+      luck: 0,
+      gems: 0,
       log: [],
       pendingMini: null,
       over: null
     };
+    CUR = state;
+    var unitIds = JY.UNIT_ORDER || [];
+    state.unit = opts.unit && JY.UNITS && JY.UNITS[opts.unit] ? opts.unit : (unitIds.length ? unitIds[randInt(0, unitIds.length - 1)] : null);
+    state.trait = opts.trait && JY.TRAITS && JY.TRAITS[opts.trait] ? opts.trait : null;
+    var tr = traitOf(state), un = unitOf(state);
+    [tr.start, un.start].forEach(function (d) { if (d) for (var k in d) state.stats[k] = clamp(state.stats[k] + d[k], 10, 90); });
+    if (tr.money) state.money += tr.money;
+    asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
+    if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
+    if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
     var seq = JY.CARDS.training.concat(JY.CARDS.arrival);
     for (var i = 0; i < seq.length; i++) state.queue.push(seq[i].id);
     nextCard(state);
@@ -195,18 +234,23 @@
 
   /* ── 조건 검사 ───────────────────────────── */
   function daysLeft(s) { return Math.max(0, s.total - s.day); }
+  function monthOf(s) { return ymd(s.start + s.day * DAY).m; }
 
   function checkReq(s, req) {
     if (!req) return true;
     if (req.rank && (s.rank < req.rank[0] || s.rank > req.rank[1])) return false;
     if (req.season && asArr(req.season).indexOf(s.season) < 0) return false;
     if (req.mos && asArr(req.mos).indexOf(s.mos) < 0) return false;
+    if (req.unit && asArr(req.unit).indexOf(s.unit) < 0) return false;
+    if (req.trait && asArr(req.trait).indexOf(s.trait) < 0) return false;
+    if (req.month) { var m = monthOf(s); if (m < req.month[0] || m > req.month[1]) return false; }
     var f = asArr(req.flag);
     for (var i = 0; i < f.length; i++) if (!s.flags[f[i]]) return false;
     var nf = asArr(req.noflag);
     for (var j = 0; j < nf.length; j++) if (s.flags[nf[j]]) return false;
     if (req.vars) for (var k in req.vars) { var v = s.vars[k] || 0; if (v < req.vars[k][0] || v > req.vars[k][1]) return false; }
     if (req.stat) for (var q in req.stat) { var sv = s.stats[q]; if (sv < req.stat[q][0] || sv > req.stat[q][1]) return false; }
+    if (req.aff) for (var a in req.aff) { var av = s.aff[a] || 0; if (av < req.aff[a][0] || av > req.aff[a][1]) return false; }
     if (req.left) { var l = daysLeft(s); if (l < req.left[0] || l > req.left[1]) return false; }
     if (req.minDay && s.day < req.minDay) return false;
     if (req.leaveGte === 'left' && !(s.leave > 0 && s.leave >= daysLeft(s) - 2)) return false;
@@ -223,13 +267,24 @@
     return checkReq(s, c.req);
   }
 
+  function cardWeight(s, c) {
+    var w = c.w || 1;
+    if (c.who === s.lastWho) w *= 0.35;
+    var un = unitOf(s), tr = traitOf(s);
+    if (un.seasonW && c.req && c.req.season) {
+      asArr(c.req.season).forEach(function (se) { if (un.seasonW[se] && se === s.season) w *= un.seasonW[se]; });
+    }
+    if (c.req && c.req.unit) w *= 1.4; // 자대 전용 카드는 조금 더 자주
+    if (tr.catW && c.who === 'cat') w *= tr.catW;
+    return w;
+  }
+
   function pickRandom(s) {
     var pool = JY.CARDS.pool, list = [], total = 0;
     for (var i = 0; i < pool.length; i++) {
       var c = pool[i];
       if (!eligible(s, c)) continue;
-      var w = c.w || 1;
-      if (c.who === s.lastWho) w *= 0.35;
+      var w = cardWeight(s, c);
       list.push([c, w]); total += w;
     }
     if (!list.length) return 'quiet';
@@ -238,11 +293,28 @@
     return list[list.length - 1][0].id;
   }
 
+  function pickEmergency(s) {
+    var em = JY.CARDS.emergency || [];
+    if (s.rank < 1 || s.emer.since < 3 || !em.length) return null;
+    var chance = EMER_BASE * (unitOf(s).emerMult || 1) * (traitOf(s).emerMult || 1);
+    if (rand() >= chance) return null;
+    var list = em.filter(function (c) {
+      if (s.seen[c.id] !== undefined && s.day - s.seen[c.id] < 150 * s.pace) return false;
+      return checkReq(s, c.req);
+    });
+    if (!list.length) return null;
+    return list[randInt(0, list.length - 1)].id;
+  }
+
   function nextCard(s) {
     var id = null;
     while (s.queue.length && !id) {
       var q = s.queue.shift();
       if (getCardDef(q)) id = q;
+    }
+    if (!id) {
+      id = pickEmergency(s);
+      if (id) s.emer.since = 0;
     }
     if (!id) id = pickRandom(s);
     s.current = id;
@@ -251,39 +323,53 @@
 
   /* ── 텍스트 치환 ─────────────────────────── */
   function fill(s, text) {
+    var un = unitOf(s);
     return String(text || '')
       .replace(/\{name\}/g, s.name)
       .replace(/\{rank\}/g, RANKS[s.rank])
       .replace(/\{left\}/g, daysLeft(s))
-      .replace(/\{leave\}/g, s.leave);
+      .replace(/\{leave\}/g, s.leave)
+      .replace(/\{unit\}/g, un.name || '○○사단')
+      .replace(/\{place\}/g, un.place || '강원도');
   }
 
   function currentCard(s) {
     var c = getCardDef(s.current);
     if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
-    return {
+    var res = {
       id: c.id, who: c.who, bg: c.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
-      catFish: c.catFish, catCap: c.catCap,
+      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
       text: fill(s, c.text),
-      l: { t: fill(s, c.l.t), preview: preview(c.l) },
-      r: { t: fill(s, c.r.t), preview: preview(c.r) }
+      l: { t: fill(s, c.l.t), preview: preview(c.l, s) },
+      r: { t: fill(s, c.r.t), preview: preview(c.r, s) }
     };
+    if (c.t) res.t = { t: fill(s, c.t.t) };
+    return res;
   }
 
-  // 선택지가 건드리는 스탯 (Reigns처럼 방향은 숨기고 크기만 보여준다)
-  function preview(opt) {
-    var p = {};
-    function add(fx) { for (var k in fx) { var a = Math.abs(fx[k]); if (a && (!p[k] || a > p[k])) p[k] = a; } }
-    add(opt.fx || {});
-    asArr(opt.roll).forEach(function (r) { add(r.fx || {}); });
-    asArr(opt.cases).forEach(function (r) { add(r.fx || {}); });
+  // 선택지가 건드리는 스탯 (Reigns처럼 방향은 숨기고 크기만 보여준다. 투시경·눈치백단이면 방향도)
+  function preview(opt, s) {
+    var p = {}, ev = {};
+    function add(fx, w) { for (var k in fx) { var a = Math.abs(fx[k]); if (a && (!p[k] || a > p[k])) p[k] = a; ev[k] = (ev[k] || 0) + fx[k] * w; } }
+    add(opt.fx || {}, 1);
+    asArr(opt.roll).forEach(function (r) { add(r.fx || {}, r.p); });
+    asArr(opt.cases).forEach(function (r, i, arr) { add(r.fx || {}, 1 / arr.length); });
     var out = {};
     for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (opt.mini) out.mini = true;
+    if (s) {
+      var see = s.insight > 0 ? STATS : (traitOf(s).insightStat ? [traitOf(s).insightStat] : []);
+      if (see.length) {
+        out.dir = {};
+        see.forEach(function (k) { if (out[k] && ev[k]) out.dir[k] = ev[k] > 0 ? 1 : -1; });
+      }
+    }
     return out;
   }
 
   /* ── 결과 적용 ───────────────────────────── */
+  function fxSum(fx) { var t = 0; for (var k in (fx || {})) t += fx[k]; return t; }
+
   function resolveOutcome(s, opt) {
     var out = {};
     var k;
@@ -291,9 +377,20 @@
     out.fx = {};
     for (k in (opt.fx || {})) out.fx[k] = opt.fx[k];
     var extra = null;
-    if (opt.roll) {
+    function roll() {
       var r = rand(), acc = 0;
-      for (var i = 0; i < opt.roll.length; i++) { acc += opt.roll[i].p; if (r < acc || i === opt.roll.length - 1) { extra = opt.roll[i]; break; } }
+      for (var i = 0; i < opt.roll.length; i++) { acc += opt.roll[i].p; if (r < acc || i === opt.roll.length - 1) return opt.roll[i]; }
+      return opt.roll[opt.roll.length - 1];
+    }
+    if (opt.roll) {
+      extra = roll();
+      var lucky = s.luck > 0 || (traitOf(s).luck && rand() < traitOf(s).luck);
+      if (lucky) {
+        var second = roll();
+        var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
+        var score1 = fxSum(extra.fx) + (extra.gem || 0) + (extra.leave || 0) * 4 + (extra.end ? -999 : 0);
+        if (score2 > score1) extra = second;
+      }
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
     }
@@ -301,34 +398,85 @@
       for (k in extra) {
         if (k === 'fx') { for (var f in extra.fx) out.fx[f] = (out.fx[f] || 0) + extra.fx[f]; }
         else if (k === 'say') { out.say = (out.say ? out.say + ' ' : '') + extra.say; }
+        else if (k === 'item') { out.item = out.item || {}; for (var it in extra.item) out.item[it] = (out.item[it] || 0) + extra.item[it]; }
+        else if (k === 'money') { out.money = (out.money || 0) + extra.money; }
         else if (k !== 'p' && k !== 'if') out[k] = extra[k];
       }
     }
     return out;
   }
 
-  function applyStats(s, fx, res, soft) {
-    var mos = MOS[s.mos];
+  // 특성·부대·보직·주간 상황·절친 효과를 모아 스탯 변화 배수를 만든다
+  function statMult(s, k, v) {
+    var m = 1;
+    var key = v > 0 ? 'pos' : 'neg';
+    if (v > 0 && MOS[s.mos].boost === k) m *= 1.25;
+    var srcs = [traitOf(s).mods, unitOf(s).mods];
+    s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
+    if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
+    srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
+    return m;
+  }
+
+  function applyStats(s, fx, res, soft, lo, hi) {
     for (var k in fx) {
       if (STATS.indexOf(k) < 0) continue;
       var v = fx[k];
-      if (v > 0 && mos.boost === k) v = Math.round(v * 1.25);
+      if (!soft && v) v = Math.round(v * statMult(s, k, v));
       var before = s.stats[k];
       var after = clamp(before + v, 0, 100);
-      if (soft) { // 아이템/휴가: 5~95 바깥으로는 밀지 않는다
-        if (v > 0) after = Math.max(before, Math.min(after, 95));
-        else after = Math.min(before, Math.max(after, 5));
+      if (soft) { // 아이템/휴가/주간 상황: 경계 바깥으로는 밀지 않는다
+        var a = lo === undefined ? 5 : lo, b = hi === undefined ? 95 : hi;
+        if (v > 0) after = Math.max(before, Math.min(after, b));
+        else after = Math.min(before, Math.max(after, a));
       }
       s.stats[k] = after;
       res.deltas[k] = (res.deltas[k] || 0) + (after - before);
     }
   }
 
-  function gainLeave(s, n, res, why) {
+  function gainLeave(s, n, res, why, raw) {
     if (!n) return;
-    if (n > 0 && s.mos === 'infantry') n = Math.ceil(n * 1.5);
+    if (n > 0 && !raw) {
+      if (s.mos === 'infantry') n = Math.ceil(n * 1.5);
+      if (unitOf(s).leaveReward) n += unitOf(s).leaveReward;
+    }
     s.leave = Math.max(0, s.leave + n);
     if (n > 0) res.events.push({ type: 'leave', n: n, text: (why || '포상휴가') + ' +' + n + '일' });
+  }
+
+  function gainGem(s, n, res) {
+    if (!n) return;
+    n = Math.round(n * (traitOf(s).gemMult || 1));
+    s.gems += n;
+    res.events.push({ type: 'gem', n: n });
+  }
+
+  function startCond(s, id, res) {
+    var d = condDef(id);
+    if (!d.name) return;
+    var ex = s.conds.filter(function (c) { return c.id === id; })[0];
+    if (ex) { ex.left = Math.max(ex.left, d.cards); return; }
+    if (s.conds.length >= 2) s.conds.shift();
+    s.conds.push({ id: id, left: d.cards });
+    if (d.onStart) for (var it in d.onStart) s.items[it] = clamp((s.items[it] || 0) + d.onStart[it], 0, 9);
+    res.events.push({ type: 'cond', id: id, text: d.emoji + ' ' + d.name + ' 시작! (' + d.desc + ')' });
+  }
+
+  function changeAff(s, who, n, res) {
+    if (!JY.NPCS || !JY.NPCS[who] || !n) return;
+    if (who === 'cat' && traitOf(s).catW) n *= 2;
+    var before = s.aff[who] || 0;
+    var after = clamp(Math.round(before + n), 0, 100);
+    s.aff[who] = after;
+    if (after !== before) res.events.push({ type: 'aff', who: who, n: after - before });
+    if (after >= BFF && !s.bffs[who]) {
+      s.bffs[who] = true;
+      res.events.push({ type: 'bff', who: who, text: JY.NPCS[who].perk.name + ' — ' + JY.NPCS[who].perk.desc });
+      addLog(s, (JY.CHARS[who] ? JY.CHARS[who].name : who) + '와(과) 절친');
+    } else if (after < BFF - 10 && s.bffs[who]) {
+      s.bffs[who] = false;
+    }
   }
 
   function applyOutcome(s, out, res) {
@@ -349,6 +497,9 @@
       res.events.push({ type: 'item', id: it, n: out.item[it] });
     }
     if (out.leave) gainLeave(s, out.leave, res);
+    if (out.gem) gainGem(s, out.gem, res);
+    if (out.cond) startCond(s, out.cond, res);
+    if (out.aff) for (var w in out.aff) changeAff(s, w, out.aff[w], res);
     asArr(out.set).forEach(function (f) { s.flags[f] = true; logFlag(s, f); });
     asArr(out.unset).forEach(function (f) { delete s.flags[f]; });
     if (out.add) for (var v in out.add) s.vars[v] = (s.vars[v] || 0) + out.add[v];
@@ -369,11 +520,21 @@
   function logFlag(s, f) { if (FLAG_LOG[f]) addLog(s, FLAG_LOG[f]); }
   function addLog(s, text) { s.log.push({ day: s.day, text: text }); if (s.log.length > 30) s.log.shift(); }
 
-  function edgeEnding(s) {
+  function edgeEnding(s, res) {
     for (var i = 0; i < STATS.length; i++) {
       var k = STATS[i];
-      if (s.stats[k] <= 0) return k + '0';
-      if (s.stats[k] >= 100) return k + '100';
+      var hit = s.stats[k] <= 0 ? k + '0' : s.stats[k] >= 100 ? k + '100' : null;
+      if (!hit) continue;
+      if (s.insurance > 0) { // 전역 보험: 한 번 살려준다
+        s.insurance = 0;
+        var before = s.stats[k];
+        s.stats[k] = 50;
+        res.deltas[k] = (res.deltas[k] || 0) + (50 - before);
+        res.events.push({ type: 'insurance', stat: k, text: '🛡️ 전역 보험 발동! "…꿈이었다!" ' + STAT_NAMES[k] + '이(가) 50으로 돌아왔다.' });
+        addLog(s, '전역 보험 발동');
+        continue;
+      }
+      return hit;
     }
     return null;
   }
@@ -385,10 +546,33 @@
       s.day += 1;
       var date = ymd(s.start + s.day * DAY);
       if (date.d === 10 && s.day > 0) payday(s, res);
+      if (date.d === 1 && s.rank >= 1 && rand() < COND_CHANCE) monthlyCond(s, res);
       while (s.rank < 4 && s.day >= s.promo[s.rank + 1]) promote(s, res);
       var se = seasonOf(date.m);
       if (se !== s.season) { s.season = se; res.events.push({ type: 'season', season: se, text: SEASON_MSG[se] }); }
     }
+  }
+
+  function monthlyCond(s, res) {
+    if (!JY.CONDITIONS) return;
+    var ids = Object.keys(JY.CONDITIONS).filter(function (id) {
+      var d = JY.CONDITIONS[id];
+      if (d.season && d.season !== s.season) return false;
+      return !s.conds.some(function (c) { return c.id === id; });
+    });
+    if (ids.length) startCond(s, ids[randInt(0, ids.length - 1)], res);
+  }
+
+  function tickConds(s, res) {
+    var keep = [];
+    s.conds.forEach(function (c) {
+      var d = condDef(c.id);
+      if (d.tick) applyStats(s, d.tick, res, true, 3, 97);
+      c.left -= 1;
+      if (c.left > 0) keep.push(c);
+      else res.events.push({ type: 'condEnd', id: c.id, text: (d.emoji || '') + ' ' + (d.name || '') + ' 끝' });
+    });
+    s.conds = keep;
   }
 
   function payday(s, res) {
@@ -406,14 +590,13 @@
       s.delays[next] += 1;
       s.promo[next] = firstOfMonthOffset(s.start + s.promo[next] * DAY, 1);
       for (var k = next + 1; k <= 4; k++) s.promo[k] = Math.max(s.promo[k], firstOfMonthOffset(s.start + s.promo[k] * DAY, 1));
-      applyStats(s, { mt: -8 }, res);
+      applyStats(s, { mt: -8 }, res, true, 3, 97);
       res.events.push({ type: 'promoFail', rank: next, text: RANKS[next] + ' 진급 누락! 간부 신뢰가 너무 낮다. 한 달 뒤 재심사.' });
       addLog(s, RANKS[next] + ' 진급 누락');
-      // 무한 루프 방지: promo가 미래로 갔으니 while 탈출
       return;
     }
     s.rank = next;
-    var add = LEAVE_ON_PROMO[next];
+    var add = LEAVE_ON_PROMO[next] + (next >= 2 ? (unitOf(s).leaveBonus || 0) : 0);
     s.leave += add;
     res.events.push({ type: 'promo', rank: next, leave: add, text: RANKS[next] + ' 진급!' + (add ? ' 휴가 +' + add + '일' : '') });
     addLog(s, RANKS[next] + ' 진급');
@@ -426,15 +609,19 @@
   }
 
   function finishTurn(s, res, days) {
-    var e = edgeEnding(s);
+    var e = edgeEnding(s, res);
     if (e) { end(s, e, res); return res; }
+    tickConds(s, res);
+    if (s.insight > 0) s.insight -= 1;
+    if (s.luck > 0) s.luck -= 1;
     var before = s.rank;
     advance(s, days, res);
-    if (before < 1 && s.rank >= 1) addLog(s, '훈련소 수료, 자대 배치');
+    if (before < 1 && s.rank >= 1) addLog(s, '훈련소 수료, ' + (unitOf(s).name || '자대') + ' 배치');
     if (s.day >= s.total) { discharge(s, res); return res; }
-    e = edgeEnding(s); // 진급 누락 등으로 바뀐 경우
+    e = edgeEnding(s, res); // 진급 누락 등으로 바뀐 경우
     if (e) { end(s, e, res); return res; }
     s.cards += 1;
+    s.emer.since += 1;
     nextCard(s);
     return res;
   }
@@ -444,13 +631,26 @@
   /* ── 플레이어 행동 ───────────────────────── */
   function choose(s, side) {
     if (s.over || s.pendingMini) return null;
+    CUR = s;
     var c = getCardDef(s.current);
-    var opt = side === 'l' || side === 'left' ? c.l : c.r;
+    var opt = side === 'l' || side === 'left' ? c.l : side === 't' && c.t ? c.t : c.r;
     var out = resolveOutcome(s, opt);
     var res = newRes();
     applyOutcome(s, out, res);
     s.seen[c.id] = s.day;
     s.lastWho = c.who;
+    if (c.urgent) {
+      s.emer.count += 1;
+      if (side !== 't') s.emer.ok += 1;
+      res.emergency = true;
+      res.timeout = side === 't';
+    }
+    // 카드 속 동료와의 호감도: 그 동료가 신경 쓰는 스탯이 오르면 좋아한다
+    if (JY.NPCS && JY.NPCS[c.who] && !(out.aff && out.aff[c.who])) {
+      var npc = JY.NPCS[c.who];
+      var d = res.deltas[npc.stat] || 0;
+      if (d) changeAff(s, c.who, d * 0.6, res);
+    }
     if (res.ending) { end(s, res.ending, res); return res; }
     if (out.mini) {
       s.pendingMini = { id: out.mini, days: cardDays(s, c, out) };
@@ -463,6 +663,7 @@
   function finishMini(s, tier) {
     var pm = s.pendingMini;
     if (!pm) return null;
+    CUR = s;
     s.pendingMini = null;
     var def = MINI[pm.id];
     var r = def[tier] || def.good;
@@ -471,9 +672,57 @@
     if (tier === 'great') s.minis.great += 1;
     applyOutcome(s, { fx: r.fx, say: r.say, set: r.set }, res);
     if (r.leave) gainLeave(s, r.leave, res);
+    if (tier === 'great') gainGem(s, 3, res);
     if (pm.id === 'shoot' && rand() < 0.3) s.queue.unshift('shell_lost');
     res.tier = tier;
     return finishTurn(s, res, pm.days);
+  }
+
+  /* ── 동료와 상호작용 ─────────────────────── */
+  function npcAvailable(s, who) {
+    var n = JY.NPCS && JY.NPCS[who];
+    if (!n || s.rank < 1) return false;
+    return checkReq(s, n.avail);
+  }
+
+  function talk(s, who) {
+    CUR = s;
+    if (!npcAvailable(s, who)) return null;
+    var res = newRes();
+    var last = s.talkDay[who];
+    var lines = JY.NPCS[who].lines;
+    res.line = lines[randInt(0, lines.length - 1)];
+    if (last !== undefined && s.day - last < 6) { res.cooldown = 6 - (s.day - last); return res; }
+    s.talkDay[who] = s.day;
+    changeAff(s, who, 4, res);
+    applyStats(s, { mt: 3 }, res, true);
+    return res;
+  }
+
+  // 카드 속 동료를 톡 건드리면 호감도 +1 (카드당 한 번)
+  function poke(s, who) {
+    if (!JY.NPCS || !JY.NPCS[who] || s.poked === s.current) return null;
+    s.poked = s.current;
+    var res = newRes();
+    changeAff(s, who, 1, res);
+    return res;
+  }
+
+  function gift(s, who, item) {
+    CUR = s;
+    if (!npcAvailable(s, who) || !(s.items[item] > 0)) return null;
+    var res = newRes();
+    s.items[item] -= 1;
+    var fav = JY.NPCS[who].fav === item;
+    if (who === 'cat' && item !== 'tuna' && item !== 'homefood') {
+      res.say = '짬타이거가 냄새만 맡고 고개를 돌렸다. 고양이는 참치를 원한다.';
+      changeAff(s, who, 2, res);
+      return res;
+    }
+    changeAff(s, who, fav ? 18 : 8, res);
+    applyStats(s, { bd: fav ? 4 : 2 }, res, true);
+    res.fav = fav;
+    return res;
   }
 
   /* ── 휴가 ───────────────────────────────── */
@@ -481,7 +730,10 @@
     if (s.over) return { ok: false, reason: '게임이 끝났다.' };
     if (s.rank < 1) return { ok: false, reason: '훈련병은 휴가가 없다. 수료부터 하자.' };
     if (s.pendingMini) return { ok: false, reason: '지금은 바쁘다!' };
+    if (getCardDef(s.current) && getCardDef(s.current).urgent) return { ok: false, reason: '돌발 상황 중이다!' };
     if (s.leave < 1) return { ok: false, reason: '남은 휴가가 없다. 포상휴가를 노려보자.' };
+    var blockCond = s.conds.filter(function (c) { return condDef(c.id).blockLeave; })[0];
+    if (blockCond) return { ok: false, reason: condDef(blockCond.id).name + ' 중에는 휴가 통제다. 카드 ' + blockCond.left + '장 뒤 해제.' };
     if (s.day < s.blockUntil) return { ok: false, reason: '휴가 통제 중이다. ' + (s.blockUntil - s.day) + '일 뒤 해제.' };
     var gap = s.lastLeaveEnd + LEAVE_GAP - s.day;
     if (gap > 0) return { ok: false, reason: '복귀한 지 얼마 안 됐다. ' + gap + '일 뒤 신청 가능.' };
@@ -496,6 +748,7 @@
   ];
 
   function takeLeave(s, n) {
+    CUR = s;
     var st = leaveStatus(s);
     if (!st.ok) return null;
     n = clamp(Math.round(n), 1, Math.min(s.leave, LEAVE_MAX));
@@ -531,10 +784,23 @@
   }
 
   /* ── PX & 아이템 ─────────────────────────── */
+  function pxDiscount(s) {
+    var keep = 1;
+    if (unitOf(s).pxDiscount) keep *= 1 - unitOf(s).pxDiscount;
+    if (s.bffs.ppaen && JY.NPCS) keep *= 1 - (JY.NPCS.ppaen.perk.pxDiscount || 0);
+    s.conds.forEach(function (c) { if (condDef(c.id).pxDiscount) keep *= 1 - condDef(c.id).pxDiscount; });
+    return 1 - keep;
+  }
+  function pxPrice(s, id) {
+    var it = JY.ITEMS[id];
+    return Math.max(100, Math.round(it.price * (1 - pxDiscount(s)) / 100) * 100);
+  }
+
   function pxStatus(s) {
     if (s.over) return { ok: false, reason: '' };
     if (s.rank < 1) return { ok: false, reason: '훈련소에는 PX가 없다(있어도 못 간다).' };
     if (s.pendingMini) return { ok: false, reason: '지금은 바쁘다!' };
+    if (s.conds.some(function (c) { return condDef(c.id).pxOpen; })) return { ok: true };
     if (s.day < s.pxDay) return { ok: false, reason: 'PX는 개인정비 시간에만! ' + (s.pxDay - s.day) + '일 뒤 이용 가능.' };
     return { ok: true };
   }
@@ -542,9 +808,10 @@
   function buy(s, id) {
     var it = JY.ITEMS[id];
     if (!it || it.px === false) return false;
-    if (s.money < it.price) return false;
+    var price = pxPrice(s, id);
+    if (s.money < price) return false;
     if ((s.items[id] || 0) >= 9) return false;
-    s.money -= it.price;
+    s.money -= price;
     s.items[id] = (s.items[id] || 0) + 1;
     return true;
   }
@@ -553,19 +820,54 @@
 
   function useItem(s, id) {
     if (s.over || !(s.items[id] > 0)) return null;
+    CUR = s;
     var it = JY.ITEMS[id];
     var res = newRes();
     s.items[id] -= 1;
-    applyStats(s, it.fx, res, true);
+    var fx = {};
+    var mult = JY.FOOD && JY.FOOD[id] && traitOf(s).itemMult ? traitOf(s).itemMult : 1;
+    for (var k in it.fx) fx[k] = Math.round(it.fx[k] * (it.fx[k] > 0 ? mult : 1));
+    applyStats(s, fx, res, true);
     return res;
   }
 
-  /* ── 엔딩 ───────────────────────────────── */
+  /* ── 특급 보급품 (다이아) ─────────────────── */
+  function usePremium(s, id) {
+    if (s.over || s.pendingMini) return null;
+    CUR = s;
+    var res = newRes();
+    switch (id) {
+      case 'leave3': gainLeave(s, 3, res, '포상휴가증', true); res.say = '포상휴가증 사용! 휴가 +3일.'; return res;
+      case 'insight': s.insight += 12; res.say = '투시경 장착! 카드 12장 동안 ▲▼ 방향이 보인다.'; return res;
+      case 'clover': s.luck += 15; res.say = '네잎클로버를 전투모에 꽂았다. 카드 15장 동안 운이 따른다.'; return res;
+      case 'feast': {
+        var fx = {};
+        STATS.forEach(function (k) { var d = 50 - s.stats[k]; fx[k] = clamp(d, -12, 12); });
+        applyStats(s, fx, res, true, 0, 100);
+        res.say = '중대 회식! 삼겹살과 함께 모든 게 제자리로 돌아왔다.';
+        return res;
+      }
+      case 'pxpass': s.pxDay = s.day; s.money += 100000; res.say = 'PX 프리패스! 현금 10만 원과 함께 PX가 열렸다.'; res.events.push({ type: 'money', n: 100000 }); return res;
+      case 'skip': {
+        var c = getCardDef(s.current);
+        if (c) s.seen[c.id] = s.day;
+        res.say = '짬처리 완료. 아무 일도 없었던 걸로.';
+        res.skipped = true;
+        return finishTurn(s, res, 2 * s.pace);
+      }
+      default: return null;
+    }
+  }
+
+  /* ── 엔딩 & 점수 ─────────────────────────── */
   function end(s, id, res) {
     s.over = { id: id, list: [id], good: !!(JY.ENDINGS[id] && JY.ENDINGS[id].good), day: s.day };
+    s.over.score = score(s);
     res.ending = id;
     addLog(s, '엔딩: ' + (JY.ENDINGS[id] ? JY.ENDINGS[id].title : id));
   }
+
+  function bffCount(s) { var n = 0; for (var k in s.bffs) if (s.bffs[k]) n++; return n; }
 
   function dischargeEndings(s) {
     var list = [];
@@ -575,7 +877,7 @@
     if (s.flags.cast) list.push('cast');
     if (s.flags.special && s.flags.sharp) list.push('elite');
     if (s.flags.coinWin) list.push('rich');
-    if (s.flags.hoobae && st.bd >= 70) list.push('beloved');
+    if (s.flags.hoobae && (st.bd >= 70 || (s.aff.hoobae || 0) >= BFF)) list.push('beloved');
     var balanced = true;
     for (var i = 0; i < STATS.length; i++) if (st[STATS[i]] < 30 || st[STATS[i]] > 75) balanced = false;
     if (balanced) list.push('model');
@@ -587,6 +889,7 @@
   function discharge(s, res) {
     var list = dischargeEndings(s);
     s.over = { id: list[0], list: list, good: true, day: s.total };
+    s.over.score = score(s);
     res.ending = list[0];
     addLog(s, '전역!');
   }
@@ -596,6 +899,25 @@
     return { cash: s.money, savings: s.savings, matched: matched, total: s.money + s.savings + matched };
   }
 
+  function score(s) {
+    var o2 = s.over || { good: false, list: [], day: s.day };
+    var served = o2.good ? s.total + 1 : s.day;
+    var parts = [];
+    function add(label, n) { if (n) parts.push({ label: label, n: Math.round(n) }); }
+    add('복무 ' + served + '일 × 10', served * 10);
+    if (o2.good) add('전역 성공', 3000);
+    var eb = (JY.SCORE && JY.SCORE.endingBonus) || {};
+    o2.list.forEach(function (id) { if (eb[id]) add((JY.ENDINGS[id] ? JY.ENDINGS[id].title : id) + ' 달성', eb[id]); });
+    add('미니게임 대성공 ' + s.minis.great + '회', s.minis.great * 200);
+    add('돌발 상황 대응 ' + s.emer.ok + '회', s.emer.ok * 150);
+    add('절친 ' + bffCount(s) + '명', bffCount(s) * 300);
+    if (o2.good) add('전역 통장', Math.floor(bank(s).total / 20000));
+    var base = parts.reduce(function (a, p) { return a + p.n; }, 0);
+    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1);
+    var total = Math.round(base * mult);
+    return { total: total, base: base, mult: mult, parts: parts, title: JY.scoreTitle ? JY.scoreTitle(total) : '' };
+  }
+
   function progress(s) { return clamp(s.day / s.total, 0, 1); }
   function dateOf(s, offset) { return fmtDate(s.start + (offset === undefined ? s.day : offset) * DAY); }
   function nextPromo(s) {
@@ -603,14 +925,51 @@
     return { rank: RANKS[s.rank + 1], date: dateOf(s, s.promo[s.rank + 1]), inDays: Math.max(0, s.promo[s.rank + 1] - s.day) };
   }
 
+  /* ── 오늘의 작전: 날짜로 정해지는 고정 조건 ─── */
+  function dailyConfig(dateStr) {
+    dateStr = dateStr || todayStr();
+    var seed = seedFrom('jeonyeok-' + dateStr);
+    var r = (seed >>> 0);
+    function pickFrom(arr, salt) { return arr[((r ^ Math.imul(salt, 2654435761)) >>> 0) % arr.length]; }
+    var mosIds = Object.keys(MOS);
+    return {
+      date: dateStr, seed: seed,
+      unit: pickFrom(JY.UNIT_ORDER || ['gop'], 1),
+      trait: pickFrom(JY.TRAIT_ORDER || ['lucky'], 7),
+      mos: pickFrom(mosIds, 13),
+      start: dateStr, pace: 3
+    };
+  }
+
+  // 저장본 호환: 1판 저장(v1)에 새 필드 채우기
+  function migrate(s) {
+    if (!s) return s;
+    if (!s.conds) s.conds = [];
+    if (!s.aff) { s.aff = {}; if (JY.NPCS) for (var n in JY.NPCS) s.aff[n] = JY.NPCS[n].start; }
+    if (!s.talkDay) s.talkDay = {};
+    if (!s.bffs) s.bffs = {};
+    if (!s.emer) s.emer = { count: 0, ok: 0, since: 0 };
+    if (s.insight === undefined) s.insight = 0;
+    if (s.luck === undefined) s.luck = 0;
+    if (s.gems === undefined) s.gems = 0;
+    if (s.insurance === undefined) s.insurance = 0;
+    if (!s.unit) s.unit = 'gop';
+    if (s.rng === undefined) s.rng = null;
+    s.v = 2;
+    return s;
+  }
+
   JY.Game = {
-    STATS: STATS, STAT_NAMES: STAT_NAMES, RANKS: RANKS, MOS: MOS, MINI: MINI, PAY: PAY,
+    STATS: STATS, STAT_NAMES: STAT_NAMES, RANKS: RANKS, MOS: MOS, MINI: MINI, PAY: PAY, BFF: BFF,
     SEASON_NAMES: SEASON_NAMES, LEAVE_MAX: LEAVE_MAX, TRAIN_DAYS: TRAIN_DAYS,
     newState: newState, currentCard: currentCard, choose: choose, finishMini: finishMini,
     leaveStatus: leaveStatus, takeLeave: takeLeave,
-    pxStatus: pxStatus, buy: buy, closePX: closePX, useItem: useItem,
-    daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank,
+    pxStatus: pxStatus, pxPrice: pxPrice, buy: buy, closePX: closePX, useItem: useItem, usePremium: usePremium,
+    talk: talk, gift: gift, poke: poke, npcAvailable: npcAvailable, bffCount: bffCount,
+    daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank, score: score,
+    dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
-    _index: index, _eligible: eligible, _checkReq: checkReq
+    unitOf: unitOf, traitOf: traitOf, condDef: condDef,
+    _index: index, _eligible: eligible, _checkReq: checkReq, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});

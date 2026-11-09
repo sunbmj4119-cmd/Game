@@ -254,6 +254,31 @@
       case 'beret':
         return t('<path d="M34 70 Q30 30 96 26 Q168 24 166 62 Q140 74 34 70Z" fill="#26331f" stroke="' + INK + '" stroke-width="3"/>' +
           '<circle cx="66" cy="54" r="8" fill="#d6b54a" stroke="' + INK + '" stroke-width="2"/>');
+      case 'gold':
+        return t('<path d="M30 84 Q26 14 100 12 Q174 14 170 84 Q100 72 30 84Z" fill="#f2c335" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M28 84 Q100 70 172 84 L174 92 Q100 80 26 92Z" fill="#c9971d" stroke="' + INK + '" stroke-width="2.5"/>' +
+          '<path d="M60 30 Q80 20 96 22" fill="none" stroke="#fff6c8" stroke-width="7" stroke-linecap="round"/>' +
+          star(100, 48, 11, '#fff4a3'));
+      case 'crown':
+        return t('<path d="M46 66 L40 22 L70 44 L100 12 L130 44 L160 22 L154 66Z" fill="#ffd34d" stroke="' + INK + '" stroke-width="3.5" stroke-linejoin="round"/>' +
+          '<rect x="44" y="60" width="112" height="14" rx="4" fill="#e0a92a" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="100" cy="40" r="6" fill="#e3342f" stroke="' + INK + '" stroke-width="2"/><circle cx="68" cy="56" r="5" fill="#3a86ff" stroke="' + INK + '" stroke-width="2"/><circle cx="132" cy="56" r="5" fill="#2ec27e" stroke="' + INK + '" stroke-width="2"/>');
+      case 'cateears':
+        return t('<path d="M44 66 L50 18 L86 50Z M156 66 L150 18 L114 50Z" fill="#f4a261" stroke="' + INK + '" stroke-width="3.5" stroke-linejoin="round"/>' +
+          '<path d="M54 54 L56 32 L74 50Z M146 54 L144 32 L126 50Z" fill="#ffc8dd"/>' +
+          '<path d="M44 62 Q100 44 156 62" fill="none" stroke="#e76f51" stroke-width="6" stroke-linecap="round"/>');
+      case 'headband':
+        return t('<path d="M38 62 Q100 44 162 62 L162 78 Q100 60 38 78Z" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="100" cy="64" r="9" fill="#e3342f"/>' +
+          '<text x="70" y="72" font-size="11" font-weight="900" text-anchor="middle" fill="#e3342f">전</text><text x="130" y="72" font-size="11" font-weight="900" text-anchor="middle" fill="#e3342f">역</text>' +
+          '<path d="M162 66 L186 58 L180 76Z M162 70 L184 86 L172 92Z" fill="#fff" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>');
+      case 'afro': {
+        var cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
+        var a = '';
+        var pts = [[40, 64], [34, 40], [52, 20], [78, 8], [104, 4], [130, 10], [154, 24], [168, 46], [164, 68], [66, 30], [100, 26], [134, 34]];
+        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="22" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
+        return t(a);
+      }
       default: return '';
     }
   }
@@ -577,6 +602,13 @@
         b = '<rect width="400" height="300" fill="#e8f6f3"/><rect y="220" width="400" height="80" fill="#b9d3cd"/>' +
           '<rect x="170" y="30" width="60" height="60" rx="6" fill="#fff" stroke="#c9d9d5" stroke-width="3"/><path d="M200 42 L200 78 M182 60 L218 60" stroke="#e3342f" stroke-width="12"/>' +
           '<rect x="20" y="150" width="130" height="60" rx="8" fill="#fff" stroke="#9cb8b2" stroke-width="3"/>';
+        break;
+      case 'beach':
+        b = '<rect width="400" height="300" fill="#bfe6f5"/><circle cx="80" cy="60" r="24" fill="#fff1a8"/>' +
+          '<rect y="130" width="400" height="80" fill="#3d8fc4"/><path d="M0 150 Q50 140 100 150 T200 150 T300 150 T400 150" fill="none" stroke="#cfeaf7" stroke-width="3"/>' +
+          '<path d="M0 205 Q100 190 200 205 Q300 220 400 200 L400 300 L0 300Z" fill="#ead9a8"/>' +
+          '<rect x="300" y="120" width="60" height="70" fill="#d8cfb6" stroke="#7a6e5c" stroke-width="3"/><path d="M292 120 L330 96 L368 120Z" fill="#5b6b3a"/>' +
+          '<path d="M0 200 L400 200" stroke="#8a8a80" stroke-width="2" stroke-dasharray="4 6"/>';
         break;
       case 'field':
       default:

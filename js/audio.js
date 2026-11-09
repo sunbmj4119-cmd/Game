@@ -83,6 +83,10 @@
     promo: function () { bugle([C5, E5, G5, 0, E5, G5, C6, C6], 0.14); },
     start: function () { bugle([G4, C5, E5, G5, 0, E5, C5, E5, G5, G5], 0.13); },
     fail: function () { tone(392, 0.32, 'sawtooth', 0.08, 0, 370); tone(370, 0.32, 'sawtooth', 0.08, 0.34, 349); tone(349, 0.32, 'sawtooth', 0.08, 0.68, 330); tone(330, 0.8, 'sawtooth', 0.08, 1.02, 260); },
+    siren: function () { for (var i = 0; i < 3; i++) { tone(700, 0.22, 'sawtooth', 0.06, i * 0.44, 1100); tone(1100, 0.22, 'sawtooth', 0.06, i * 0.44 + 0.22, 700); } },
+    gem: function () { tone(1318.5, 0.06, 'triangle', 0.07); tone(1760, 0.08, 'triangle', 0.07, 0.06); tone(2637, 0.14, 'triangle', 0.06, 0.13); },
+    box: function () { for (var i = 0; i < 6; i++) noise(0.05, 0.1, 400 + i * 150, i * 0.09); },
+    reveal: function () { bugle([C5, E5, G5, C6], 0.09); },
     win: function () { bugle([C5, C5, C5, G5, 0, E5, G5, C6, C6, C6], 0.15); }
   };
 

@@ -243,7 +243,7 @@
       scene();
       if (started && !over) {
         el += dt;
-        var rate = (10 + el * 0.7) * (1 + Math.max(0, 55 - hp) / 100);
+        var rate = (10 + el * 0.7) * (1 + Math.max(0, 55 - hp) / 100) * (o.hard ? 1.25 : 1);
         open = Math.max(0, open - rate * dt);
         var left = Math.max(0, TOTAL - el);
         ui.time.style.width = (left / TOTAL * 100) + '%';

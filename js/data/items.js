@@ -14,10 +14,12 @@
     matdasi: { name: '맛다시', icon: '🌶️', price: 1000, fx: { mt: 4, bd: 2 }, desc: '짬밥에 뿌리면 마법이 일어난다.' },
     earplug: { name: '귀마개', icon: '🎧', price: 2000, fx: { hp: 6, bd: -4 }, desc: '코골이 차단. 선임이 부르는 소리도 차단.' },
     comic: { name: '만화책', icon: '📚', price: 6000, fx: { mt: 6, tr: -4 }, desc: '개인정비 시간의 친구. 근무 중에 보면 큰일.' },
+    tuna: { name: '참치캔', icon: '🥫', price: 2000, fx: { hp: 3, mt: 3 }, desc: '짬타이거가 제일 좋아하는 것. 사람도 먹을 수 있다.' },
     homefood: { name: '엄마 반찬', icon: '🍱', price: 0, px: false, fx: { mt: 12, hp: 6 }, desc: '엄마 손맛. PX에선 안 판다.' }
   };
 
-  JY.ITEM_ORDER = ['buldak', 'mandu', 'chocopie', 'banana', 'hot6', 'polish', 'cream', 'matdasi', 'earplug', 'comic', 'homefood'];
+  JY.ITEM_ORDER = ['buldak', 'mandu', 'chocopie', 'banana', 'tuna', 'hot6', 'polish', 'cream', 'matdasi', 'earplug', 'comic', 'homefood'];
+  JY.FOOD = { buldak: 1, mandu: 1, chocopie: 1, banana: 1, tuna: 1, matdasi: 1, homefood: 1 };
 
   /* 엔딩 — good: 전역 성공 / 나머지는 전역 실패 */
   JY.ENDINGS = {

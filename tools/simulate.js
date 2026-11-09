@@ -8,7 +8,7 @@ var vm = require('vm');
 
 global.window = global;
 var root = path.join(__dirname, '..');
-['js/data/chars.js', 'js/data/cards.js', 'js/data/items.js', 'js/core.js'].forEach(function (f) {
+['js/data/chars.js', 'js/data/cards.js', 'js/data/cards2.js', 'js/data/items.js', 'js/data/world.js', 'js/data/shop.js', 'js/core.js'].forEach(function (f) {
   vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
 });
 var JY = global.JY;
@@ -81,27 +81,31 @@ function smartUpkeep(s) {
 }
 
 function play(policy) {
-  var s = G.newState({ mos: ['infantry', 'cook', 'clerk', 'driver', 'medic'][Math.floor(Math.random() * 5)], start: '2026-03-02', pace: PACE });
+  var s = G.newState({ mos: ['infantry', 'cook', 'clerk', 'driver', 'medic'][Math.floor(Math.random() * 5)], start: '2026-03-02', pace: PACE,
+    trait: JY.TRAIT_ORDER[Math.floor(Math.random() * JY.TRAIT_ORDER.length)] });
   var guard = 0;
   var seen = {};
   while (!s.over && guard++ < 2000) {
     if (policy === 'smart') smartUpkeep(s);
     if (s.over) break;
     seen[s.current] = 1;
-    var res = G.choose(s, policy === 'smart' ? smartChoose(s) : (Math.random() < 0.5 ? 'l' : 'r'));
+    var def = G.getCardDef(s.current);
+    var side = policy === 'smart' ? smartChoose(s) : (Math.random() < 0.5 ? 'l' : 'r');
+    if (def.urgent && Math.random() < 0.1) side = 't'; // 가끔 시간 초과
+    var res = G.choose(s, side);
     if (res && res.mini) G.finishMini(s, miniTier());
   }
   return { s: s, seen: seen };
 }
 
 function run(policy) {
-  var endings = {}, good = 0, cards = 0, days = 0, uniq = {}, uniqPerRun = 0, bankTotal = 0, leaveUsed = 0;
+  var endings = {}, good = 0, cards = 0, days = 0, uniq = {}, uniqPerRun = 0, bankTotal = 0, leaveUsed = 0, scoreSum = 0, emer = 0, gems = 0, bff = 0;
   for (var i = 0; i < N; i++) {
     var r = play(policy);
     var s = r.s;
     endings[s.over.id] = (endings[s.over.id] || 0) + 1;
     if (s.over.good) { good++; bankTotal += G.bank(s).total; }
-    cards += s.cards; days += s.day; leaveUsed += s.leaveUsed;
+    cards += s.cards; days += s.day; leaveUsed += s.leaveUsed; scoreSum += s.over.score.total; emer += s.emer.count; gems += s.gems; bff += G.bffCount(s);
     var n = 0; for (var k in r.seen) { uniq[k] = 1; n++; } uniqPerRun += n;
   }
   console.log('\n== ' + policy + ' (' + N + '판, pace ' + PACE + ') ==');
@@ -109,6 +113,7 @@ function run(policy) {
   console.log('평균 카드 수: ' + (cards / N).toFixed(1) + ' / 평균 복무일: ' + (days / N).toFixed(0) + ' / 평균 휴가 사용: ' + (leaveUsed / N).toFixed(1));
   console.log('판당 고유 카드: ' + (uniqPerRun / N).toFixed(1) + ' / 전체에서 등장한 카드: ' + Object.keys(uniq).length + ' / 전체 카드: ' + Object.keys(G._index()).length);
   if (good) console.log('전역 시 평균 통장: ' + Math.round(bankTotal / good / 10000) + '만원');
+  console.log('평균 점수: ' + Math.round(scoreSum / N) + ' / 판당 돌발 ' + (emer / N).toFixed(1) + '회 / 판당 다이아(게임 중) ' + (gems / N).toFixed(1) + ' / 절친 ' + (bff / N).toFixed(1) + '명');
   var list = Object.keys(endings).sort(function (a, b) { return endings[b] - endings[a]; });
   console.log('엔딩: ' + list.map(function (k) { return k + ' ' + (endings[k] / N * 100).toFixed(1) + '%'; }).join(', '));
   return uniq;

@@ -24,6 +24,10 @@
 
   <!-- 타이틀 -->
   <section id="scr-title" class="screen title-screen">
+    <div class="topbar">
+      <span class="gem-chip" id="title-gems">💎 0</span>
+      <span class="streak-chip" id="title-streak" hidden></span>
+    </div>
     <div class="title-top">
       <p class="eyebrow">대한민국 육군 · 복무기간 18개월</p>
       <h1 class="logo">전역<span>각</span></h1>
@@ -34,7 +38,12 @@
       <button class="btn btn-primary" id="btn-continue" hidden>이어하기</button>
       <p class="save-info" id="save-info" hidden></p>
       <button class="btn btn-primary" id="btn-new">입대하기</button>
-      <button class="btn btn-ghost" id="btn-album">엔딩 도감 <span id="album-count">0/19</span></button>
+      <button class="btn btn-daily" id="btn-daily">⭐ 오늘의 작전 <small id="daily-best"></small></button>
+      <div class="title-row">
+        <button class="btn btn-ghost btn-tile" id="btn-rank">🏆<span>랭킹</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실 <em id="album-count">0/19</em></span></button>
+      </div>
     </div>
     <p class="fine">좌우로 넘겨서 선택 · 체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패</p>
   </section>
@@ -44,37 +53,52 @@
     <form class="notice" id="setup-form" autocomplete="off">
       <header class="notice-head">
         <span class="notice-org">전역각 입영센터</span>
-        <h2>현역병 입영 통지서</h2>
+        <h2 id="notice-title">현역병 입영 통지서</h2>
         <span class="notice-no" id="notice-no">제 2026-000000 호</span>
       </header>
 
       <div class="notice-face">
         <div class="face-preview" id="face-preview"></div>
-        <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+        <div class="face-side">
+          <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+          <p class="field-note" id="cos-note"></p>
+        </div>
       </div>
 
       <label class="field">
         <span>성명</span>
         <input id="in-name" name="name" maxlength="6" placeholder="나띨빵" required>
       </label>
-      <label class="field">
+      <label class="field" id="field-date">
         <span>입영일자</span>
         <input id="in-date" name="start" type="date" required>
       </label>
       <p class="field-note" id="date-note">전역 예정일: -</p>
 
       <fieldset class="field">
+        <legend>성격 카드 (하나 고르기)</legend>
+        <div class="trait-grid" id="trait-grid"></div>
+        <button type="button" class="btn btn-small reroll" id="btn-reroll">다시 뽑기 (1회 무료)</button>
+      </fieldset>
+
+      <fieldset class="field" id="field-mos">
         <legend>보직 (주특기)</legend>
         <div class="mos-grid" id="mos-grid"></div>
       </fieldset>
 
-      <fieldset class="field">
+      <fieldset class="field" id="field-pace">
         <legend>복무 방식</legend>
         <div class="pace-grid">
           <label class="pace"><input type="radio" name="pace" value="1" checked><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
-          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
         </div>
       </fieldset>
+
+      <label class="check-row" id="row-insurance" hidden>
+        <input type="checkbox" id="in-insurance" checked>
+        <span>🛡️ 전역 보험 챙기기 <small id="insurance-count"></small></span>
+      </label>
+      <p class="field-note">자대는 훈련소 수료 때 무작위로 배치된다.</p>
 
       <div class="notice-actions">
         <button type="button" class="btn btn-ghost" id="btn-setup-back">취소</button>
@@ -96,13 +120,16 @@
         <div class="gauge-bar"><i id="gauge-fill"></i></div>
         <span id="gauge-pct">0.0%</span>
       </div>
+      <div class="conds" id="conds" hidden></div>
       <div class="stats" id="stats"></div>
     </header>
 
     <main class="stage">
       <div class="prompt" id="prompt" aria-live="polite"></div>
       <div class="card-zone" id="card-zone">
+        <div class="urgent-bar" id="urgent-bar" hidden><i id="urgent-fill"></i><span id="urgent-sec"></span></div>
         <div class="card" id="card" tabindex="0" aria-label="이벤트 카드 — 좌우로 넘겨 선택"></div>
+        <div class="talk-bubble" id="talk-bubble" hidden></div>
         <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
@@ -114,6 +141,7 @@
     <nav class="dock">
       <button class="dock-btn" id="dock-bag"><i>🎒</i><span>가방</span><em id="bag-badge">0</em></button>
       <button class="dock-btn" id="dock-px"><i>🏪</i><span>PX</span><em id="px-badge" hidden>!</em></button>
+      <button class="dock-btn" id="dock-mates"><i>👥</i><span>동료</span><em id="mates-badge" hidden>♥</em></button>
       <button class="dock-btn" id="dock-leave"><i>🏖️</i><span>휴가</span><em id="leave-badge">0일</em></button>
       <button class="dock-btn" id="dock-menu"><i>⚙️</i><span>메뉴</span></button>
     </nav>
@@ -122,25 +150,71 @@
   <!-- 엔딩 -->
   <section id="scr-end" class="screen end-screen" hidden>
     <div class="cert" id="cert"></div>
+    <div class="score-panel" id="score-panel"></div>
     <div class="end-actions">
+      <div class="title-row">
+        <button class="btn btn-ghost btn-tile" id="btn-end-rank">🏆<span>랭킹</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-end-share">📣<span>기록 공유</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-end-shop">💎<span>상점</span></button>
+      </div>
       <button class="btn btn-primary" id="btn-reenlist">재입대하기 (악몽)</button>
-      <button class="btn btn-ghost" id="btn-end-album">엔딩 도감</button>
       <button class="btn btn-ghost" id="btn-end-title">타이틀로</button>
     </div>
   </section>
 
-  <!-- 엔딩 도감 -->
+  <!-- 기록실: 엔딩 도감 + 훈장 -->
   <section id="scr-album" class="screen album-screen" hidden>
     <header class="album-head">
       <button class="btn btn-small" id="btn-album-back">← 뒤로</button>
-      <h2>엔딩 도감</h2>
+      <h2>기록실</h2>
       <span id="album-progress">0/19</span>
     </header>
+    <div class="tabs" role="tablist" id="album-tabs">
+      <button role="tab" data-tab="endings" aria-selected="true">엔딩 도감</button>
+      <button role="tab" data-tab="medals" aria-selected="false">훈장 <em id="medal-count"></em></button>
+    </div>
     <div class="album-grid" id="album-grid"></div>
     <p class="album-stats" id="album-stats"></p>
   </section>
+
+  <!-- 랭킹 -->
+  <section id="scr-rank" class="screen rank-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-rank-back">← 뒤로</button>
+      <h2>랭킹</h2>
+      <button class="btn btn-small" id="btn-rank-refresh">새로고침</button>
+    </header>
+    <div class="tabs" role="tablist" id="rank-tabs">
+      <button role="tab" data-tab="global" aria-selected="true">전군 랭킹</button>
+      <button role="tab" data-tab="daily" aria-selected="false">오늘의 작전</button>
+      <button role="tab" data-tab="mine" aria-selected="false">내 기록</button>
+    </div>
+    <p class="rank-status" id="rank-status"></p>
+    <ol class="rank-list" id="rank-list"></ol>
+  </section>
+
+  <!-- 다이아 상점 -->
+  <section id="scr-shop" class="screen shop-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-shop-back">← 뒤로</button>
+      <h2>보급관의 창고</h2>
+      <span class="gem-chip" id="shop-gems">💎 0</span>
+    </header>
+    <div class="shop-hero">
+      <div class="shop-me" id="shop-me"></div>
+      <p class="shop-talk" id="shop-talk">어서 와라. 다이아만 있으면 뭐든 구해준다.</p>
+    </div>
+    <div class="tabs" role="tablist" id="shop-tabs">
+      <button role="tab" data-tab="items" aria-selected="true">특급 보급품</button>
+      <button role="tab" data-tab="cos" aria-selected="false">꾸미기</button>
+      <button role="tab" data-tab="box" aria-selected="false">보급 상자</button>
+    </div>
+    <div class="shop-body" id="shop-body"></div>
+    <p class="fine">다이아는 전역·엔딩·훈장·출석·미니게임·돌발 상황에서 얻는다. 현금 결제는 없다.</p>
+  </section>
 </div>
 
+<div id="flash" class="flash" hidden></div>
 <div id="modal" class="modal" hidden>
   <div class="modal-box" id="modal-box" role="dialog" aria-modal="true"></div>
 </div>
@@ -151,8 +225,13 @@
 <script src="js/art.js"></script>
 <script src="js/data/chars.js"></script>
 <script src="js/data/cards.js"></script>
+<script src="js/data/cards2.js"></script>
 <script src="js/data/items.js"></script>
+<script src="js/data/world.js"></script>
+<script src="js/data/shop.js"></script>
 <script src="js/core.js"></script>
+<script src="js/meta.js"></script>
+<script src="js/rank.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/minigames.js"></script>
 <script src="js/ui.js"></script>

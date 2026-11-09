@@ -444,7 +444,7 @@ button { cursor: pointer; }
 
 .dock {
   flex: none;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
   background: var(--olive-dark);
   border-radius: var(--r-lg);
   padding: 6px;
@@ -571,7 +571,7 @@ button { cursor: pointer; }
 .cert dt { color: var(--muted); }
 .cert dd { margin: 0; font-family: var(--font-util); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
 .cert .seal {
-  position: absolute; right: 14px; top: 64px;
+  position: absolute; right: 18px; top: 104px;
   width: 86px; height: 86px;
   border: 5px double var(--stamp);
   border-radius: 50%;
@@ -687,6 +687,243 @@ button { cursor: pointer; }
 .memo-opts button.ok { background: #bfe6b8; }
 .memo-opts button.no { background: #ffc9bf; }
 
+/* ── v2: 타이틀 메뉴 · 다이아 ─────── */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 30px; }
+.gem-chip, .streak-chip {
+  font-size: 14px; padding: 3px 12px; border-radius: 99px;
+  background: var(--olive-dark); color: var(--cream);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.streak-chip { background: transparent; color: var(--olive-dark); border: 2px solid var(--olive-dark); }
+.title-top { padding-top: 1vh; }
+.btn-daily { background: var(--brass); box-shadow: 0 4px 0 var(--ink); }
+.btn-daily small { display: block; font-size: 12px; color: var(--olive-dark); }
+.title-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.btn-tile { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 4px; font-size: 22px; border-radius: var(--r-md); }
+.btn-tile span { font-size: 13px; }
+.btn-tile em { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* 입영 통지서: 성격 카드 */
+.face-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.trait-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.trait {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: #fffaf0;
+  padding: 10px 4px; min-width: 0;
+}
+.trait i { font-style: normal; font-size: 28px; }
+.trait b { font-weight: 400; font-size: 15px; }
+.trait small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.trait[aria-pressed="true"] { background: var(--olive); color: var(--cream); transform: translateY(-3px); box-shadow: 0 3px 0 var(--ink); }
+.trait[aria-pressed="true"] small { color: var(--cream); }
+.reroll { align-self: flex-start; }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.check-row input { width: 20px; height: 20px; accent-color: var(--olive); }
+.check-row small { color: var(--muted); }
+
+/* HUD: 주간 상황 */
+.conds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.cond {
+  border: 0; border-radius: 99px; padding: 1px 8px;
+  background: rgba(239, 232, 204, .16); color: var(--cream);
+  font-size: 12px; line-height: 1.5;
+}
+.cond em { font-style: normal; background: rgba(0, 0, 0, .3); border-radius: 99px; padding: 0 5px; margin-left: 2px; }
+.cond.buff { background: rgba(224, 179, 71, .3); }
+.stat .dot.dir { width: auto; height: 14px; top: -12px; padding: 0 4px; border-radius: 7px; font-size: 9px; line-height: 14px; color: var(--ink); font-style: normal; }
+.stat .dot.dir.up { background: #9fe39a; }
+.stat .dot.dir.down { background: #ff9a8a; }
+
+/* 돌발 상황 */
+.prompt.urgent { border-color: var(--stamp); background: #fff1ec; box-shadow: 3px 3px 0 rgba(196, 54, 43, .4); }
+.who.alarm { background: var(--stamp); animation: alarm .5s steps(2) infinite; }
+.card.urgent { border-color: var(--stamp); box-shadow: 0 8px 0 rgba(196, 54, 43, .45), 0 0 0 4px rgba(196, 54, 43, .35); }
+.card.urgent .char-wrap { animation: urgentShake .45s ease-in-out 3; }
+.urgent-bar {
+  position: absolute; top: -2px; left: 0; right: 0; z-index: 4;
+  height: 18px; border-radius: 99px; background: rgba(0, 0, 0, .25); overflow: hidden;
+}
+.urgent-bar i { display: block; height: 100%; width: 100%; background: repeating-linear-gradient(-45deg, var(--stamp) 0 10px, #e2584c 10px 20px); }
+.urgent-bar span { position: absolute; inset: 0; text-align: center; font-size: 12px; line-height: 18px; color: #fff; font-family: var(--font-util); }
+.flash { position: fixed; inset: 0; z-index: 30; pointer-events: none; background: rgba(196, 54, 43, .35); opacity: 0; }
+.flash.go { animation: flash 1.2s ease-out; }
+.note.urgent { border-color: var(--stamp); }
+.talk-bubble {
+  position: absolute; left: 50%; top: 10%; z-index: 4;
+  transform: translateX(-50%);
+  background: #fff; border: 3px solid var(--ink); border-radius: 16px;
+  padding: 6px 14px; font-size: 16px; max-width: 80%; text-align: center;
+  box-shadow: 3px 3px 0 var(--shadow);
+  animation: pop .3s cubic-bezier(.2, 1.6, .4, 1);
+  pointer-events: none;
+}
+
+/* 동료 */
+.mates { display: flex; flex-direction: column; gap: 8px; }
+.mate {
+  display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; align-items: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); padding: 6px; background: #fffaf0;
+}
+.mate.bff { background: #fff3cf; border-color: #b8860b; }
+.mate-face { width: 56px; height: 64px; border-radius: var(--r-sm); background: #c9d6dc; overflow: hidden; }
+.mate-face .char { width: 100%; height: 100%; display: block; }
+.mate-info { display: flex; flex-direction: column; min-width: 0; }
+.mate-info b { font-weight: 400; font-size: 16px; }
+.mate-info b em { font-style: normal; font-size: 11px; background: var(--brass); padding: 0 6px; border-radius: 99px; }
+.mate-info small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.hearts { color: var(--stamp); font-size: 14px; letter-spacing: 1px; }
+.hearts small { color: var(--muted); letter-spacing: 0; }
+.perk.on { color: #8a6a18; }
+.mate-act { display: flex; flex-direction: column; gap: 6px; }
+.mate-act .btn-small { padding: 4px 10px; font-size: 13px; }
+.gift-pick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; border-top: 1px dashed rgba(42, 38, 32, .3); }
+.gift-pick button { border: 2px solid var(--ink); border-radius: 99px; background: var(--paper); padding: 3px 10px; font-size: 13px; }
+.gift-pick button.fav { background: #fff3cf; border-color: #b8860b; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button {
+  flex: 1; min-width: 0;
+  border: 2px solid var(--ink); border-radius: 99px; background: transparent;
+  padding: 6px 10px; font-size: 14px;
+}
+.tabs button[aria-selected="true"] { background: var(--olive-dark); color: var(--cream); }
+.tabs button em { font-style: normal; font-size: 11px; opacity: .8; }
+.tabs.small { margin: 6px 0 10px; }
+.tabs.small button { font-size: 13px; padding: 4px 8px; }
+.info-line { margin: 4px 0; font-size: 14px; }
+.unit-line { font-size: 16px; margin: 6px 0; }
+.unit-line small { font-size: 12px; color: var(--muted); }
+.daily-cfg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 12px; }
+.daily-cfg div { border: 2px solid var(--ink); border-radius: var(--r-md); padding: 8px; display: flex; flex-direction: column; align-items: flex-start; background: #fffaf0; min-width: 0; }
+.daily-cfg i { font-style: normal; font-size: 24px; }
+.daily-cfg b { font-weight: 400; font-size: 15px; }
+.daily-cfg small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.modal-box .field input { font-size: 18px; }
+
+/* 엔딩 점수 */
+.score-panel {
+  background: var(--olive-dark); color: var(--cream);
+  border-radius: var(--r-lg); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .25);
+}
+.score-head { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.score-head small { font-size: 12px; opacity: .75; letter-spacing: .1em; }
+.score-num { font-family: var(--font-display); font-weight: 400; font-size: 52px; line-height: 1.05; color: var(--brass); font-variant-numeric: tabular-nums; animation: pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+.score-title { font-size: 15px; background: var(--brass); color: var(--ink); border-radius: 99px; padding: 1px 12px; }
+.score-parts { list-style: none; margin: 0; padding: 0; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.score-parts li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed rgba(239, 232, 204, .2); padding: 2px 0; }
+.score-parts b { font-weight: 400; font-family: var(--font-util); font-variant-numeric: tabular-nums; }
+.score-gems { margin: 0; font-size: 18px; text-align: center; }
+.score-gems small { font-size: 12px; opacity: .75; display: block; }
+.score-rank { margin: 0; text-align: center; font-size: 14px; }
+.score-rank span { opacity: .75; font-size: 12px; }
+.medal-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.medal-chip { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--brass); color: var(--ink); margin: 0; }
+.medal-chip.new { background: var(--cream); }
+.medal-chip em { font-style: normal; font-size: 11px; }
+.share-text { width: 100%; min-height: 110px; border: 2px solid var(--ink); border-radius: var(--r-md); padding: 10px; font-size: 14px; resize: none; background: #fffaf0; }
+
+/* 훈장 */
+.album-grid.medals { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.medal {
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper);
+  padding: 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; opacity: .6;
+}
+.medal.on { opacity: 1; background: #fff6d8; border-color: #b8860b; }
+.medal i { font-style: normal; font-size: 26px; }
+.medal b { font-weight: 400; font-size: 15px; }
+.medal small { font-size: 12px; color: var(--muted); }
+.medal em { font-style: normal; font-size: 12px; color: var(--olive); }
+
+/* 랭킹 */
+.rank-screen { overflow-y: auto; gap: 10px; }
+.rank-status { margin: 0; font-size: 13px; color: var(--muted); }
+.rank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rank-row {
+  display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper);
+  padding: 8px 10px;
+}
+.rank-row.top { background: #fff6d8; }
+.rank-row.me { outline: 3px solid var(--brass); }
+.rank-row .rk { font-family: var(--font-display); font-size: 18px; text-align: center; }
+.rank-row .rn { display: flex; flex-direction: column; min-width: 0; }
+.rank-row .rn b { font-weight: 400; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-row .rn b em { font-style: normal; font-size: 11px; background: var(--brass); border-radius: 99px; padding: 0 6px; }
+.rank-row .rn small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-row .rs { text-align: right; display: flex; flex-direction: column; }
+.rank-row .rs b { font-weight: 400; font-family: var(--font-display); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--olive-dark); }
+.rank-row .rs small { font-size: 11px; color: var(--muted); }
+.rank-empty { text-align: center; color: var(--muted); padding: 24px 8px; border: 2px dashed rgba(42, 38, 32, .3); border-radius: var(--r-md); }
+
+/* 상점 */
+.shop-screen { overflow-y: auto; gap: 10px; }
+.shop-hero { display: flex; align-items: center; gap: 12px; }
+.shop-me { width: 96px; height: 110px; flex: none; border: 2px solid var(--ink); border-radius: var(--r-md); background: #c9d6dc; overflow: hidden; }
+.shop-me .char { width: 100%; height: 100%; display: block; }
+.shop-talk {
+  position: relative; margin: 0; flex: 1; min-width: 0;
+  background: var(--paper); border: 2px solid var(--ink); border-radius: 14px; padding: 8px 12px; font-size: 15px;
+}
+.shop-list { display: flex; flex-direction: column; gap: 8px; }
+.shop-item {
+  display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center;
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper); padding: 8px 10px;
+}
+.shop-item > i { font-style: normal; font-size: 30px; text-align: center; }
+.shop-item div { display: flex; flex-direction: column; min-width: 0; }
+.shop-item b { font-weight: 400; font-size: 16px; }
+.shop-item b small { font-size: 11px; color: var(--olive); }
+.shop-item div > small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.cos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.cos {
+  border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--paper);
+  padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0;
+}
+.cos i { font-style: normal; font-size: 30px; }
+.cos b { font-weight: 400; font-size: 14px; }
+.cos small { font-size: 11px; color: var(--muted); }
+.cos.on { background: #fff3cf; border-color: #b8860b; }
+.gacha-only { font-size: 11px; color: #9b5de5; border: 1px dashed #9b5de5; border-radius: 99px; padding: 2px 8px; }
+.box-area { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.supply-box {
+  width: 200px; height: 200px;
+  border: 4px solid var(--ink); border-radius: 24px;
+  background: radial-gradient(circle at 50% 40%, #fff3cf, var(--brass));
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: 0 8px 0 var(--ink);
+}
+.supply-box .box-emoji { font-size: 80px; line-height: 1; }
+.supply-box b { font-weight: 400; font-size: 20px; }
+.supply-box.poor { filter: grayscale(.7); }
+.supply-box.shake { animation: boxShake .12s linear infinite; }
+.box-odds { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.tier { display: inline-block; color: #fff; border-radius: 99px; padding: 1px 9px; font-size: 12px; }
+.tier.big { font-size: 16px; padding: 3px 14px; }
+.reveal { text-align: center; }
+.reveal h3 { margin-top: 8px; }
+.reveal-items { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 10px 0; }
+.reveal-item {
+  border: 3px solid var(--tier, var(--ink)); border-radius: var(--r-md); background: #fffaf0;
+  padding: 12px; min-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  animation: pop .45s cubic-bezier(.2, 1.6, .4, 1);
+}
+.reveal-item i { font-style: normal; font-size: 40px; }
+.reveal-item b { font-weight: 400; }
+.reveal-item small { font-size: 11px; color: var(--muted); }
+
+/* 출석 */
+.greet h3 + p { margin-top: 0; }
+.streak { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 8px 0; }
+.streak span { text-align: center; font-size: 11px; padding: 6px 0; border-radius: var(--r-sm); border: 2px dashed rgba(42, 38, 32, .3); }
+.streak span.on { background: var(--brass); border-style: solid; border-color: var(--ink); }
+
+@keyframes alarm { 50% { opacity: .5; } }
+@keyframes flash { 0% { opacity: 0; } 15% { opacity: 1; } 30% { opacity: .2; } 45% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes urgentShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-1deg); } 75% { transform: translateX(5px) rotate(1deg); } }
+@keyframes boxShake { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 100% { transform: rotate(-4deg); } }
+
 /* ── 애니메이션 ───────────────────── */
 .char .bob { animation: bob 2.4s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
 .char .eyes { animation: blink 4.2s infinite; transform-origin: center; transform-box: fill-box; }
@@ -751,6 +988,10 @@ button { cursor: pointer; }
 
   <!-- 타이틀 -->
   <section id="scr-title" class="screen title-screen">
+    <div class="topbar">
+      <span class="gem-chip" id="title-gems">💎 0</span>
+      <span class="streak-chip" id="title-streak" hidden></span>
+    </div>
     <div class="title-top">
       <p class="eyebrow">대한민국 육군 · 복무기간 18개월</p>
       <h1 class="logo">전역<span>각</span></h1>
@@ -761,7 +1002,12 @@ button { cursor: pointer; }
       <button class="btn btn-primary" id="btn-continue" hidden>이어하기</button>
       <p class="save-info" id="save-info" hidden></p>
       <button class="btn btn-primary" id="btn-new">입대하기</button>
-      <button class="btn btn-ghost" id="btn-album">엔딩 도감 <span id="album-count">0/19</span></button>
+      <button class="btn btn-daily" id="btn-daily">⭐ 오늘의 작전 <small id="daily-best"></small></button>
+      <div class="title-row">
+        <button class="btn btn-ghost btn-tile" id="btn-rank">🏆<span>랭킹</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-shop">💎<span>상점</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-album">📖<span>기록실 <em id="album-count">0/19</em></span></button>
+      </div>
     </div>
     <p class="fine">좌우로 넘겨서 선택 · 체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패</p>
   </section>
@@ -771,37 +1017,52 @@ button { cursor: pointer; }
     <form class="notice" id="setup-form" autocomplete="off">
       <header class="notice-head">
         <span class="notice-org">전역각 입영센터</span>
-        <h2>현역병 입영 통지서</h2>
+        <h2 id="notice-title">현역병 입영 통지서</h2>
         <span class="notice-no" id="notice-no">제 2026-000000 호</span>
       </header>
 
       <div class="notice-face">
         <div class="face-preview" id="face-preview"></div>
-        <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+        <div class="face-side">
+          <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+          <p class="field-note" id="cos-note"></p>
+        </div>
       </div>
 
       <label class="field">
         <span>성명</span>
         <input id="in-name" name="name" maxlength="6" placeholder="나띨빵" required>
       </label>
-      <label class="field">
+      <label class="field" id="field-date">
         <span>입영일자</span>
         <input id="in-date" name="start" type="date" required>
       </label>
       <p class="field-note" id="date-note">전역 예정일: -</p>
 
       <fieldset class="field">
+        <legend>성격 카드 (하나 고르기)</legend>
+        <div class="trait-grid" id="trait-grid"></div>
+        <button type="button" class="btn btn-small reroll" id="btn-reroll">다시 뽑기 (1회 무료)</button>
+      </fieldset>
+
+      <fieldset class="field" id="field-mos">
         <legend>보직 (주특기)</legend>
         <div class="mos-grid" id="mos-grid"></div>
       </fieldset>
 
-      <fieldset class="field">
+      <fieldset class="field" id="field-pace">
         <legend>복무 방식</legend>
         <div class="pace-grid">
           <label class="pace"><input type="radio" name="pace" value="1" checked><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
-          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
         </div>
       </fieldset>
+
+      <label class="check-row" id="row-insurance" hidden>
+        <input type="checkbox" id="in-insurance" checked>
+        <span>🛡️ 전역 보험 챙기기 <small id="insurance-count"></small></span>
+      </label>
+      <p class="field-note">자대는 훈련소 수료 때 무작위로 배치된다.</p>
 
       <div class="notice-actions">
         <button type="button" class="btn btn-ghost" id="btn-setup-back">취소</button>
@@ -823,13 +1084,16 @@ button { cursor: pointer; }
         <div class="gauge-bar"><i id="gauge-fill"></i></div>
         <span id="gauge-pct">0.0%</span>
       </div>
+      <div class="conds" id="conds" hidden></div>
       <div class="stats" id="stats"></div>
     </header>
 
     <main class="stage">
       <div class="prompt" id="prompt" aria-live="polite"></div>
       <div class="card-zone" id="card-zone">
+        <div class="urgent-bar" id="urgent-bar" hidden><i id="urgent-fill"></i><span id="urgent-sec"></span></div>
         <div class="card" id="card" tabindex="0" aria-label="이벤트 카드 — 좌우로 넘겨 선택"></div>
+        <div class="talk-bubble" id="talk-bubble" hidden></div>
         <div class="result" id="result" hidden></div>
       </div>
       <div class="choices" id="choices">
@@ -841,6 +1105,7 @@ button { cursor: pointer; }
     <nav class="dock">
       <button class="dock-btn" id="dock-bag"><i>🎒</i><span>가방</span><em id="bag-badge">0</em></button>
       <button class="dock-btn" id="dock-px"><i>🏪</i><span>PX</span><em id="px-badge" hidden>!</em></button>
+      <button class="dock-btn" id="dock-mates"><i>👥</i><span>동료</span><em id="mates-badge" hidden>♥</em></button>
       <button class="dock-btn" id="dock-leave"><i>🏖️</i><span>휴가</span><em id="leave-badge">0일</em></button>
       <button class="dock-btn" id="dock-menu"><i>⚙️</i><span>메뉴</span></button>
     </nav>
@@ -849,25 +1114,71 @@ button { cursor: pointer; }
   <!-- 엔딩 -->
   <section id="scr-end" class="screen end-screen" hidden>
     <div class="cert" id="cert"></div>
+    <div class="score-panel" id="score-panel"></div>
     <div class="end-actions">
+      <div class="title-row">
+        <button class="btn btn-ghost btn-tile" id="btn-end-rank">🏆<span>랭킹</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-end-share">📣<span>기록 공유</span></button>
+        <button class="btn btn-ghost btn-tile" id="btn-end-shop">💎<span>상점</span></button>
+      </div>
       <button class="btn btn-primary" id="btn-reenlist">재입대하기 (악몽)</button>
-      <button class="btn btn-ghost" id="btn-end-album">엔딩 도감</button>
       <button class="btn btn-ghost" id="btn-end-title">타이틀로</button>
     </div>
   </section>
 
-  <!-- 엔딩 도감 -->
+  <!-- 기록실: 엔딩 도감 + 훈장 -->
   <section id="scr-album" class="screen album-screen" hidden>
     <header class="album-head">
       <button class="btn btn-small" id="btn-album-back">← 뒤로</button>
-      <h2>엔딩 도감</h2>
+      <h2>기록실</h2>
       <span id="album-progress">0/19</span>
     </header>
+    <div class="tabs" role="tablist" id="album-tabs">
+      <button role="tab" data-tab="endings" aria-selected="true">엔딩 도감</button>
+      <button role="tab" data-tab="medals" aria-selected="false">훈장 <em id="medal-count"></em></button>
+    </div>
     <div class="album-grid" id="album-grid"></div>
     <p class="album-stats" id="album-stats"></p>
   </section>
+
+  <!-- 랭킹 -->
+  <section id="scr-rank" class="screen rank-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-rank-back">← 뒤로</button>
+      <h2>랭킹</h2>
+      <button class="btn btn-small" id="btn-rank-refresh">새로고침</button>
+    </header>
+    <div class="tabs" role="tablist" id="rank-tabs">
+      <button role="tab" data-tab="global" aria-selected="true">전군 랭킹</button>
+      <button role="tab" data-tab="daily" aria-selected="false">오늘의 작전</button>
+      <button role="tab" data-tab="mine" aria-selected="false">내 기록</button>
+    </div>
+    <p class="rank-status" id="rank-status"></p>
+    <ol class="rank-list" id="rank-list"></ol>
+  </section>
+
+  <!-- 다이아 상점 -->
+  <section id="scr-shop" class="screen shop-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-shop-back">← 뒤로</button>
+      <h2>보급관의 창고</h2>
+      <span class="gem-chip" id="shop-gems">💎 0</span>
+    </header>
+    <div class="shop-hero">
+      <div class="shop-me" id="shop-me"></div>
+      <p class="shop-talk" id="shop-talk">어서 와라. 다이아만 있으면 뭐든 구해준다.</p>
+    </div>
+    <div class="tabs" role="tablist" id="shop-tabs">
+      <button role="tab" data-tab="items" aria-selected="true">특급 보급품</button>
+      <button role="tab" data-tab="cos" aria-selected="false">꾸미기</button>
+      <button role="tab" data-tab="box" aria-selected="false">보급 상자</button>
+    </div>
+    <div class="shop-body" id="shop-body"></div>
+    <p class="fine">다이아는 전역·엔딩·훈장·출석·미니게임·돌발 상황에서 얻는다. 현금 결제는 없다.</p>
+  </section>
 </div>
 
+<div id="flash" class="flash" hidden></div>
 <div id="modal" class="modal" hidden>
   <div class="modal-box" id="modal-box" role="dialog" aria-modal="true"></div>
 </div>
@@ -1131,6 +1442,31 @@ button { cursor: pointer; }
       case 'beret':
         return t('<path d="M34 70 Q30 30 96 26 Q168 24 166 62 Q140 74 34 70Z" fill="#26331f" stroke="' + INK + '" stroke-width="3"/>' +
           '<circle cx="66" cy="54" r="8" fill="#d6b54a" stroke="' + INK + '" stroke-width="2"/>');
+      case 'gold':
+        return t('<path d="M30 84 Q26 14 100 12 Q174 14 170 84 Q100 72 30 84Z" fill="#f2c335" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M28 84 Q100 70 172 84 L174 92 Q100 80 26 92Z" fill="#c9971d" stroke="' + INK + '" stroke-width="2.5"/>' +
+          '<path d="M60 30 Q80 20 96 22" fill="none" stroke="#fff6c8" stroke-width="7" stroke-linecap="round"/>' +
+          star(100, 48, 11, '#fff4a3'));
+      case 'crown':
+        return t('<path d="M46 66 L40 22 L70 44 L100 12 L130 44 L160 22 L154 66Z" fill="#ffd34d" stroke="' + INK + '" stroke-width="3.5" stroke-linejoin="round"/>' +
+          '<rect x="44" y="60" width="112" height="14" rx="4" fill="#e0a92a" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="100" cy="40" r="6" fill="#e3342f" stroke="' + INK + '" stroke-width="2"/><circle cx="68" cy="56" r="5" fill="#3a86ff" stroke="' + INK + '" stroke-width="2"/><circle cx="132" cy="56" r="5" fill="#2ec27e" stroke="' + INK + '" stroke-width="2"/>');
+      case 'cateears':
+        return t('<path d="M44 66 L50 18 L86 50Z M156 66 L150 18 L114 50Z" fill="#f4a261" stroke="' + INK + '" stroke-width="3.5" stroke-linejoin="round"/>' +
+          '<path d="M54 54 L56 32 L74 50Z M146 54 L144 32 L126 50Z" fill="#ffc8dd"/>' +
+          '<path d="M44 62 Q100 44 156 62" fill="none" stroke="#e76f51" stroke-width="6" stroke-linecap="round"/>');
+      case 'headband':
+        return t('<path d="M38 62 Q100 44 162 62 L162 78 Q100 60 38 78Z" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="100" cy="64" r="9" fill="#e3342f"/>' +
+          '<text x="70" y="72" font-size="11" font-weight="900" text-anchor="middle" fill="#e3342f">전</text><text x="130" y="72" font-size="11" font-weight="900" text-anchor="middle" fill="#e3342f">역</text>' +
+          '<path d="M162 66 L186 58 L180 76Z M162 70 L184 86 L172 92Z" fill="#fff" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>');
+      case 'afro': {
+        var cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
+        var a = '';
+        var pts = [[40, 64], [34, 40], [52, 20], [78, 8], [104, 4], [130, 10], [154, 24], [168, 46], [164, 68], [66, 30], [100, 26], [134, 34]];
+        for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="22" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
+        return t(a);
+      }
       default: return '';
     }
   }
@@ -1455,6 +1791,13 @@ button { cursor: pointer; }
           '<rect x="170" y="30" width="60" height="60" rx="6" fill="#fff" stroke="#c9d9d5" stroke-width="3"/><path d="M200 42 L200 78 M182 60 L218 60" stroke="#e3342f" stroke-width="12"/>' +
           '<rect x="20" y="150" width="130" height="60" rx="8" fill="#fff" stroke="#9cb8b2" stroke-width="3"/>';
         break;
+      case 'beach':
+        b = '<rect width="400" height="300" fill="#bfe6f5"/><circle cx="80" cy="60" r="24" fill="#fff1a8"/>' +
+          '<rect y="130" width="400" height="80" fill="#3d8fc4"/><path d="M0 150 Q50 140 100 150 T200 150 T300 150 T400 150" fill="none" stroke="#cfeaf7" stroke-width="3"/>' +
+          '<path d="M0 205 Q100 190 200 205 Q300 220 400 200 L400 300 L0 300Z" fill="#ead9a8"/>' +
+          '<rect x="300" y="120" width="60" height="70" fill="#d8cfb6" stroke="#7a6e5c" stroke-width="3"/><path d="M292 120 L330 96 L368 120Z" fill="#5b6b3a"/>' +
+          '<path d="M0 200 L400 200" stroke="#8a8a80" stroke-width="2" stroke-dasharray="4 6"/>';
+        break;
       case 'field':
       default:
         b = '<rect width="400" height="300" fill="#bfe1f5"/><circle cx="330" cy="54" r="26" fill="#fff1a8"/>' +
@@ -1607,6 +1950,14 @@ button { cursor: pointer; }
       name: '문서준', role: '상병 · 행정병',
       spec: { seed: 'clerk', eyes: 'spiral', mouth: 'wavy', hat: 'none', rank: 'e3', extras: ['glasses', 'sweat'], prop: 'clipboard' }
     },
+    trainee: {
+      name: '훈련병 김눈물', role: '훈련병 · 3주차',
+      spec: { seed: 'trainee', eyes: 'teary', brows: 'worried', mouth: 'wavy', hat: 'helmetBig', rank: 'e0', extras: ['sweat'] }
+    },
+    idol: {
+      name: '차반짝', role: '이병 · 전직 아이돌',
+      spec: { seed: 'idol', skin: '#ffe3c8', eyes: 'sparkle', brows: 'normal', mouth: 'grin', hat: 'none', hair: 'side', rank: 'e1', extras: ['sparkles', 'blush'] }
+    },
     cat: { name: '짬타이거', role: '부대 고양이 · 짬 9년차', special: 'cat' },
     boar: { name: '멧돼지', role: '불청객 · 산에서 옴', special: 'boar' },
     speaker: { name: '중대 방송', role: '스피커', special: 'speaker' },
@@ -1696,8 +2047,8 @@ button { cursor: pointer; }
     },
     {
       id: 'tr_assign', who: 'speaker', bg: 'field', days: 3,
-      text: '자대 배치 발표. "훈련병 {name}! ○○사단… 강원도 인제!"',
-      l: o('하늘을 원망한다', { mt: -6, bd: 4 }, '"인제 가면 언제 오나…" 동기들이 노래를 불러줬다.'),
+      text: '자대 배치 발표. "훈련병 {name}! {place}, {unit}!" 동기들이 웅성거린다.',
+      l: o('하늘을 원망한다', { mt: -6, bd: 4 }, '동기들이 "가서 꼭 살아남아라"라며 초코파이를 쥐여 줬다.'),
       r: o('그래도 간다!', { mt: 3, tr: 4 }, '수료 축하해! 이제 진짜 군생활이다.')
     }
   ];
@@ -2837,6 +3188,574 @@ button { cursor: pointer; }
   JY.CARDS = { training: TRAINING, arrival: ARRIVAL, returns: RETURNS, pool: CARDS };
 })(window.JY = window.JY || {});
 
+/* js/data/cards2.js */
+/* 추가 카드: 자대별 · 명절 · 절친 · 일반 확장 · 돌발 상황(제한 시간)
+ * 새 결과 필드: gem 다이아, cond 주간 상황 시작, aff {동료: 호감도}
+ * 새 조건: unit, trait, month [시작월, 끝월], aff {동료: [min,max]}
+ * 돌발 카드: urgent(초) 안에 고르지 않으면 t(시간 초과) 결과 */
+(function (JY) {
+  'use strict';
+
+  function o(t, fx, say, x) {
+    var r = { t: t, fx: fx || {}, say: say || '' };
+    if (x) for (var k in x) r[k] = x[k];
+    return r;
+  }
+
+  var MORE = [
+    // ── 강원도 GOP ──
+    {
+      id: 'gop_fence', who: 'fm', bg: 'night', req: { unit: 'gop' }, repeat: true, cd: 120, w: 1.5,
+      text: 'GOP 철책 순찰. 철책에 걸린 하얀 무언가가 바람에 펄럭인다.',
+      l: o('다가가서 정밀 확인', { hp: -3 }, '', {
+        roll: [
+          { p: 0.7, fx: { tr: 6 }, say: '비닐봉지였다. 그래도 순찰일지에 꼼꼼히 적었다.' },
+          { p: 0.3, fx: { mt: 6, bd: 4 }, say: '고라니 털 뭉치였다. 근처에서 고라니가 멀뚱히 쳐다본다.' }
+        ]
+      }),
+      r: o('멀리서 보고 지나간다', { mt: 3, tr: -6 }, '다음 근무자가 그걸 보고 30분 동안 무전을 했다.')
+    },
+    {
+      id: 'gop_cold', who: 'haeng', bg: 'night', req: { unit: 'gop', season: 'winter' }, w: 2,
+      text: '영하 25도. 행보관: "초소 난로 기름 아껴 써라. 그게 다 국민 세금이다."',
+      l: o('깔깔이 두 겹 껴입기', { hp: -4, tr: 5 }, '깔깔이 두 겹이면 눈사람이 된다.'),
+      r: o('난로 풀가동', { hp: 8, tr: -8 }, '따뜻했다. 기름 게이지를 본 행보관의 표정은 차가웠다.')
+    },
+    {
+      id: 'gop_sunrise', who: 'me', bg: 'field', req: { unit: 'gop' }, meMood: 'happy',
+      text: '초소에서 보는 일출. 산 능선 너머로 해가 뜬다. 괜히 코끝이 찡하다.',
+      l: o('눈에 꼭 담는다', { mt: 10 }, '휴대폰은 반입 금지. 그래서 더 오래 기억날 것 같다.'),
+      r: o('근무에 집중한다', { tr: 6, mt: -2 }, '해는 매일 뜬다. 근무일지는 오늘만 쓴다.')
+    },
+    {
+      id: 'gop_rice_cake', who: 'box', bg: 'barracks', req: { unit: 'gop' },
+      text: '지역 주민들이 GOP 장병들에게 떡을 한가득 보내주셨다! 상자에 "고생 많아요"라고 적혀 있다.',
+      l: o('생활관에 나눈다', { bd: 10, mt: 4 }, '인절미 가루가 생활관 바닥을 뒤덮었다. 행복한 대청소.'),
+      r: o('몇 개 몰래 챙긴다', { mt: 6, bd: -4 }, '관물대에서 떡이 굳어갔다.', { item: { homefood: 1 } })
+    },
+    {
+      id: 'gop_out', who: 'captain', bg: 'field', req: { unit: 'gop', rank: [2, 4] },
+      text: 'GOP 근무 철수! 중대장: "다들 고생했다. 포상휴가 추천 명단 짜겠다. 한 명만 고르라면?"',
+      l: o('동기를 추천한다', { bd: 12, mt: -2 }, '박덤벙이 포상휴가를 받았다. 내 손을 잡고 울었다.', { aff: { dumb: 15 } }),
+      r: o('나 자신을 추천한다', {}, '', {
+        roll: [
+          { p: 0.5, fx: { mt: 8 }, say: '중대장: "당당해서 좋다!" 포상휴가 2일!', leave: 2 },
+          { p: 0.5, fx: { tr: -6, bd: -6 }, say: '중대장: "…다른 사람?" 생활관 공기가 싸해졌다.' }
+        ]
+      })
+    },
+
+    // ── 수도권 기계화 ──
+    {
+      id: 'mech_track', who: 'driver', bg: 'training', req: { unit: 'mech' }, repeat: true, cd: 140,
+      text: '전차 정비의 날. 궤도 한 짝 무게가 내 인생의 무게보다 무겁다.',
+      l: o('다 같이 든다', { hp: -10, bd: 8, tr: 4 }, '"하나, 둘, 셋!" 허리에서 소리가 났다.'),
+      r: o('공구 담당 자원', { mt: 4, tr: -2 }, '스패너를 건네는 속도만큼은 사단 최강.')
+    },
+    {
+      id: 'mech_general', who: 'general', bg: 'field', req: { unit: 'mech' }, repeat: true, cd: 120,
+      text: '사단장님이 또 오셨다. 이번 달만 세 번째다. 이제 사단장님 발소리를 구분할 수 있다.',
+      l: o('이번에도 칼각', { tr: 10, mt: -6 }, '사단장님: "자네 얼굴이 낯익구먼." 영광인지 모르겠다.'),
+      r: o('익숙하게 경례', { mt: 4, tr: -4 }, '사단장님도 익숙하게 지나가셨다.')
+    },
+    {
+      id: 'mech_parade', who: 'captain', bg: 'field', req: { unit: 'mech', month: [9, 10] },
+      text: '국군의 날 시가행진 차출! 장갑차 위에서 손 흔들기를 하루 8시간 연습한다.',
+      l: o('열정의 손 흔들기', { tr: 8, hp: -4 }, '당일, 길가의 꼬마가 나를 보고 경례했다. 울컥했다.'),
+      r: o('영혼 없는 손 흔들기', { mt: 4, tr: -4 }, '뉴스에 나왔다. 표정이 모든 걸 말해줬다.')
+    },
+    {
+      id: 'mech_noise', who: 'me', bg: 'night', req: { unit: 'mech' },
+      text: '새벽 기동훈련. 장갑차 소음에 잠이 깼다. 귀에서 삐- 소리가 난다.',
+      l: o('귀마개를 낀다', { hp: 4, bd: -2 }, '고요하다. 분대장이 부르는 소리도 고요했다.'),
+      r: o('그냥 참는다', { hp: -6, mt: -3 }, '이제 장갑차 소리가 자장가처럼 들린다. 위험하다.')
+    },
+
+    // ── 해안 경계 ──
+    {
+      id: 'coast_steps', who: 'fm', bg: 'beach', req: { unit: 'coast' }, repeat: true, cd: 120, w: 1.5,
+      text: '해안 순찰 중 백사장에 수상한 발자국 발견! 바다 쪽에서 육지로 이어진다.',
+      l: o('끝까지 추적한다', { hp: -4 }, '', {
+        roll: [
+          { p: 0.6, fx: { mt: 5 }, say: '갈매기 발자국이었다. 아주 큰 갈매기였다.' },
+          { p: 0.4, fx: { hp: 8, bd: 4 }, say: '해루질하던 동네 아저씨였다. 소라를 한 봉지 주셨다.' }
+        ]
+      }),
+      r: o('즉시 무전 보고', { tr: 6, mt: -2 }, '5분 만에 상황 종료. FM 보고 칭찬을 받았다.')
+    },
+    {
+      id: 'coast_fog', who: 'speaker', bg: 'beach', req: { unit: 'coast' },
+      text: '해무 경보! 바다 안개 때문에 열 걸음 앞이 안 보인다.',
+      l: o('열상 감시장비에 집중', { tr: 8, hp: -4 }, '화면 속 하얀 점은 끝내 전부 갈매기였다.'),
+      r: o('안개 속 사색에 잠긴다', { mt: 6, tr: -4 }, '안개 속에서 인생을 생각했다. 답은 안 나왔다.')
+    },
+    {
+      id: 'coast_gull', who: 'me', bg: 'beach', req: { unit: 'coast' },
+      text: '초소 지붕에 갈매기가 둥지를 틀었다. 근무 때마다 나를 째려본다.',
+      l: o('과자 부스러기를 준다', { mt: 6, tr: -4 }, '갈매기 군단이 생겼다. 초소가 새 놀이터가 됐다.'),
+      r: o('쫓아낸다', { hp: -3, mt: -3 }, '갈매기의 복수: 방탄모 위에 하얀 선물.')
+    },
+    {
+      id: 'coast_typhoon', who: 'haeng', bg: 'rain', req: { unit: 'coast', season: ['summer', 'autumn'] },
+      text: '태풍 상륙! 행보관: "해안 철책 결속선 다시 묶어! 지금!"',
+      l: o('비바람 속 작업', { hp: -12, tr: 10, bd: 4 }, '우비가 뒤집혀 망토가 됐다. 히어로 같았다(본인 생각).'),
+      r: o('대피 먼저 건의한다', { tr: -4, mt: 4 }, '행보관: "…맞는 말이다." 태풍이 지나간 뒤 묶었다.')
+    },
+
+    // ── 신병교육대 조교 ──
+    {
+      id: 'rc_cry', who: 'trainee', bg: 'night', req: { unit: 'recruit' }, repeat: true, cd: 140, w: 1.5,
+      text: '훈련병이 불침번 중 울먹인다. "조교님… 저 집에 가고 싶습니다…"',
+      l: o('초코파이와 위로', { bd: 10, mt: -3 }, '"나도 그랬어. 5주 금방 간다." 훈련병이 고개를 끄덕였다.'),
+      r: o('무심한 듯 툭', { mt: 3, bd: 3 }, '"…수료하면 짜장면 먹는다." 이상하게 그게 효과가 있었다.')
+    },
+    {
+      id: 'rc_shout', who: 'trainee', bg: 'field', req: { unit: 'recruit' },
+      text: '훈련병 200명 앞에서 구령을 붙여야 한다. 목은 이미 쉬었다.',
+      l: o('목청껏 외친다', { tr: 8, hp: -6 }, '"좌향좌!" 200명 중 37명이 우향우를 했다.'),
+      r: o('확성기를 쓴다', { tr: -4, mt: 4 }, '확성기가 삐- 하고 울었다. 훈련병들도 울었다.')
+    },
+    {
+      id: 'rc_gas', who: 'jogyo', bg: 'training', req: { unit: 'recruit' },
+      text: '화생방 교장 조교 근무. 이번엔 내가 "방독면 벗어!"를 외치는 쪽이다.',
+      l: o('단호하게', { tr: 8, bd: -4 }, '훈련병들의 원망 섞인 눈물을 봤다. 1년 전 내 얼굴이었다.'),
+      r: o('살짝 짧게', { bd: 8, tr: -6 }, '훈련병들이 감사 편지를 썼다. 교관이 그 편지를 읽었다.')
+    },
+    {
+      id: 'rc_parent', who: 'mom', bg: 'gate', req: { unit: 'recruit' },
+      text: '수료식. 한 훈련병 어머니가 손을 꼭 잡으신다. "우리 애 잘 부탁해요…"',
+      l: o('"걱정 마십시오!"', { mt: 8, tr: 4, hp: -2 }, '어머님이 떡을 한 봉지 쥐여 주셨다.', { item: { homefood: 1 } }),
+      r: o('눈시울이 붉어진다', { bd: 6, mt: 4 }, '우리 엄마 생각이 났다. 오늘 밤 전화해야지.')
+    },
+
+    // ── 특공 연대 ──
+    {
+      id: 'cm_march', who: 'fm', bg: 'field', req: { unit: 'commando', rank: [2, 4] },
+      text: '천리행군 400km. 발바닥이 대한민국 지도처럼 갈라졌다.',
+      l: o('끝까지 간다', { hp: -18 }, '', {
+        roll: [
+          { p: 0.5, fx: { tr: 12, bd: 8 }, say: '완주! 중대장이 포상휴가 2일을 줬다.', leave: 2 },
+          { p: 0.5, fx: { tr: 10, mt: -4 }, say: '완주했다. 발톱 두 개와 작별했다.' }
+        ]
+      }),
+      r: o('의무차를 탄다', { hp: -4, tr: -10 }, '의무차 안이 생활관보다 북적였다.')
+    },
+    {
+      id: 'cm_jump', who: 'jogyo', bg: 'field', req: { unit: 'commando' },
+      text: '강하 훈련. 수송기 문 앞. 교관: "뛰어!" 발밑으로 구름이 지나간다.',
+      l: o('뛴다!', { hp: -6, mt: 12, tr: 6 }, '낙하산이 펴지는 순간, 세상이 조용해졌다. 최고였다.'),
+      r: o('3초 망설인다', { mt: -6, bd: 4 }, '뒤에서 박덤벙이 같이 떨어졌다. 둘 다 무사했다.')
+    },
+    {
+      id: 'cm_run', who: 'captain', bg: 'field', req: { unit: 'commando' }, repeat: true, cd: 120,
+      text: '특공 체력단련: 산악 구보 10km. 중대장이 맨 앞에서 군가를 부른다.',
+      l: o('따라 부르며 뛴다', { hp: -10, bd: 8 }, '"멸공의 횃불" 4절까지 다 외우게 됐다.'),
+      r: o('숨만 쉰다', { hp: -6 }, '살아남는 게 목표였다. 목표 달성.')
+    },
+    {
+      id: 'cm_meat', who: 'cook', bg: 'mess', req: { unit: 'commando' },
+      text: '취사병: "특공은 단백질이 생명! 오늘 제육볶음 무한 리필!"',
+      l: o('세 그릇 먹는다', { hp: 10, mt: 4 }, '오후 구보 때 제육이 위로 올라오려 했다.'),
+      r: o('적당히 먹는다', { hp: 4, tr: 2 }, '절제의 미덕. 중대장이 고개를 끄덕였다.')
+    },
+
+    // ── 명절 · 날짜 ──
+    {
+      id: 'hol_seollal', who: 'cook', bg: 'mess', req: { month: [1, 2] },
+      text: '설날. 부대 식당에 떡국이 나왔다. 집에서는 세뱃돈이 오가고 있겠지.',
+      l: o('영상통화로 가족에게 세배', { mt: 10, tr: -2 }, '할머니가 화면 너머로 세뱃돈을 흔들었다. 받을 수가 없다.'),
+      r: o('중대장에게 세배', { tr: 8, bd: 4 }, '세뱃돈 대신 덕담 3분. 그리고 만 원.', { money: 10000 })
+    },
+    {
+      id: 'hol_chuseok', who: 'dumb', bg: 'mess', req: { month: [9, 10] },
+      text: '추석 송편 빚기 대회! 박덤벙의 송편은 만두처럼 생겼다.',
+      l: o('같이 빚는다', { bd: 8, mt: 4 }, '우리 송편이 "가장 창의적인 송편" 상을 받았다.', { aff: { dumb: 6 } }),
+      r: o('먹기만 한다', { hp: 6, bd: -3 }, '송편 23개. 깨송편만 골라 먹다 걸렸다.')
+    },
+    {
+      id: 'hol_xmas', who: 'speaker', bg: 'barracks', req: { month: [12, 12] },
+      text: '크리스마스 이브. 종교행사에서 산타 복장의 간부가 선물을 나눠준다.',
+      l: o('선물을 받는다', { mt: 8 }, '초코파이 두 개와 핫팩. 산타의 체취가 익숙하다.', { item: { chocopie: 2 } }),
+      r: o('산타 정체를 밝힌다', { bd: 8, tr: -6 }, '수염을 당겼다. 행보관이었다. 생활관 전원이 얼어붙었다.', { aff: { haeng: -8 } })
+    },
+    {
+      id: 'hol_newyear', who: 'captain', bg: 'field', req: { month: [1, 1] },
+      text: '새해 첫날 해맞이 구보. 중대장: "올해 전역하는 사람, 손!"',
+      l: o('번쩍 든다', { mt: 6, bd: 3 }, '중대장: "부럽다…" 진심이 느껴졌다.'),
+      r: o('조용히 해를 본다', { mt: 4, tr: 2 }, '새해 소원: 무사 전역. 그거면 된다.')
+    },
+    {
+      id: 'hol_armyday', who: 'captain', bg: 'field', req: { month: [10, 10] },
+      text: '10월 1일 국군의 날! 오늘은 특식과 휴무다.',
+      l: o('하루 종일 잔다', { hp: 10, mt: 4 }, '눈을 떠보니 저녁 특식 시간. 완벽한 하루.'),
+      r: o('축구 대회 출전', { bd: 8, hp: -4 }, '우승 상품은 냉동 만두 한 박스.', { item: { mandu: 2 } })
+    },
+    {
+      id: 'hol_birthday', who: 'dumb', bg: 'barracks',
+      text: '오늘 내 생일이다! 생활관 사람들이 초코파이로 케이크를 만들었다. 촛불은 라이터.',
+      l: o('감동의 눈물', { bd: 10, mt: 10 }, '초코파이 12층 케이크. 평생 못 잊을 것 같다. 💎 +5', { gem: 5 }),
+      r: o('쿨하게 촛불 끄기', { mt: 6, bd: 4 }, '쿨한 척했지만 소원은 길게 빌었다. 💎 +3', { gem: 3 })
+    },
+    {
+      id: 'hol_resort', who: 'speaker', bg: 'beach', req: { month: [7, 8] },
+      text: '하계 휴양소 추첨! 당첨되면 바닷가 휴양소에서 2박 3일.',
+      l: o('신청한다', {}, '', {
+        roll: [
+          { p: 0.3, fx: { mt: 10, hp: 6 }, say: '당첨! 휴가 2일 추가!', leave: 2 },
+          { p: 0.7, fx: { mt: -3 }, say: '낙첨. 당첨자는 정뺀질이었다.' }
+        ]
+      }),
+      r: o('후임에게 양보한다', { bd: 10, mt: -2 }, '후임이 바다 사진을 보내줬다. 부럽다.', { aff: { hoobae: 10 } })
+    },
+    {
+      id: 'hol_veteran', who: 'captain', bg: 'field', req: { month: [6, 6] },
+      text: '호국보훈의 달. 6·25 참전용사 할아버지가 부대를 방문하셨다.',
+      l: o('이야기를 경청한다', { mt: 6, tr: 4 }, '"자네들이 있어서 든든하네." 괜히 허리를 폈다.'),
+      r: o('사진을 찍어드린다', { bd: 4, mt: 4 }, '할아버지가 그 사진을 액자에 넣겠다고 하셨다.')
+    },
+
+    // ── 절친 전용 (호감도 70 이상) ──
+    {
+      id: 'aff_dumb', who: 'dumb', bg: 'barracks', req: { aff: { dumb: [70, 100] } }, w: 2,
+      text: '절친 박덤벙이 PX 냉동을 몰래 사 왔다. "너 요즘 힘들어 보여서…"',
+      l: o('같이 먹는다', { mt: 10, hp: 4, bd: 4 }, '전자레인지 앞에서 둘이 낄낄댔다. 이게 전우애다.'),
+      r: o('"다음엔 내가 산다"', { bd: 8 }, '약속했다. 진짜로 샀다.', { money: -8000 })
+    },
+    {
+      id: 'aff_malnyeon', who: 'malnyeon', bg: 'barracks', req: { aff: { malnyeon: [70, 100] }, noflag: 'malGone' }, w: 2,
+      text: '김말년: "야, 나 전역 전에 비밀 하나 알려준다. 행보관 피하는 루트."',
+      l: o('받아 적는다', { mt: 8, tr: -2 }, '1. 보일러실 뒤 2. 분리수거장 옆 3. 그냥 행보관이랑 친해져라'),
+      r: o('"전 정면 돌파합니다"', { tr: 6, bd: 4 }, '김말년: "…넌 크게 될 놈이다." (두 번째)')
+    },
+    {
+      id: 'aff_fm', who: 'fm', bg: 'office', req: { aff: { fm: [70, 100] } }, w: 2,
+      text: '분대장 최원칙이 처음으로 웃었다. "너 정도면 분대장감이다. 규정상 칭찬이다."',
+      l: o('"감사합니다!"', { tr: 10, mt: 4 }, '분대장이 안경을 고쳐 쓰며 고개를 돌렸다. 귀가 빨갰다.'),
+      r: o('"분대장님 덕분입니다"', { bd: 8, tr: 4 }, '분대장의 FM이 조금 무너졌다.')
+    },
+    {
+      id: 'aff_ppaen', who: 'ppaen', bg: 'px', req: { aff: { ppaen: [70, 100] } }, w: 2,
+      text: '정뺀질: "야, 나 PX 병이랑 친하잖아. 신상 냉동 몰래 빼놨다. 너만 줄게~"',
+      l: o('받는다', { mt: 6 }, '정뺀질의 인맥은 진짜였다.', { item: { mandu: 2, buldak: 1 } }),
+      r: o('정중히 사양', { tr: 4, bd: 2 }, '정뺀질: "의리 없네~" (다음 날 또 줬다)')
+    },
+    {
+      id: 'aff_hoobae', who: 'hoobae', bg: 'barracks', req: { aff: { hoobae: [70, 100] }, flag: 'hoobae' }, w: 2,
+      text: '오순둥이 손편지를 건넨다. "선임님 덕분에 버팁니다. 존경합니다."',
+      l: o('답장을 써 준다', { bd: 8, mt: 8 }, '오순둥이 그 답장을 코팅해서 관물대에 붙였다.'),
+      r: o('머리를 쓰다듬는다', { bd: 10, mt: 4 }, '헬멧이 또 눈을 덮었다. 웃었다.')
+    },
+    {
+      id: 'aff_haeng', who: 'haeng', bg: 'office', req: { aff: { haeng: [70, 100] } }, w: 2,
+      text: '행보관: "…야. 오늘 작업 빠져라. 그동안 고생했다."',
+      l: o('"감사합니다!"', { hp: 12, mt: 6 }, '생활관에 누워 행보관의 삽 소리를 들었다. 평화.'),
+      r: o('"아닙니다, 하겠습니다!"', { tr: 12, hp: -6 }, '행보관이 삽돌이를 내밀었다. 최고의 영예.')
+    },
+    {
+      id: 'aff_cat', who: 'cat', bg: 'barracks', req: { aff: { cat: [70, 100] } }, w: 2,
+      text: '짬타이거가 내 침상 위에 올라와 배를 보여준다. 고양이 세계 최고의 신뢰 표시다.',
+      l: o('배를 쓰다듬는다', {}, '', {
+        roll: [
+          { p: 0.6, fx: { mt: 12 }, say: '골골골골. 세상에서 제일 부드러운 배였다.' },
+          { p: 0.4, fx: { hp: -3, mt: 6 }, say: '함정이었다. 물렸다. 그래도 행복하다.' }
+        ]
+      }),
+      r: o('조용히 같이 잔다', { hp: 8, mt: 4 }, '고양이 체온은 깔깔이보다 따뜻했다.')
+    },
+
+    // ── 일반 확장 ──
+    {
+      id: 'sing_contest', who: 'speaker', bg: 'barracks',
+      text: '중대 노래자랑! 1등은 포상휴가. 마이크가 내 앞으로 왔다.',
+      l: o('트로트로 승부', {}, '', {
+        roll: [
+          { p: 0.4, fx: { bd: 8, mt: 8 }, say: '1등! 중대장이 앵콜을 세 번 외쳤다. 포상휴가 2일!', leave: 2 },
+          { p: 0.6, fx: { bd: 6, mt: -2 }, say: '박수는 받았다. 1등은 아이돌 출신 신병이었다.' }
+        ]
+      }),
+      r: o('관객석에서 탬버린', { bd: 4, mt: 3 }, '탬버린 부문 MVP. 손바닥이 빨갛다.')
+    },
+    {
+      id: 'pc_minesweeper', who: 'ppaen', bg: 'office',
+      text: '사지방 지뢰찾기 중대 랭킹전! 1등 상품은 냉동 만두 한 박스.',
+      l: o('도전한다', {}, '', {
+        roll: [
+          { p: 0.5, fx: { mt: 6 }, say: '1등! 지뢰찾기 고수 등극.', item: { mandu: 2 } },
+          { p: 0.5, fx: { mt: -4 }, say: '첫 클릭에 지뢰. 정뺀질이 웃었다.' }
+        ]
+      }),
+      r: o('구경만 한다', { bd: 3 }, '구경이 제일 재밌다.')
+    },
+    {
+      id: 'night_snack_vote', who: 'captain', bg: 'barracks',
+      text: '중대장 사비 야식 투표! 치킨 vs 피자. 결과는 다수결.',
+      l: o('치킨', { bd: 5, mt: 5 }, '치킨 압승. 닭다리 쟁탈전이 시작됐다.'),
+      r: o('피자', { mt: 6, bd: -2 }, '피자는 소수파였다. 치킨도 맛있었다.')
+    },
+    {
+      id: 'laundry_war', who: 'dumb', bg: 'barracks', repeat: true, cd: 150,
+      text: '세탁기 쟁탈전. 세탁기 3대에 30명. 박덤벙은 빨래를 들고 서성인다.',
+      l: o('새벽 5시 기상', { hp: -5, mt: 4 }, '세탁기 독점 성공. 박덤벙 것도 같이 돌려줬다.', { aff: { dumb: 4 } }),
+      r: o('손빨래한다', { hp: -3, tr: 3 }, '손빨래 장인이 됐다. 전투복 무릎이 하얘졌다.')
+    },
+    {
+      id: 'stray_dog', who: 'cat', bg: 'mess', req: { vars: { cat: [1, 99] } },
+      text: '부대에 떠돌이 개가 들어왔다. 짬통 앞에서 짬타이거와 대치 중!',
+      l: o('짬타이거 편', { mt: 4, bd: 2 }, '짬타이거가 냥펀치 한 방으로 이겼다. 역시 짬 9년차.', { aff: { cat: 10 } }),
+      r: o('개도 밥을 준다', { bd: 6, tr: -3 }, '개와 고양이가 나란히 밥을 먹었다. 부대 평화 협정.')
+    },
+    {
+      id: 'rainbow', who: 'me', bg: 'field', meMood: 'happy',
+      text: '소나기 뒤 연병장 위로 쌍무지개가 떴다. 다들 삽을 든 채 넋을 놓고 본다.',
+      l: o('소원을 빈다', { mt: 6 }, '', {
+        roll: [
+          { p: 0.25, fx: { mt: 4 }, say: '소원이 하늘에 닿았다? 💎 +8', gem: 8 },
+          { p: 0.75, fx: {}, say: '"무사 전역." 세 번 빌었다.' }
+        ]
+      }),
+      r: o('작업을 계속한다', { tr: 4 }, '행보관: "무지개는 작업이 끝나도 있다."')
+    },
+    {
+      id: 'mp3', who: 'me', bg: 'office',
+      text: '분실물 보관함에서 3년 전 선임이 두고 간 MP3를 발견했다. 아직 작동한다!',
+      l: o('몰래 듣는다', { mt: 8, tr: -3 }, '플레이리스트가 전부 2000년대 발라드였다. 울었다.'),
+      r: o('행정반에 제출', { tr: 5 }, '행정반에서 그 MP3가 매일 재생되기 시작했다.')
+    },
+    {
+      id: 'blood', who: 'medic', bg: 'hospital', repeat: true, cd: 150,
+      text: '헌혈 버스가 왔다! 헌혈하면 초코파이에 영화 관람권까지.',
+      l: o('헌혈한다', { hp: -6, mt: 6 }, '', {
+        item: { chocopie: 2 },
+        roll: [
+          { p: 0.3, fx: { tr: 4 }, say: '헌혈 포상으로 휴가 1일!', leave: 1 },
+          { p: 0.7, fx: {}, say: '팔에 붙인 반창고가 훈장 같다.' }
+        ]
+      }),
+      r: o('주사가 무섭다', { mt: -2 }, '헌혈 버스 앞에서 박덤벙과 서로 등을 떠밀었다.')
+    },
+    {
+      id: 'english_club', who: 'lt', bg: 'office',
+      text: '소대장이 영어 회화 동아리를 만들었다. 회원은 아직 소대장 혼자다.',
+      l: o('가입한다', { mt: -6, tr: 8 }, '"Hello, my name is…" 소대장이 감격했다.', { set: ['cert'] }),
+      r: o('정중히 패스', { mt: 3, tr: -2 }, '소대장이 혼자 "How are you?"를 연습했다.')
+    },
+    {
+      id: 'px_lottery', who: 'ppaen', bg: 'px',
+      text: 'PX 경품 추첨 이벤트! 응모권 1장에 천 원. 1등 상품은 무려 "황금 다이아 쿠폰".',
+      l: o('10장 응모한다', {}, '', {
+        money: -10000,
+        roll: [
+          { p: 0.12, fx: { mt: 12 }, say: '1등 당첨!!! 💎 +25', gem: 25 },
+          { p: 0.38, fx: { mt: 4 }, say: '3등. 바나나우유 두 개.', item: { banana: 2 } },
+          { p: 0.5, fx: { mt: -4 }, say: '전부 꽝. 정뺀질은 1장으로 2등이 됐다.' }
+        ]
+      }),
+      r: o('도박은 안 한다', { tr: 2 }, '현명하다. 근데 궁금하다.')
+    },
+    {
+      id: 'pig_dream', who: 'me', bg: 'night',
+      text: '꿈에 황금 돼지가 나왔다! 생활관 모두가 "로또 사!"라고 외친다. 하지만 여긴 부대다.',
+      l: o('PX 경품에 걸어본다', {}, '', {
+        roll: [
+          { p: 0.35, fx: { mt: 8 }, say: '돼지꿈 효험! 💎 +10', gem: 10 },
+          { p: 0.65, fx: { mt: -2 }, say: '꽝. 돼지는 그냥 배고팠던 거였다.' }
+        ]
+      }),
+      r: o('꿈은 꿈일 뿐', { mt: 2, hp: 2 }, '다시 잤다. 돼지가 다시 나왔다. 무시했다.')
+    },
+    {
+      id: 'idol_join', who: 'idol', bg: 'barracks', req: { rank: [2, 4] },
+      text: '전직 아이돌 신병 차반짝이 생활관 청소를 하다 말고 춤을 춘다. 걸레질이 안무 같다.',
+      l: o('같이 춘다', { bd: 10, tr: -6 }, '생활관 댄스 영상이 사단 행사에 쓰였다(?)'),
+      r: o('"청소부터 하자"', { tr: 6, bd: -3 }, '차반짝: "네! 안무는 개인정비 시간에!"')
+    }
+  ];
+
+  /* ───────── 돌발 상황 (제한 시간) ───────── */
+  var EMERGENCY = [
+    {
+      id: 'em_general', who: 'general', bg: 'barracks', urgent: 6,
+      text: '사단장님 불시 방문!!! 지금 생활관 문을 여신다!',
+      l: o('"충성!" 칼경례', { tr: 10, mt: -3 }, '사단장님: "기백이 좋구먼!" 중대장이 뒤에서 안도했다.'),
+      r: o('누워 있다가 벌떡', {}, '', {
+        roll: [
+          { p: 0.4, fx: { bd: 8 }, say: '자연스러웠다. 사단장님도 못 보셨다(고 믿는다).' },
+          { p: 0.6, fx: { tr: -12 }, say: '이불이 같이 일어났다. 사단장님이 웃으셨다. 중대장은 안 웃었다.' }
+        ]
+      }),
+      t: o('얼어붙었다', { tr: -14, mt: -4 }, '입만 뻐끔뻐끔. 사단장님: "…긴장했구먼."')
+    },
+    {
+      id: 'em_fire', who: 'speaker', bg: 'mess', urgent: 6,
+      text: '화재 경보! 취사장 쪽에서 연기가 올라온다!',
+      l: o('소화기 들고 돌진', { hp: -8, tr: 12, bd: 6 }, '불은 생선구이였다. 그래도 소화기 사용법은 완벽했다. 💎 +5', { gem: 5 }),
+      r: o('대피 유도', { tr: 6, bd: 4 }, '전원 3분 만에 대피 완료. 침착했다.'),
+      t: o('우왕좌왕', { tr: -10, mt: -6 }, '소화기를 찾다가 소화전 앞에서 박덤벙과 부딪혔다.')
+    },
+    {
+      id: 'em_snake', who: 'dumb', bg: 'barracks', urgent: 6, extras: ['sweat'],
+      text: '박덤벙: "야!!! 침상 밑에 뱀!!! 뱀이다!!!"',
+      l: o('집게로 잡는다', {}, '', {
+        roll: [
+          { p: 0.6, fx: { bd: 12, tr: 4 }, say: '포획 성공! 생활관 영웅. 뱀은 뒷산에 풀어줬다.', aff: { dumb: 8 } },
+          { p: 0.4, fx: { hp: -10 }, say: '물렸다. 다행히 독은 없었다. 군의관: "타이레놀."' }
+        ]
+      }),
+      r: o('간부를 부른다', { tr: 6, mt: -2 }, '당직사관이 뱀을 잡았다. 맨손으로. 전설이 됐다.'),
+      t: o('침상 위로 대피', { mt: -8, bd: 3 }, '30분 동안 침상 위에서 박덤벙과 서로 끌어안고 있었다.')
+    },
+    {
+      id: 'em_phone', who: 'duty', bg: 'night', urgent: 5,
+      text: '당직사관 불시 점검! 사용 시간이 끝났는데 손에 휴대폰이 있다!',
+      l: o('이불 속으로!', {}, '', {
+        roll: [
+          { p: 0.5, fx: { mt: 4 }, say: '무사 통과. 심장은 무사하지 않았다.' },
+          { p: 0.5, fx: { tr: -14 }, say: '이불 속에서 화면이 빛났다. 알림음까지 울렸다.' }
+        ]
+      }),
+      r: o('자진 반납', { tr: 4, mt: -4 }, '당직사관: "정직하네. 내일 돌려준다."'),
+      t: o('손에 든 채 굳었다', { tr: -12 }, '화면에는 고양이 영상이 재생 중이었다.')
+    },
+    {
+      id: 'em_hornet', who: 'haeng', bg: 'field', urgent: 5, req: { season: ['summer', 'autumn'] },
+      text: '제초 작업 중 말벌집을 건드렸다! 웅웅웅웅웅!!!',
+      l: o('전력 도주', { hp: -6, mt: -2 }, '인생 최고 기록으로 연병장을 가로질렀다. 두 방 쏘였다.'),
+      r: o('엎드려 가만히', {}, '', {
+        roll: [
+          { p: 0.6, fx: { mt: 4 }, say: '말벌이 그냥 지나갔다. 행보관 쪽으로.' },
+          { p: 0.4, fx: { hp: -12 }, say: '엉덩이를 쏘였다. 3일간 앉지 못했다.' }
+        ]
+      }),
+      t: o('멍하니 서 있었다', { hp: -12 }, '말벌의 표적이 됐다. 얼굴이 감자가 됐다.')
+    },
+    {
+      id: 'em_tv', who: 'captain', bg: 'field', urgent: 6,
+      text: '예능 촬영팀 방문! 카메라가 갑자기 나를 비춘다. PD: "개인기 하나만!"',
+      l: o('성대모사!', {}, '', {
+        roll: [
+          { p: 0.5, fx: { mt: 12, bd: 8 }, say: '대박! 부대 스타 탄생. 💎 +12', gem: 12 },
+          { p: 0.5, fx: { mt: -6, bd: 6 }, say: '정적. 방송에서는 편집됐다. 생활관에서는 전설이 됐다.' }
+        ]
+      }),
+      r: o('수줍게 브이', { mt: 3, bd: 2 }, '방송에 0.5초 나왔다. 엄마가 캡처해서 가족 단톡방에 올렸다.'),
+      t: o('카메라 앞 얼음', { mt: -4, bd: 4 }, '"얼음 군인" 짤로 인터넷에 퍼졌다.')
+    },
+    {
+      id: 'em_truck', who: 'driver', bg: 'rain', urgent: 6,
+      text: '저녁밥을 실은 보급 트럭이 진흙에 빠졌다!',
+      l: o('다 같이 밀자!', { hp: -10, bd: 10 }, '진흙 범벅으로 트럭을 구출했다. 밥이 더 맛있었다.'),
+      r: o('견인차를 부른다', { tr: 4, mt: -4 }, '저녁이 2시간 늦어졌다. 배에서 천둥이 쳤다.'),
+      t: o('구경만 했다', { hp: -6, mt: -6 }, '저녁은 건빵이었다.')
+    },
+    {
+      id: 'em_quake', who: 'speaker', bg: 'barracks', urgent: 5,
+      text: '지진! 생활관이 흔들린다! 관물대 위 전투모가 떨어진다!',
+      l: o('책상 밑으로 (FM)', { tr: 6 }, '교본대로 했다. 진동은 금방 멈췄다.'),
+      r: o('밖으로 뛰쳐나간다', {}, '', {
+        roll: [
+          { p: 0.5, fx: { bd: 4 }, say: '연병장에 모두 모였다. 다들 맨발이었다.' },
+          { p: 0.5, fx: { hp: -8 }, say: '계단에서 미끄러졌다. 진동보다 계단이 더 위험했다.' }
+        ]
+      }),
+      t: o('침상에서 굴렀다', { hp: -6, mt: -4 }, '정신 차려보니 박덤벙 침상에 있었다.')
+    },
+    {
+      id: 'em_gem', who: 'me', bg: 'field', urgent: 5,
+      text: '연병장 구석에서 뭔가 반짝인다!!! 아무도 못 본 것 같다!',
+      l: o('달려가서 줍는다', {}, '', {
+        roll: [
+          { p: 0.4, fx: { mt: 8 }, say: '💎 진짜 반짝이는 보석(이라 믿고 싶은 무언가)! 💎 +15', gem: 15 },
+          { p: 0.35, fx: { mt: 4 }, say: '작은 반짝이 조각. 💎 +5', gem: 5 },
+          { p: 0.25, fx: { hp: -3 }, say: '유리 조각이었다. 손가락에 밴드를 붙였다.' }
+        ]
+      }),
+      r: o('그냥 지나간다', { tr: 2 }, '뒤에서 정뺀질이 주워갔다. 뭔지는 끝까지 안 알려줬다.'),
+      t: o('망설이다 놓쳤다', { mt: -4 }, '바람이 반짝이는 걸 날려버렸다. 사탕 껍질이었길 빈다.')
+    },
+    {
+      id: 'em_wildfire', who: 'haeng', bg: 'field', urgent: 6, req: { season: ['spring', 'autumn', 'winter'] },
+      text: '부대 뒷산에 산불! 행보관: "진화 지원 간다! 갈퀴 챙겨!"',
+      l: o('앞장선다', { hp: -14, tr: 14 }, '불길을 잡았다. 지역 소방서에서 감사장이 왔다. 포상휴가 2일!', { leave: 2 }),
+      r: o('물 나르기 담당', { hp: -6, tr: 6, bd: 4 }, '물통 52개를 날랐다. 팔이 고무줄이 됐다.'),
+      t: o('늦게 합류', { tr: -8 }, '도착했을 땐 불이 꺼져 있었다. 행보관의 눈빛이 탔다.')
+    },
+    {
+      id: 'em_idol', who: 'idol', bg: 'barracks', urgent: 6, req: { rank: [1, 4] },
+      text: '속보! TV에서 보던 아이돌 출신 신병이 우리 생활관에 배치됐다!',
+      l: o('사인 요청', { mt: 8, tr: -4 }, '전투복에 사인을 받았다. 행보관이 그걸 봤다.'),
+      r: o('평범하게 대한다', { bd: 10 }, '차반짝: "이렇게 대해주셔서 감사합니다…" 진심이었다.'),
+      t: o('멍하니 쳐다봤다', { bd: -4, mt: 4 }, '눈이 마주쳤다. 윙크를 받았다. 하루 종일 멍했다.', { cond: 'love' })
+    },
+    {
+      id: 'em_poison', who: 'medic', bg: 'hospital', urgent: 5,
+      text: '점심 반찬 때문에 단체 배탈! 화장실은 3칸, 대기 인원 27명!',
+      l: o('전력 질주', {}, '', {
+        roll: [
+          { p: 0.5, fx: { hp: 4, mt: 4 }, say: '1등 도착! 인생에서 가장 빠른 달리기였다.' },
+          { p: 0.5, fx: { hp: -8, mt: -8 }, say: '3초 차이로 4등. 그 3초가 영원 같았다.' }
+        ]
+      }),
+      r: o('다른 건물 화장실로', { hp: -4, tr: -2 }, '행정반 화장실을 썼다. 행보관과 마주쳤다.'),
+      t: o('참는다…', { hp: -10, mt: -10 }, '참는 것도 전투다. 이번 전투는 졌다.', { cond: 'flu' })
+    },
+    {
+      id: 'em_boar', who: 'boar', bg: 'barracks', urgent: 5,
+      text: '멧돼지가 생활관 복도로 들어왔다!!! 콧김이 들린다!',
+      l: o('문 닫고 바리케이드', { bd: 8, tr: 6 }, '관물대로 문을 막았다. 멧돼지는 PX 쪽으로 갔다.'),
+      r: o('빗자루로 맞선다', {}, '', {
+        roll: [
+          { p: 0.3, fx: { tr: 10, bd: 10 }, say: '멧돼지가 놀라서 도망갔다! 전설의 빗자루 용사. 💎 +10', gem: 10 },
+          { p: 0.7, fx: { hp: -12 }, say: '빗자루가 부러졌다. 나도 부러질 뻔했다.' }
+        ]
+      }),
+      t: o('비명 지르며 2층으로', { mt: -8 }, '멧돼지는 내 슬리퍼를 물고 갔다.')
+    },
+    {
+      id: 'em_wedding', who: 'captain', bg: 'office', urgent: 6,
+      text: '중대장 결혼식 축가 차출! 리허설은 지금 당장! 중대장이 기대에 찬 눈빛이다.',
+      l: o('열창한다', {}, '', {
+        roll: [
+          { p: 0.5, fx: { tr: 12, mt: 4 }, say: '중대장 신부가 울었다. 감동의 눈물이었다(고 한다).' },
+          { p: 0.5, fx: { tr: 4, mt: -6 }, say: '고음에서 삑사리. 하객들이 웃었다. 중대장도 웃었다.' }
+        ]
+      }),
+      r: o('박수 부대 자원', { bd: 4, tr: 2 }, '박수 담당도 중요하다. 손바닥이 터질 뻔했다.'),
+      t: o('얼떨결에 솔로 파트', { mt: -8, bd: 6 }, '가사를 몰라 "라라라"로 3분을 채웠다.')
+    },
+    {
+      id: 'em_alert', who: 'speaker', bg: 'night', urgent: 6, req: { rank: [1, 4] },
+      text: '"진돗개 둘 발령! 전 병력 완전무장 집결!" 새벽 3시다.',
+      l: o('30초 만에 완전무장', { tr: 10, hp: -4 }, '1등으로 집결. 당직사관이 엄지를 들었다.', { cond: 'alert' }),
+      r: o('양말부터 찾는다', { tr: -8 }, '양말 짝을 맞추다 꼴찌로 집결했다.', { cond: 'alert' }),
+      t: o('다시 잠들었다', { tr: -14, mt: -4 }, '분대장이 침상을 흔들었다. 꿈인 줄 알았다.', { cond: 'alert' })
+    },
+    {
+      id: 'em_rain', who: 'speaker', bg: 'rain', urgent: 5,
+      text: '기습 폭우! 연병장 건조대에 널어둔 빨래가 30명분이다!',
+      l: o('전원 빨래 구출!', { bd: 12, hp: -4 }, '내 빨래, 네 빨래 할 것 없이 다 걷었다. 생활관 영웅.'),
+      r: o('내 빨래만 챙긴다', { bd: -8, mt: 3 }, '내 빨래는 뽀송했다. 생활관 분위기는 축축했다.'),
+      t: o('발만 동동', { mt: -6, bd: -4 }, '전부 젖었다. 내 양말은 또 사라졌다.')
+    },
+    {
+      id: 'em_lotto', who: 'ppaen', bg: 'barracks', urgent: 5,
+      text: '정뺀질이 로또 3등에 당첨됐다! "치킨 쏜다! 단, 지금 손 드는 사람만!"',
+      l: o('번쩍 손 든다', { bd: 6, hp: 6, mt: 6 }, '반반 무 많이. 정뺀질이 처음으로 멋있어 보였다.', { aff: { ppaen: 8 } }),
+      r: o('쿨한 척 사양', { mt: -4, tr: 2 }, '치킨 냄새가 생활관에 가득했다. 쿨함의 대가였다.'),
+      t: o('망설이다 놓쳤다', { mt: -8 }, '치킨 뼈만 봤다.')
+    },
+    {
+      id: 'em_gas', who: 'jogyo', bg: 'training', urgent: 4,
+      text: '불시 화생방 훈련! "가스! 가스! 가스!" 9초 안에 방독면 착용!',
+      l: o('방독면!', { tr: 8 }, '7초 만에 착용 완료. 손이 기억하고 있었다.'),
+      r: o('손으로 코를 막는다', { hp: -8, tr: -6 }, '손은 방독면이 아니었다. 눈물 콧물 파티.'),
+      t: o('마지막으로 썼다', { tr: -8, hp: -4 }, '방독면 끈이 머리에 걸려 반쯤 썼다.')
+    }
+  ];
+
+  JY.CARDS.pool = JY.CARDS.pool.concat(MORE);
+  JY.CARDS.emergency = EMERGENCY;
+})(window.JY = window.JY || {});
+
 /* js/data/items.js */
 /* PX 물품 & 엔딩 데이터 */
 (function (JY) {
@@ -2854,10 +3773,12 @@ button { cursor: pointer; }
     matdasi: { name: '맛다시', icon: '🌶️', price: 1000, fx: { mt: 4, bd: 2 }, desc: '짬밥에 뿌리면 마법이 일어난다.' },
     earplug: { name: '귀마개', icon: '🎧', price: 2000, fx: { hp: 6, bd: -4 }, desc: '코골이 차단. 선임이 부르는 소리도 차단.' },
     comic: { name: '만화책', icon: '📚', price: 6000, fx: { mt: 6, tr: -4 }, desc: '개인정비 시간의 친구. 근무 중에 보면 큰일.' },
+    tuna: { name: '참치캔', icon: '🥫', price: 2000, fx: { hp: 3, mt: 3 }, desc: '짬타이거가 제일 좋아하는 것. 사람도 먹을 수 있다.' },
     homefood: { name: '엄마 반찬', icon: '🍱', price: 0, px: false, fx: { mt: 12, hp: 6 }, desc: '엄마 손맛. PX에선 안 판다.' }
   };
 
-  JY.ITEM_ORDER = ['buldak', 'mandu', 'chocopie', 'banana', 'hot6', 'polish', 'cream', 'matdasi', 'earplug', 'comic', 'homefood'];
+  JY.ITEM_ORDER = ['buldak', 'mandu', 'chocopie', 'banana', 'tuna', 'hot6', 'polish', 'cream', 'matdasi', 'earplug', 'comic', 'homefood'];
+  JY.FOOD = { buldak: 1, mandu: 1, chocopie: 1, banana: 1, tuna: 1, matdasi: 1, homefood: 1 };
 
   /* 엔딩 — good: 전역 성공 / 나머지는 전역 실패 */
   JY.ENDINGS = {
@@ -2946,6 +3867,204 @@ button { cursor: pointer; }
     'hp0', 'hp100', 'mt0', 'mt100', 'tr0', 'tr100', 'bd0', 'bd100', 'desert', 'awol'];
 })(window.JY = window.JY || {});
 
+/* js/data/world.js */
+/* 판마다 달라지는 요소: 자대(부대), 성격 특성, 주간 상황, 동료 호감도 */
+(function (JY) {
+  'use strict';
+
+  /* ── 자대: 훈련소 수료 때 무작위 배치 ── */
+  JY.UNITS = {
+    gop: {
+      name: '강원도 GOP 사단', short: 'GOP', emoji: '🏔️', place: '강원도 인제',
+      desc: '최전방 철책 경계. 겨울이 길고 춥다. 대신 휴가가 넉넉하다.',
+      perk: '진급할 때 휴가 +2일 · 겨울 이벤트 2배 · 돌발 상황 조금 더',
+      leaveBonus: 2, seasonW: { winter: 2 }, emerMult: 1.2, start: { hp: -3 }
+    },
+    mech: {
+      name: '수도권 기계화 사단', short: '기계화', emoji: '🚜', place: '경기도 양주',
+      desc: '전차와 장갑차의 굉음. 사단장님이 자주 오신다.',
+      perk: 'PX 20% 할인 · 간부 신뢰 변화 1.15배',
+      pxDiscount: 0.2, mods: { tr: { pos: 1.15, neg: 1.15 } }
+    },
+    coast: {
+      name: '해안 경계 부대', short: '해안', emoji: '🌊', place: '충남 태안',
+      desc: '바다를 보며 근무한다. 낭만과 습기가 공존한다.',
+      perk: '멘탈 회복 1.2배 · 여름 이벤트 1.5배',
+      mods: { mt: { pos: 1.2 } }, seasonW: { summer: 1.5 }
+    },
+    recruit: {
+      name: '신병교육대 (조교)', short: '신교대', emoji: '📣', place: '경기도 연천',
+      desc: '이번엔 내가 조교다. 훈련병들이 나를 무서워(?)한다.',
+      perk: '전우애 변화 1.2배 · 훈련병 전용 이벤트',
+      mods: { bd: { pos: 1.2, neg: 1.2 } }
+    },
+    commando: {
+      name: '특공 연대', short: '특공', emoji: '🪂', place: '강원도 화천',
+      desc: '체력이 곧 계급. 천리행군의 전설이 숨 쉬는 곳.',
+      perk: '체력 증가 1.25배 · 체력 소모 1.15배 · 포상휴가 +1일',
+      mods: { hp: { pos: 1.25, neg: 1.15 } }, leaveReward: 1
+    }
+  };
+  JY.UNIT_ORDER = ['gop', 'mech', 'coast', 'recruit', 'commando'];
+
+  /* ── 성격 특성: 입대할 때 3장 중 1장 ── */
+  JY.TRAITS = {
+    glutton: { name: '먹보', emoji: '🍗', desc: 'PX 음식 효과 1.5배', itemMult: 1.5 },
+    sleepy: { name: '잠꾸러기', emoji: '😴', desc: '체력 소모 0.8배 · 대신 불침번이 더 어렵다', mods: { hp: { neg: 0.8 } }, watchHard: true },
+    insider: { name: '인싸', emoji: '🎤', desc: '전우애 증가 1.3배 · 간부 신뢰 증가 0.85배', mods: { bd: { pos: 1.3 }, tr: { pos: 0.85 } } },
+    fm: { name: '원칙주의자', emoji: '📏', desc: '간부 신뢰 증가 1.3배 · 멘탈 소모 1.2배', mods: { tr: { pos: 1.3 }, mt: { neg: 1.2 } } },
+    glass: { name: '유리멘탈', emoji: '🥲', desc: '멘탈 소모 1.3배 · 대신 점수와 다이아 1.3배', mods: { mt: { neg: 1.3 } }, scoreMult: 1.3, gemMult: 1.3 },
+    steel: { name: '강철멘탈', emoji: '🗿', desc: '멘탈 소모 0.75배 · 전우애 증가 0.85배', mods: { mt: { neg: 0.75 }, bd: { pos: 0.85 } } },
+    athlete: { name: '운동광', emoji: '💪', desc: '체력 증가 1.3배 · 시작 체력 +8', mods: { hp: { pos: 1.3 } }, start: { hp: 8 } },
+    rich: { name: '금수저', emoji: '💳', desc: '시작 현금 50만 원 · 시작 전우애 -8', money: 500000, start: { bd: -8 } },
+    lucky: { name: '행운아', emoji: '🍀', desc: '운에 맡기는 선택이 절반 확률로 유리하게 굴러간다', luck: 0.5 },
+    nunchi: { name: '눈치백단', emoji: '👀', desc: '미리보기에서 간부 신뢰가 오를지 내릴지 보인다', insightStat: 'tr' },
+    catlover: { name: '고양이 집사', emoji: '🐈', desc: '짬타이거 이벤트 3배 · 짬타이거 호감도 2배', catW: 3 },
+    romantic: { name: '연애 고수', emoji: '💌', desc: '여자친구가 있는 채로 입대 · 곰신 호감도 +2', flags: ['gf'], vars: { gf: 2 } },
+    clumsy: { name: '덜렁이', emoji: '🙃', desc: '돌발 상황이 두 배 · 대신 다이아 1.5배', emerMult: 2, gemMult: 1.5 }
+  };
+  JY.TRAIT_ORDER = Object.keys(JY.TRAITS);
+
+  /* ── 주간 상황: 매달 1일에 확률로 시작, 몇 장 동안 지속 ── */
+  JY.CONDITIONS = {
+    flu: { name: '독감 유행', emoji: '🤧', cards: 4, tick: { hp: -2 }, desc: '카드마다 체력 -2' },
+    heat: { name: '폭염 주의보', emoji: '🥵', cards: 4, tick: { hp: -2, mt: -1 }, season: 'summer', desc: '카드마다 체력 -2, 멘탈 -1' },
+    cold: { name: '한파 특보', emoji: '🥶', cards: 4, tick: { hp: -2 }, season: 'winter', desc: '카드마다 체력 -2' },
+    feast: { name: '짬밥 개선 주간', emoji: '🍖', cards: 4, tick: { mt: 2, hp: 1 }, desc: '새 취사병 부임! 카드마다 멘탈 +2, 체력 +1' },
+    inspect: { name: '행보관 특별 점검', emoji: '🔍', cards: 4, mods: { tr: { neg: 1.5 } }, desc: '간부 신뢰 소모 1.5배' },
+    captainOff: { name: '중대장 휴가 중', emoji: '🏝️', cards: 4, mods: { tr: { pos: 0.5, neg: 0.5 } }, tick: { mt: 1 }, desc: '간부 신뢰 변화 절반 · 멘탈 +1' },
+    sale: { name: 'PX 반값 세일', emoji: '🏷️', cards: 5, pxDiscount: 0.5, pxOpen: true, desc: 'PX 50% 할인, 언제든 이용 가능' },
+    gifts: { name: '위문품 대량 도착', emoji: '🎁', cards: 3, tick: { bd: 1 }, onStart: { chocopie: 2, banana: 1 }, desc: '초코파이 2개 + 카드마다 전우애 +1' },
+    drill: { name: '훈련 주간', emoji: '🎯', cards: 4, tick: { hp: -2, tr: 1 }, blockLeave: true, desc: '카드마다 체력 -2, 신뢰 +1 · 휴가 통제' },
+    wifi: { name: '사지방 와이파이 고장', emoji: '📵', cards: 3, tick: { mt: -1 }, desc: '카드마다 멘탈 -1' },
+    alert: { name: '경계태세 강화', emoji: '🚨', cards: 4, tick: { tr: 1, mt: -1 }, blockLeave: true, desc: '카드마다 신뢰 +1, 멘탈 -1 · 휴가 통제' },
+    love: { name: '생활관 연애 상담소', emoji: '💘', cards: 3, tick: { bd: 1, mt: 1 }, desc: '카드마다 전우애 +1, 멘탈 +1' }
+  };
+
+  /* ── 동료 호감도: 선물·수다·카드 선택으로 쌓인다. 70 이상이면 절친 효과 ── */
+  JY.NPCS = {
+    dumb: {
+      stat: 'bd', fav: 'chocopie', start: 40,
+      perk: { name: '동기 사랑', desc: '전우애 증가 1.15배', mods: { bd: { pos: 1.15 } } },
+      lines: ['야 나 또 뭐 잃어버렸다…', '초코파이 있냐? 하나만…', '우리 전역하면 뭐 하냐 ㅋㅋ', '나 오늘 이발병 했다! 봐봐!', '안녕하세오', '너밖에 없다 진짜…']
+    },
+    malnyeon: {
+      stat: 'bd', fav: 'buldak', start: 32, avail: { noflag: 'malGone' },
+      perk: { name: '왕고의 비호', desc: '체력·멘탈 소모 0.9배', mods: { hp: { neg: 0.9 }, mt: { neg: 0.9 } } },
+      lines: ['아 몰라~ 나 말년이야~', '야… 전역하면 뭐 하냐…', '내 깔깔이 냄새 맡지 마라', '짬찌가 어디서 눈을… 농담이야', 'Zzz… 충성… Zzz', '라떼는 말이야… 아니다']
+    },
+    fm: {
+      stat: 'tr', fav: 'polish', start: 30,
+      perk: { name: '분대장의 인정', desc: '간부 신뢰 증가 1.15배', mods: { tr: { pos: 1.15 } } },
+      lines: ['규정상 안 됩니다.', '관물대 각 다시.', '…잘했다. 이번만.', '전투화 광택 상태 양호.', 'FM이 답이다.', '분대원 이상 무!']
+    },
+    ppaen: {
+      stat: 'bd', fav: 'banana', start: 30,
+      perk: { name: 'PX 인맥', desc: 'PX 30% 할인', pxDiscount: 0.3 },
+      lines: ['아 귀찮아~', '이거 비밀인데…', 'PX 같이 갈래? 네가 사~', '코인 얘기 들었어?', '청소? 그게 뭔데', '나 오늘 근무 바꿔줄 사람~']
+    },
+    hoobae: {
+      stat: 'bd', fav: 'mandu', start: 35, avail: { flag: 'hoobae' },
+      perk: { name: '충성스러운 후임', desc: '체력 소모 0.85배', mods: { hp: { neg: 0.85 } } },
+      lines: ['이, 이병 오순둥!', '선임님 최고십니다!', '저 잘하고 있습니까…?', '헬멧이 또 눈을…', '집에 가고 싶… 아닙니다!', '선임님 전역하지 마십쇼…']
+    },
+    haeng: {
+      stat: 'tr', fav: 'hot6', start: 20,
+      perk: { name: '행보관의 총애', desc: '간부 신뢰 소모 0.85배', mods: { tr: { neg: 0.85 } } },
+      lines: ['삽 들어.', '풀 보이냐? 뽑아.', '눈은 하늘에서 내리는 쓰레기다.', '…고생했다.', '내 삽돌이 못 봤냐?', '말년? 그게 뭔데.']
+    },
+    cat: {
+      stat: 'mt', fav: 'tuna', start: 20, avail: { vars: { cat: [1, 99] } },
+      perk: { name: '고양이의 축복', desc: '멘탈 증가 1.2배', mods: { mt: { pos: 1.2 } } },
+      lines: ['냥.', '(골골골골골)', '(짬통을 응시한다)', '(전투화에 들어간다)', '냐아앙~', '(꾹꾹이를 한다)']
+    }
+  };
+  JY.NPC_ORDER = ['dumb', 'malnyeon', 'fm', 'ppaen', 'hoobae', 'haeng', 'cat'];
+})(window.JY = window.JY || {});
+
+/* js/data/shop.js */
+/* 다이아(💎) 상점 · 꾸미기 · 보급 상자 · 훈장 · 점수 */
+(function (JY) {
+  'use strict';
+
+  /* 특급 보급품: 다이아로 사서 창고에 쌓아두고, 게임 중 가방에서 꺼내 쓴다 */
+  JY.PREMIUM = {
+    insurance: { name: '전역 보험', icon: '🛡️', price: 40, auto: true, desc: '스탯이 0이나 100에 닿는 순간 50으로 되돌린다. "…꿈이었다!" 한 판에 한 번 자동 발동.' },
+    leave3: { name: '포상휴가증', icon: '🎟️', price: 25, desc: '휴가 +3일.' },
+    insight: { name: '투시경', icon: '🔭', price: 20, desc: '다음 카드 12장 동안 스탯이 오를지(▲) 내릴지(▼) 보인다.' },
+    clover: { name: '네잎클로버', icon: '🍀', price: 20, desc: '다음 카드 15장 동안 운에 맡기는 선택이 유리하게 굴러간다.' },
+    feast: { name: '회식권', icon: '🍖', price: 15, desc: '네 가지 스탯이 모두 50 쪽으로 최대 12씩 돌아온다.' },
+    skip: { name: '짬처리권', icon: '⏭️', price: 10, desc: '지금 카드를 아무 일 없이 넘긴다(이틀이 지난다).' },
+    pxpass: { name: 'PX 프리패스', icon: '💳', price: 10, desc: 'PX를 바로 이용할 수 있고 현금 10만 원을 받는다.' }
+  };
+  JY.PREMIUM_ORDER = ['insurance', 'leave3', 'insight', 'clover', 'feast', 'skip', 'pxpass'];
+
+  /* 꾸미기: 능력치는 없지만 카드·엔딩·랭킹에 내 모습으로 나온다 */
+  JY.COSMETICS = {
+    blush: { slot: 'fx', name: '볼터치', icon: '😊', price: 10, extras: ['blush'] },
+    mustache: { slot: 'face', name: '콧수염', icon: '🥸', price: 20, extras: ['mustache'] },
+    headband: { slot: 'hat', name: '전역 머리띠', icon: '🎌', price: 25, hat: 'headband' },
+    sunglasses: { slot: 'face', name: '선글라스', icon: '😎', price: 30, eyes: 'sunglasses' },
+    sparkle: { slot: 'fx', name: '반짝이 오라', icon: '✨', price: 35, extras: ['sparkles'] },
+    beret: { slot: 'hat', name: '검은 베레모', icon: '🎖️', price: 40, hat: 'beret' },
+    cateears: { slot: 'hat', name: '고양이 귀', icon: '🐱', price: 50, hat: 'cateears' },
+    gold: { slot: 'hat', name: '황금 헬멧', icon: '🪖', price: 80, hat: 'gold' },
+    afro: { slot: 'hat', name: '무지개 아프로', icon: '🌈', price: 0, gacha: 'epic', hat: 'afro' },
+    crown: { slot: 'hat', name: '전역 왕관', icon: '👑', price: 0, gacha: 'legend', hat: 'crown' }
+  };
+  JY.COSMETIC_ORDER = ['blush', 'mustache', 'headband', 'sunglasses', 'sparkle', 'beret', 'cateears', 'gold', 'afro', 'crown'];
+  JY.SLOT_NAMES = { hat: '모자', face: '얼굴', fx: '효과' };
+
+  /* 보급 상자: 30💎 */
+  JY.BOX = {
+    price: 30,
+    tiers: [
+      { id: 'common', name: '일반', color: '#8a8a7a', p: 0.55, pool: ['skip', 'pxpass', 'feast'], count: 2 },
+      { id: 'rare', name: '희귀', color: '#3a86ff', p: 0.28, pool: ['insight', 'clover', 'leave3'], count: 2 },
+      { id: 'epic', name: '영웅', color: '#9b5de5', p: 0.13, pool: ['insurance'], cosmetic: true },
+      { id: 'legend', name: '전설', color: '#f2a516', p: 0.04, legendCos: 'crown', gems: 100 }
+    ]
+  };
+
+  /* 훈장: 처음 달성하면 다이아 보상 */
+  JY.ACHIEVEMENTS = [
+    { id: 'first_run', icon: '🪖', name: '첫 입대', desc: '처음으로 입대했다', gem: 10 },
+    { id: 'first_out', icon: '🎓', name: '민간인', desc: '처음으로 전역했다', gem: 30 },
+    { id: 'end5', icon: '📗', name: '엔딩 수집가', desc: '엔딩 5종 달성', gem: 30 },
+    { id: 'end10', icon: '📘', name: '엔딩 마니아', desc: '엔딩 10종 달성', gem: 50 },
+    { id: 'end19', icon: '📕', name: '엔딩 마스터', desc: '엔딩 19종 전부 달성', gem: 150 },
+    { id: 'sharp', icon: '🎯', name: '특등사수', desc: '사격 9/10 이상', gem: 20 },
+    { id: 'special', icon: '🏃', name: '특급전사', desc: '체력측정 특급 달성', gem: 20 },
+    { id: 'cat', icon: '🐈', name: '집사 등극', desc: '짬타이거 입양 전역', gem: 40 },
+    { id: 'gf', icon: '💐', name: '꽃신', desc: '곰신과 함께 전역', gem: 40 },
+    { id: 'malchul', icon: '🏖️', name: '말출의 달인', desc: '말년휴가 나가서 그대로 전역', gem: 30 },
+    { id: 'rich', icon: '💰', name: '전역 부자', desc: '전역 통장 3,500만 원 이상', gem: 30 },
+    { id: 'noleave', icon: '🫡', name: '휴가 반납', desc: '휴가를 하루도 안 쓰고 전역', gem: 50 },
+    { id: 'emer10', icon: '🚨', name: '돌발 상황 전문가', desc: '돌발 상황 누적 10회 대응', gem: 30 },
+    { id: 'mini10', icon: '🎮', name: '미니게임 고수', desc: '미니게임 대성공 누적 10회', gem: 30 },
+    { id: 'bff3', icon: '🤝', name: '인싸 오브 인싸', desc: '한 판에 절친 3명', gem: 40 },
+    { id: 'allunits', icon: '🗺️', name: '전군 순회', desc: '5개 부대 모두에서 전역', gem: 80 },
+    { id: 'daily', icon: '📅', name: '오늘의 작전', desc: '오늘의 작전에 참가', gem: 10 },
+    { id: 'streak7', icon: '🗓️', name: '개근상', desc: '7일 연속 출석', gem: 50 },
+    { id: 'score20k', icon: '🏆', name: '전설의 예비역', desc: '한 판 20,000점 이상', gem: 60 },
+    { id: 'fail10', icon: '😵', name: '재입대 장인', desc: '전역 실패 누적 10회', gem: 20 }
+  ];
+
+  /* 점수 */
+  JY.SCORE = {
+    endingBonus: { cat: 2000, gf: 1500, elite: 2000, rich: 1000, beloved: 1500, model: 1500, malchul: 800, cast: 500 },
+    titles: [
+      [0, '훈련병급'], [3000, '이병급'], [6000, '일병급'], [9000, '상병급'],
+      [12000, '병장급'], [16000, '모범 예비역'], [20000, '전설의 예비역']
+    ]
+  };
+  JY.scoreTitle = function (score) {
+    var t = JY.SCORE.titles[0][1];
+    JY.SCORE.titles.forEach(function (x) { if (score >= x[0]) t = x[1]; });
+    return t;
+  };
+})(window.JY = window.JY || {});
+
 /* js/core.js */
 /* 전역각 — 게임 규칙 엔진 (DOM 없음: 브라우저와 Node 시뮬레이션 공용) */
 (function (JY) {
@@ -2962,6 +4081,9 @@ button { cursor: pointer; }
   var LEAVE_ON_PROMO = [0, 4, 8, 8, 8]; // 이병(신병위로) 4 + 연가 24일을 진급마다 나눠 지급
   var LEAVE_GAP = 20; // 휴가 사이 최소 간격(일)
   var LEAVE_MAX = 15; // 한 번에 쓸 수 있는 최대 휴가
+  var EMER_BASE = 0.08; // 카드마다 돌발 상황이 터질 기본 확률
+  var COND_CHANCE = 0.4; // 매달 1일 주간 상황이 시작될 확률
+  var BFF = 70; // 절친 기준 호감도
 
   var MOS = {
     infantry: { name: '소총수', emoji: '🎯', start: { hp: 58, mt: 50, tr: 45, bd: 50 }, boost: null,
@@ -3049,11 +4171,21 @@ button { cursor: pointer; }
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   }
 
-  /* ── 유틸 ───────────────────────────────── */
-  function rand() { return (JY.rand || Math.random)(); }
+  /* ── 난수: 오늘의 작전은 시드 고정 ─────────── */
+  var CUR = null;
+  function rand() {
+    if (CUR && typeof CUR.rng === 'number') {
+      CUR.rng = (CUR.rng + 0x6D2B79F5) | 0;
+      var t = Math.imul(CUR.rng ^ (CUR.rng >>> 15), 1 | CUR.rng);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    return (JY.rand || Math.random)();
+  }
   function randInt(a, b) { return a + Math.floor(rand() * (b - a + 1)); }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function asArr(x) { return x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]; }
+  function seedFrom(str) { var h = 2166136261; str = String(str); for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 
   /* 밸런스 조정표: 카드에 적힌 수치를 불러올 때 한 번 보정한다.
    * 카드 전체 평균이 체력·멘탈은 살짝 마이너스(시간이 갈수록 지친다 → 아이템·휴가로 회복),
@@ -3074,10 +4206,11 @@ button { cursor: pointer; }
   function tuneCard(c) {
     if (c.tuned || (c.req && c.req.stat)) return; // 위기 경고 카드는 원래 수치 그대로
     c.tuned = true;
-    [c.l, c.r].forEach(function (o) {
-      tuneFx(o.fx);
-      asArr(o.roll).forEach(function (r) { tuneFx(r.fx); });
-      asArr(o.cases).forEach(function (r) { tuneFx(r.fx); });
+    [c.l, c.r, c.t].forEach(function (op) {
+      if (!op) return;
+      tuneFx(op.fx);
+      asArr(op.roll).forEach(function (r) { tuneFx(r.fx); });
+      asArr(op.cases).forEach(function (r) { tuneFx(r.fx); });
     });
   }
 
@@ -3085,7 +4218,7 @@ button { cursor: pointer; }
   function index() {
     if (INDEX) return INDEX;
     INDEX = {};
-    var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, SPECIAL];
+    var groups = [JY.CARDS.training, JY.CARDS.arrival, JY.CARDS.returns, JY.CARDS.pool, JY.CARDS.emergency || [], SPECIAL];
     for (var g = 0; g < groups.length; g++) for (var i = 0; i < groups[g].length; i++) {
       tuneCard(groups[g][i]);
       INDEX[groups[g][i].id] = groups[g][i];
@@ -3093,6 +4226,10 @@ button { cursor: pointer; }
     return INDEX;
   }
   function getCardDef(id) { return index()[id]; }
+
+  function unitOf(s) { return (JY.UNITS && JY.UNITS[s.unit]) || {}; }
+  function traitOf(s) { return (JY.TRAITS && JY.TRAITS[s.trait]) || {}; }
+  function condDef(id) { return (JY.CONDITIONS && JY.CONDITIONS[id]) || {}; }
 
   /* ── 새 게임 ─────────────────────────────── */
   function newState(opts) {
@@ -3102,11 +4239,13 @@ button { cursor: pointer; }
     var end = addMonths(start, 18) - DAY; // 전역일 = 입대일 + 18개월 - 1일
     var st = MOS[mos].start;
     var state = {
-      v: 1,
+      v: 2,
       name: (opts.name || '나띨빵').slice(0, 8),
       face: opts.face || null,
       mos: mos,
       pace: opts.pace === 3 ? 3 : 1,
+      daily: opts.daily || null,
+      rng: typeof opts.seed === 'number' ? (opts.seed | 0) : null,
       start: start,
       end: end,
       total: Math.round((end - start) / DAY),
@@ -3132,10 +4271,29 @@ button { cursor: pointer; }
       season: seasonOf(ymd(start).m),
       cards: 0,
       minis: { played: 0, great: 0 },
+      emer: { count: 0, ok: 0, since: 0 },
+      conds: [],
+      aff: {},
+      talkDay: {},
+      bffs: {},
+      insurance: opts.insurance ? 1 : 0,
+      insight: 0,
+      luck: 0,
+      gems: 0,
       log: [],
       pendingMini: null,
       over: null
     };
+    CUR = state;
+    var unitIds = JY.UNIT_ORDER || [];
+    state.unit = opts.unit && JY.UNITS && JY.UNITS[opts.unit] ? opts.unit : (unitIds.length ? unitIds[randInt(0, unitIds.length - 1)] : null);
+    state.trait = opts.trait && JY.TRAITS && JY.TRAITS[opts.trait] ? opts.trait : null;
+    var tr = traitOf(state), un = unitOf(state);
+    [tr.start, un.start].forEach(function (d) { if (d) for (var k in d) state.stats[k] = clamp(state.stats[k] + d[k], 10, 90); });
+    if (tr.money) state.money += tr.money;
+    asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
+    if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
+    if (JY.NPCS) for (var n in JY.NPCS) state.aff[n] = JY.NPCS[n].start;
     var seq = JY.CARDS.training.concat(JY.CARDS.arrival);
     for (var i = 0; i < seq.length; i++) state.queue.push(seq[i].id);
     nextCard(state);
@@ -3144,18 +4302,23 @@ button { cursor: pointer; }
 
   /* ── 조건 검사 ───────────────────────────── */
   function daysLeft(s) { return Math.max(0, s.total - s.day); }
+  function monthOf(s) { return ymd(s.start + s.day * DAY).m; }
 
   function checkReq(s, req) {
     if (!req) return true;
     if (req.rank && (s.rank < req.rank[0] || s.rank > req.rank[1])) return false;
     if (req.season && asArr(req.season).indexOf(s.season) < 0) return false;
     if (req.mos && asArr(req.mos).indexOf(s.mos) < 0) return false;
+    if (req.unit && asArr(req.unit).indexOf(s.unit) < 0) return false;
+    if (req.trait && asArr(req.trait).indexOf(s.trait) < 0) return false;
+    if (req.month) { var m = monthOf(s); if (m < req.month[0] || m > req.month[1]) return false; }
     var f = asArr(req.flag);
     for (var i = 0; i < f.length; i++) if (!s.flags[f[i]]) return false;
     var nf = asArr(req.noflag);
     for (var j = 0; j < nf.length; j++) if (s.flags[nf[j]]) return false;
     if (req.vars) for (var k in req.vars) { var v = s.vars[k] || 0; if (v < req.vars[k][0] || v > req.vars[k][1]) return false; }
     if (req.stat) for (var q in req.stat) { var sv = s.stats[q]; if (sv < req.stat[q][0] || sv > req.stat[q][1]) return false; }
+    if (req.aff) for (var a in req.aff) { var av = s.aff[a] || 0; if (av < req.aff[a][0] || av > req.aff[a][1]) return false; }
     if (req.left) { var l = daysLeft(s); if (l < req.left[0] || l > req.left[1]) return false; }
     if (req.minDay && s.day < req.minDay) return false;
     if (req.leaveGte === 'left' && !(s.leave > 0 && s.leave >= daysLeft(s) - 2)) return false;
@@ -3172,13 +4335,24 @@ button { cursor: pointer; }
     return checkReq(s, c.req);
   }
 
+  function cardWeight(s, c) {
+    var w = c.w || 1;
+    if (c.who === s.lastWho) w *= 0.35;
+    var un = unitOf(s), tr = traitOf(s);
+    if (un.seasonW && c.req && c.req.season) {
+      asArr(c.req.season).forEach(function (se) { if (un.seasonW[se] && se === s.season) w *= un.seasonW[se]; });
+    }
+    if (c.req && c.req.unit) w *= 1.4; // 자대 전용 카드는 조금 더 자주
+    if (tr.catW && c.who === 'cat') w *= tr.catW;
+    return w;
+  }
+
   function pickRandom(s) {
     var pool = JY.CARDS.pool, list = [], total = 0;
     for (var i = 0; i < pool.length; i++) {
       var c = pool[i];
       if (!eligible(s, c)) continue;
-      var w = c.w || 1;
-      if (c.who === s.lastWho) w *= 0.35;
+      var w = cardWeight(s, c);
       list.push([c, w]); total += w;
     }
     if (!list.length) return 'quiet';
@@ -3187,11 +4361,28 @@ button { cursor: pointer; }
     return list[list.length - 1][0].id;
   }
 
+  function pickEmergency(s) {
+    var em = JY.CARDS.emergency || [];
+    if (s.rank < 1 || s.emer.since < 3 || !em.length) return null;
+    var chance = EMER_BASE * (unitOf(s).emerMult || 1) * (traitOf(s).emerMult || 1);
+    if (rand() >= chance) return null;
+    var list = em.filter(function (c) {
+      if (s.seen[c.id] !== undefined && s.day - s.seen[c.id] < 150 * s.pace) return false;
+      return checkReq(s, c.req);
+    });
+    if (!list.length) return null;
+    return list[randInt(0, list.length - 1)].id;
+  }
+
   function nextCard(s) {
     var id = null;
     while (s.queue.length && !id) {
       var q = s.queue.shift();
       if (getCardDef(q)) id = q;
+    }
+    if (!id) {
+      id = pickEmergency(s);
+      if (id) s.emer.since = 0;
     }
     if (!id) id = pickRandom(s);
     s.current = id;
@@ -3200,39 +4391,53 @@ button { cursor: pointer; }
 
   /* ── 텍스트 치환 ─────────────────────────── */
   function fill(s, text) {
+    var un = unitOf(s);
     return String(text || '')
       .replace(/\{name\}/g, s.name)
       .replace(/\{rank\}/g, RANKS[s.rank])
       .replace(/\{left\}/g, daysLeft(s))
-      .replace(/\{leave\}/g, s.leave);
+      .replace(/\{leave\}/g, s.leave)
+      .replace(/\{unit\}/g, un.name || '○○사단')
+      .replace(/\{place\}/g, un.place || '강원도');
   }
 
   function currentCard(s) {
     var c = getCardDef(s.current);
     if (!c) { s.current = 'quiet'; c = getCardDef('quiet'); }
-    return {
+    var res = {
       id: c.id, who: c.who, bg: c.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
-      catFish: c.catFish, catCap: c.catCap,
+      catFish: c.catFish, catCap: c.catCap, urgent: c.urgent || 0,
       text: fill(s, c.text),
-      l: { t: fill(s, c.l.t), preview: preview(c.l) },
-      r: { t: fill(s, c.r.t), preview: preview(c.r) }
+      l: { t: fill(s, c.l.t), preview: preview(c.l, s) },
+      r: { t: fill(s, c.r.t), preview: preview(c.r, s) }
     };
+    if (c.t) res.t = { t: fill(s, c.t.t) };
+    return res;
   }
 
-  // 선택지가 건드리는 스탯 (Reigns처럼 방향은 숨기고 크기만 보여준다)
-  function preview(opt) {
-    var p = {};
-    function add(fx) { for (var k in fx) { var a = Math.abs(fx[k]); if (a && (!p[k] || a > p[k])) p[k] = a; } }
-    add(opt.fx || {});
-    asArr(opt.roll).forEach(function (r) { add(r.fx || {}); });
-    asArr(opt.cases).forEach(function (r) { add(r.fx || {}); });
+  // 선택지가 건드리는 스탯 (Reigns처럼 방향은 숨기고 크기만 보여준다. 투시경·눈치백단이면 방향도)
+  function preview(opt, s) {
+    var p = {}, ev = {};
+    function add(fx, w) { for (var k in fx) { var a = Math.abs(fx[k]); if (a && (!p[k] || a > p[k])) p[k] = a; ev[k] = (ev[k] || 0) + fx[k] * w; } }
+    add(opt.fx || {}, 1);
+    asArr(opt.roll).forEach(function (r) { add(r.fx || {}, r.p); });
+    asArr(opt.cases).forEach(function (r, i, arr) { add(r.fx || {}, 1 / arr.length); });
     var out = {};
     for (var k in p) out[k] = p[k] >= 10 ? 'big' : 'small';
     if (opt.mini) out.mini = true;
+    if (s) {
+      var see = s.insight > 0 ? STATS : (traitOf(s).insightStat ? [traitOf(s).insightStat] : []);
+      if (see.length) {
+        out.dir = {};
+        see.forEach(function (k) { if (out[k] && ev[k]) out.dir[k] = ev[k] > 0 ? 1 : -1; });
+      }
+    }
     return out;
   }
 
   /* ── 결과 적용 ───────────────────────────── */
+  function fxSum(fx) { var t = 0; for (var k in (fx || {})) t += fx[k]; return t; }
+
   function resolveOutcome(s, opt) {
     var out = {};
     var k;
@@ -3240,9 +4445,20 @@ button { cursor: pointer; }
     out.fx = {};
     for (k in (opt.fx || {})) out.fx[k] = opt.fx[k];
     var extra = null;
-    if (opt.roll) {
+    function roll() {
       var r = rand(), acc = 0;
-      for (var i = 0; i < opt.roll.length; i++) { acc += opt.roll[i].p; if (r < acc || i === opt.roll.length - 1) { extra = opt.roll[i]; break; } }
+      for (var i = 0; i < opt.roll.length; i++) { acc += opt.roll[i].p; if (r < acc || i === opt.roll.length - 1) return opt.roll[i]; }
+      return opt.roll[opt.roll.length - 1];
+    }
+    if (opt.roll) {
+      extra = roll();
+      var lucky = s.luck > 0 || (traitOf(s).luck && rand() < traitOf(s).luck);
+      if (lucky) {
+        var second = roll();
+        var score2 = fxSum(second.fx) + (second.gem || 0) + (second.leave || 0) * 4 + (second.end ? -999 : 0);
+        var score1 = fxSum(extra.fx) + (extra.gem || 0) + (extra.leave || 0) * 4 + (extra.end ? -999 : 0);
+        if (score2 > score1) extra = second;
+      }
     } else if (opt.cases) {
       for (var j = 0; j < opt.cases.length; j++) { if (!opt.cases[j].if || checkReq(s, opt.cases[j].if)) { extra = opt.cases[j]; break; } }
     }
@@ -3250,34 +4466,85 @@ button { cursor: pointer; }
       for (k in extra) {
         if (k === 'fx') { for (var f in extra.fx) out.fx[f] = (out.fx[f] || 0) + extra.fx[f]; }
         else if (k === 'say') { out.say = (out.say ? out.say + ' ' : '') + extra.say; }
+        else if (k === 'item') { out.item = out.item || {}; for (var it in extra.item) out.item[it] = (out.item[it] || 0) + extra.item[it]; }
+        else if (k === 'money') { out.money = (out.money || 0) + extra.money; }
         else if (k !== 'p' && k !== 'if') out[k] = extra[k];
       }
     }
     return out;
   }
 
-  function applyStats(s, fx, res, soft) {
-    var mos = MOS[s.mos];
+  // 특성·부대·보직·주간 상황·절친 효과를 모아 스탯 변화 배수를 만든다
+  function statMult(s, k, v) {
+    var m = 1;
+    var key = v > 0 ? 'pos' : 'neg';
+    if (v > 0 && MOS[s.mos].boost === k) m *= 1.25;
+    var srcs = [traitOf(s).mods, unitOf(s).mods];
+    s.conds.forEach(function (c) { srcs.push(condDef(c.id).mods); });
+    if (JY.NPCS) for (var n in s.bffs) if (s.bffs[n] && JY.NPCS[n]) srcs.push(JY.NPCS[n].perk.mods);
+    srcs.forEach(function (md) { if (md && md[k] && md[k][key]) m *= md[k][key]; });
+    return m;
+  }
+
+  function applyStats(s, fx, res, soft, lo, hi) {
     for (var k in fx) {
       if (STATS.indexOf(k) < 0) continue;
       var v = fx[k];
-      if (v > 0 && mos.boost === k) v = Math.round(v * 1.25);
+      if (!soft && v) v = Math.round(v * statMult(s, k, v));
       var before = s.stats[k];
       var after = clamp(before + v, 0, 100);
-      if (soft) { // 아이템/휴가: 5~95 바깥으로는 밀지 않는다
-        if (v > 0) after = Math.max(before, Math.min(after, 95));
-        else after = Math.min(before, Math.max(after, 5));
+      if (soft) { // 아이템/휴가/주간 상황: 경계 바깥으로는 밀지 않는다
+        var a = lo === undefined ? 5 : lo, b = hi === undefined ? 95 : hi;
+        if (v > 0) after = Math.max(before, Math.min(after, b));
+        else after = Math.min(before, Math.max(after, a));
       }
       s.stats[k] = after;
       res.deltas[k] = (res.deltas[k] || 0) + (after - before);
     }
   }
 
-  function gainLeave(s, n, res, why) {
+  function gainLeave(s, n, res, why, raw) {
     if (!n) return;
-    if (n > 0 && s.mos === 'infantry') n = Math.ceil(n * 1.5);
+    if (n > 0 && !raw) {
+      if (s.mos === 'infantry') n = Math.ceil(n * 1.5);
+      if (unitOf(s).leaveReward) n += unitOf(s).leaveReward;
+    }
     s.leave = Math.max(0, s.leave + n);
     if (n > 0) res.events.push({ type: 'leave', n: n, text: (why || '포상휴가') + ' +' + n + '일' });
+  }
+
+  function gainGem(s, n, res) {
+    if (!n) return;
+    n = Math.round(n * (traitOf(s).gemMult || 1));
+    s.gems += n;
+    res.events.push({ type: 'gem', n: n });
+  }
+
+  function startCond(s, id, res) {
+    var d = condDef(id);
+    if (!d.name) return;
+    var ex = s.conds.filter(function (c) { return c.id === id; })[0];
+    if (ex) { ex.left = Math.max(ex.left, d.cards); return; }
+    if (s.conds.length >= 2) s.conds.shift();
+    s.conds.push({ id: id, left: d.cards });
+    if (d.onStart) for (var it in d.onStart) s.items[it] = clamp((s.items[it] || 0) + d.onStart[it], 0, 9);
+    res.events.push({ type: 'cond', id: id, text: d.emoji + ' ' + d.name + ' 시작! (' + d.desc + ')' });
+  }
+
+  function changeAff(s, who, n, res) {
+    if (!JY.NPCS || !JY.NPCS[who] || !n) return;
+    if (who === 'cat' && traitOf(s).catW) n *= 2;
+    var before = s.aff[who] || 0;
+    var after = clamp(Math.round(before + n), 0, 100);
+    s.aff[who] = after;
+    if (after !== before) res.events.push({ type: 'aff', who: who, n: after - before });
+    if (after >= BFF && !s.bffs[who]) {
+      s.bffs[who] = true;
+      res.events.push({ type: 'bff', who: who, text: JY.NPCS[who].perk.name + ' — ' + JY.NPCS[who].perk.desc });
+      addLog(s, (JY.CHARS[who] ? JY.CHARS[who].name : who) + '와(과) 절친');
+    } else if (after < BFF - 10 && s.bffs[who]) {
+      s.bffs[who] = false;
+    }
   }
 
   function applyOutcome(s, out, res) {
@@ -3298,6 +4565,9 @@ button { cursor: pointer; }
       res.events.push({ type: 'item', id: it, n: out.item[it] });
     }
     if (out.leave) gainLeave(s, out.leave, res);
+    if (out.gem) gainGem(s, out.gem, res);
+    if (out.cond) startCond(s, out.cond, res);
+    if (out.aff) for (var w in out.aff) changeAff(s, w, out.aff[w], res);
     asArr(out.set).forEach(function (f) { s.flags[f] = true; logFlag(s, f); });
     asArr(out.unset).forEach(function (f) { delete s.flags[f]; });
     if (out.add) for (var v in out.add) s.vars[v] = (s.vars[v] || 0) + out.add[v];
@@ -3318,11 +4588,21 @@ button { cursor: pointer; }
   function logFlag(s, f) { if (FLAG_LOG[f]) addLog(s, FLAG_LOG[f]); }
   function addLog(s, text) { s.log.push({ day: s.day, text: text }); if (s.log.length > 30) s.log.shift(); }
 
-  function edgeEnding(s) {
+  function edgeEnding(s, res) {
     for (var i = 0; i < STATS.length; i++) {
       var k = STATS[i];
-      if (s.stats[k] <= 0) return k + '0';
-      if (s.stats[k] >= 100) return k + '100';
+      var hit = s.stats[k] <= 0 ? k + '0' : s.stats[k] >= 100 ? k + '100' : null;
+      if (!hit) continue;
+      if (s.insurance > 0) { // 전역 보험: 한 번 살려준다
+        s.insurance = 0;
+        var before = s.stats[k];
+        s.stats[k] = 50;
+        res.deltas[k] = (res.deltas[k] || 0) + (50 - before);
+        res.events.push({ type: 'insurance', stat: k, text: '🛡️ 전역 보험 발동! "…꿈이었다!" ' + STAT_NAMES[k] + '이(가) 50으로 돌아왔다.' });
+        addLog(s, '전역 보험 발동');
+        continue;
+      }
+      return hit;
     }
     return null;
   }
@@ -3334,10 +4614,33 @@ button { cursor: pointer; }
       s.day += 1;
       var date = ymd(s.start + s.day * DAY);
       if (date.d === 10 && s.day > 0) payday(s, res);
+      if (date.d === 1 && s.rank >= 1 && rand() < COND_CHANCE) monthlyCond(s, res);
       while (s.rank < 4 && s.day >= s.promo[s.rank + 1]) promote(s, res);
       var se = seasonOf(date.m);
       if (se !== s.season) { s.season = se; res.events.push({ type: 'season', season: se, text: SEASON_MSG[se] }); }
     }
+  }
+
+  function monthlyCond(s, res) {
+    if (!JY.CONDITIONS) return;
+    var ids = Object.keys(JY.CONDITIONS).filter(function (id) {
+      var d = JY.CONDITIONS[id];
+      if (d.season && d.season !== s.season) return false;
+      return !s.conds.some(function (c) { return c.id === id; });
+    });
+    if (ids.length) startCond(s, ids[randInt(0, ids.length - 1)], res);
+  }
+
+  function tickConds(s, res) {
+    var keep = [];
+    s.conds.forEach(function (c) {
+      var d = condDef(c.id);
+      if (d.tick) applyStats(s, d.tick, res, true, 3, 97);
+      c.left -= 1;
+      if (c.left > 0) keep.push(c);
+      else res.events.push({ type: 'condEnd', id: c.id, text: (d.emoji || '') + ' ' + (d.name || '') + ' 끝' });
+    });
+    s.conds = keep;
   }
 
   function payday(s, res) {
@@ -3355,14 +4658,13 @@ button { cursor: pointer; }
       s.delays[next] += 1;
       s.promo[next] = firstOfMonthOffset(s.start + s.promo[next] * DAY, 1);
       for (var k = next + 1; k <= 4; k++) s.promo[k] = Math.max(s.promo[k], firstOfMonthOffset(s.start + s.promo[k] * DAY, 1));
-      applyStats(s, { mt: -8 }, res);
+      applyStats(s, { mt: -8 }, res, true, 3, 97);
       res.events.push({ type: 'promoFail', rank: next, text: RANKS[next] + ' 진급 누락! 간부 신뢰가 너무 낮다. 한 달 뒤 재심사.' });
       addLog(s, RANKS[next] + ' 진급 누락');
-      // 무한 루프 방지: promo가 미래로 갔으니 while 탈출
       return;
     }
     s.rank = next;
-    var add = LEAVE_ON_PROMO[next];
+    var add = LEAVE_ON_PROMO[next] + (next >= 2 ? (unitOf(s).leaveBonus || 0) : 0);
     s.leave += add;
     res.events.push({ type: 'promo', rank: next, leave: add, text: RANKS[next] + ' 진급!' + (add ? ' 휴가 +' + add + '일' : '') });
     addLog(s, RANKS[next] + ' 진급');
@@ -3375,15 +4677,19 @@ button { cursor: pointer; }
   }
 
   function finishTurn(s, res, days) {
-    var e = edgeEnding(s);
+    var e = edgeEnding(s, res);
     if (e) { end(s, e, res); return res; }
+    tickConds(s, res);
+    if (s.insight > 0) s.insight -= 1;
+    if (s.luck > 0) s.luck -= 1;
     var before = s.rank;
     advance(s, days, res);
-    if (before < 1 && s.rank >= 1) addLog(s, '훈련소 수료, 자대 배치');
+    if (before < 1 && s.rank >= 1) addLog(s, '훈련소 수료, ' + (unitOf(s).name || '자대') + ' 배치');
     if (s.day >= s.total) { discharge(s, res); return res; }
-    e = edgeEnding(s); // 진급 누락 등으로 바뀐 경우
+    e = edgeEnding(s, res); // 진급 누락 등으로 바뀐 경우
     if (e) { end(s, e, res); return res; }
     s.cards += 1;
+    s.emer.since += 1;
     nextCard(s);
     return res;
   }
@@ -3393,13 +4699,26 @@ button { cursor: pointer; }
   /* ── 플레이어 행동 ───────────────────────── */
   function choose(s, side) {
     if (s.over || s.pendingMini) return null;
+    CUR = s;
     var c = getCardDef(s.current);
-    var opt = side === 'l' || side === 'left' ? c.l : c.r;
+    var opt = side === 'l' || side === 'left' ? c.l : side === 't' && c.t ? c.t : c.r;
     var out = resolveOutcome(s, opt);
     var res = newRes();
     applyOutcome(s, out, res);
     s.seen[c.id] = s.day;
     s.lastWho = c.who;
+    if (c.urgent) {
+      s.emer.count += 1;
+      if (side !== 't') s.emer.ok += 1;
+      res.emergency = true;
+      res.timeout = side === 't';
+    }
+    // 카드 속 동료와의 호감도: 그 동료가 신경 쓰는 스탯이 오르면 좋아한다
+    if (JY.NPCS && JY.NPCS[c.who] && !(out.aff && out.aff[c.who])) {
+      var npc = JY.NPCS[c.who];
+      var d = res.deltas[npc.stat] || 0;
+      if (d) changeAff(s, c.who, d * 0.6, res);
+    }
     if (res.ending) { end(s, res.ending, res); return res; }
     if (out.mini) {
       s.pendingMini = { id: out.mini, days: cardDays(s, c, out) };
@@ -3412,6 +4731,7 @@ button { cursor: pointer; }
   function finishMini(s, tier) {
     var pm = s.pendingMini;
     if (!pm) return null;
+    CUR = s;
     s.pendingMini = null;
     var def = MINI[pm.id];
     var r = def[tier] || def.good;
@@ -3420,9 +4740,57 @@ button { cursor: pointer; }
     if (tier === 'great') s.minis.great += 1;
     applyOutcome(s, { fx: r.fx, say: r.say, set: r.set }, res);
     if (r.leave) gainLeave(s, r.leave, res);
+    if (tier === 'great') gainGem(s, 3, res);
     if (pm.id === 'shoot' && rand() < 0.3) s.queue.unshift('shell_lost');
     res.tier = tier;
     return finishTurn(s, res, pm.days);
+  }
+
+  /* ── 동료와 상호작용 ─────────────────────── */
+  function npcAvailable(s, who) {
+    var n = JY.NPCS && JY.NPCS[who];
+    if (!n || s.rank < 1) return false;
+    return checkReq(s, n.avail);
+  }
+
+  function talk(s, who) {
+    CUR = s;
+    if (!npcAvailable(s, who)) return null;
+    var res = newRes();
+    var last = s.talkDay[who];
+    var lines = JY.NPCS[who].lines;
+    res.line = lines[randInt(0, lines.length - 1)];
+    if (last !== undefined && s.day - last < 6) { res.cooldown = 6 - (s.day - last); return res; }
+    s.talkDay[who] = s.day;
+    changeAff(s, who, 4, res);
+    applyStats(s, { mt: 3 }, res, true);
+    return res;
+  }
+
+  // 카드 속 동료를 톡 건드리면 호감도 +1 (카드당 한 번)
+  function poke(s, who) {
+    if (!JY.NPCS || !JY.NPCS[who] || s.poked === s.current) return null;
+    s.poked = s.current;
+    var res = newRes();
+    changeAff(s, who, 1, res);
+    return res;
+  }
+
+  function gift(s, who, item) {
+    CUR = s;
+    if (!npcAvailable(s, who) || !(s.items[item] > 0)) return null;
+    var res = newRes();
+    s.items[item] -= 1;
+    var fav = JY.NPCS[who].fav === item;
+    if (who === 'cat' && item !== 'tuna' && item !== 'homefood') {
+      res.say = '짬타이거가 냄새만 맡고 고개를 돌렸다. 고양이는 참치를 원한다.';
+      changeAff(s, who, 2, res);
+      return res;
+    }
+    changeAff(s, who, fav ? 18 : 8, res);
+    applyStats(s, { bd: fav ? 4 : 2 }, res, true);
+    res.fav = fav;
+    return res;
   }
 
   /* ── 휴가 ───────────────────────────────── */
@@ -3430,7 +4798,10 @@ button { cursor: pointer; }
     if (s.over) return { ok: false, reason: '게임이 끝났다.' };
     if (s.rank < 1) return { ok: false, reason: '훈련병은 휴가가 없다. 수료부터 하자.' };
     if (s.pendingMini) return { ok: false, reason: '지금은 바쁘다!' };
+    if (getCardDef(s.current) && getCardDef(s.current).urgent) return { ok: false, reason: '돌발 상황 중이다!' };
     if (s.leave < 1) return { ok: false, reason: '남은 휴가가 없다. 포상휴가를 노려보자.' };
+    var blockCond = s.conds.filter(function (c) { return condDef(c.id).blockLeave; })[0];
+    if (blockCond) return { ok: false, reason: condDef(blockCond.id).name + ' 중에는 휴가 통제다. 카드 ' + blockCond.left + '장 뒤 해제.' };
     if (s.day < s.blockUntil) return { ok: false, reason: '휴가 통제 중이다. ' + (s.blockUntil - s.day) + '일 뒤 해제.' };
     var gap = s.lastLeaveEnd + LEAVE_GAP - s.day;
     if (gap > 0) return { ok: false, reason: '복귀한 지 얼마 안 됐다. ' + gap + '일 뒤 신청 가능.' };
@@ -3445,6 +4816,7 @@ button { cursor: pointer; }
   ];
 
   function takeLeave(s, n) {
+    CUR = s;
     var st = leaveStatus(s);
     if (!st.ok) return null;
     n = clamp(Math.round(n), 1, Math.min(s.leave, LEAVE_MAX));
@@ -3480,10 +4852,23 @@ button { cursor: pointer; }
   }
 
   /* ── PX & 아이템 ─────────────────────────── */
+  function pxDiscount(s) {
+    var keep = 1;
+    if (unitOf(s).pxDiscount) keep *= 1 - unitOf(s).pxDiscount;
+    if (s.bffs.ppaen && JY.NPCS) keep *= 1 - (JY.NPCS.ppaen.perk.pxDiscount || 0);
+    s.conds.forEach(function (c) { if (condDef(c.id).pxDiscount) keep *= 1 - condDef(c.id).pxDiscount; });
+    return 1 - keep;
+  }
+  function pxPrice(s, id) {
+    var it = JY.ITEMS[id];
+    return Math.max(100, Math.round(it.price * (1 - pxDiscount(s)) / 100) * 100);
+  }
+
   function pxStatus(s) {
     if (s.over) return { ok: false, reason: '' };
     if (s.rank < 1) return { ok: false, reason: '훈련소에는 PX가 없다(있어도 못 간다).' };
     if (s.pendingMini) return { ok: false, reason: '지금은 바쁘다!' };
+    if (s.conds.some(function (c) { return condDef(c.id).pxOpen; })) return { ok: true };
     if (s.day < s.pxDay) return { ok: false, reason: 'PX는 개인정비 시간에만! ' + (s.pxDay - s.day) + '일 뒤 이용 가능.' };
     return { ok: true };
   }
@@ -3491,9 +4876,10 @@ button { cursor: pointer; }
   function buy(s, id) {
     var it = JY.ITEMS[id];
     if (!it || it.px === false) return false;
-    if (s.money < it.price) return false;
+    var price = pxPrice(s, id);
+    if (s.money < price) return false;
     if ((s.items[id] || 0) >= 9) return false;
-    s.money -= it.price;
+    s.money -= price;
     s.items[id] = (s.items[id] || 0) + 1;
     return true;
   }
@@ -3502,19 +4888,54 @@ button { cursor: pointer; }
 
   function useItem(s, id) {
     if (s.over || !(s.items[id] > 0)) return null;
+    CUR = s;
     var it = JY.ITEMS[id];
     var res = newRes();
     s.items[id] -= 1;
-    applyStats(s, it.fx, res, true);
+    var fx = {};
+    var mult = JY.FOOD && JY.FOOD[id] && traitOf(s).itemMult ? traitOf(s).itemMult : 1;
+    for (var k in it.fx) fx[k] = Math.round(it.fx[k] * (it.fx[k] > 0 ? mult : 1));
+    applyStats(s, fx, res, true);
     return res;
   }
 
-  /* ── 엔딩 ───────────────────────────────── */
+  /* ── 특급 보급품 (다이아) ─────────────────── */
+  function usePremium(s, id) {
+    if (s.over || s.pendingMini) return null;
+    CUR = s;
+    var res = newRes();
+    switch (id) {
+      case 'leave3': gainLeave(s, 3, res, '포상휴가증', true); res.say = '포상휴가증 사용! 휴가 +3일.'; return res;
+      case 'insight': s.insight += 12; res.say = '투시경 장착! 카드 12장 동안 ▲▼ 방향이 보인다.'; return res;
+      case 'clover': s.luck += 15; res.say = '네잎클로버를 전투모에 꽂았다. 카드 15장 동안 운이 따른다.'; return res;
+      case 'feast': {
+        var fx = {};
+        STATS.forEach(function (k) { var d = 50 - s.stats[k]; fx[k] = clamp(d, -12, 12); });
+        applyStats(s, fx, res, true, 0, 100);
+        res.say = '중대 회식! 삼겹살과 함께 모든 게 제자리로 돌아왔다.';
+        return res;
+      }
+      case 'pxpass': s.pxDay = s.day; s.money += 100000; res.say = 'PX 프리패스! 현금 10만 원과 함께 PX가 열렸다.'; res.events.push({ type: 'money', n: 100000 }); return res;
+      case 'skip': {
+        var c = getCardDef(s.current);
+        if (c) s.seen[c.id] = s.day;
+        res.say = '짬처리 완료. 아무 일도 없었던 걸로.';
+        res.skipped = true;
+        return finishTurn(s, res, 2 * s.pace);
+      }
+      default: return null;
+    }
+  }
+
+  /* ── 엔딩 & 점수 ─────────────────────────── */
   function end(s, id, res) {
     s.over = { id: id, list: [id], good: !!(JY.ENDINGS[id] && JY.ENDINGS[id].good), day: s.day };
+    s.over.score = score(s);
     res.ending = id;
     addLog(s, '엔딩: ' + (JY.ENDINGS[id] ? JY.ENDINGS[id].title : id));
   }
+
+  function bffCount(s) { var n = 0; for (var k in s.bffs) if (s.bffs[k]) n++; return n; }
 
   function dischargeEndings(s) {
     var list = [];
@@ -3524,7 +4945,7 @@ button { cursor: pointer; }
     if (s.flags.cast) list.push('cast');
     if (s.flags.special && s.flags.sharp) list.push('elite');
     if (s.flags.coinWin) list.push('rich');
-    if (s.flags.hoobae && st.bd >= 70) list.push('beloved');
+    if (s.flags.hoobae && (st.bd >= 70 || (s.aff.hoobae || 0) >= BFF)) list.push('beloved');
     var balanced = true;
     for (var i = 0; i < STATS.length; i++) if (st[STATS[i]] < 30 || st[STATS[i]] > 75) balanced = false;
     if (balanced) list.push('model');
@@ -3536,6 +4957,7 @@ button { cursor: pointer; }
   function discharge(s, res) {
     var list = dischargeEndings(s);
     s.over = { id: list[0], list: list, good: true, day: s.total };
+    s.over.score = score(s);
     res.ending = list[0];
     addLog(s, '전역!');
   }
@@ -3545,6 +4967,25 @@ button { cursor: pointer; }
     return { cash: s.money, savings: s.savings, matched: matched, total: s.money + s.savings + matched };
   }
 
+  function score(s) {
+    var o2 = s.over || { good: false, list: [], day: s.day };
+    var served = o2.good ? s.total + 1 : s.day;
+    var parts = [];
+    function add(label, n) { if (n) parts.push({ label: label, n: Math.round(n) }); }
+    add('복무 ' + served + '일 × 10', served * 10);
+    if (o2.good) add('전역 성공', 3000);
+    var eb = (JY.SCORE && JY.SCORE.endingBonus) || {};
+    o2.list.forEach(function (id) { if (eb[id]) add((JY.ENDINGS[id] ? JY.ENDINGS[id].title : id) + ' 달성', eb[id]); });
+    add('미니게임 대성공 ' + s.minis.great + '회', s.minis.great * 200);
+    add('돌발 상황 대응 ' + s.emer.ok + '회', s.emer.ok * 150);
+    add('절친 ' + bffCount(s) + '명', bffCount(s) * 300);
+    if (o2.good) add('전역 통장', Math.floor(bank(s).total / 20000));
+    var base = parts.reduce(function (a, p) { return a + p.n; }, 0);
+    var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1);
+    var total = Math.round(base * mult);
+    return { total: total, base: base, mult: mult, parts: parts, title: JY.scoreTitle ? JY.scoreTitle(total) : '' };
+  }
+
   function progress(s) { return clamp(s.day / s.total, 0, 1); }
   function dateOf(s, offset) { return fmtDate(s.start + (offset === undefined ? s.day : offset) * DAY); }
   function nextPromo(s) {
@@ -3552,16 +4993,368 @@ button { cursor: pointer; }
     return { rank: RANKS[s.rank + 1], date: dateOf(s, s.promo[s.rank + 1]), inDays: Math.max(0, s.promo[s.rank + 1] - s.day) };
   }
 
+  /* ── 오늘의 작전: 날짜로 정해지는 고정 조건 ─── */
+  function dailyConfig(dateStr) {
+    dateStr = dateStr || todayStr();
+    var seed = seedFrom('jeonyeok-' + dateStr);
+    var r = (seed >>> 0);
+    function pickFrom(arr, salt) { return arr[((r ^ Math.imul(salt, 2654435761)) >>> 0) % arr.length]; }
+    var mosIds = Object.keys(MOS);
+    return {
+      date: dateStr, seed: seed,
+      unit: pickFrom(JY.UNIT_ORDER || ['gop'], 1),
+      trait: pickFrom(JY.TRAIT_ORDER || ['lucky'], 7),
+      mos: pickFrom(mosIds, 13),
+      start: dateStr, pace: 3
+    };
+  }
+
+  // 저장본 호환: 1판 저장(v1)에 새 필드 채우기
+  function migrate(s) {
+    if (!s) return s;
+    if (!s.conds) s.conds = [];
+    if (!s.aff) { s.aff = {}; if (JY.NPCS) for (var n in JY.NPCS) s.aff[n] = JY.NPCS[n].start; }
+    if (!s.talkDay) s.talkDay = {};
+    if (!s.bffs) s.bffs = {};
+    if (!s.emer) s.emer = { count: 0, ok: 0, since: 0 };
+    if (s.insight === undefined) s.insight = 0;
+    if (s.luck === undefined) s.luck = 0;
+    if (s.gems === undefined) s.gems = 0;
+    if (s.insurance === undefined) s.insurance = 0;
+    if (!s.unit) s.unit = 'gop';
+    if (s.rng === undefined) s.rng = null;
+    s.v = 2;
+    return s;
+  }
+
   JY.Game = {
-    STATS: STATS, STAT_NAMES: STAT_NAMES, RANKS: RANKS, MOS: MOS, MINI: MINI, PAY: PAY,
+    STATS: STATS, STAT_NAMES: STAT_NAMES, RANKS: RANKS, MOS: MOS, MINI: MINI, PAY: PAY, BFF: BFF,
     SEASON_NAMES: SEASON_NAMES, LEAVE_MAX: LEAVE_MAX, TRAIN_DAYS: TRAIN_DAYS,
     newState: newState, currentCard: currentCard, choose: choose, finishMini: finishMini,
     leaveStatus: leaveStatus, takeLeave: takeLeave,
-    pxStatus: pxStatus, buy: buy, closePX: closePX, useItem: useItem,
-    daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank,
+    pxStatus: pxStatus, pxPrice: pxPrice, buy: buy, closePX: closePX, useItem: useItem, usePremium: usePremium,
+    talk: talk, gift: gift, poke: poke, npcAvailable: npcAvailable, bffCount: bffCount,
+    daysLeft: daysLeft, progress: progress, dateOf: dateOf, nextPromo: nextPromo, bank: bank, score: score,
+    dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
-    _index: index, _eligible: eligible, _checkReq: checkReq
+    unitOf: unitOf, traitOf: traitOf, condDef: condDef,
+    _index: index, _eligible: eligible, _checkReq: checkReq, _setCur: function (s) { CUR = s; }
   };
+})(window.JY = window.JY || {});
+
+/* js/meta.js */
+/* 판을 넘어 쌓이는 것들: 다이아, 상점, 보급 상자, 훈장, 출석, 기록 (DOM 없음) */
+(function (JY) {
+  'use strict';
+
+  var KEY = 'jy.meta.v1';
+  var M = null;
+
+  function lsGet(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 불가 환경 */ } }
+  function today() { return JY.Game.todayStr(); }
+  function dayDiff(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); }
+
+  function blank() {
+    return {
+      v: 2, endings: {}, runs: 0, discharges: 0, fails: 0, best: 0,
+      gems: 0, gemsTotal: 0, welcome: false,
+      stash: {}, cos: { owned: {}, eq: { hat: null, face: null, fx: null } },
+      ach: {}, stats: { emer: 0, miniGreat: 0, units: {} },
+      records: [], daily: {}, login: { last: null, streak: 0 }, lastName: ''
+    };
+  }
+
+  function load() {
+    var m = lsGet(KEY) || {};
+    var b = blank();
+    for (var k in b) if (m[k] === undefined) m[k] = b[k];
+    m.cos.owned = m.cos.owned || {}; m.cos.eq = m.cos.eq || { hat: null, face: null, fx: null };
+    m.stats.units = m.stats.units || {};
+    if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; }
+    M = m;
+    save();
+    return M;
+  }
+  function save() { if (M) lsSet(KEY, M); }
+  function get() { return M || load(); }
+
+  function addGems(n) {
+    var m = get();
+    n = Math.max(0, Math.round(n));
+    m.gems += n; m.gemsTotal += n;
+    save();
+    return n;
+  }
+  function spend(n) {
+    var m = get();
+    if (m.gems < n) return false;
+    m.gems -= n; save();
+    return true;
+  }
+
+  /* 출석 체크 */
+  function attendance() {
+    var m = get(), t = today();
+    if (m.login.last === t) return null;
+    var streak = m.login.last && dayDiff(m.login.last, t) === 1 ? m.login.streak + 1 : 1;
+    m.login = { last: t, streak: streak };
+    var reward = 10 + Math.min(streak - 1, 6) * 3;
+    addGems(reward);
+    var ach = [];
+    if (streak >= 7) ach = unlock(['streak7']);
+    save();
+    return { reward: reward, streak: streak, ach: ach };
+  }
+
+  /* 상점 */
+  function stash(id) { return get().stash[id] || 0; }
+  function buyPremium(id) {
+    var p = JY.PREMIUM[id];
+    if (!p || !spend(p.price)) return false;
+    get().stash[id] = stash(id) + 1; save();
+    return true;
+  }
+  function useStash(id) {
+    var m = get();
+    if (!(m.stash[id] > 0)) return false;
+    m.stash[id] -= 1; save();
+    return true;
+  }
+  function ownsCos(id) { return !!get().cos.owned[id]; }
+  function buyCos(id) {
+    var c = JY.COSMETICS[id];
+    if (!c || c.gacha || ownsCos(id) || !spend(c.price)) return false;
+    get().cos.owned[id] = true;
+    equip(id);
+    return true;
+  }
+  function equip(id) {
+    var m = get(), c = JY.COSMETICS[id];
+    if (!c || !m.cos.owned[id]) return;
+    m.cos.eq[c.slot] = m.cos.eq[c.slot] === id ? null : id;
+    save();
+  }
+  function equipped() {
+    var eq = get().cos.eq, list = [];
+    ['hat', 'face', 'fx'].forEach(function (s) { if (eq[s] && JY.COSMETICS[eq[s]]) list.push(eq[s]); });
+    return list;
+  }
+  // 캐릭터 스펙에 꾸미기 적용
+  function dress(spec) {
+    equipped().forEach(function (id) {
+      var c = JY.COSMETICS[id];
+      if (c.hat) spec.hat = c.hat;
+      if (c.eyes) spec.eyes = c.eyes;
+      if (c.extras) spec.extras = (spec.extras || []).concat(c.extras);
+    });
+    return spec;
+  }
+  function badge() { return equipped().map(function (id) { return JY.COSMETICS[id].icon; }).join(''); }
+
+  /* 보급 상자 */
+  function openBox() {
+    var B = JY.BOX;
+    if (!spend(B.price)) return null;
+    var r = Math.random(), acc = 0, tier = B.tiers[0];
+    for (var i = 0; i < B.tiers.length; i++) { acc += B.tiers[i].p; if (r < acc) { tier = B.tiers[i]; break; } }
+    var m = get(), out = { tier: tier, items: [], cos: null, gems: 0 };
+    function giveItem(id) { m.stash[id] = (m.stash[id] || 0) + 1; out.items.push(id); }
+    if (tier.id === 'legend') {
+      if (!m.cos.owned[tier.legendCos]) { m.cos.owned[tier.legendCos] = true; out.cos = tier.legendCos; }
+      else { out.gems = tier.gems; addGems(tier.gems); }
+    } else if (tier.cosmetic) {
+      var cands = JY.COSMETIC_ORDER.filter(function (id) { var c = JY.COSMETICS[id]; return !m.cos.owned[id] && (!c.gacha || c.gacha === 'epic'); });
+      if (cands.length && Math.random() < 0.6) { var pick = cands[Math.floor(Math.random() * cands.length)]; m.cos.owned[pick] = true; out.cos = pick; }
+      else tier.pool.forEach(giveItem);
+    } else {
+      for (var k = 0; k < tier.count; k++) giveItem(tier.pool[Math.floor(Math.random() * tier.pool.length)]);
+    }
+    save();
+    return out;
+  }
+
+  /* 훈장 */
+  function unlock(ids) {
+    var m = get(), got = [];
+    ids.forEach(function (id) {
+      if (m.ach[id]) return;
+      var a = JY.ACHIEVEMENTS.filter(function (x) { return x.id === id; })[0];
+      if (!a) return;
+      m.ach[id] = today();
+      addGems(a.gem);
+      got.push(a);
+    });
+    save();
+    return got;
+  }
+
+  /* 한 판이 끝났을 때: 기록, 보상, 훈장 */
+  function finishRun(s) {
+    var m = get(), o = s.over, sc = o.score || JY.Game.score(s);
+    var newEndings = o.list.filter(function (id) { return !m.endings[id]; });
+    o.list.forEach(function (id) { m.endings[id] = (m.endings[id] || 0) + 1; });
+    m.best = Math.max(m.best || 0, o.day);
+    if (o.good) { m.discharges += 1; m.stats.units[s.unit] = (m.stats.units[s.unit] || 0) + 1; } else m.fails += 1;
+    m.stats.emer += s.emer.count;
+    m.stats.miniGreat += s.minis.great;
+
+    // 다이아 보상
+    var tr = JY.Game.traitOf(s);
+    var reward = o.good ? 20 + (o.list.length - 1) * 10 : 3 + Math.floor(JY.Game.progress(s) * 12);
+    reward += newEndings.length * 15 + Math.floor(sc.total / 2000);
+    var dailyFirst = false;
+    if (s.daily) {
+      var prev = m.daily[s.daily];
+      if (!prev) { reward += 10; dailyFirst = true; }
+      if (!prev || sc.total > prev.score) m.daily[s.daily] = { score: sc.total, ending: o.id, name: s.name };
+      var dkeys = Object.keys(m.daily).sort();
+      while (dkeys.length > 30) delete m.daily[dkeys.shift()];
+    }
+    reward = Math.round(reward * (tr.gemMult || 1));
+    addGems(reward);
+
+    // 기록 (상위 10)
+    var rec = { score: sc.total, title: sc.title, name: s.name, ending: o.id, good: o.good, mos: s.mos, unit: s.unit, trait: s.trait, days: o.good ? s.total + 1 : o.day, daily: s.daily || null, date: today(), cos: badge() };
+    m.records.push(rec);
+    m.records.sort(function (a, b) { return b.score - a.score; });
+    m.records = m.records.slice(0, 10);
+    var place = m.records.indexOf(rec);
+
+    // 훈장
+    var ids = ['first_run'];
+    if (o.good) ids.push('first_out');
+    var nEnd = Object.keys(m.endings).length;
+    if (nEnd >= 5) ids.push('end5');
+    if (nEnd >= 10) ids.push('end10');
+    if (nEnd >= JY.ENDING_ORDER.length) ids.push('end19');
+    if (s.flags.sharp) ids.push('sharp');
+    if (s.flags.special) ids.push('special');
+    if (o.list.indexOf('cat') >= 0) ids.push('cat');
+    if (o.list.indexOf('gf') >= 0) ids.push('gf');
+    if (o.list.indexOf('malchul') >= 0) ids.push('malchul');
+    if (o.good && JY.Game.bank(s).total >= 35000000) ids.push('rich');
+    if (o.good && s.leaveUsed === 0) ids.push('noleave');
+    if (m.stats.emer >= 10) ids.push('emer10');
+    if (m.stats.miniGreat >= 10) ids.push('mini10');
+    if (JY.Game.bffCount(s) >= 3) ids.push('bff3');
+    if (JY.UNIT_ORDER.every(function (u) { return m.stats.units[u]; })) ids.push('allunits');
+    if (s.daily) ids.push('daily');
+    if (sc.total >= 20000) ids.push('score20k');
+    if (m.fails >= 10) ids.push('fail10');
+    var ach = unlock(ids);
+    save();
+    return { reward: reward, newEndings: newEndings, ach: ach, place: place, record: rec, dailyFirst: dailyFirst, runGems: s.gems };
+  }
+
+  JY.Meta = {
+    load: load, save: save, get: get, addGems: addGems, spend: spend, attendance: attendance,
+    stash: stash, buyPremium: buyPremium, useStash: useStash,
+    ownsCos: ownsCos, buyCos: buyCos, equip: equip, equipped: equipped, dress: dress, badge: badge,
+    openBox: openBox, unlock: unlock, finishRun: finishRun
+  };
+})(window.JY = window.JY || {});
+
+/* js/rank.js */
+/* 랭킹: 내 기기 기록 + (Claude 아티팩트에서 열면) 전군 랭킹 공유 저장소
+ * 저장 구조: rank/<사용자 id> 문서 하나에 본인 최고 기록과 오늘의 작전 기록
+ * 규칙(게시할 때 선언): 모두 읽기 · 각자 자기 문서만 쓰기 · 주인은 정리 가능 */
+(function (JY) {
+  'use strict';
+
+  var R = { online: false, canWrite: false, uid: null, reason: '' };
+  var db = null;
+  var readyP = null;
+
+  function withTimeout(p, ms) {
+    return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej({ code: 'timeout' }); }, ms); })]);
+  }
+
+  function init() {
+    if (readyP) return readyP;
+    readyP = (function () {
+      var c = window.claude;
+      if (!c || typeof c.use !== 'function') {
+        R.reason = '전군 랭킹은 Claude 아티팩트 링크로 열었을 때만 열린다. 지금은 내 기기 기록만 볼 수 있다.';
+        return Promise.resolve(R);
+      }
+      return Promise.all([c.use('db'), c.use('user')]).then(function (r) {
+        db = r[0];
+        var user = r[1];
+        if (!db) { R.reason = '전군 랭킹에 연결할 수 없다(로그인이 필요할 수 있다).'; return R; }
+        R.online = true;
+        if (!user) { R.reason = '랭킹은 볼 수 있지만, 기록을 올리려면 로그인이 필요하다.'; return R; }
+        return Promise.all([user.id(), user.can ? user.can('data.write') : Promise.resolve(null)]).then(function (x) {
+          R.uid = x[0];
+          R.canWrite = !!R.uid && x[1] !== false;
+          if (!R.uid) R.reason = '랭킹은 볼 수 있지만, 기록을 올리려면 로그인이 필요하다.';
+          else if (!R.canWrite) R.reason = '보기 전용 권한이라 기록을 올릴 수 없다. 공유받을 때 참여(Contributor) 권한이 필요하다.';
+          return R;
+        });
+      }).catch(function () { R.reason = '전군 랭킹 연결에 실패했다.'; return R; });
+    })();
+    return readyP;
+  }
+
+  function clean(d, id) {
+    var n = function (v, max) { v = Number(v); return isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0; };
+    var str = function (v, len) { return String(v || '').slice(0, len); };
+    return {
+      id: id, name: str(d.name, 8) || '무명', score: n(d.score, 200000), title: str(d.title, 12), ending: str(d.ending, 12),
+      unit: str(d.unit, 12), mos: str(d.mos, 12), cos: str(d.cos, 16), days: n(d.days, 600),
+      dDate: str(d.dDate, 10), dScore: n(d.dScore, 200000), dName: str(d.dName, 8), dEnding: str(d.dEnding, 12), at: n(d.at, 9e15)
+    };
+  }
+
+  // 한 판 끝날 때: 내 최고 기록 / 오늘의 작전 기록이 갱신되면 올린다
+  function submit(rec) {
+    return init().then(function () {
+      if (!R.online || !R.canWrite) return { ok: false, reason: R.reason };
+      var ref = db.doc('rank/' + R.uid);
+      return withTimeout(ref.get(), 10000).then(function (snap) {
+        var cur = snap.exists ? clean(snap.data(), R.uid) : clean({}, R.uid);
+        var t = JY.Game.todayStr();
+        var changed = false;
+        var next = {
+          name: cur.name, score: cur.score, title: cur.title, ending: cur.ending, unit: cur.unit, mos: cur.mos, cos: cur.cos, days: cur.days,
+          dDate: cur.dDate, dScore: cur.dScore, dName: cur.dName, dEnding: cur.dEnding, at: Date.now()
+        };
+        if (!snap.exists || rec.score > cur.score) {
+          next.name = rec.name; next.score = rec.score; next.title = rec.title; next.ending = rec.ending;
+          next.unit = rec.unit; next.mos = rec.mos; next.cos = rec.cos; next.days = rec.days;
+          changed = true;
+        }
+        if (rec.daily === t && (cur.dDate !== t || rec.score > cur.dScore)) {
+          next.dDate = t; next.dScore = rec.score; next.dName = rec.name; next.dEnding = rec.ending;
+          changed = true;
+        }
+        if (!changed) return { ok: true, changed: false };
+        return withTimeout(ref.set(next), 10000).then(function () { return { ok: true, changed: true }; });
+      });
+    }).catch(function (e) {
+      if (e && e.code === 'invalid_argument') { R.canWrite = false; R.reason = '이 화면에서는 기록을 올릴 권한이 없다.'; }
+      return { ok: false, reason: (e && e.code === 'timeout') ? '랭킹 서버 응답이 늦다. 다음에 다시 올라간다.' : R.reason || '기록을 올리지 못했다.' };
+    });
+  }
+
+  function top(kind) {
+    return init().then(function () {
+      if (!R.online) return { ok: false, reason: R.reason, list: [] };
+      var col = db.collection('rank');
+      var q = kind === 'daily'
+        ? col.where('dDate', '==', JY.Game.todayStr()).orderBy('dScore', 'desc').limit(50)
+        : col.orderBy('score', 'desc').limit(50);
+      return withTimeout(q.get(), 10000).then(function (snap) {
+        var list = snap.docs.map(function (d) { return clean(d.data() || {}, d.id); })
+          .filter(function (x) { return kind === 'daily' ? x.dScore > 0 : x.score > 0; });
+        return { ok: true, list: list, me: R.uid, fromCache: snap.metadata && snap.metadata.fromCache };
+      });
+    }).catch(function (e) {
+      return { ok: false, list: [], reason: e && e.code === 'timeout' ? '전군 랭킹을 아직 불러오지 못했다. 잠시 후 새로고침.' : '전군 랭킹을 불러오지 못했다.' };
+    });
+  }
+
+  JY.Rank = { init: init, submit: submit, top: top, status: function () { return R; } };
 })(window.JY = window.JY || {});
 
 /* js/audio.js */
@@ -3650,6 +5443,10 @@ button { cursor: pointer; }
     promo: function () { bugle([C5, E5, G5, 0, E5, G5, C6, C6], 0.14); },
     start: function () { bugle([G4, C5, E5, G5, 0, E5, C5, E5, G5, G5], 0.13); },
     fail: function () { tone(392, 0.32, 'sawtooth', 0.08, 0, 370); tone(370, 0.32, 'sawtooth', 0.08, 0.34, 349); tone(349, 0.32, 'sawtooth', 0.08, 0.68, 330); tone(330, 0.8, 'sawtooth', 0.08, 1.02, 260); },
+    siren: function () { for (var i = 0; i < 3; i++) { tone(700, 0.22, 'sawtooth', 0.06, i * 0.44, 1100); tone(1100, 0.22, 'sawtooth', 0.06, i * 0.44 + 0.22, 700); } },
+    gem: function () { tone(1318.5, 0.06, 'triangle', 0.07); tone(1760, 0.08, 'triangle', 0.07, 0.06); tone(2637, 0.14, 'triangle', 0.06, 0.13); },
+    box: function () { for (var i = 0; i < 6; i++) noise(0.05, 0.1, 400 + i * 150, i * 0.09); },
+    reveal: function () { bugle([C5, E5, G5, C6], 0.09); },
     win: function () { bugle([C5, C5, C5, G5, 0, E5, G5, C6, C6, C6], 0.15); }
   };
 
@@ -3904,7 +5701,7 @@ button { cursor: pointer; }
       scene();
       if (started && !over) {
         el += dt;
-        var rate = (10 + el * 0.7) * (1 + Math.max(0, 55 - hp) / 100);
+        var rate = (10 + el * 0.7) * (1 + Math.max(0, 55 - hp) / 100) * (o.hard ? 1.25 : 1);
         open = Math.max(0, open - rate * dt);
         var left = Math.max(0, TOTAL - el);
         ui.time.style.width = (left / TOTAL * 100) + '%';
@@ -4167,12 +5964,12 @@ button { cursor: pointer; }
 })(window.JY = window.JY || {});
 
 /* js/ui.js */
-/* 전역각 — 화면, 스와이프, 모달, 저장 */
+/* 전역각 — 화면, 스와이프, 모달, 상점, 랭킹, 저장 */
 (function (JY) {
   'use strict';
 
-  var G = JY.Game, A = JY.art;
-  var KEYS = { save: 'jy.save.v1', meta: 'jy.meta.v1', settings: 'jy.settings.v1' };
+  var G = JY.Game, A = JY.art, Meta = JY.Meta;
+  var KEYS = { save: 'jy.save.v1', settings: 'jy.settings.v1' };
   var NAMES = ['나띨빵', '김어리', '박허당', '최멍청', '이덤덤', '정어벙', '강감자', '조뚝딱', '윤헐랭', '한삽질'];
   var ICON = { hp: '체력', mt: '멘탈', tr: '간부 신뢰', bd: '전우애' };
   var SHORT = { hp: '체력', mt: '멘탈', tr: '신뢰', bd: '전우애' };
@@ -4190,14 +5987,37 @@ button { cursor: pointer; }
     3: '상병 꺾였다! 짬이 차오르는 소리가 들린다.',
     4: '병장 진급! 말년의 시작. 떨어지는 낙엽을 조심하라.'
   };
+  var LINES = {
+    captain: ['열정!', '우리 중대가 최고다!', '나도… 집에 가고 싶다…', '대대장님 오신다! 아 아니구나'],
+    lt: ['저… 이거 맞나요?', '병장님 도와주세요…', '국가란… 국가입니다.'],
+    cook: ['오늘 메뉴는 비밀!', '간은… 안 봤다!', '군대리아 수요일 사수!'],
+    doc: ['타이레놀.', '물 많이 마시고.', '다음.'],
+    general: ['허허허.', '불편한 점 없나?', '기백이 좋구먼!'],
+    mom: ['밥은 먹었니?', '엄마 바빠~', '아들 사랑해!'],
+    gf: ['보고 싶어!', '휴가 언제 나와?', '오빠 군복 멋있다 ㅎㅎ'],
+    jogyo: ['동작 봐라!', '목소리 작다!', '하나 더!'],
+    barber: ['어떻게 잘라드릴까요~', '투블럭? 없습니다~'],
+    counselor: ['괜찮아요.', '천천히 말해요.', '오늘 하루 어땠어요?'],
+    duty: ['취침 시간이다.', '휴대폰 반납!', '이상 무?'],
+    medic: ['어디 아파요?', '빨간약 발라줄까요?'],
+    driver: ['라디오 틀까?', '안전벨트!'],
+    clerk: ['수정4…', '엑셀이 또 멈췄다…'],
+    trainee: ['조교님…', '집에 가고 싶습니다…'],
+    idol: ['반짝반짝!', '팬 사인회는 개인정비 시간에!'],
+    boar: ['꿀꿀!!!', '(콧김)'],
+    speaker: ['아아, 마이크 테스트.', '(지지직)'],
+    me: ['…전역하고 싶다.', '나는 누구 여긴 어디', '오늘 짬밥 뭐임?'],
+    letter: ['(바스락)'], phone: ['(지이잉)'], box: ['(엄마 냄새)']
+  };
 
   var state = null;
-  var meta = null;
   var settings = null;
   var busy = false;
   var armed = null;
   var drag = null;
-  var setup = { face: null, mos: 'infantry' };
+  var setup = { face: null, mos: 'infantry', traits: [], trait: null, rerolled: false };
+  var urgentTimer = null;
+  var lastEnd = null;
 
   /* ── 저장소 ───────────────────────────── */
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -4206,13 +6026,15 @@ button { cursor: pointer; }
   function save() { if (state && !state.over) lsSet(KEYS.save, state); }
   function loadSave() {
     var s = lsGet(KEYS.save, null);
-    if (!s || s.v !== 1 || s.over || !s.stats) return null;
+    if (!s || !s.stats || s.over) return null;
+    s = G.migrate(s);
     if (!G.getCardDef(s.current)) s.current = 'quiet';
     return s;
   }
 
   /* ── 도우미 ───────────────────────────── */
   function $(sel) { return document.querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function won(n) {
     var abs = Math.abs(n), sign = n < 0 ? '-' : '';
@@ -4222,8 +6044,10 @@ button { cursor: pointer; }
     }
     return sign + abs.toLocaleString('ko-KR') + '원';
   }
+  function num(n) { return Number(n || 0).toLocaleString('ko-KR'); }
   function snd(name) { if (JY.Sound && JY.Sound[name]) JY.Sound[name](); }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   var toastTimer = 0;
   function toast(text, ms) {
@@ -4234,9 +6058,21 @@ button { cursor: pointer; }
     toastTimer = setTimeout(function () { t.hidden = true; }, ms || 2200);
   }
 
+  var SCREENS = ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album', 'scr-rank', 'scr-shop'];
   function showScreen(id) {
-    ['scr-title', 'scr-setup', 'scr-game', 'scr-end', 'scr-album'].forEach(function (s) { document.getElementById(s).hidden = s !== id; });
+    SCREENS.forEach(function (s) { document.getElementById(s).hidden = s !== id; });
     if (id === 'scr-game') requestAnimationFrame(fitCard);
+    var el = document.getElementById(id); if (el) el.scrollTop = 0;
+  }
+
+  // 게임 엔진 결과 중 판 밖으로 나가는 것(다이아, 보험 사용)을 저장소에 반영
+  function credit(res) {
+    if (!res) return res;
+    (res.events || []).forEach(function (e) {
+      if (e.type === 'gem') { Meta.addGems(e.n); snd('gem'); }
+      if (e.type === 'insurance') Meta.useStash('insurance');
+    });
+    return res;
   }
 
   /* ── 캐릭터 ───────────────────────────── */
@@ -4260,16 +6096,18 @@ button { cursor: pointer; }
   }
 
   function playerSpec(o) {
-    var f = (state && state.face) || setup.face || randomFace();
-    var rank = state ? state.rank : (o && o.rank !== undefined ? o.rank : 0);
-    var name = state ? state.name : (($('#in-name') && $('#in-name').value) || '나띨빵');
+    o = o || {};
+    var f = (state && state.face) || setup.face || Meta.get().face || randomFace();
+    var rank = state ? state.rank : (o.rank !== undefined ? o.rank : 0);
+    var name = state ? state.name : (($('#in-name') && $('#in-name').value) || Meta.get().lastName || '나띨빵');
     var spec = {
       seed: 'me-' + name, skin: f.skin, eyes: f.eyes, mouth: f.mouth, brows: f.brows, head: f.head,
       extras: (f.extras || []).slice(), hat: rank === 0 ? 'helmet' : 'none', rank: 'e' + rank, tag: name.slice(0, 3), body: 'camo'
     };
-    if (o && o.meSpec) for (var k in o.meSpec) spec[k] = o.meSpec[k];
-    if (o && o.meProp) spec.prop = o.meProp;
+    if (o.meSpec) for (var k in o.meSpec) spec[k] = o.meSpec[k];
+    if (o.meProp) spec.prop = o.meProp;
     if (state && state.flags.cast) spec.extras.push('bandage');
+    if (!o.noCos) Meta.dress(spec);
     return spec;
   }
 
@@ -4299,31 +6137,63 @@ button { cursor: pointer; }
   }
 
   /* ── 타이틀 ───────────────────────────── */
+  function renderGems() {
+    var g = Meta.get().gems;
+    ['#title-gems', '#shop-gems'].forEach(function (s) { var el = $(s); if (el) el.textContent = '💎 ' + num(g); });
+  }
+
   function renderTitle() {
+    var m = Meta.get();
     var crowd = $('#title-crowd');
-    var lines = ['전역… 할 수 있겠지?', '국방부 시계는 돈다…', '오늘 짬밥 뭐임?', '행보관님이 찾으십니다', '말년엔 낙엽도 조심해'];
+    var lines = ['전역… 할 수 있겠지?', '국방부 시계는 돈다…', '오늘 짬밥 뭐임?', '행보관님이 찾으십니다', '말년엔 낙엽도 조심해', '오늘의 작전 1등 누구냐?'];
     crowd.innerHTML = '<p class="title-bubble">' + pick(lines) + '</p>' + ['malnyeon', 'dumb', 'haeng'].map(function (w) { return '<div class="peek">' + charSVG(w) + '</div>'; }).join('');
     var s = loadSave();
     $('#btn-continue').hidden = !s;
     $('#save-info').hidden = !s;
-    if (s) $('#save-info').textContent = G.RANKS[s.rank] + ' ' + s.name + ' · 전역까지 D-' + G.daysLeft(s);
-    var got = Object.keys(meta.endings).length;
-    $('#album-count').textContent = got + '/' + JY.ENDING_ORDER.length;
+    if (s) $('#save-info').textContent = (s.daily ? '⭐ 오늘의 작전 · ' : '') + G.RANKS[s.rank] + ' ' + s.name + ' · 전역까지 D-' + G.daysLeft(s);
+    $('#album-count').textContent = Object.keys(m.endings).length + '/' + JY.ENDING_ORDER.length;
+    var d = m.daily[G.todayStr()];
+    $('#daily-best').textContent = d ? '내 최고 ' + num(d.score) + '점' : '오늘 아직 미참가';
+    $('#title-streak').hidden = !m.login.streak;
+    $('#title-streak').textContent = '🗓️ 연속 출석 ' + m.login.streak + '일';
+    renderGems();
     showScreen('scr-title');
   }
 
   /* ── 입영 통지서 ─────────────────────── */
+  function drawTraits() {
+    var ids = shuffle(JY.TRAIT_ORDER.slice()).slice(0, 3);
+    setup.traits = ids;
+    setup.trait = ids[0];
+    renderTraits();
+  }
+  function renderTraits() {
+    $('#trait-grid').innerHTML = setup.traits.map(function (id) {
+      var t = JY.TRAITS[id];
+      return '<button type="button" class="trait" data-trait="' + id + '" aria-pressed="' + (setup.trait === id) + '"><i>' + t.emoji + '</i><b>' + t.name + '</b><small>' + t.desc + '</small></button>';
+    }).join('');
+    $('#btn-reroll').disabled = setup.rerolled;
+    $('#btn-reroll').textContent = setup.rerolled ? '다시 뽑기 완료' : '다시 뽑기 (1회 무료)';
+  }
+
   function renderSetup() {
-    setup.face = randomFace();
+    var m = Meta.get();
+    setup.face = m.face || randomFace();
     setup.mos = 'infantry';
-    $('#in-name').value = pick(NAMES);
+    setup.rerolled = false;
+    $('#in-name').value = m.lastName || pick(NAMES);
     $('#in-date').value = G.todayStr();
     $('#notice-no').textContent = '제 ' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900000) + 100000) + ' 호';
-    var grid = $('#mos-grid');
-    grid.innerHTML = Object.keys(G.MOS).map(function (k) {
-      var m = G.MOS[k];
-      return '<button type="button" class="mos" data-mos="' + k + '" aria-pressed="' + (k === setup.mos) + '"><b>' + m.emoji + ' ' + m.name + '</b><small>' + m.desc + '</small><small>✦ ' + m.perk + '</small></button>';
+    $('#mos-grid').innerHTML = Object.keys(G.MOS).map(function (k) {
+      var mo = G.MOS[k];
+      return '<button type="button" class="mos" data-mos="' + k + '" aria-pressed="' + (k === setup.mos) + '"><b>' + mo.emoji + ' ' + mo.name + '</b><small>' + mo.desc + '</small><small>✦ ' + mo.perk + '</small></button>';
     }).join('');
+    drawTraits();
+    var ins = Meta.stash('insurance');
+    $('#row-insurance').hidden = !ins;
+    $('#insurance-count').textContent = '(보유 ' + ins + '개 · 한 판에 1개)';
+    var cos = Meta.equipped().map(function (id) { return JY.COSMETICS[id].icon + ' ' + JY.COSMETICS[id].name; });
+    $('#cos-note').textContent = cos.length ? '착용 중: ' + cos.join(', ') : '상점에서 꾸미기를 사면 여기서 입는다.';
     updateSetupPreview();
     updateDateNote();
     showScreen('scr-setup');
@@ -4334,24 +6204,66 @@ button { cursor: pointer; }
   function updateDateNote() {
     var v = $('#in-date').value;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { $('#date-note').textContent = '전역 예정일: -'; return; }
-    var tmp = G.newState({ start: v });
-    $('#date-note').textContent = '전역 예정일: ' + G.fmtDate(tmp.end) + ' (' + (tmp.total + 1) + '일)';
+    var y = +v.slice(0, 4), mo = +v.slice(5, 7), d = +v.slice(8, 10);
+    var end = Date.UTC(y, mo - 1 + 18, d) - 86400000, start = Date.UTC(y, mo - 1, d);
+    $('#date-note').textContent = '전역 예정일: ' + G.fmtDate(end) + ' (' + (Math.round((end - start) / 86400000) + 1) + '일)';
   }
 
-  function startGame() {
-    var name = ($('#in-name').value || '').trim() || '나띨빵';
-    var start = $('#in-date').value || G.todayStr();
-    var paceEl = document.querySelector('input[name="pace"]:checked');
-    state = G.newState({ name: name, start: start, mos: setup.mos, face: setup.face, pace: paceEl && paceEl.value === '3' ? 3 : 1 });
-    meta.runs = (meta.runs || 0) + 1;
-    lsSet(KEYS.meta, meta);
+  function beginRun(opts) {
+    var m = Meta.get();
+    m.lastName = opts.name; m.face = opts.face; Meta.save();
+    var useIns = opts.insurance && Meta.stash('insurance') > 0;
+    state = G.newState({
+      name: opts.name, start: opts.start, mos: opts.mos, face: opts.face, pace: opts.pace,
+      trait: opts.trait, unit: opts.unit, seed: opts.seed, daily: opts.daily, insurance: useIns
+    });
+    m.runs = (m.runs || 0) + 1; Meta.save();
     save();
     busy = false;
     showScreen('scr-game');
     renderHUD();
     renderCard(true);
     snd('start');
-    toast('입영을 환영한다, 훈련병 ' + state.name + '!', 2400);
+    var t = G.traitOf(state);
+    toast((opts.daily ? '⭐ 오늘의 작전 출격! ' : '입영을 환영한다! ') + (t.name ? t.emoji + ' ' + t.name : ''), 2600);
+  }
+
+  function startGame() {
+    var name = ($('#in-name').value || '').trim() || '나띨빵';
+    var paceEl = document.querySelector('input[name="pace"]:checked');
+    beginRun({
+      name: name, start: $('#in-date').value || G.todayStr(), mos: setup.mos, face: setup.face,
+      pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait,
+      insurance: !$('#row-insurance').hidden && $('#in-insurance').checked
+    });
+  }
+
+  function openDaily() {
+    var cfg = G.dailyConfig();
+    var m = Meta.get(), best = m.daily[cfg.date];
+    var U = JY.UNITS[cfg.unit], T = JY.TRAITS[cfg.trait], M = G.MOS[cfg.mos];
+    var ins = Meta.stash('insurance');
+    openModal('<h3>⭐ 오늘의 작전</h3><p class="sub">' + G.fmtDate(Date.parse(cfg.date + 'T00:00:00Z')) + ' · 모든 사람이 같은 부대, 같은 성격, 같은 운으로 시작한다. 점수로 겨룬다.</p>' +
+      '<div class="daily-cfg">' +
+      '<div><i>' + U.emoji + '</i><b>' + U.name + '</b><small>' + U.perk + '</small></div>' +
+      '<div><i>' + T.emoji + '</i><b>' + T.name + '</b><small>' + T.desc + '</small></div>' +
+      '<div><i>' + M.emoji + '</i><b>' + M.name + '</b><small>' + M.perk + '</small></div>' +
+      '<div><i>⏩</i><b>속성 복무</b><small>카드 약 45장 · 10분 내외</small></div>' +
+      '</div>' +
+      '<label class="field"><span>성명</span><input id="daily-name" maxlength="6" value="' + esc(m.lastName || pick(NAMES)) + '"></label>' +
+      (ins ? '<label class="check-row"><input type="checkbox" id="daily-ins" checked><span>🛡️ 전역 보험 챙기기 <small>(보유 ' + ins + '개)</small></span></label>' : '') +
+      '<p class="sub">' + (best ? '오늘 내 최고: ' + num(best.score) + '점 (' + esc(JY.ENDINGS[best.ending] ? JY.ENDINGS[best.ending].title : '') + ')' : '첫 참가 보너스 💎 +10') + '</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">취소</button><button class="btn btn-primary" data-act="go">출격!</button></div>',
+    function (box) {
+      box.querySelector('[data-act="close"]').onclick = closeModal;
+      box.querySelector('[data-act="go"]').onclick = function () {
+        var name = (box.querySelector('#daily-name').value || '').trim() || '나띨빵';
+        var insEl = box.querySelector('#daily-ins');
+        if (JY.Sound) JY.Sound.unlock();
+        closeModal();
+        beginRun({ name: name, start: cfg.start, mos: cfg.mos, face: Meta.get().face || randomFace(), pace: 3, trait: cfg.trait, unit: cfg.unit, seed: cfg.seed, daily: cfg.date, insurance: insEl ? insEl.checked : false });
+      };
+    });
   }
 
   /* ── HUD ─────────────────────────────── */
@@ -4366,9 +6278,10 @@ button { cursor: pointer; }
 
   function renderHUD() {
     if (!state) return;
+    var U = G.unitOf(state);
     $('#hud-rank').innerHTML = A.rankInsignia(state.rank);
-    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name;
-    $('#hud-date').textContent = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + G.MOS[state.mos].name;
+    $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '');
+    $('#hud-date').textContent = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
     $('#hud-dday').textContent = 'D-' + G.daysLeft(state);
     var pct = G.progress(state) * 100;
     $('#gauge-fill').style.width = pct.toFixed(2) + '%';
@@ -4381,6 +6294,15 @@ button { cursor: pointer; }
       el.classList.toggle('danger', v <= 15 || v >= 85);
       el.setAttribute('aria-label', ICON[k] + ' ' + v);
     });
+    var chips = state.conds.map(function (c) {
+      var d = G.condDef(c.id);
+      return '<button class="cond" data-cond="' + c.id + '">' + d.emoji + ' ' + d.name + ' <em>' + c.left + '</em></button>';
+    });
+    if (state.insight > 0) chips.push('<button class="cond buff" data-buff="insight">🔭 투시경 <em>' + state.insight + '</em></button>');
+    if (state.luck > 0) chips.push('<button class="cond buff" data-buff="clover">🍀 행운 <em>' + state.luck + '</em></button>');
+    if (state.insurance > 0) chips.push('<button class="cond buff" data-buff="insurance">🛡️ 보험</button>');
+    $('#conds').innerHTML = chips.join('');
+    $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
     $('#bag-badge').textContent = bagN;
     $('#leave-badge').textContent = state.leave + '일';
@@ -4388,18 +6310,24 @@ button { cursor: pointer; }
     $('#px-badge').hidden = !px.ok;
     $('#dock-px').classList.toggle('off', !px.ok);
     $('#dock-leave').classList.toggle('off', !G.leaveStatus(state).ok);
+    var bff = G.bffCount(state);
+    $('#mates-badge').hidden = !bff;
+    $('#mates-badge').textContent = '♥' + bff;
+    $('#dock-mates').classList.toggle('off', state.rank < 1);
   }
 
   function showPreview(side) {
-    var dots = document.querySelectorAll('.stat .dot');
-    dots.forEach(function (d) { d.classList.remove('on', 'big'); });
+    $$('.stat .dot').forEach(function (d) { d.className = 'dot'; d.textContent = ''; });
     if (!side || !state) return;
     var c = G.currentCard(state);
-    var p = c[side].preview;
+    var opt = c[side];
+    if (!opt) return;
+    var p = opt.preview;
     G.STATS.forEach(function (k) {
       if (!p[k]) return;
       var d = document.querySelector('.stat[data-k="' + k + '"] .dot');
       d.classList.add('on'); if (p[k] === 'big') d.classList.add('big');
+      if (p.dir && p.dir[k]) { d.classList.add('dir', p.dir[k] > 0 ? 'up' : 'down'); d.textContent = p.dir[k] > 0 ? '▲' : '▼'; }
     });
   }
 
@@ -4433,11 +6361,13 @@ button { cursor: pointer; }
 
   function renderCard(enter) {
     if (!state || state.over) return;
+    stopUrgent();
     var c = G.currentCard(state);
     var nm = charName(c.who);
-    $('#prompt').innerHTML = '<span class="who">' + esc(nm.name) + '</span><br>' + esc(c.text);
+    $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발 상황!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span><br>' + esc(c.text);
     var card = $('#card');
-    card.className = 'card';
+    card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
     card.style.opacity = '';
     card.innerHTML = A.scene(c.bg || 'barracks', state.season) +
@@ -4447,11 +6377,38 @@ button { cursor: pointer; }
       '<div class="nametape"><b>' + esc(nm.name) + '</b><span>' + esc(nm.role) + '</span></div>';
     $('#choice-l').textContent = c.l.t;
     $('#choice-r').textContent = c.r.t;
-    document.querySelectorAll('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
+    $$('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
+    $('#talk-bubble').hidden = true;
     armed = null;
     showPreview(null);
     if (enter) { void card.offsetWidth; card.classList.add('enter'); }
     fitCard();
+    if (c.urgent) startUrgent(c.urgent);
+  }
+
+  /* 돌발 상황: 사이렌 + 제한 시간 */
+  function startUrgent(sec) {
+    var bar = $('#urgent-bar'), fill = $('#urgent-fill'), label = $('#urgent-sec');
+    bar.hidden = false;
+    var flash = $('#flash');
+    flash.hidden = false; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    setTimeout(function () { flash.hidden = true; }, 1300);
+    snd('siren');
+    if (JY.buzz) JY.buzz([200, 80, 200, 80, 200]);
+    var total = sec * 1000, t0 = performance.now();
+    function tick(now) {
+      var left = Math.max(0, total - (now - t0));
+      fill.style.width = (left / total * 100) + '%';
+      label.textContent = (left / 1000).toFixed(1) + '초';
+      if (left <= 0) { urgentTimer = null; bar.hidden = true; if (!busy && state && !state.over) commit('t'); return; }
+      urgentTimer = requestAnimationFrame(tick);
+    }
+    urgentTimer = requestAnimationFrame(tick);
+  }
+  function stopUrgent() {
+    if (urgentTimer) cancelAnimationFrame(urgentTimer);
+    urgentTimer = null;
+    var bar = $('#urgent-bar'); if (bar) bar.hidden = true;
   }
 
   function setCardPose(dx, dy) {
@@ -4459,8 +6416,9 @@ button { cursor: pointer; }
     card.style.transform = 'translate(' + dx + 'px,' + (dy || 0) + 'px) rotate(' + (dx * 0.06) + 'deg)';
     var side = dx < -14 ? 'l' : dx > 14 ? 'r' : null;
     var amt = Math.min(1, Math.abs(dx) / 70);
-    card.querySelector('.card-label.l').style.opacity = side === 'l' ? amt : 0;
-    card.querySelector('.card-label.r').style.opacity = side === 'r' ? amt : 0;
+    var ll = card.querySelector('.card-label.l'), lr = card.querySelector('.card-label.r');
+    if (ll) ll.style.opacity = side === 'l' ? amt : 0;
+    if (lr) lr.style.opacity = side === 'r' ? amt : 0;
     return side;
   }
 
@@ -4468,7 +6426,7 @@ button { cursor: pointer; }
     if (busy || !state || state.over) return;
     if (armed === side) { commit(side); return; }
     armed = side;
-    document.querySelectorAll('.choice').forEach(function (b) { b.classList.toggle('armed', b.dataset.side === side); });
+    $$('.choice').forEach(function (b) { b.classList.toggle('armed', b.dataset.side === side); });
     var card = $('#card');
     card.classList.remove('enter'); card.classList.add('back');
     setCardPose(side === 'l' ? -46 : 46, 0);
@@ -4479,7 +6437,20 @@ button { cursor: pointer; }
 
   function disarm() {
     armed = null;
-    document.querySelectorAll('.choice').forEach(function (b) { b.classList.remove('armed'); });
+    $$('.choice').forEach(function (b) { b.classList.remove('armed'); });
+  }
+
+  function talkBubble(who) {
+    var b = $('#talk-bubble');
+    var pool = (JY.NPCS[who] && JY.NPCS[who].lines) || LINES[who] || LINES.me;
+    b.textContent = pick(pool);
+    b.hidden = false;
+    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+    clearTimeout(talkBubble.t);
+    talkBubble.t = setTimeout(function () { b.hidden = true; }, 1800);
+    snd('tap');
+    var r = credit(G.poke(state, who));
+    if (r && r.events.length) { save(); renderHUD(); }
   }
 
   function bindSwipe() {
@@ -4488,7 +6459,7 @@ button { cursor: pointer; }
       if (busy || !state || state.over || drag) return;
       if (e.button !== undefined && e.button !== 0) return;
       if (JY.Sound) JY.Sound.unlock();
-      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, side: null };
+      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, side: null, t0: Date.now(), onChar: !!(e.target.closest && e.target.closest('.char-wrap')) };
       card.classList.remove('back', 'enter');
       disarm();
       try { card.setPointerCapture(e.pointerId); } catch (x) { /* 무시 */ }
@@ -4507,6 +6478,7 @@ button { cursor: pointer; }
       card.classList.add('back');
       setCardPose(0, 0);
       showPreview(null);
+      if (!cancel && Math.abs(d.dx) < 6 && Date.now() - d.t0 < 400 && d.onChar) talkBubble(G.currentCard(state).who);
     }
     card.addEventListener('pointerup', function (e) { endDrag(e, false); });
     card.addEventListener('pointercancel', function (e) { endDrag(e, true); });
@@ -4514,9 +6486,7 @@ button { cursor: pointer; }
       if (e.key === 'ArrowLeft') { e.preventDefault(); arm('l'); }
       if (e.key === 'ArrowRight') { e.preventDefault(); arm('r'); }
     });
-    document.querySelectorAll('.choice').forEach(function (b) {
-      b.addEventListener('click', function () { arm(b.dataset.side); });
-    });
+    $$('.choice').forEach(function (b) { b.addEventListener('click', function () { arm(b.dataset.side); }); });
     document.addEventListener('keydown', function (e) {
       if ($('#scr-game').hidden || !$('#modal').hidden || !$('#mini').hidden) return;
       if (!$('#result').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $('#result').click(); return; }
@@ -4529,28 +6499,31 @@ button { cursor: pointer; }
   function commit(side) {
     if (busy || !state || state.over) return;
     busy = true;
+    stopUrgent();
     disarm();
     showPreview(null);
-    snd('swipe');
-    if (JY.buzz) JY.buzz(8);
+    snd(side === 't' ? 'bad' : 'swipe');
+    if (JY.buzz) JY.buzz(side === 't' ? [60, 40, 60] : 8);
     var card = $('#card');
     var w = window.innerWidth;
     card.classList.remove('back', 'enter');
     card.classList.add('fly');
-    card.style.transform = 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
+    card.style.transform = side === 't' ? 'translate(0, 120%) rotate(8deg)' : 'translate(' + (side === 'l' ? -1.2 * w : 1.2 * w) + 'px, 60px) rotate(' + (side === 'l' ? -28 : 28) + 'deg)';
     card.style.opacity = '0';
-    var res = G.choose(state, side);
+    var res = credit(G.choose(state, side));
     save();
     setTimeout(function () {
       if (!res) { busy = false; renderCard(true); return; }
+      if (res.timeout) res.say = '⏰ 시간 초과! ' + (res.say || '');
       if (res.mini) runMini(res);
       else afterChoice(res);
     }, 280);
   }
 
   function runMini(res) {
-    JY.Mini.start(res.mini, { stats: state.stats, mos: state.mos, face: function (w) { return charSVG(w); } }, function (tier) {
-      var r2 = G.finishMini(state, tier);
+    var opts = { stats: state.stats, mos: state.mos, hard: !!G.traitOf(state).watchHard, face: function (w) { return charSVG(w); } };
+    JY.Mini.start(res.mini, opts, function (tier) {
+      var r2 = credit(G.finishMini(state, tier));
       save();
       if (!r2) { busy = false; renderCard(true); return; }
       var merged = {
@@ -4564,6 +6537,7 @@ button { cursor: pointer; }
 
   function afterChoice(res) {
     renderHUD();
+    renderGems();
     animateDeltas(res.deltas || {});
     var sum = 0, any = false;
     for (var k in res.deltas) { if (res.deltas[k]) any = true; sum += res.deltas[k]; }
@@ -4573,6 +6547,8 @@ button { cursor: pointer; }
     if (!has) { nextAfterResult(res); return; }
     showResult(res, function () { nextAfterResult(res); });
   }
+
+  function npcName(who) { return JY.CHARS[who] ? JY.CHARS[who].name : who; }
 
   function eventLine(e) {
     switch (e.type) {
@@ -4585,6 +6561,12 @@ button { cursor: pointer; }
       case 'money': return (e.n > 0 ? '💰 ' : '💸 ') + (e.n > 0 ? '+' : '') + won(e.n);
       case 'save': return '🏦 적금 +' + won(e.n);
       case 'block': return '⛔ 휴가 통제 ' + e.n + '일';
+      case 'gem': return '💎 다이아 +' + e.n;
+      case 'cond': return '📢 ' + e.text;
+      case 'condEnd': return '✅ ' + e.text;
+      case 'aff': return (e.n > 0 ? '💗 ' : '💔 ') + npcName(e.who) + ' 호감도 ' + (e.n > 0 ? '+' : '') + e.n;
+      case 'bff': return '🤝 ' + npcName(e.who) + '와(과) 절친이 됐다! ' + e.text;
+      case 'insurance': return e.text;
       default: return e.text || '';
     }
   }
@@ -4598,7 +6580,7 @@ button { cursor: pointer; }
       chips += '<span class="chip ' + (v > 0 ? 'up' : 'down') + '">' + ICON[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
     });
     var evs = (res.events || []).map(function (e) { return '<div>' + esc(eventLine(e)) + '</div>'; }).join('');
-    box.innerHTML = '<div class="note">' +
+    box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' +
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
@@ -4631,6 +6613,7 @@ button { cursor: pointer; }
   function openModal(html, bind, onClose) {
     var m = $('#modal'), box = $('#modal-box');
     box.innerHTML = html;
+    box.scrollTop = 0;
     m.hidden = false;
     modalClose = onClose || null;
     if (bind) bind(box);
@@ -4664,41 +6647,69 @@ button { cursor: pointer; }
     snd('promo');
     confetti();
     if (JY.buzz) JY.buzz([30, 40, 30]);
+    var unitLine = e.rank === 1 && state ? '<p class="unit-line">' + G.unitOf(state).emoji + ' <b>' + esc(G.unitOf(state).name) + '</b> 배치<br><small>' + esc(G.unitOf(state).perk) + '</small></p>' : '';
     openModal('<div class="promo-box"><div class="rank-big">' + A.rankInsignia(e.rank) + '</div>' +
-      '<h3>' + G.RANKS[e.rank] + ' 진급!</h3><p class="sub">' + PROMO_TEXT[e.rank] + '</p>' +
+      '<h3>' + G.RANKS[e.rank] + ' 진급!</h3><p class="sub">' + PROMO_TEXT[e.rank] + '</p>' + unitLine +
       (e.leave ? '<p>🏖️ 휴가 +' + e.leave + '일 지급</p>' : '') +
       '<p class="sub">월급: ' + won(G.PAY[e.rank]) + '</p>' +
       '<div class="modal-actions"><button class="btn btn-primary" data-act="ok">충성!</button></div></div>',
     function (box) { box.querySelector('[data-act="ok"]').onclick = closeModal; }, cb);
   }
 
-  function fxChips(fx) {
+  function fxChips(fx, mult) {
     return Object.keys(fx).map(function (k) {
-      var v = fx[k];
+      var v = fx[k] > 0 && mult ? Math.round(fx[k] * mult) : fx[k];
       return '<span class="chip ' + (v > 0 ? 'up' : 'down') + '">' + ICON[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
     }).join('');
   }
 
-  function openBag() {
-    if (!state || busy) return;
+  function dockBlocked() {
+    if (!state || busy) return true;
+    var c = G.getCardDef(state.current);
+    if (c && c.urgent) { toast('⚠ 돌발 상황 중이다! 먼저 대응하자.'); return true; }
+    return false;
+  }
+
+  /* 가방: 일반 아이템 + 특급 보급품 */
+  function openBag(tab) {
+    if (dockBlocked()) return;
     var sel = null;
+    tab = tab || 'items';
     function html() {
-      var ids = JY.ITEM_ORDER.filter(function (id) { return state.items[id] > 0; });
-      var grid = ids.length ? '<div class="item-grid">' + ids.map(function (id) {
+      var tabs = '<div class="tabs small"><button data-tab="items" aria-selected="' + (tab === 'items') + '">일반 아이템</button><button data-tab="premium" aria-selected="' + (tab === 'premium') + '">특급 보급품 💎</button></div>';
+      if (tab === 'premium') {
+        var ids = JY.PREMIUM_ORDER.filter(function (id) { return Meta.stash(id) > 0; });
+        var list = ids.length ? '<div class="item-grid">' + ids.map(function (id) {
+          var p = JY.PREMIUM[id];
+          return '<button class="item" data-id="' + id + '" aria-pressed="' + (sel === id) + '"><span class="count">×' + Meta.stash(id) + '</span><i>' + p.icon + '</i><b>' + p.name + '</b></button>';
+        }).join('') + '</div>' : '<p class="sub">특급 보급품이 없다. 타이틀 화면의 상점에서 다이아로 살 수 있다.</p>';
+        var det = '';
+        if (sel && JY.PREMIUM[sel]) {
+          var pd = JY.PREMIUM[sel];
+          det = '<div class="item-detail"><p><b>' + pd.icon + ' ' + pd.name + '</b> — ' + pd.desc + '</p>' +
+            (pd.auto ? '<p class="sub">' + (state.insurance ? '이번 판에 챙겨 왔다. 위기 때 자동으로 발동한다.' : '입대할 때 챙겨야 발동한다.') + '</p>' : '<button class="btn btn-primary btn-small" data-act="usep">사용하기</button>') + '</div>';
+        }
+        return '<h3>가방</h3>' + tabs + list + det + '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">닫기</button></div>';
+      }
+      var iids = JY.ITEM_ORDER.filter(function (id) { return state.items[id] > 0; });
+      var grid = iids.length ? '<div class="item-grid">' + iids.map(function (id) {
         var it = JY.ITEMS[id];
         return '<button class="item" data-id="' + id + '" aria-pressed="' + (sel === id) + '"><span class="count">×' + state.items[id] + '</span><i>' + it.icon + '</i><b>' + it.name + '</b></button>';
       }).join('') + '</div>' : '<p class="sub">가방이 비었다. PX에서 사 오자.</p>';
       var detail = '';
-      if (sel && state.items[sel] > 0) {
+      if (sel && JY.ITEMS[sel] && state.items[sel] > 0) {
         var it = JY.ITEMS[sel];
-        detail = '<div class="item-detail"><p><b>' + it.icon + ' ' + it.name + '</b> — ' + it.desc + '</p><div class="chips">' + fxChips(it.fx) + '</div>' +
+        var mult = JY.FOOD[sel] && G.traitOf(state).itemMult;
+        detail = '<div class="item-detail"><p><b>' + it.icon + ' ' + it.name + '</b> — ' + it.desc + '</p><div class="chips">' + fxChips(it.fx, mult) + '</div>' +
           '<button class="btn btn-primary btn-small" data-act="use">사용하기</button></div>';
       }
-      return '<h3>가방</h3><p class="sub">아이템은 스탯을 5~95 사이에서만 움직인다. 위험할 때 쓰자.</p>' + grid + detail +
+      return '<h3>가방</h3>' + tabs + '<p class="sub">아이템은 스탯을 5~95 사이에서만 움직인다. 동료에게 선물할 수도 있다.</p>' + grid + detail +
         '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">닫기</button></div>';
     }
+    function rerender(box) { box.innerHTML = html(); bind(box); }
     function bind(box) {
-      box.querySelectorAll('.item').forEach(function (b) { b.onclick = function () { sel = b.dataset.id; snd('tap'); box.innerHTML = html(); bind(box); }; });
+      $$('[data-tab]', box).forEach(function (b) { b.onclick = function () { tab = b.dataset.tab; sel = null; rerender(box); }; });
+      $$('.item', box).forEach(function (b) { b.onclick = function () { sel = b.dataset.id; snd('tap'); rerender(box); }; });
       var u = box.querySelector('[data-act="use"]');
       if (u) u.onclick = function () {
         var r = G.useItem(state, sel);
@@ -4709,7 +6720,28 @@ button { cursor: pointer; }
           toast(moved ? JY.ITEMS[sel].name + ' 사용!' : '이미 충분하다. 효과가 없었다.');
         }
         if (!(state.items[sel] > 0)) sel = null;
-        box.innerHTML = html(); bind(box);
+        rerender(box);
+      };
+      var up = box.querySelector('[data-act="usep"]');
+      if (up) up.onclick = function () {
+        var id = sel;
+        var r = G.usePremium(state, id);
+        if (!r) { toast('지금은 쓸 수 없다.'); return; }
+        Meta.useStash(id);
+        credit(r);
+        save(); renderHUD(); animateDeltas(r.deltas);
+        snd('gem');
+        if (r.skipped) {
+          closeModal();
+          busy = true;
+          var card = $('#card'); card.classList.add('fly'); card.style.transform = 'translate(0,-120%)'; card.style.opacity = '0';
+          setTimeout(function () { afterChoice(r); }, 260);
+          return;
+        }
+        toast(r.say || '사용!', 2400);
+        if (id === 'insight') showPreview(null);
+        if (!(Meta.stash(id) > 0)) sel = null;
+        rerender(box);
       };
       box.querySelector('[data-act="close"]').onclick = closeModal;
     }
@@ -4717,7 +6749,7 @@ button { cursor: pointer; }
   }
 
   function openPX() {
-    if (!state || busy) return;
+    if (dockBlocked()) return;
     var st = G.pxStatus(state);
     if (!st.ok) { toast(st.reason); return; }
     var bought = false;
@@ -4727,13 +6759,15 @@ button { cursor: pointer; }
         '<div class="wallet"><span>현금 ' + won(state.money) + '</span><span>적금 ' + won(state.savings) + '</span></div>' +
         '<div class="item-grid">' + list.map(function (id) {
           var it = JY.ITEMS[id];
-          var cant = state.money < it.price || (state.items[id] || 0) >= 9;
-          return '<button class="item" data-id="' + id + '"' + (cant ? ' disabled' : '') + '><span class="count">×' + (state.items[id] || 0) + '</span><i>' + it.icon + '</i><b>' + it.name + '</b><small>' + won(it.price) + '</small><small>' + Object.keys(it.fx).map(function (k) { return SHORT[k] + (it.fx[k] > 0 ? '+' : '') + it.fx[k]; }).join(' ') + '</small></button>';
+          var price = G.pxPrice(state, id);
+          var cant = state.money < price || (state.items[id] || 0) >= 9;
+          return '<button class="item" data-id="' + id + '"' + (cant ? ' disabled' : '') + '><span class="count">×' + (state.items[id] || 0) + '</span><i>' + it.icon + '</i><b>' + it.name + '</b><small>' +
+            (price < it.price ? '<s>' + won(it.price) + '</s> ' : '') + won(price) + '</small><small>' + Object.keys(it.fx).map(function (k) { return SHORT[k] + (it.fx[k] > 0 ? '+' : '') + it.fx[k]; }).join(' ') + '</small></button>';
         }).join('') + '</div>' +
         '<div class="modal-actions"><button class="btn btn-primary" data-act="close">계산 끝, 나가기</button></div>';
     }
     function bind(box) {
-      box.querySelectorAll('.item').forEach(function (b) {
+      $$('.item', box).forEach(function (b) {
         b.onclick = function () {
           if (G.buy(state, b.dataset.id)) { bought = true; snd('coin'); save(); renderHUD(); box.innerHTML = html(); bind(box); }
           else toast('돈이 부족하거나 가방이 꽉 찼다.');
@@ -4744,8 +6778,71 @@ button { cursor: pointer; }
     openModal(html(), bind, function () { G.closePX(state, bought); save(); renderHUD(); });
   }
 
+  /* 동료: 호감도, 수다, 선물 */
+  function openMates() {
+    if (dockBlocked()) return;
+    if (state.rank < 1) { toast('훈련소에서는 동료와 수다 떨 시간이 없다.'); return; }
+    var giftFor = null;
+    function hearts(v) { var n = Math.round(v / 20); return '♥'.repeat(n) + '♡'.repeat(5 - n); }
+    function html() {
+      var rows = JY.NPC_ORDER.filter(function (w) { return G.npcAvailable(state, w); }).map(function (w) {
+        var n = JY.NPCS[w], nm = charName(w), v = state.aff[w] || 0, bff = !!state.bffs[w];
+        var cd = state.talkDay[w] !== undefined ? Math.max(0, 6 - (state.day - state.talkDay[w])) : 0;
+        var picker = '';
+        if (giftFor === w) {
+          var ids = JY.ITEM_ORDER.filter(function (id) { return state.items[id] > 0; });
+          picker = '<div class="gift-pick">' + (ids.length ? ids.map(function (id) {
+            return '<button data-gift="' + id + '" class="' + (n.fav === id ? 'fav' : '') + '">' + JY.ITEMS[id].icon + ' ' + JY.ITEMS[id].name + (n.fav === id ? ' ★' : '') + ' ×' + state.items[id] + '</button>';
+          }).join('') : '<span class="sub">줄 게 없다. PX에 다녀오자.</span>') + '</div>';
+        }
+        return '<div class="mate' + (bff ? ' bff' : '') + '"><div class="mate-face">' + charSVG(w) + '</div>' +
+          '<div class="mate-info"><b>' + esc(nm.name) + (bff ? ' <em>절친</em>' : '') + '</b><small>' + esc(nm.role) + '</small>' +
+          '<span class="hearts" aria-label="호감도 ' + v + '">' + hearts(v) + ' <small>' + v + '</small></span>' +
+          '<small class="perk' + (bff ? ' on' : '') + '">' + (bff ? '✦ ' : '70 이상: ') + n.perk.name + ' — ' + n.perk.desc + '</small></div>' +
+          '<div class="mate-act"><button class="btn btn-small" data-talk="' + w + '"' + (cd ? ' disabled' : '') + '>' + (cd ? '수다 ' + cd + '일' : '수다') + '</button>' +
+          '<button class="btn btn-small" data-giftto="' + w + '">선물</button></div>' + picker + '</div>';
+      }).join('');
+      return '<h3>동료</h3><p class="sub">수다를 떨거나 선물하면 호감도가 오른다. 좋아하는 선물(★)은 효과가 크다. 70 이상이면 절친 효과가 켜지고 전용 이벤트가 생긴다. 카드 속 인물을 톡 건드려도 말을 건다.</p>' +
+        '<div class="mates">' + rows + '</div><p class="sub">게임을 진행하면 더 많은 동료를 만난다.</p>' +
+        '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">닫기</button></div>';
+    }
+    function bind(box) {
+      $$('[data-talk]', box).forEach(function (b) {
+        b.onclick = function () {
+          var w = b.dataset.talk;
+          var r = credit(G.talk(state, w));
+          if (!r) return;
+          if (r.cooldown) { toast(npcName(w) + ': "' + r.line + '" (수다는 ' + r.cooldown + '일 뒤에)'); return; }
+          save(); renderHUD(); animateDeltas(r.deltas); snd('tap');
+          toast(npcName(w) + ': "' + r.line + '"', 2600);
+          var bff = (r.events || []).filter(function (e) { return e.type === 'bff'; })[0];
+          if (bff) { confetti(); snd('promo'); toast('🤝 ' + npcName(w) + '와(과) 절친! ' + bff.text, 3200); }
+          box.innerHTML = html(); bind(box);
+        };
+      });
+      $$('[data-giftto]', box).forEach(function (b) { b.onclick = function () { giftFor = giftFor === b.dataset.giftto ? null : b.dataset.giftto; box.innerHTML = html(); bind(box); }; });
+      $$('[data-gift]', box).forEach(function (b) {
+        b.onclick = function () {
+          var w = giftFor, item = b.dataset.gift;
+          var r = credit(G.gift(state, w, item));
+          if (!r) return;
+          save(); renderHUD(); animateDeltas(r.deltas);
+          snd(r.fav ? 'gem' : 'good');
+          var msg = r.say || (r.fav ? npcName(w) + ': "이거 내가 제일 좋아하는 거잖아!!"' : npcName(w) + ': "오, 고맙다!"');
+          var bff = (r.events || []).filter(function (e) { return e.type === 'bff'; })[0];
+          if (bff) { confetti(); snd('promo'); msg += ' 🤝 절친이 됐다! ' + bff.text; }
+          toast(msg, 3200);
+          giftFor = null;
+          box.innerHTML = html(); bind(box);
+        };
+      });
+      box.querySelector('[data-act="close"]').onclick = closeModal;
+    }
+    openModal(html(), bind);
+  }
+
   function openLeave() {
-    if (!state || busy) return;
+    if (dockBlocked()) return;
     var st = G.leaveStatus(state);
     var np = G.nextPromo(state);
     var head = '<h3>휴가 신청</h3><p class="sub">남은 휴가 ' + state.leave + '일 · 사용 ' + state.leaveUsed + '일' + (np ? ' · 다음 진급 ' + np.rank + ' (' + np.date + ')' : '') + '</p>';
@@ -4762,7 +6859,7 @@ button { cursor: pointer; }
       return head +
         '<div class="stepper"><button data-act="minus" aria-label="하루 줄이기">−</button><output id="leave-n">' + n + '일</output><button data-act="plus" aria-label="하루 늘리기">+</button></div>' +
         '<p class="leave-info">' + G.dateOf(state) + ' 출발 → ' + leaveEnd + (mal ? ' 전역' : ' 복귀') + '</p>' +
-        (mal ? '<p class="malchul">🎉 말년휴가! 복귀 없이 그대로 전역한다!</p>' : '<p class="leave-info">휴가 중에는 멘탈·체력이 회복된다. 복귀 후 ' + 20 + '일은 다시 못 나간다.</p>') +
+        (mal ? '<p class="malchul">🎉 말년휴가! 복귀 없이 그대로 전역한다!</p>' : '<p class="leave-info">휴가 중에는 멘탈·체력이 회복된다. 복귀 후 20일은 다시 못 나간다.</p>') +
         '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">취소</button><button class="btn btn-primary" data-act="go">' + (mal ? '말출 나가기' : '휴가 출발') + '</button></div>';
     }
     function bind(box) {
@@ -4770,7 +6867,7 @@ button { cursor: pointer; }
       box.querySelector('[data-act="plus"]').onclick = function () { n = Math.min(st.max, n + 1); snd('tick'); box.innerHTML = body(); bind(box); };
       box.querySelector('[data-act="close"]').onclick = closeModal;
       box.querySelector('[data-act="go"]').onclick = function () {
-        var res = G.takeLeave(state, n);
+        var res = credit(G.takeLeave(state, n));
         closeModal();
         if (!res) return;
         save();
@@ -4802,16 +6899,20 @@ button { cursor: pointer; }
   function openMenu() {
     if (!state) return;
     var np = G.nextPromo(state);
+    var U = G.unitOf(state), T = G.traitOf(state);
     var confirmReset = false;
     function html() {
       return '<h3>메뉴</h3>' +
-        '<div class="wallet"><span>현금 ' + won(state.money) + '</span><span>적금 ' + won(state.savings) + '</span></div>' +
+        '<div class="wallet"><span>현금 ' + won(state.money) + '</span><span>적금 ' + won(state.savings) + '</span><span>💎 ' + num(Meta.get().gems) + '</span></div>' +
         '<p class="sub">입대 ' + G.dateOf(state, 0) + ' · 전역 ' + G.fmtDate(state.end) + (np ? ' · 다음 진급 ' + np.rank + ' ' + np.date : '') + '</p>' +
+        (state.rank >= 1 && U.name ? '<p class="info-line">' + U.emoji + ' <b>' + U.name + '</b> — ' + U.perk + '</p>' : '<p class="info-line">🎲 자대는 훈련소 수료 때 정해진다.</p>') +
+        (T.name ? '<p class="info-line">' + T.emoji + ' <b>' + T.name + '</b> — ' + T.desc + '</p>' : '') +
+        state.conds.map(function (c) { var d = G.condDef(c.id); return '<p class="info-line">' + d.emoji + ' <b>' + d.name + '</b> (카드 ' + c.left + '장 남음) — ' + d.desc + '</p>'; }).join('') +
         '<div class="toggle-row"><span>효과음</span><button class="btn btn-small" data-act="sound">' + (settings.sound ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>진동</span><button class="btn btn-small" data-act="vibe">' + (settings.vibe ? '켜짐' : '꺼짐') + '</button></div>' +
         '<div class="toggle-row"><span>게임 방법</span><button class="btn btn-small" data-act="help">보기</button></div>' +
         '<div class="modal-actions">' +
-        '<button class="btn btn-ghost" data-act="reset">' + (confirmReset ? '정말? 한 번 더 누르면 기록 삭제' : '처음부터 다시 입대') + '</button>' +
+        '<button class="btn btn-ghost" data-act="reset">' + (confirmReset ? '정말? 한 번 더 누르면 이번 판 삭제' : '처음부터 다시 입대') + '</button>' +
         '<button class="btn btn-ghost" data-act="title">타이틀로 (자동 저장)</button>' +
         '<button class="btn btn-primary" data-act="close">계속하기</button></div>';
     }
@@ -4821,9 +6922,9 @@ button { cursor: pointer; }
       box.querySelector('[data-act="help"]').onclick = function () { closeModal(); openHelp(); };
       box.querySelector('[data-act="reset"]').onclick = function () {
         if (!confirmReset) { confirmReset = true; box.innerHTML = html(); bind(box); return; }
-        lsDel(KEYS.save); state = null; closeModal(); renderSetup();
+        lsDel(KEYS.save); state = null; stopUrgent(); closeModal(); renderSetup();
       };
-      box.querySelector('[data-act="title"]').onclick = function () { save(); closeModal(); renderTitle(); };
+      box.querySelector('[data-act="title"]').onclick = function () { save(); stopUrgent(); closeModal(); state = null; renderTitle(); };
       box.querySelector('[data-act="close"]').onclick = closeModal;
     }
     openModal(html(), bind);
@@ -4833,31 +6934,39 @@ button { cursor: pointer; }
     openModal('<h3>게임 방법</h3>' +
       '<ul class="story">' +
       '<li>카드를 왼쪽·오른쪽으로 넘기거나 아래 버튼을 두 번 눌러 선택한다.</li>' +
-      '<li>카드를 끌면 위쪽 스탯에 점이 뜬다. 점이 클수록 크게 변한다(오를지 내릴지는 비밀).</li>' +
+      '<li>카드를 끌면 위쪽 스탯에 점이 뜬다. 점이 클수록 크게 변한다(오를지 내릴지는 비밀, 투시경을 쓰면 보인다).</li>' +
       '<li>체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패. 너무 잘해도 말뚝 박힌다.</li>' +
-      '<li>매월 10일은 월급날. PX에서 산 아이템으로 위험한 스탯을 조절하자.</li>' +
-      '<li>휴가는 진급할 때마다, 그리고 특급전사·특등사수 같은 포상으로 받는다.</li>' +
+      '<li>⚠ 돌발 상황은 제한 시간 안에 골라야 한다. 얼어붙으면 대개 나쁜 결과.</li>' +
+      '<li>매달 1일엔 독감·세일·훈련 주간 같은 주간 상황이 생길 수 있다.</li>' +
+      '<li>동료에게 선물하고 수다를 떨면 호감도가 오르고, 절친이 되면 특별한 효과가 생긴다.</li>' +
+      '<li>매월 10일은 월급날. PX 아이템으로 위험한 스탯을 조절하자.</li>' +
       '<li>남은 휴가가 전역까지 남은 날보다 많으면 말년휴가를 나가 그대로 전역할 수 있다.</li>' +
-      '<li>간부 신뢰가 너무 낮으면 진급 심사에서 누락된다(2026년부터 자동 진급 폐지).</li>' +
+      '<li>다이아(💎)로 상점에서 전역 보험, 투시경, 꾸미기를 산다. 점수로 랭킹을 겨룬다.</li>' +
       '</ul><div class="modal-actions"><button class="btn btn-primary" data-act="close">알겠습니다!</button></div>',
     function (box) { box.querySelector('[data-act="close"]').onclick = closeModal; });
   }
 
   /* ── 엔딩 ───────────────────────────── */
+  function shareText(s, rec) {
+    var E = JY.ENDINGS[s.over.id];
+    return '🪖 전역각 ' + (s.daily ? '⭐오늘의 작전 ' : '') + '| ' + G.RANKS[s.rank] + ' ' + s.name + ' · ' + G.unitOf(s).name + '\n' +
+      (s.over.good ? '🎓 ' : '💥 ') + E.title + ' · ' + num(rec.score) + '점 (' + rec.title + ')\n#전역각 #국방부시계는돌아간다';
+  }
+
   function showEnding() {
     busy = false;
-    var o = state.over;
+    stopUrgent();
+    var s = state;
+    var o = s.over;
     var E = JY.ENDINGS[o.id] || JY.ENDINGS.normal;
-    meta.endings = meta.endings || {};
-    o.list.forEach(function (id) { meta.endings[id] = (meta.endings[id] || 0) + 1; });
-    meta.best = Math.max(meta.best || 0, o.day);
-    if (o.good) meta.discharges = (meta.discharges || 0) + 1;
-    lsSet(KEYS.meta, meta);
+    var sc = o.score || G.score(s);
+    var r = Meta.finishRun(s);
     lsDel(KEYS.save);
-    var b = G.bank(state);
-    var art = A.scene(E.bg, state.season) + charSVG(E.who, { mood: E.mood, meMood: E.mood, catCap: true });
+    lastEnd = { s: s, r: r };
+    var b = G.bank(s);
+    var art = A.scene(E.bg, s.season) + charSVG(E.who, { mood: E.mood, meMood: E.mood, catCap: true });
     var also = o.list.slice(1).filter(function (id) { return id !== 'normal'; }).map(function (id) { return JY.ENDINGS[id].title; });
-    var log = state.log.slice(-7).map(function (l) { return '<li>' + G.dateOf(state, l.day) + ' · ' + esc(l.text) + '</li>'; }).join('');
+    var log = s.log.slice(-7).map(function (l) { return '<li>' + G.dateOf(s, l.day) + ' · ' + esc(l.text) + '</li>'; }).join('');
     var served = o.day + (o.good ? 1 : 0);
     $('#cert').className = 'cert ' + (o.good ? 'good' : 'bad');
     $('#cert').innerHTML =
@@ -4867,38 +6976,206 @@ button { cursor: pointer; }
       '<p class="ending-text">' + esc(E.text) + '</p>' +
       (also.length ? '<p class="also">추가 달성: ' + also.map(esc).join(' · ') + '</p>' : '') +
       '<dl>' +
-      '<dt>성명</dt><dd>' + G.RANKS[state.rank] + ' ' + esc(state.name) + '</dd>' +
-      '<dt>보직</dt><dd>' + G.MOS[state.mos].name + '</dd>' +
-      '<dt>복무 기간</dt><dd>' + G.dateOf(state, 0) + ' ~ ' + (o.good ? G.fmtDate(state.end) : G.dateOf(state) + ' (중단)') + '</dd>' +
-      '<dt>복무 일수</dt><dd>' + served + '일 / ' + (state.total + 1) + '일 (' + Math.round(served / (state.total + 1) * 100) + '%)</dd>' +
-      '<dt>넘긴 카드</dt><dd>' + state.cards + '장 · 미니게임 ' + state.minis.played + '회</dd>' +
-      '<dt>사용한 휴가</dt><dd>' + state.leaveUsed + '일</dd>' +
+      '<dt>성명</dt><dd>' + G.RANKS[s.rank] + ' ' + esc(s.name) + '</dd>' +
+      '<dt>부대 · 보직</dt><dd>' + esc(G.unitOf(s).name || '-') + ' · ' + G.MOS[s.mos].name + '</dd>' +
+      (G.traitOf(s).name ? '<dt>성격</dt><dd>' + G.traitOf(s).emoji + ' ' + G.traitOf(s).name + '</dd>' : '') +
+      '<dt>복무 기간</dt><dd>' + G.dateOf(s, 0) + ' ~ ' + (o.good ? G.fmtDate(s.end) : G.dateOf(s) + ' (중단)') + '</dd>' +
+      '<dt>복무 일수</dt><dd>' + served + '일 / ' + (s.total + 1) + '일 (' + Math.round(served / (s.total + 1) * 100) + '%)</dd>' +
+      '<dt>넘긴 카드</dt><dd>' + s.cards + '장 · 돌발 ' + s.emer.count + '회 · 미니게임 ' + s.minis.played + '회</dd>' +
+      '<dt>사용한 휴가</dt><dd>' + s.leaveUsed + '일</dd>' +
       '<dt>' + (o.good ? '전역 통장' : '통장 잔고') + '</dt><dd>' + won(b.total) + (o.good ? ' (적금 매칭 포함)' : '') + '</dd>' +
       '</dl>' +
       (log ? '<ul class="log">' + log + '</ul>' : '') +
       '<div class="seal">' + (o.good ? '전역' : '보류') + '</div>';
+
+    var parts = sc.parts.map(function (p) { return '<li><span>' + esc(p.label) + '</span><b>+' + num(p.n) + '</b></li>'; }).join('');
+    var multLine = sc.mult !== 1 ? '<li><span>배수 (' + (s.pace === 3 ? '속성 ×0.7' : '') + (G.traitOf(s).scoreMult ? ' 성격 ×' + G.traitOf(s).scoreMult : '') + ')</span><b>×' + sc.mult.toFixed(2) + '</b></li>' : '';
+    var ach = r.ach.map(function (a) { return '<span class="medal-chip">' + a.icon + ' ' + esc(a.name) + ' <em>+' + a.gem + '💎</em></span>'; }).join('');
+    var newEnd = r.newEndings.map(function (id) { return '<span class="medal-chip new">📖 새 엔딩: ' + esc(JY.ENDINGS[id].title) + '</span>'; }).join('');
+    var gemsTotal = r.reward + r.runGems + r.ach.reduce(function (a, x) { return a + x.gem; }, 0);
+    $('#score-panel').innerHTML =
+      '<div class="score-head"><small>' + (s.daily ? '⭐ 오늘의 작전 점수' : '전역각 점수') + '</small><b class="score-num">' + num(sc.total) + '</b><span class="score-title">' + esc(sc.title) + '</span></div>' +
+      '<ul class="score-parts">' + parts + multLine + '</ul>' +
+      '<p class="score-gems">💎 +' + num(gemsTotal) + ' <small>(이번 판 획득 ' + r.runGems + ' · 정산 ' + r.reward + (r.ach.length ? ' · 훈장 ' + (gemsTotal - r.reward - r.runGems) : '') + ')</small></p>' +
+      (newEnd || ach ? '<div class="medal-row">' + newEnd + ach + '</div>' : '') +
+      '<p class="score-rank">' + (r.place >= 0 ? '🏅 내 기록 ' + (r.place + 1) + '위' + (r.place === 0 ? ' — 신기록!' : '') : '내 기록 10위 밖') + ' <span id="rank-sync">· 전군 랭킹 확인 중…</span></p>';
+
     showScreen('scr-end');
-    $('#scr-end').scrollTop = 0;
     if (o.good) { snd('win'); confetti(); } else { snd('fail'); if (JY.buzz) JY.buzz([80, 60, 80, 60, 200]); }
+    JY.Rank.submit(r.record).then(function (x) {
+      var el = $('#rank-sync'); if (!el) return;
+      el.textContent = x.ok ? (x.changed ? '· 전군 랭킹에 반영됐다!' : '· 전군 랭킹 최고 기록 유지 중') : '· ' + (x.reason || '전군 랭킹 미반영');
+    });
     state = null;
   }
 
-  /* ── 도감 ───────────────────────────── */
+  function shareResult() {
+    if (!lastEnd) return;
+    var text = shareText(lastEnd.s, lastEnd.r.record);
+    function fallback() {
+      openModal('<h3>기록 공유</h3><p class="sub">아래 글을 복사해서 친구에게 보내자.</p><textarea class="share-text" id="share-text" readonly>' + esc(text) + '</textarea>' +
+        '<div class="modal-actions"><button class="btn btn-primary" data-act="close">닫기</button></div>',
+      function (box) { var t = box.querySelector('#share-text'); t.focus(); t.select(); box.querySelector('[data-act="close"]').onclick = closeModal; });
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { toast('기록을 복사했다! 단톡방에 붙여 넣자.'); snd('coin'); }, fallback);
+      } else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  /* ── 기록실: 도감 + 훈장 ─────────────── */
+  var albumTab = 'endings';
   function renderAlbum(back) {
-    var got = meta.endings || {};
+    var m = Meta.get();
+    var got = m.endings || {};
     var ids = JY.ENDING_ORDER;
     var n = ids.filter(function (id) { return got[id]; }).length;
-    $('#album-progress').textContent = n + '/' + ids.length;
-    $('#album-grid').innerHTML = ids.map(function (id) {
-      var E = JY.ENDINGS[id];
-      if (!got[id]) {
-        return '<div class="album-card locked ' + (E.good ? 'good' : 'bad') + '"><div class="thumb">?</div><b>' + (E.good ? '전역 엔딩' : '실패 엔딩') + '</b><small>힌트: ' + HINTS[id] + '</small></div>';
-      }
-      return '<div class="album-card ' + (E.good ? 'good' : 'bad') + '"><div class="thumb">' + A.scene(E.bg, 'spring') + charSVG(E.who, { mood: E.mood, meMood: E.mood, catCap: true, rank: E.good ? 4 : 2 }) + '</div><b>' + esc(E.title) + '</b><small>' + got[id] + '회 달성</small></div>';
-    }).join('');
-    $('#album-stats').textContent = '입대 ' + (meta.runs || 0) + '회 · 전역 ' + (meta.discharges || 0) + '회 · 최장 복무 ' + (meta.best || 0) + '일';
+    var nm = JY.ACHIEVEMENTS.filter(function (a) { return m.ach[a.id]; }).length;
+    $('#album-progress').textContent = albumTab === 'endings' ? n + '/' + ids.length : nm + '/' + JY.ACHIEVEMENTS.length;
+    $('#medal-count').textContent = nm + '/' + JY.ACHIEVEMENTS.length;
+    $$('#album-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === albumTab)); });
+    var grid = $('#album-grid');
+    grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : '');
+    if (albumTab === 'endings') {
+      grid.innerHTML = ids.map(function (id) {
+        var E = JY.ENDINGS[id];
+        if (!got[id]) {
+          return '<div class="album-card locked ' + (E.good ? 'good' : 'bad') + '"><div class="thumb">?</div><b>' + (E.good ? '전역 엔딩' : '실패 엔딩') + '</b><small>힌트: ' + HINTS[id] + '</small></div>';
+        }
+        return '<div class="album-card ' + (E.good ? 'good' : 'bad') + '"><div class="thumb">' + A.scene(E.bg, 'spring') + charSVG(E.who, { mood: E.mood, meMood: E.mood, catCap: true, rank: E.good ? 4 : 2 }) + '</div><b>' + esc(E.title) + '</b><small>' + got[id] + '회 달성</small></div>';
+      }).join('');
+    } else {
+      grid.innerHTML = JY.ACHIEVEMENTS.map(function (a) {
+        var on = !!m.ach[a.id];
+        return '<div class="medal' + (on ? ' on' : '') + '"><i>' + (on ? a.icon : '🔒') + '</i><b>' + esc(a.name) + '</b><small>' + esc(a.desc) + '</small><em>' + (on ? '획득 ' + m.ach[a.id] : '+' + a.gem + '💎') + '</em></div>';
+      }).join('');
+    }
+    $('#album-stats').textContent = '입대 ' + (m.runs || 0) + '회 · 전역 ' + (m.discharges || 0) + '회 · 실패 ' + (m.fails || 0) + '회 · 최장 복무 ' + (m.best || 0) + '일 · 누적 💎 ' + num(m.gemsTotal);
     $('#btn-album-back').onclick = back || renderTitle;
     showScreen('scr-album');
+  }
+
+  /* ── 랭킹 ───────────────────────────── */
+  var rankTab = 'global';
+  var rankBack = null;
+  function medal(i) { return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + ''; }
+  function unitShort(id) { return JY.UNITS[id] ? JY.UNITS[id].emoji + ' ' + JY.UNITS[id].short : ''; }
+  function endTitle(id) { return JY.ENDINGS[id] ? JY.ENDINGS[id].title : ''; }
+
+  function renderRank(back) {
+    if (back) rankBack = back;
+    $('#btn-rank-back').onclick = rankBack || renderTitle;
+    $$('#rank-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === rankTab)); });
+    var list = $('#rank-list'), status = $('#rank-status');
+    showScreen('scr-rank');
+    if (rankTab === 'mine') {
+      var m = Meta.get();
+      status.textContent = '이 기기에 저장된 내 최고 기록 10개.';
+      list.innerHTML = m.records.length ? m.records.map(function (x, i) {
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(x.name) + ' ' + esc(x.cos || '') + '</b><small>' + (x.daily ? '⭐ ' : '') + esc(endTitle(x.ending)) + ' · ' + esc(unitShort(x.unit)) + ' · ' + esc(x.date || '') + '</small></span><span class="rs"><b>' + num(x.score) + '</b><small>' + esc(x.title || '') + '</small></span></li>';
+      }).join('') : '<li class="rank-empty">아직 기록이 없다. 입대부터 하자!</li>';
+      return;
+    }
+    status.textContent = '불러오는 중…';
+    list.innerHTML = '';
+    var kind = rankTab;
+    JY.Rank.top(kind).then(function (r) {
+      if (rankTab !== kind || $('#scr-rank').hidden) return;
+      var st = JY.Rank.status();
+      if (!r.ok) {
+        status.textContent = r.reason || st.reason;
+        var m2 = Meta.get();
+        if (kind === 'daily') {
+          var d = m2.daily[G.todayStr()];
+          list.innerHTML = d ? '<li class="rank-row me"><span class="rk">나</span><span class="rn"><b>' + esc(d.name || '') + '</b><small>' + esc(endTitle(d.ending)) + '</small></span><span class="rs"><b>' + num(d.score) + '</b></span></li>' : '<li class="rank-empty">오늘의 작전에 아직 참가하지 않았다.</li>';
+        }
+        return;
+      }
+      status.textContent = (kind === 'daily' ? '⭐ ' + G.todayStr() + ' 오늘의 작전 · 모두 같은 조건' : '역대 최고 점수') + (st.canWrite ? '' : ' · ' + (st.reason || '')) + (r.fromCache ? ' · 오프라인 사본' : '');
+      list.innerHTML = r.list.length ? r.list.map(function (x, i) {
+        var sc = kind === 'daily' ? x.dScore : x.score;
+        var nm = kind === 'daily' ? (x.dName || x.name) : x.name;
+        var en = kind === 'daily' ? x.dEnding : x.ending;
+        return '<li class="rank-row' + (i < 3 ? ' top' : '') + (x.id === r.me ? ' me' : '') + '"><span class="rk">' + medal(i) + '</span><span class="rn"><b>' + esc(nm) + ' ' + esc(x.cos || '') + (x.id === r.me ? ' <em>나</em>' : '') + '</b><small>' + esc(endTitle(en)) + (kind === 'daily' ? '' : ' · ' + esc(unitShort(x.unit))) + '</small></span><span class="rs"><b>' + num(sc) + '</b><small>' + esc(kind === 'daily' ? JY.scoreTitle(sc) : x.title) + '</small></span></li>';
+      }).join('') : '<li class="rank-empty">' + (kind === 'daily' ? '오늘 1등이 비어 있다. 지금 출격하면 1등!' : '아직 아무도 없다. 첫 기록의 주인공이 되자!') + '</li>';
+    });
+  }
+
+  /* ── 상점 ───────────────────────────── */
+  var shopTab = 'items';
+  var shopBack = null;
+  var SHOP_TALK = ['어서 와라. 다이아만 있으면 뭐든 구해준다.', '전역 보험? 이거 하나면 꿈이었다 엔딩 가능.', '황금 헬멧은 사단장님도 없다. 쉿.', '보급 상자는 운이다. 행운을 빈다.', '현금은 안 받는다. 다이아만.'];
+  function renderShop(back) {
+    if (back) shopBack = back;
+    $('#btn-shop-back').onclick = shopBack || renderTitle;
+    if ($('#scr-shop').hidden) showScreen('scr-shop');
+    renderGems();
+    $('#shop-me').innerHTML = charSVG('me', { rank: 4 });
+    $('#shop-talk').textContent = pick(SHOP_TALK);
+    $$('#shop-tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === shopTab)); });
+    var body = $('#shop-body'), m = Meta.get();
+    if (shopTab === 'items') {
+      body.innerHTML = '<div class="shop-list">' + JY.PREMIUM_ORDER.map(function (id) {
+        var p = JY.PREMIUM[id];
+        return '<div class="shop-item"><i>' + p.icon + '</i><div><b>' + p.name + ' <small>보유 ' + Meta.stash(id) + '</small></b><small>' + p.desc + '</small></div>' +
+          '<button class="btn btn-small btn-primary" data-buy="' + id + '"' + (m.gems < p.price ? ' disabled' : '') + '>💎 ' + p.price + '</button></div>';
+      }).join('') + '</div>';
+    } else if (shopTab === 'cos') {
+      body.innerHTML = '<div class="cos-grid">' + JY.COSMETIC_ORDER.map(function (id) {
+        var c = JY.COSMETICS[id], owned = Meta.ownsCos(id), on = m.cos.eq[c.slot] === id;
+        var btn = owned ? '<button class="btn btn-small' + (on ? ' btn-primary' : '') + '" data-equip="' + id + '">' + (on ? '착용 중' : '착용') + '</button>'
+          : c.gacha ? '<span class="gacha-only">보급 상자 ' + (c.gacha === 'legend' ? '전설' : '영웅') + '</span>'
+            : '<button class="btn btn-small btn-primary" data-cos="' + id + '"' + (m.gems < c.price ? ' disabled' : '') + '>💎 ' + c.price + '</button>';
+        return '<div class="cos' + (on ? ' on' : '') + (owned ? ' owned' : '') + '"><i>' + c.icon + '</i><b>' + c.name + '</b><small>' + JY.SLOT_NAMES[c.slot] + '</small>' + btn + '</div>';
+      }).join('') + '</div>';
+    } else {
+      body.innerHTML = '<div class="box-area"><button class="supply-box" id="supply-box" aria-label="보급 상자 열기"><span class="box-emoji">📦</span><b>보급 상자</b><small>💎 ' + JY.BOX.price + '</small></button>' +
+        '<ul class="box-odds">' + JY.BOX.tiers.map(function (t) {
+          var what = t.id === 'common' ? '짬처리권·PX 프리패스·회식권 2개' : t.id === 'rare' ? '투시경·네잎클로버·포상휴가증 2개' : t.id === 'epic' ? '전역 보험 또는 꾸미기(무지개 아프로 포함)' : '전역 왕관 (이미 있으면 💎 100)';
+          return '<li><span class="tier" style="background:' + t.color + '">' + t.name + '</span> ' + Math.round(t.p * 100) + '% — ' + what + '</li>';
+        }).join('') + '</ul></div>';
+      var bx = $('#supply-box');
+      if (m.gems < JY.BOX.price) bx.classList.add('poor');
+      bx.onclick = openBoxFlow;
+    }
+    $$('[data-buy]', body).forEach(function (b) {
+      b.onclick = function () {
+        if (Meta.buyPremium(b.dataset.buy)) { snd('gem'); toast(JY.PREMIUM[b.dataset.buy].name + ' 구매! 게임 중 가방에서 꺼내 쓴다.'); renderShop(); }
+        else toast('다이아가 부족하다.');
+      };
+    });
+    $$('[data-cos]', body).forEach(function (b) {
+      b.onclick = function () {
+        if (Meta.buyCos(b.dataset.cos)) { snd('reveal'); confetti(); toast(JY.COSMETICS[b.dataset.cos].name + ' 구매 & 착용!'); renderShop(); }
+        else toast('다이아가 부족하다.');
+      };
+    });
+    $$('[data-equip]', body).forEach(function (b) { b.onclick = function () { Meta.equip(b.dataset.equip); snd('tap'); renderShop(); }; });
+  }
+
+  function openBoxFlow() {
+    var bx = $('#supply-box');
+    if (Meta.get().gems < JY.BOX.price) { toast('다이아가 부족하다. 전역하고 출석하면 모인다!'); return; }
+    var out = Meta.openBox();
+    if (!out) return;
+    renderGems();
+    bx.classList.add('shake');
+    snd('box');
+    setTimeout(function () {
+      bx.classList.remove('shake');
+      snd('reveal');
+      if (out.tier.id === 'legend' || out.tier.id === 'epic') confetti();
+      var got = out.cos ? '<div class="reveal-item"><i>' + JY.COSMETICS[out.cos].icon + '</i><b>' + JY.COSMETICS[out.cos].name + '</b><small>꾸미기 획득! 상점 꾸미기 탭에서 착용</small></div>' : '';
+      got += out.items.map(function (id) { return '<div class="reveal-item"><i>' + JY.PREMIUM[id].icon + '</i><b>' + JY.PREMIUM[id].name + '</b><small>특급 보급품 창고로</small></div>'; }).join('');
+      if (out.gems) got += '<div class="reveal-item"><i>💎</i><b>다이아 ' + out.gems + '</b><small>왕관은 이미 있다! 대신 다이아</small></div>';
+      openModal('<div class="reveal" style="--tier:' + out.tier.color + '"><span class="tier big" style="background:' + out.tier.color + '">' + out.tier.name + '</span><h3>보급 상자 개봉!</h3><div class="reveal-items">' + got + '</div>' +
+        '<div class="modal-actions"><button class="btn btn-ghost" data-act="again">하나 더 (💎' + JY.BOX.price + ')</button><button class="btn btn-primary" data-act="close">좋다!</button></div></div>',
+      function (box) {
+        box.querySelector('[data-act="close"]').onclick = closeModal;
+        box.querySelector('[data-act="again"]').onclick = function () { closeModal(); openBoxFlow(); };
+      }, function () { renderShop(); });
+    }, 900);
   }
 
   /* ── 설정 ───────────────────────────── */
@@ -4908,9 +7185,30 @@ button { cursor: pointer; }
     if (JY.Sound) JY.Sound.setEnabled(settings.sound);
   }
 
+  /* ── 출석 · 환영 ─────────────────────── */
+  function greet() {
+    var m = Meta.get();
+    var att = Meta.attendance();
+    var welcome = m.pendingWelcome;
+    if (welcome) { delete m.pendingWelcome; Meta.save(); }
+    if (!att && !welcome) return;
+    renderGems();
+    var html = '<div class="greet">';
+    if (welcome) html += '<h3>입대 환영 선물!</h3><p>💎 <b>50</b> 다이아를 받았다. 상점에서 전역 보험이나 꾸미기를 사 보자.</p>';
+    if (att) {
+      html += '<h3>출석 체크 🗓️</h3><p>연속 <b>' + att.streak + '일</b> 출석! 💎 <b>+' + att.reward + '</b></p>' +
+        '<div class="streak">' + [1, 2, 3, 4, 5, 6, 7].map(function (d) { return '<span class="' + (d <= Math.min(att.streak, 7) ? 'on' : '') + '">' + d + '일</span>'; }).join('') + '</div>' +
+        '<p class="sub">매일 들어오면 보상이 커진다(최대 💎 28). 오늘의 작전도 잊지 말자!</p>';
+      att.ach.forEach(function (a) { html += '<p class="medal-chip">' + a.icon + ' ' + esc(a.name) + ' +' + a.gem + '💎</p>'; });
+    }
+    html += '<div class="modal-actions"><button class="btn btn-primary" data-act="close">충성!</button></div></div>';
+    openModal(html, function (box) { box.querySelector('[data-act="close"]').onclick = function () { if (JY.Sound) JY.Sound.unlock(); snd('gem'); closeModal(); }; }, renderTitle);
+  }
+
   /* ── 시작 ───────────────────────────── */
   function continueGame(s) {
     state = s;
+    G._setCur(state);
     busy = false;
     showScreen('scr-game');
     renderHUD();
@@ -4918,47 +7216,71 @@ button { cursor: pointer; }
     renderCard(true);
   }
 
+  function bindTabs(sel, fn) {
+    $(sel).addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) { snd('tap'); fn(b.dataset.tab); } });
+  }
+
   function init(data) {
-    meta = lsGet(KEYS.meta, null) || { endings: {}, runs: 0, discharges: 0, best: 0 };
-    meta.endings = meta.endings || {};
+    Meta.load();
     settings = lsGet(KEYS.settings, null) || { sound: true, vibe: true };
     applySettings();
     buildStats();
     bindSwipe();
+    JY.Rank.init();
 
     $('#btn-new').onclick = function () { if (JY.Sound) JY.Sound.unlock(); snd('tap'); renderSetup(); };
     $('#btn-continue').onclick = function () { if (JY.Sound) JY.Sound.unlock(); var s = loadSave(); if (s) continueGame(s); };
-    $('#btn-album').onclick = function () { renderAlbum(renderTitle); };
+    $('#btn-daily').onclick = function () { if (JY.Sound) JY.Sound.unlock(); snd('tap'); openDaily(); };
+    $('#btn-album').onclick = function () { albumTab = 'endings'; renderAlbum(renderTitle); };
+    $('#btn-rank').onclick = function () { rankTab = 'global'; renderRank(renderTitle); };
+    $('#btn-shop').onclick = function () { shopTab = 'items'; renderShop(renderTitle); };
     $('#btn-face').onclick = function () { setup.face = randomFace(); snd('tap'); updateSetupPreview(); };
+    $('#btn-reroll').onclick = function () { if (setup.rerolled) return; setup.rerolled = true; snd('box'); drawTraits(); };
+    $('#trait-grid').addEventListener('click', function (e) {
+      var b = e.target.closest('.trait'); if (!b) return;
+      setup.trait = b.dataset.trait; snd('tap'); renderTraits();
+    });
     $('#in-name').addEventListener('input', updateSetupPreview);
     $('#in-date').addEventListener('change', updateDateNote);
     $('#in-date').addEventListener('input', updateDateNote);
     $('#mos-grid').addEventListener('click', function (e) {
       var b = e.target.closest('.mos'); if (!b) return;
       setup.mos = b.dataset.mos; snd('tap');
-      document.querySelectorAll('.mos').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      $$('.mos').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
     });
     $('#btn-setup-back').onclick = renderTitle;
     $('#setup-form').addEventListener('submit', function (e) { e.preventDefault(); if (JY.Sound) JY.Sound.unlock(); startGame(); });
 
-    $('#dock-bag').onclick = openBag;
+    $('#dock-bag').onclick = function () { openBag(); };
     $('#dock-px').onclick = openPX;
+    $('#dock-mates').onclick = openMates;
     $('#dock-leave').onclick = openLeave;
     $('#dock-menu').onclick = openMenu;
+    $('#conds').addEventListener('click', function (e) {
+      var b = e.target.closest('.cond'); if (!b || !state) return;
+      if (b.dataset.cond) { var d = G.condDef(b.dataset.cond); toast(d.emoji + ' ' + d.name + ': ' + d.desc, 2600); }
+      else if (b.dataset.buff) { var p = JY.PREMIUM[b.dataset.buff]; toast(p.icon + ' ' + p.name + ': ' + p.desc, 2600); }
+    });
     $('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 
     $('#btn-reenlist').onclick = function () { renderSetup(); };
-    $('#btn-end-album').onclick = function () { renderAlbum(function () { showScreen('scr-end'); }); };
+    $('#btn-end-rank').onclick = function () { rankTab = lastEnd && lastEnd.s.daily ? 'daily' : 'global'; renderRank(function () { showScreen('scr-end'); }); };
+    $('#btn-end-share').onclick = shareResult;
+    $('#btn-end-shop').onclick = function () { shopTab = 'items'; renderShop(function () { showScreen('scr-end'); }); };
     $('#btn-end-title').onclick = renderTitle;
+    bindTabs('#album-tabs', function (t) { albumTab = t; renderAlbum(); });
+    bindTabs('#rank-tabs', function (t) { rankTab = t; renderRank(); });
+    bindTabs('#shop-tabs', function (t) { shopTab = t; renderShop(); });
+    $('#btn-rank-refresh').onclick = function () { renderRank(); };
 
     window.addEventListener('resize', fitCard);
     window.addEventListener('orientationchange', function () { setTimeout(fitCard, 200); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
 
-    var restored = data && data.save && data.save.v === 1 && !data.save.over ? data.save : null;
+    var restored = data && data.save && data.save.stats && !data.save.over ? G.migrate(data.save) : null;
     if (restored) continueGame(restored);
-    else renderTitle();
+    else { renderTitle(); greet(); }
 
     try {
       if (window.claude && window.claude.hot && window.claude.hot.snapshot) {

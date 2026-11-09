@@ -123,14 +123,10 @@
     <header class="hud">
       <div class="hud-row">
         <div class="hud-rank" id="hud-rank"></div>
-        <div class="hud-name"><b id="hud-name">이병 나띨빵</b><small id="hud-date">2026.03.02 · 봄</small></div>
+        <div class="hud-name"><b id="hud-name">이병 나띨빵</b><div class="conds" id="conds" hidden></div></div>
         <div class="hud-dday"><small>전역까지</small><b id="hud-dday">D-547</b></div>
       </div>
-      <div class="gauge" aria-label="복무율">
-        <div class="gauge-bar"><i id="gauge-fill"></i></div>
-        <span id="gauge-pct">0.0%</span>
-      </div>
-      <div class="conds" id="conds" hidden></div>
+      <div class="gauge" aria-label="복무율"><div class="gauge-bar"><i id="gauge-fill"></i></div></div>
       <div class="stats" id="stats"></div>
     </header>
 
@@ -146,6 +142,8 @@
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
+      <div class="timeout-hint" id="timeout-hint" hidden></div>
+      <div class="alert" id="alert" hidden></div>
       <div class="result" id="result" hidden></div>
     </main>
 
@@ -267,6 +265,10 @@
 <script src="js/data/cards.js"></script>
 <script src="js/data/cards2.js"></script>
 <script src="js/data/cards3.js"></script>
+<script src="js/data/cards4.js"></script>
+<script src="js/data/cards5.js"></script>
+<script src="js/data/cards6.js"></script>
+<script src="js/data/cards7.js"></script>
 <script src="js/data/items.js"></script>
 <script src="js/data/world.js"></script>
 <script src="js/data/shop.js"></script>

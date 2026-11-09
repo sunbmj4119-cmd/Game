@@ -342,11 +342,9 @@
     var U = G.unitOf(state);
     $('#hud-rank').innerHTML = A.rankInsignia(state.rank);
     $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '') + ((state.heat || []).length ? ' 🔥' + state.heat.length : '');
-    $('#hud-date').textContent = G.dateOf(state).slice(2) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
+    $('.hud-name').title = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.short + ' · ' : '') + G.MOS[state.mos].name;
     $('#hud-dday').textContent = 'D-' + G.daysLeft(state);
-    var pct = G.progress(state) * 100;
-    $('#gauge-fill').style.width = pct.toFixed(2) + '%';
-    $('#gauge-pct').textContent = pct.toFixed(1) + '%';
+    $('#gauge-fill').style.width = (G.progress(state) * 100).toFixed(2) + '%';
     G.STATS.forEach(function (k) {
       var el = document.querySelector('.stat[data-k="' + k + '"]');
       if (!el) return;
@@ -355,26 +353,33 @@
       el.classList.toggle('danger', v <= 15 || v >= 85);
       el.setAttribute('aria-label', ICON[k] + ' ' + v);
     });
-    var many = state.conds.length + (state.insight > 0) + (state.luck > 0) + (state.insurance > 0) > 2;
-    function chip(cls, data, emoji, name, left) { // 칩이 많으면 이름을 빼고 아이콘만 (눌러서 설명)
-      return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + (many ? '' : ' ' + name) + (left !== undefined ? ' <em>' + left + '</em>' : '') + '</button>';
+    // 지금 걸린 상황·효과는 아이콘만 (눌러서 설명). 보험처럼 신경 쓸 필요 없는 건 안 보인다
+    function chip(cls, data, emoji, name) { return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + '</button>'; }
+    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name); });
+    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경'));
+    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운'));
+    var key = chips.join('');
+    if ($('#conds').dataset.key !== key) {
+      var had = $('#conds').dataset.key || '';
+      $('#conds').innerHTML = key;
+      $('#conds').dataset.key = key;
+      if (key.length > had.length) $('#conds').classList.remove('pop'), void $('#conds').offsetWidth, $('#conds').classList.add('pop');
     }
-    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name, c.left); });
-    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경', state.insight));
-    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운', state.luck));
-    if (state.insurance > 0) chips.push(chip('cond buff', 'data-buff="insurance"', '🛡️', '보험'));
-    $('#conds').innerHTML = chips.join('');
     $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
     $('#bag-badge').textContent = bagN;
     $('#leave-badge').textContent = state.leave + '일';
-    var px = G.pxStatus(state);
+    // 도크: 지금 쓸 수 없는 버튼은 숨긴다 (PX는 열릴 때 '띠링' 하고 나타난다)
+    var px = G.pxStatus(state), pxBtn = $('#dock-px');
+    var pxWas = !pxBtn.hidden;
+    pxBtn.hidden = !px.ok;
+    pxBtn.classList.toggle('off', !px.ok);
     $('#px-badge').hidden = !px.ok;
-    $('#dock-px').classList.toggle('off', !px.ok);
+    if (px.ok && !pxWas) { pxBtn.classList.remove('pop'); void pxBtn.offsetWidth; pxBtn.classList.add('pop'); }
+    $('#dock-leave').hidden = state.rank < 1 || !(state.leave > 0);
     $('#dock-leave').classList.toggle('off', !G.leaveStatus(state).ok);
-    var bff = G.bffCount(state);
-    $('#mates-badge').hidden = !bff;
-    $('#mates-badge').textContent = '♥' + bff;
+    $('#mates-badge').hidden = true;
+    $('#dock-mates').hidden = state.rank < 1;
     $('#dock-mates').classList.toggle('off', state.rank < 1);
   }
 
@@ -428,7 +433,7 @@
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span> ' + esc(c.text);
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : '') + esc(c.text);
     var card = $('#card');
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
@@ -448,30 +453,59 @@
       card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
     }
     $('#choices').classList.toggle('three', !!c.x);
-    if (Meta.see(c.key)) card.insertAdjacentHTML('beforeend', '<span class="new-scene">NEW</span>');
+    Meta.see(c.key); // 수집은 기록만 (카드 위 NEW 도장은 정신없어서 뺐다)
     $$('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
     $('#talk-bubble').hidden = true;
     armed = null;
     showPreview(null);
     if (enter) { void card.offsetWidth; card.classList.add('enter'); }
     fitCard();
-    if (c.urgent) startUrgent(c.urgent);
+    if (c.urgent) showAlert(c);
   }
 
-  /* 돌발 상황: 사이렌 + 제한 시간 */
-  function startUrgent(sec) {
-    var bar = $('#urgent-bar'), fill = $('#urgent-fill'), label = $('#urgent-sec');
-    bar.hidden = false;
+  /* 돌발 상황: 먼저 경보 화면으로 알리고, 확인(탭)하거나 잠시 뒤에 제한 시간이 시작된다 */
+  var alertOn = false, alertTimer = 0;
+  function showAlert(c) {
+    var al = $('#alert');
+    alertOn = true;
+    al.innerHTML = '<div class="alert-box" role="alertdialog" aria-label="돌발 상황">' +
+      '<b class="alert-title">🚨 돌발 상황!</b>' +
+      '<p class="alert-sec"><em>' + Math.round(c.urgent) + '초</em> 안에 골라라!</p>' +
+      (c.t ? '<p class="alert-miss">놓치면 → ' + esc(c.t.t) + '</p>' : '') +
+      '<span class="alert-go">탭하면 바로 시작</span></div>';
+    al.hidden = false;
+    al.classList.remove('go'); void al.offsetWidth; al.classList.add('go');
     var flash = $('#flash');
     flash.hidden = false; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     setTimeout(function () { flash.hidden = true; }, 1300);
     snd('siren');
     if (JY.buzz) JY.buzz([200, 80, 200, 80, 200]);
-    var total = sec * 1000, t0 = performance.now();
+    var go = function () {
+      if (!alertOn) return;
+      clearTimeout(alertTimer);
+      alertOn = false;
+      al.hidden = true;
+      al.onclick = null;
+      if (state && !state.over && state.current === c.id) startUrgent(c.urgent, c);
+    };
+    al.onclick = go;
+    alertTimer = setTimeout(go, 2200);
+  }
+  function hideAlert() { clearTimeout(alertTimer); alertOn = false; var al = $('#alert'); if (al) { al.hidden = true; al.onclick = null; } }
+
+  /* 돌발 상황: 사이렌 + 제한 시간 */
+  function startUrgent(sec, c) {
+    var bar = $('#urgent-bar'), fill = $('#urgent-fill'), label = $('#urgent-sec');
+    bar.hidden = false;
+    var hint = $('#timeout-hint');
+    if (c && c.t) { hint.textContent = '⏱ 시간 안에 못 고르면: ' + c.t.t; hint.hidden = false; }
+    var total = sec * 1000, t0 = performance.now(), lastSec = -1;
     function tick(now) {
       var left = Math.max(0, total - (now - t0));
       fill.style.width = (left / total * 100) + '%';
-      label.textContent = (left / 1000).toFixed(1) + '초';
+      var whole = Math.ceil(left / 1000);
+      label.textContent = '🚨 ' + whole + '초';
+      if (whole !== lastSec) { lastSec = whole; bar.classList.toggle('last', whole <= 2); if (whole <= 2 && whole > 0) { snd('tap'); if (JY.buzz) JY.buzz(30); } }
       if (left <= 0) { urgentTimer = null; bar.hidden = true; if (!busy && state && !state.over) commit('t'); return; }
       urgentTimer = requestAnimationFrame(tick);
     }
@@ -480,7 +514,9 @@
   function stopUrgent() {
     if (urgentTimer) cancelAnimationFrame(urgentTimer);
     urgentTimer = null;
-    var bar = $('#urgent-bar'); if (bar) bar.hidden = true;
+    hideAlert();
+    var bar = $('#urgent-bar'); if (bar) { bar.hidden = true; bar.classList.remove('last'); }
+    var hint = $('#timeout-hint'); if (hint) hint.hidden = true;
   }
 
   function setCardPose(dx, dy) {
@@ -567,6 +603,7 @@
     $$('.choice').forEach(function (b) { b.addEventListener('click', function () { arm(b.dataset.side); }); });
     document.addEventListener('keydown', function (e) {
       if ($('#scr-game').hidden || !$('#modal').hidden || !$('#mini').hidden) return;
+      if (alertOn) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#alert').click(); } return; }
       if (!$('#result').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $('#result').click(); return; }
       if (document.activeElement === card) return;
       if (e.key === 'ArrowLeft') arm('l');
@@ -576,7 +613,7 @@
   }
 
   function commit(side) {
-    if (busy || !state || state.over) return;
+    if (busy || alertOn || !state || state.over) return;
     busy = true;
     stopUrgent();
     disarm();
@@ -683,8 +720,12 @@
       if (!v) return;
       chips += '<span class="chip ' + (v > 0 ? 'up' : 'down') + '">' + ICON[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
     });
-    var evs = (res.events || []).map(function (e) { return '<div>' + esc(eventLine(e)) + '</div>'; }).join('');
-    box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' +
+    var evs = (res.events || []).map(function (e) {
+      if (e.type === 'cond') { var d = G.condDef(e.id); return '<div class="ev-big"><small>📢 이번 주 상황</small><b>' + esc(d.emoji + ' ' + d.name) + '</b><span>' + esc(d.desc) + '</span></div>'; }
+      return '<div>' + esc(eventLine(e)) + '</div>';
+    }).join('');
+    var head = res.emergency ? (res.timeout ? '<div class="note-head bad">⏱ 시간 초과!</div>' : '<div class="note-head">🚨 돌발 상황 대처 완료</div>') : '';
+    box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' + head +
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
@@ -1373,7 +1414,7 @@
     { sel: '#card', text: '카드를 <b>왼쪽·오른쪽으로 밀어서</b> 고른다. 아래 버튼을 <b>두 번</b> 눌러도 된다.' },
     { sel: '#stats', text: '체력·멘탈·간부 신뢰·전우애. 하나라도 <b>0이 되거나 100이 되면 전역 실패</b>. 너무 잘해도 말뚝 박힌다!' },
     { sel: '#stats', text: '카드를 살짝 끌면 바뀔 스탯 위에 <b>점</b>이 뜬다. 큰 점 = 크게 변함. 오를지 내릴지는 글을 읽고 맞혀라.' },
-    { sel: '.dock', text: '위험하면 <b>가방·PX·동료·휴가</b>로 버틴다. 목표: <b>전역일까지 살아남기</b>. 충성!' }
+    { sel: '.dock', text: '위험하면 <b>가방</b>을 연다. PX·동료·휴가 버튼은 <b>쓸 수 있을 때 나타난다</b>. 목표: <b>전역일까지 살아남기</b>. 충성!' }
   ];
   var coachStep = 0;
   function startCoach() {
@@ -1638,10 +1679,16 @@
     $('#dock-mates').onclick = openMates;
     $('#dock-leave').onclick = openLeave;
     $('#dock-menu').onclick = openMenu;
+    $('.hud-name').addEventListener('click', function (e) { if (!e.target.closest('.cond')) openMenu(); });
     $('#conds').addEventListener('click', function (e) {
       var b = e.target.closest('.cond'); if (!b || !state) return;
-      if (b.dataset.cond) { var d = G.condDef(b.dataset.cond); toast(d.emoji + ' ' + d.name + ': ' + d.desc, 2600); }
-      else if (b.dataset.buff) { var p = JY.PREMIUM[b.dataset.buff]; toast(p.icon + ' ' + p.name + ': ' + p.desc, 2600); }
+      if (b.dataset.cond) {
+        var d = G.condDef(b.dataset.cond), c = state.conds.filter(function (x) { return x.id === b.dataset.cond; })[0];
+        toast(d.emoji + ' ' + d.name + ': ' + d.desc + (c ? ' (카드 ' + c.left + '장 남음)' : ''), 2800);
+      } else if (b.dataset.buff) {
+        var p = JY.PREMIUM[b.dataset.buff], n = b.dataset.buff === 'insight' ? state.insight : state.luck;
+        toast(p.icon + ' ' + p.name + ': ' + p.desc + ' (카드 ' + n + '장 남음)', 2800);
+      }
     });
     $('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });

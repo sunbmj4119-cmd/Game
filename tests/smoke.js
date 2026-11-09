@@ -114,6 +114,7 @@ function log() { if (verbose) console.log.apply(console, arguments); }
         mini: !document.getElementById('mini').hidden,
         modal: !document.getElementById('modal').hidden,
         result: !document.getElementById('result').hidden,
+        alert: !document.getElementById('alert').hidden,
         urgent: document.getElementById('card').classList.contains('urgent')
       };
     });
@@ -153,10 +154,15 @@ function log() { if (verbose) console.log.apply(console, arguments); }
       }
       await tap('#result'); await sleep(250); continue;
     }
-    if (st.urgent) {
+    if (st.alert) {
       emergencies++;
-      if (!shotUrgent) { await sleep(500); await shot('07-urgent'); shotUrgent = true; }
-      if (emergencies === 1) { await sleep(6500); continue; } // 한 번은 시간 초과 경로를 탄다
+      if (!shotUrgent) { await shot('07a-alert'); }
+      await tap('#alert'); await sleep(300);
+      if (!shotUrgent) { await shot('07-urgent'); shotUrgent = true; }
+      if (emergencies === 1) { // 한 번은 시간 초과 경로를 탄다
+        var sec = await page.evaluate(function () { return JY.Game.currentCard(JY.UI._state()).urgent; });
+        await sleep(sec * 1000 + 600); continue;
+      }
     }
 
     // PX 한 번 + 가방, 동료 선물 한 번, 휴가 한 번

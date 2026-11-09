@@ -165,6 +165,9 @@ function svgBounds() {
     report.cardSize[V.name] = cs;
     await page.evaluate(function () { var s = JY.UI._state(); s.current = 'em_snake'; s.cv = null; });
     await T(function (t) { t.renderCard(false); });
+    await snap('game-alert', true);
+    await page.evaluate(function () { document.getElementById('alert').click(); });
+    await sleep(250);
     await snap('game-urgent', true);
     var cs2 = await page.evaluate(function () { var c = document.getElementById('card').getBoundingClientRect(); return [Math.round(c.width), Math.round(c.height)]; });
     report.cardSize[V.name].urgent = cs2;
@@ -172,7 +175,7 @@ function svgBounds() {
     // 결과 쪽지: 이벤트 잔뜩
     await T(function (t) {
       t.showResult({ say: '김말년이 누운 채로 짜장이냐 짬뽕이냐를 물었다. 생활관이 반으로 갈렸고 토론은 새벽 두 시까지 이어졌다. 결국 짬짜면으로 합의했다.', deltas: { hp: -12, mt: 15, tr: -8, bd: 11 },
-        events: [{ type: 'pay', n: 1200000, save: 550000 }, { type: 'promo', text: '병장 진급! 휴가 +10일' }, { type: 'season', text: '겨울이 왔다. 하늘에서 쓰레기(눈)가 내린다.' }, { type: 'leave', text: '포상휴가 +3일' },
+        events: [{ type: 'cond', id: 'gifts', text: '' }, { type: 'pay', n: 1200000, save: 550000 }, { type: 'promo', text: '병장 진급! 휴가 +10일' }, { type: 'season', text: '겨울이 왔다. 하늘에서 쓰레기(눈)가 내린다.' }, { type: 'leave', text: '포상휴가 +3일' },
           { type: 'item', id: 'chocopie', n: 2 }, { type: 'money', n: -30000 }, { type: 'cond', text: '🤧 독감 유행 시작! (카드마다 체력 -2)' }, { type: 'aff', who: 'dumb', n: 6 }, { type: 'bff', who: 'dumb', text: '동기 사랑 — 전우애 증가 1.15배' }, { type: 'insurance', text: '🛡️ 전역 보험 발동! "…꿈이었다!" 멘탈이(가) 50으로 돌아왔다.' }] }, function () {});
     });
     await snap('result-many', true);
@@ -293,6 +296,30 @@ function svgBounds() {
     F('특수 대답: 초코파이 소모 + 카드 진행', g.specials === f.specials + 1 && g.items.chocopie === chocoWant && g.cur !== 'hol_birthday', { choco: [f.items.chocopie, g.items.chocopie, chocoWant], specials: [f.specials, g.specials], cur: g.cur });
     if (await p.evaluate(function () { return !document.getElementById('result').hidden; })) { await sleep(400); await tapSel('#result'); }
   }
+  // 돌발 상황: 경보 → (경보 중엔 선택 안 됨) → 탭하면 시간 시작 → 시간 초과 결과
+  await p.evaluate(function () { var s = JY.UI._state(); s.current = 'em_snake'; s.cv = null; JY.UI._t.renderCard(false); });
+  var al = await p.evaluate(function () { return { alert: !document.getElementById('alert').hidden, bar: !document.getElementById('urgent-bar').hidden, text: document.getElementById('alert').textContent }; });
+  F('돌발: 경보 화면 먼저', al.alert && !al.bar && /돌발 상황/.test(al.text) && /놓치면/.test(al.text), al);
+  await p.evaluate(function () { var b = document.querySelector('.choice[data-side="l"]'); b.click(); b.click(); });
+  var e1 = await st();
+  F('돌발: 경보 중엔 선택 안 됨', e1.cur === 'em_snake');
+  await tapSel('#alert');
+  var al2 = await p.evaluate(function () { return { alert: !document.getElementById('alert').hidden, bar: !document.getElementById('urgent-bar').hidden, hint: document.getElementById('timeout-hint').textContent, hintOn: !document.getElementById('timeout-hint').hidden }; });
+  F('돌발: 탭하면 제한 시간 시작 + 놓치면 안내', !al2.alert && al2.bar && al2.hintOn && /못 고르면/.test(al2.hint), al2);
+  var urgSec = await p.evaluate(function () { return JY.Game.currentCard(JY.UI._state()).urgent; });
+  await sleep(urgSec * 1000 + 700);
+  var e2 = await p.evaluate(function () { var r = document.getElementById('result'); return { result: !r.hidden, head: (r.querySelector('.note-head') || {}).textContent || '', cur: JY.UI._state().current }; });
+  F('돌발: 시간 초과 결과 표시', e2.result && /시간 초과/.test(e2.head) && e2.cur !== 'em_snake', e2);
+  if (e2.result) { await sleep(400); await tapSel('#result'); }
+  // 도크: 훈련소에선 동료·PX·휴가 버튼이 안 보인다
+  var dk = await p.evaluate(function () {
+    var keep = JY.UI._state(), t = JY.Game.newState({ start: '2026-03-02' });
+    JY.UI._t.setState(t); JY.UI._t.renderHUD();
+    var r = ['dock-mates', 'dock-px', 'dock-leave', 'dock-bag'].map(function (id) { return document.getElementById(id).hidden; });
+    JY.UI._t.setState(keep); JY.UI._t.renderHUD();
+    return r;
+  });
+  F('도크: 훈련소에선 쓸 수 없는 버튼 숨김', dk[0] && dk[1] && dk[2] && !dk[3], dk);
   // 휴가 출발
   await p.evaluate(function () { var s = JY.UI._state(); s.lastLeaveEnd = -99; s.conds = []; s.blockUntil = 0; JY.UI._t.renderHUD(); });
   var h0 = await st();

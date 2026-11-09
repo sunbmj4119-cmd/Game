@@ -8,8 +8,7 @@ global.window = global;
 var store = {};
 global.localStorage = { getItem: function (k) { return store[k] || null; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } };
 var root = path.join(__dirname, '..');
-['js/art.js', 'js/data/chars.js', 'js/data/cards.js', 'js/data/cards2.js', 'js/data/cards3.js', 'js/data/items.js',
-  'js/data/world.js', 'js/data/shop.js', 'js/core.js', 'js/meta.js'].forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8')); });
+require('./data-files').load({ noMeta: false });
 var JY = global.JY, G = JY.Game, Meta = JY.Meta;
 var PLAYERS = +process.argv[2] || 60, RUNS = +process.argv[3] || 40, PACE = +process.argv[4] || 3;
 var HEAT = process.env.HEAT ? process.env.HEAT.split(',') : null;

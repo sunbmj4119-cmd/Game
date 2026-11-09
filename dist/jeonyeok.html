@@ -273,7 +273,7 @@ button { cursor: pointer; }
 .hud-dday small { font-size: 11px; opacity: .7; }
 .hud-dday b { font-family: var(--font-display); font-weight: 400; font-size: 26px; color: var(--brass); font-variant-numeric: tabular-nums; }
 .gauge { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.gauge-bar { flex: 1; height: 10px; background: rgba(0, 0, 0, .35); border-radius: 99px; overflow: hidden; }
+.gauge-bar { flex: 1; height: 6px; background: rgba(0, 0, 0, .35); border-radius: 99px; overflow: hidden; }
 .gauge-bar i {
   display: block; height: 100%; width: 0%;
   background: repeating-linear-gradient(-45deg, var(--brass) 0 8px, #c99a2e 8px 16px);
@@ -449,7 +449,7 @@ button { cursor: pointer; }
 
 .dock {
   flex: none;
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+  display: flex; gap: 4px;
   background: var(--olive-dark);
   border-radius: var(--r-lg);
   padding: 6px;
@@ -478,7 +478,11 @@ button { cursor: pointer; }
   min-width: 18px;
   text-align: center;
 }
+.dock-btn { flex: 1 1 0; min-width: 0; }
+.dock-btn[hidden] { display: none; }
 .dock-btn.off { opacity: .55; }
+.dock-btn.pop { animation: dockPop .6s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes dockPop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
 
 /* ── 모달 ─────────────────────────── */
 .modal {
@@ -730,13 +734,16 @@ button { cursor: pointer; }
 .check-row small { color: var(--muted); }
 
 /* HUD: 주간 상황 */
-.conds { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
+.conds { display: flex; flex-wrap: nowrap; gap: 3px; margin-top: 2px; overflow-x: auto; scrollbar-width: none; }
+.conds[hidden] { display: none; }
+.conds.pop .cond:last-child { animation: dockPop .6s cubic-bezier(.2, 1.6, .4, 1); }
+.hud-name { cursor: pointer; }
 .conds::-webkit-scrollbar { display: none; }
 .cond {
   flex: none; white-space: nowrap;
-  border: 0; border-radius: 99px; padding: 1px 8px;
+  border: 0; border-radius: 99px; padding: 0 5px;
   background: rgba(239, 232, 204, .16); color: var(--cream);
-  font-size: 12px; line-height: 1.5;
+  font-size: 13px; line-height: 1.5;
 }
 .cond em { font-style: normal; background: rgba(0, 0, 0, .3); border-radius: 99px; padding: 0 5px; margin-left: 2px; }
 .cond.buff { background: rgba(224, 179, 71, .3); }
@@ -750,11 +757,54 @@ button { cursor: pointer; }
 .card.urgent { border-color: var(--stamp); box-shadow: 0 8px 0 rgba(196, 54, 43, .45), 0 0 0 4px rgba(196, 54, 43, .35); }
 .card.urgent .char-wrap { animation: urgentShake .45s ease-in-out 3; }
 .urgent-bar {
-  position: absolute; top: -2px; left: 0; right: 0; z-index: 4;
-  height: 18px; border-radius: 99px; background: rgba(0, 0, 0, .25); overflow: hidden;
+  position: absolute; top: -4px; left: 0; right: 0; z-index: 4;
+  height: 26px; border-radius: 99px; background: rgba(0, 0, 0, .35); overflow: hidden;
+  border: 2px solid var(--ink);
 }
 .urgent-bar i { display: block; height: 100%; width: 100%; background: repeating-linear-gradient(-45deg, var(--stamp) 0 10px, #e2584c 10px 20px); }
-.urgent-bar span { position: absolute; inset: 0; text-align: center; font-size: 12px; line-height: 18px; color: #fff; font-family: var(--font-util); }
+.urgent-bar span { position: absolute; inset: 0; text-align: center; font-size: 16px; line-height: 22px; color: #fff; font-family: var(--font-display); letter-spacing: 1px; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); }
+.urgent-bar.last { animation: alarm .4s steps(2) infinite; }
+.card.urgent { animation: urgentPulse 1s ease-in-out infinite; }
+@keyframes urgentPulse { 50% { box-shadow: 0 8px 0 rgba(196, 54, 43, .45), 0 0 0 9px rgba(196, 54, 43, .25); } }
+.timeout-hint {
+  flex: none; margin: -2px 0 0; text-align: center;
+  font-size: 13px; color: var(--stamp); font-family: var(--font-util);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.timeout-hint[hidden] { display: none; }
+/* 돌발 경보: 카드가 나오기 전에 화면을 덮고 알린다. 탭하거나 2초 뒤 제한 시간 시작 */
+.alert {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(40, 8, 6, .55);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+}
+.alert[hidden] { display: none; }
+.alert-box {
+  width: min(100%, 330px);
+  background: var(--stamp); color: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  padding: 18px 16px 14px;
+  text-align: center;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .15), 6px 8px 0 rgba(0, 0, 0, .35);
+  background-image: repeating-linear-gradient(-45deg, rgba(0, 0, 0, .12) 0 12px, transparent 12px 24px);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.alert.go .alert-box { animation: alertIn .5s cubic-bezier(.2, 1.5, .4, 1), urgentShake .4s ease-in-out .5s 2; }
+.alert-title { font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: 1px; text-shadow: 2px 2px 0 rgba(0, 0, 0, .35); }
+.alert-sec { margin: 0; font-size: 18px; }
+.alert-sec em { font-style: normal; font-family: var(--font-display); font-size: 26px; color: #ffe08a; }
+.alert-miss { margin: 0; font-size: 14px; background: rgba(0, 0, 0, .25); border-radius: 6px; padding: 4px 8px; }
+.alert-go { font-size: 12px; opacity: .85; font-family: var(--font-util); }
+@keyframes alertIn { 0% { transform: scale(.3) rotate(-8deg); opacity: 0; } 70% { transform: scale(1.06) rotate(1deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+.note-head { font-family: var(--font-display); font-size: 17px; color: var(--stamp); margin-bottom: -4px; }
+.note-head.bad { color: #8a1f17; }
+.ev-big { display: flex; flex-direction: column; gap: 1px; background: #fff3c9; border: 2px dashed var(--brass); border-radius: 8px; padding: 6px 10px; }
+.ev-big small { font-size: 12px; opacity: .75; }
+.ev-big b { font-weight: 400; font-family: var(--font-display); font-size: 17px; }
+.ev-big span { font-size: 13px; }
 .flash { position: fixed; inset: 0; z-index: 30; pointer-events: none; background: rgba(196, 54, 43, .35); opacity: 0; }
 .flash.go { animation: flash 1.2s ease-out; }
 .note.urgent { border-color: var(--stamp); }
@@ -1170,6 +1220,16 @@ button { cursor: pointer; }
   #app { width: 480px; }
 }
 
+/* v5: 작은 화면에서 돌발 경보 */
+@media (max-height: 700px) {
+  .alert-box { padding: 12px 12px 10px; gap: 4px; }
+  .alert-title { font-size: 28px; }
+  .alert-sec { font-size: 16px; }
+  .alert-sec em { font-size: 22px; }
+  .urgent-bar { height: 22px; }
+  .urgent-bar span { font-size: 14px; line-height: 18px; }
+}
+
 </style>
 </head>
 <body>
@@ -1276,14 +1336,10 @@ button { cursor: pointer; }
     <header class="hud">
       <div class="hud-row">
         <div class="hud-rank" id="hud-rank"></div>
-        <div class="hud-name"><b id="hud-name">이병 나띨빵</b><small id="hud-date">2026.03.02 · 봄</small></div>
+        <div class="hud-name"><b id="hud-name">이병 나띨빵</b><div class="conds" id="conds" hidden></div></div>
         <div class="hud-dday"><small>전역까지</small><b id="hud-dday">D-547</b></div>
       </div>
-      <div class="gauge" aria-label="복무율">
-        <div class="gauge-bar"><i id="gauge-fill"></i></div>
-        <span id="gauge-pct">0.0%</span>
-      </div>
-      <div class="conds" id="conds" hidden></div>
+      <div class="gauge" aria-label="복무율"><div class="gauge-bar"><i id="gauge-fill"></i></div></div>
       <div class="stats" id="stats"></div>
     </header>
 
@@ -1299,6 +1355,8 @@ button { cursor: pointer; }
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
+      <div class="timeout-hint" id="timeout-hint" hidden></div>
+      <div class="alert" id="alert" hidden></div>
       <div class="result" id="result" hidden></div>
     </main>
 
@@ -4668,6 +4726,30 @@ button { cursor: pointer; }
   ];
 })(window.JY = window.JY || {});
 
+/* js/data/cards4.js */
+/* v5 장면 추가: 생활관 일상 (작성 중) */
+(function (JY) {
+  'use strict';
+})(window.JY = window.JY || {});
+
+/* js/data/cards5.js */
+/* v5 장면 추가: 근무·훈련·작업·보직 (작성 중) */
+(function (JY) {
+  'use strict';
+})(window.JY = window.JY || {});
+
+/* js/data/cards6.js */
+/* v5 장면 추가: 사람들·계급 (작성 중) */
+(function (JY) {
+  'use strict';
+})(window.JY = window.JY || {});
+
+/* js/data/cards7.js */
+/* v5 장면 추가: 돌발·계절·자대·훈련소 (작성 중) */
+(function (JY) {
+  'use strict';
+})(window.JY = window.JY || {});
+
 /* js/data/items.js */
 /* PX 물품 & 엔딩 데이터 */
 (function (JY) {
@@ -7672,11 +7754,9 @@ button { cursor: pointer; }
     var U = G.unitOf(state);
     $('#hud-rank').innerHTML = A.rankInsignia(state.rank);
     $('#hud-name').textContent = G.RANKS[state.rank] + ' ' + state.name + (state.daily ? ' ⭐' : '') + ((state.heat || []).length ? ' 🔥' + state.heat.length : '');
-    $('#hud-date').textContent = G.dateOf(state).slice(2) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.emoji + U.short + ' · ' : '') + G.MOS[state.mos].name;
+    $('.hud-name').title = G.dateOf(state) + ' · ' + G.SEASON_NAMES[state.season] + ' · ' + (state.rank >= 1 && U.short ? U.short + ' · ' : '') + G.MOS[state.mos].name;
     $('#hud-dday').textContent = 'D-' + G.daysLeft(state);
-    var pct = G.progress(state) * 100;
-    $('#gauge-fill').style.width = pct.toFixed(2) + '%';
-    $('#gauge-pct').textContent = pct.toFixed(1) + '%';
+    $('#gauge-fill').style.width = (G.progress(state) * 100).toFixed(2) + '%';
     G.STATS.forEach(function (k) {
       var el = document.querySelector('.stat[data-k="' + k + '"]');
       if (!el) return;
@@ -7685,26 +7765,33 @@ button { cursor: pointer; }
       el.classList.toggle('danger', v <= 15 || v >= 85);
       el.setAttribute('aria-label', ICON[k] + ' ' + v);
     });
-    var many = state.conds.length + (state.insight > 0) + (state.luck > 0) + (state.insurance > 0) > 2;
-    function chip(cls, data, emoji, name, left) { // 칩이 많으면 이름을 빼고 아이콘만 (눌러서 설명)
-      return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + (many ? '' : ' ' + name) + (left !== undefined ? ' <em>' + left + '</em>' : '') + '</button>';
+    // 지금 걸린 상황·효과는 아이콘만 (눌러서 설명). 보험처럼 신경 쓸 필요 없는 건 안 보인다
+    function chip(cls, data, emoji, name) { return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + '</button>'; }
+    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name); });
+    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경'));
+    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운'));
+    var key = chips.join('');
+    if ($('#conds').dataset.key !== key) {
+      var had = $('#conds').dataset.key || '';
+      $('#conds').innerHTML = key;
+      $('#conds').dataset.key = key;
+      if (key.length > had.length) $('#conds').classList.remove('pop'), void $('#conds').offsetWidth, $('#conds').classList.add('pop');
     }
-    var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name, c.left); });
-    if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경', state.insight));
-    if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운', state.luck));
-    if (state.insurance > 0) chips.push(chip('cond buff', 'data-buff="insurance"', '🛡️', '보험'));
-    $('#conds').innerHTML = chips.join('');
     $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
     $('#bag-badge').textContent = bagN;
     $('#leave-badge').textContent = state.leave + '일';
-    var px = G.pxStatus(state);
+    // 도크: 지금 쓸 수 없는 버튼은 숨긴다 (PX는 열릴 때 '띠링' 하고 나타난다)
+    var px = G.pxStatus(state), pxBtn = $('#dock-px');
+    var pxWas = !pxBtn.hidden;
+    pxBtn.hidden = !px.ok;
+    pxBtn.classList.toggle('off', !px.ok);
     $('#px-badge').hidden = !px.ok;
-    $('#dock-px').classList.toggle('off', !px.ok);
+    if (px.ok && !pxWas) { pxBtn.classList.remove('pop'); void pxBtn.offsetWidth; pxBtn.classList.add('pop'); }
+    $('#dock-leave').hidden = state.rank < 1 || !(state.leave > 0);
     $('#dock-leave').classList.toggle('off', !G.leaveStatus(state).ok);
-    var bff = G.bffCount(state);
-    $('#mates-badge').hidden = !bff;
-    $('#mates-badge').textContent = '♥' + bff;
+    $('#mates-badge').hidden = true;
+    $('#dock-mates').hidden = state.rank < 1;
     $('#dock-mates').classList.toggle('off', state.rank < 1);
   }
 
@@ -7758,7 +7845,7 @@ button { cursor: pointer; }
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">⚠ 돌발!</span> ' : '') + '<span class="who">' + esc(nm.name) + '</span> ' + esc(c.text);
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : '') + esc(c.text);
     var card = $('#card');
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
@@ -7778,30 +7865,59 @@ button { cursor: pointer; }
       card.insertAdjacentHTML('beforeend', '<div class="card-label x">⭐ ' + esc(c.x.t) + '</div>');
     }
     $('#choices').classList.toggle('three', !!c.x);
-    if (Meta.see(c.key)) card.insertAdjacentHTML('beforeend', '<span class="new-scene">NEW</span>');
+    Meta.see(c.key); // 수집은 기록만 (카드 위 NEW 도장은 정신없어서 뺐다)
     $$('.choice').forEach(function (b) { b.classList.remove('armed'); b.disabled = false; });
     $('#talk-bubble').hidden = true;
     armed = null;
     showPreview(null);
     if (enter) { void card.offsetWidth; card.classList.add('enter'); }
     fitCard();
-    if (c.urgent) startUrgent(c.urgent);
+    if (c.urgent) showAlert(c);
   }
 
-  /* 돌발 상황: 사이렌 + 제한 시간 */
-  function startUrgent(sec) {
-    var bar = $('#urgent-bar'), fill = $('#urgent-fill'), label = $('#urgent-sec');
-    bar.hidden = false;
+  /* 돌발 상황: 먼저 경보 화면으로 알리고, 확인(탭)하거나 잠시 뒤에 제한 시간이 시작된다 */
+  var alertOn = false, alertTimer = 0;
+  function showAlert(c) {
+    var al = $('#alert');
+    alertOn = true;
+    al.innerHTML = '<div class="alert-box" role="alertdialog" aria-label="돌발 상황">' +
+      '<b class="alert-title">🚨 돌발 상황!</b>' +
+      '<p class="alert-sec"><em>' + Math.round(c.urgent) + '초</em> 안에 골라라!</p>' +
+      (c.t ? '<p class="alert-miss">놓치면 → ' + esc(c.t.t) + '</p>' : '') +
+      '<span class="alert-go">탭하면 바로 시작</span></div>';
+    al.hidden = false;
+    al.classList.remove('go'); void al.offsetWidth; al.classList.add('go');
     var flash = $('#flash');
     flash.hidden = false; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     setTimeout(function () { flash.hidden = true; }, 1300);
     snd('siren');
     if (JY.buzz) JY.buzz([200, 80, 200, 80, 200]);
-    var total = sec * 1000, t0 = performance.now();
+    var go = function () {
+      if (!alertOn) return;
+      clearTimeout(alertTimer);
+      alertOn = false;
+      al.hidden = true;
+      al.onclick = null;
+      if (state && !state.over && state.current === c.id) startUrgent(c.urgent, c);
+    };
+    al.onclick = go;
+    alertTimer = setTimeout(go, 2200);
+  }
+  function hideAlert() { clearTimeout(alertTimer); alertOn = false; var al = $('#alert'); if (al) { al.hidden = true; al.onclick = null; } }
+
+  /* 돌발 상황: 사이렌 + 제한 시간 */
+  function startUrgent(sec, c) {
+    var bar = $('#urgent-bar'), fill = $('#urgent-fill'), label = $('#urgent-sec');
+    bar.hidden = false;
+    var hint = $('#timeout-hint');
+    if (c && c.t) { hint.textContent = '⏱ 시간 안에 못 고르면: ' + c.t.t; hint.hidden = false; }
+    var total = sec * 1000, t0 = performance.now(), lastSec = -1;
     function tick(now) {
       var left = Math.max(0, total - (now - t0));
       fill.style.width = (left / total * 100) + '%';
-      label.textContent = (left / 1000).toFixed(1) + '초';
+      var whole = Math.ceil(left / 1000);
+      label.textContent = '🚨 ' + whole + '초';
+      if (whole !== lastSec) { lastSec = whole; bar.classList.toggle('last', whole <= 2); if (whole <= 2 && whole > 0) { snd('tap'); if (JY.buzz) JY.buzz(30); } }
       if (left <= 0) { urgentTimer = null; bar.hidden = true; if (!busy && state && !state.over) commit('t'); return; }
       urgentTimer = requestAnimationFrame(tick);
     }
@@ -7810,7 +7926,9 @@ button { cursor: pointer; }
   function stopUrgent() {
     if (urgentTimer) cancelAnimationFrame(urgentTimer);
     urgentTimer = null;
-    var bar = $('#urgent-bar'); if (bar) bar.hidden = true;
+    hideAlert();
+    var bar = $('#urgent-bar'); if (bar) { bar.hidden = true; bar.classList.remove('last'); }
+    var hint = $('#timeout-hint'); if (hint) hint.hidden = true;
   }
 
   function setCardPose(dx, dy) {
@@ -7897,6 +8015,7 @@ button { cursor: pointer; }
     $$('.choice').forEach(function (b) { b.addEventListener('click', function () { arm(b.dataset.side); }); });
     document.addEventListener('keydown', function (e) {
       if ($('#scr-game').hidden || !$('#modal').hidden || !$('#mini').hidden) return;
+      if (alertOn) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#alert').click(); } return; }
       if (!$('#result').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $('#result').click(); return; }
       if (document.activeElement === card) return;
       if (e.key === 'ArrowLeft') arm('l');
@@ -7906,7 +8025,7 @@ button { cursor: pointer; }
   }
 
   function commit(side) {
-    if (busy || !state || state.over) return;
+    if (busy || alertOn || !state || state.over) return;
     busy = true;
     stopUrgent();
     disarm();
@@ -8013,8 +8132,12 @@ button { cursor: pointer; }
       if (!v) return;
       chips += '<span class="chip ' + (v > 0 ? 'up' : 'down') + '">' + ICON[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
     });
-    var evs = (res.events || []).map(function (e) { return '<div>' + esc(eventLine(e)) + '</div>'; }).join('');
-    box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' +
+    var evs = (res.events || []).map(function (e) {
+      if (e.type === 'cond') { var d = G.condDef(e.id); return '<div class="ev-big"><small>📢 이번 주 상황</small><b>' + esc(d.emoji + ' ' + d.name) + '</b><span>' + esc(d.desc) + '</span></div>'; }
+      return '<div>' + esc(eventLine(e)) + '</div>';
+    }).join('');
+    var head = res.emergency ? (res.timeout ? '<div class="note-head bad">⏱ 시간 초과!</div>' : '<div class="note-head">🚨 돌발 상황 대처 완료</div>') : '';
+    box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' + head +
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
@@ -8703,7 +8826,7 @@ button { cursor: pointer; }
     { sel: '#card', text: '카드를 <b>왼쪽·오른쪽으로 밀어서</b> 고른다. 아래 버튼을 <b>두 번</b> 눌러도 된다.' },
     { sel: '#stats', text: '체력·멘탈·간부 신뢰·전우애. 하나라도 <b>0이 되거나 100이 되면 전역 실패</b>. 너무 잘해도 말뚝 박힌다!' },
     { sel: '#stats', text: '카드를 살짝 끌면 바뀔 스탯 위에 <b>점</b>이 뜬다. 큰 점 = 크게 변함. 오를지 내릴지는 글을 읽고 맞혀라.' },
-    { sel: '.dock', text: '위험하면 <b>가방·PX·동료·휴가</b>로 버틴다. 목표: <b>전역일까지 살아남기</b>. 충성!' }
+    { sel: '.dock', text: '위험하면 <b>가방</b>을 연다. PX·동료·휴가 버튼은 <b>쓸 수 있을 때 나타난다</b>. 목표: <b>전역일까지 살아남기</b>. 충성!' }
   ];
   var coachStep = 0;
   function startCoach() {
@@ -8968,10 +9091,16 @@ button { cursor: pointer; }
     $('#dock-mates').onclick = openMates;
     $('#dock-leave').onclick = openLeave;
     $('#dock-menu').onclick = openMenu;
+    $('.hud-name').addEventListener('click', function (e) { if (!e.target.closest('.cond')) openMenu(); });
     $('#conds').addEventListener('click', function (e) {
       var b = e.target.closest('.cond'); if (!b || !state) return;
-      if (b.dataset.cond) { var d = G.condDef(b.dataset.cond); toast(d.emoji + ' ' + d.name + ': ' + d.desc, 2600); }
-      else if (b.dataset.buff) { var p = JY.PREMIUM[b.dataset.buff]; toast(p.icon + ' ' + p.name + ': ' + p.desc, 2600); }
+      if (b.dataset.cond) {
+        var d = G.condDef(b.dataset.cond), c = state.conds.filter(function (x) { return x.id === b.dataset.cond; })[0];
+        toast(d.emoji + ' ' + d.name + ': ' + d.desc + (c ? ' (카드 ' + c.left + '장 남음)' : ''), 2800);
+      } else if (b.dataset.buff) {
+        var p = JY.PREMIUM[b.dataset.buff], n = b.dataset.buff === 'insight' ? state.insight : state.luck;
+        toast(p.icon + ' ' + p.name + ': ' + p.desc + ' (카드 ' + n + '장 남음)', 2800);
+      }
     });
     $('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });

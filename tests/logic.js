@@ -11,10 +11,7 @@ global.localStorage = {
   removeItem: function (k) { delete store[k]; }
 };
 var root = path.join(__dirname, '..');
-['js/art.js', 'js/data/chars.js', 'js/data/cards.js', 'js/data/cards2.js', 'js/data/cards3.js', 'js/data/items.js',
-  'js/data/world.js', 'js/data/shop.js', 'js/core.js', 'js/meta.js'].forEach(function (f) {
-  vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
-});
+require('../tools/data-files').load();
 var JY = global.JY, G = JY.Game, Meta = JY.Meta;
 
 var fails = [], passes = 0;

@@ -71,7 +71,7 @@ function checkOpt(w, o, name, scene) {
   checkFx(w, o.fx);
   checkAff(w, o.aff);
   if (o.say !== '' && o.say !== undefined) strs(w, o.say, name + ' 결과', LIMIT.say, LIMIT.sayHard, false);
-  else if (!o.roll && !o.cases && !o.mini) E(w, name + ' 결과 문장(say) 없음');
+  else if (!o.roll && !o.cases && !o.mini && !o.end) E(w, name + ' 결과 문장(say) 없음');
   if (o.roll) {
     var p = 0;
     arr(o.roll).forEach(function (r, i) {

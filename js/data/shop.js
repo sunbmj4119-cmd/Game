@@ -108,6 +108,7 @@
 
   /* 훈장: 처음 달성하면 다이아 보상 */
   JY.ACHIEVEMENTS = [
+    { id: 'legend20', icon: '📜', name: '썰 제조기', desc: '레전드 썰 20개를 직접 겪었다', gem: 30 },
     { id: 'first_run', icon: '🪖', name: '첫 입대', desc: '처음으로 입대했다', gem: 10 },
     { id: 'first_out', icon: '🎓', name: '민간인', desc: '처음으로 전역했다', gem: 30 },
     { id: 'end5', icon: '📗', name: '엔딩 수집가', desc: '엔딩 5종 달성', gem: 30 },

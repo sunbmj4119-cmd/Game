@@ -433,7 +433,7 @@
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : '') + esc(c.text);
+    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : c.legend ? '<span class="who legend">📜 레전드 썰</span> ' : '') + esc(c.text);
     var card = $('#card');
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
@@ -1228,7 +1228,7 @@
     grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : albumTab === 'scenes' ? ' scenes' : '');
     if (albumTab === 'scenes') {
       grid.innerHTML = '<div class="collect-head"><b>' + cp.n + ' / ' + cp.total + '</b> 장면 수집 <i class="lv-bar big"><i style="width:' + Math.round(cp.frac * 100) + '%"></i></i>' +
-        '<small>카드는 같아도 장면·질문이 여러 버전이다. 새 장면을 처음 보면 카드에 NEW가 뜬다.</small></div>' +
+        '<small>카드는 같아도 장면·질문이 여러 버전이다. 📜 레전드 썰 <b>' + Meta.legendProgress().n + ' / ' + Meta.legendProgress().total + '</b></small></div>' +
         JY.COLLECT_MILESTONES.map(function (ms, i) {
           var reached = cp.frac >= ms.at, got = m.collectClaimed[i];
           var cos = ms.cos ? ' + ' + JY.COSMETICS[ms.cos].icon + ' ' + JY.COSMETICS[ms.cos].name : '';

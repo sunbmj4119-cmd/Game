@@ -221,6 +221,7 @@
     if (m.fails >= 10) ids.push('fail10');
     if (o.good && (s.heat || []).length >= 3) ids.push('heat3');
     if (o.good && (s.heat || []).length >= JY.HEAT_ORDER.length) ids.push('heatall');
+    if (legendProgress().n >= 20) ids.push('legend20');
     var ach = unlock(ids);
     // 짬: 버틴 날 + 점수 + 전역 보너스
     var served = o.good ? s.total + 1 : o.day;
@@ -363,6 +364,24 @@
     SCENE_TOTAL = n;
     return n;
   }
+  // 레전드 썰: legend 표시가 붙은 장면들 (카드 전체 또는 장면 하나)
+  var LEGEND_KEYS = null;
+  function legendKeys() {
+    if (LEGEND_KEYS) return LEGEND_KEYS;
+    var idx = JY.Game._index(), keys = {};
+    for (var id in idx) {
+      var c = idx[id];
+      if (c.legend && c.text && c.l) keys[id] = 1;
+      (c.variants || []).forEach(function (v, i) { if (c.legend || v.legend) keys[id + '#' + (i + 1)] = 1; });
+    }
+    LEGEND_KEYS = keys;
+    return keys;
+  }
+  function legendProgress() {
+    var keys = legendKeys(), seen = get().scenes, n = 0, t = 0;
+    for (var k in keys) { t++; if (seen[k]) n++; }
+    return { n: n, total: t };
+  }
   function see(key) {
     var m = get();
     if (!key || m.scenes[key]) return false;
@@ -395,6 +414,6 @@
     openBox: openBox, unlock: unlock, finishRun: finishRun,
     level: level, lvInfo: lvInfo, addJjam: addJjam, unlockText: unlockText, checkUnlocks: checkUnlocks,
     upLevel: upLevel, upgrade: upgrade, missions: missions, missionDef: missionDef, track: track, claimMission: claimMission, missionAlert: missionAlert,
-    see: see, collectProgress: collectProgress, claimCollect: claimCollect, collectAlert: collectAlert, sceneTotal: sceneTotal
+    see: see, legendProgress: legendProgress, collectProgress: collectProgress, claimCollect: claimCollect, collectAlert: collectAlert, sceneTotal: sceneTotal
   };
 })(window.JY = window.JY || {});

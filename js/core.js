@@ -393,7 +393,8 @@
       c: c, v: v, key: c.id + (s.cv.v ? '#' + s.cv.v : ''),
       who: b.who || c.who, bg: b.bg || c.bg,
       text: pickStr(b.text || c.text, s.cv.k),
-      l: b.l || c.l, r: b.r || c.r, t: b.t || c.t, x: b.x || (v ? null : c.x)
+      l: b.l || c.l, r: b.r || c.r, t: b.t || c.t, x: b.x || (v ? null : c.x),
+      legend: !!((v && v.legend) || c.legend)
     };
   }
 
@@ -448,7 +449,7 @@
     var res = {
       id: c.id, key: vw.key, who: vw.who, bg: vw.bg, extras: c.extras, meSpec: c.meSpec, meMood: c.meMood, meProp: c.meProp,
       catFish: c.catFish, catCap: c.catCap, urgent: c.urgent ? Math.max(3, c.urgent - heatDefs(s).reduce(function (a, h) { return a + (h.urgentMinus || 0); }, 0)) : 0,
-      text: fill(s, vw.text),
+      text: fill(s, vw.text), legend: vw.legend,
       l: { t: fill(s, pickStr(vw.l.t, k >> 4)), preview: preview(vw.l, s) },
       r: { t: fill(s, pickStr(vw.r.t, k >> 8)), preview: preview(vw.r, s) }
     };

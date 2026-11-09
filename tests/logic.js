@@ -12,13 +12,15 @@ global.localStorage = {
 };
 var root = path.join(__dirname, '..');
 require('../tools/data-files').load();
+// 카드의 원래 장면으로 고정 (새 장면이 추가돼도 검사가 흔들리지 않게)
+function pin(id) { var c = JY.Game._index()[id]; return { id: id, v: c && c.l ? 0 : 1, k: 0 }; }
 var JY = global.JY, G = JY.Game, Meta = JY.Meta;
 
 var fails = [], passes = 0;
 function ok(cond, name, detail) { if (cond) passes++; else fails.push(name + (detail !== undefined ? ' → ' + JSON.stringify(detail) : '')); }
 function fresh(opts) {
   var s = G.newState(Object.assign({ start: '2026-03-02', mos: 'infantry', name: '점검병', unit: 'coast' }, opts || {}));
-  s.rank = 1; s.day = 60; s.queue = []; s.current = 'quiet'; s.cv = null;
+  s.rank = 1; s.day = 60; s.queue = []; s.current = 'quiet'; s.cv = pin('quiet');
   s.promo = [0, 35, 9999, 9999, 9999]; // 점검 중엔 진급이 끼어들지 않게
   G.STATS.forEach(function (k) { s.stats[k] = 50; });
   return s;
@@ -74,7 +76,7 @@ JY.ITEM_ORDER.forEach(function (id) {
   var s = fresh(); s.leave = 0;
   G.usePremium(s, 'leave3'); ok(s.leave === 3, '포상휴가증 +3', s.leave);
   G.usePremium(s, 'insight'); ok(s.insight === 12, '투시경 12장', s.insight);
-  s.current = 'mess_day'; s.cv = null;
+  s.current = 'mess_day'; s.cv = pin('mess_day');
   var c = G.currentCard(s);
   ok(c.l.preview.dir && Object.keys(c.l.preview.dir).length > 0, '투시경: 미리보기에 방향 표시', c.l.preview);
   G.usePremium(s, 'clover'); ok(s.luck === 15, '네잎클로버 15장', s.luck);
@@ -91,10 +93,10 @@ JY.ITEM_ORDER.forEach(function (id) {
 /* 3. 전역 보험 */
 (function () {
   var s = fresh({ insurance: true }); s.insurance = 1;
-  s.current = 'quiet'; s.cv = null; s.stats.hp = 1; s.stats.tr = 1;
+  s.current = 'quiet'; s.cv = pin('quiet'); s.stats.hp = 1; s.stats.tr = 1;
   var r = G.choose(s, 'l'); // 누워서 쉰다: tr -2 → 0
   ok(!s.over && s.stats.tr === 50 && r.events.some(function (e) { return e.type === 'insurance'; }), '보험이 게임오버를 막음', { over: s.over, tr: s.stats.tr });
-  s.current = 'quiet'; s.cv = null; s.stats.tr = 1;
+  s.current = 'quiet'; s.cv = pin('quiet'); s.stats.tr = 1;
   G.choose(s, 'l');
   ok(!!s.over && s.over.id === 'tr0', '보험은 한 번만', s.over && s.over.id);
 })();
@@ -102,14 +104,14 @@ JY.ITEM_ORDER.forEach(function (id) {
 /* 4. 특수 대답 */
 (function () {
   var s = fresh(); s.items = { chocopie: 2 };
-  s.current = 'dumb_letter'; s.cv = null;
+  s.current = 'dumb_letter'; s.cv = pin('dumb_letter');
   var c = G.currentCard(s);
   ok(!!c.x && /초코파이/.test(c.x.t), '박덤벙 카드에 초코파이 특수 대답', c.x);
   var bd0 = s.stats.bd;
   var r = G.choose(s, 'x');
   ok(r && r.special && s.items.chocopie === 1 && s.stats.bd > bd0, '특수 대답: 아이템 소모 + 효과', { items: s.items, bd: s.stats.bd });
   var s2 = fresh(); s2.items = {};
-  s2.current = 'dumb_letter'; s2.cv = null;
+  s2.current = 'dumb_letter'; s2.cv = pin('dumb_letter');
   ok(!G.currentCard(s2).x, '아이템 없으면 특수 대답 없음');
   ok(G.choose(s2, 'x') === null, '조건 없이 x 선택 불가');
 })();
@@ -191,21 +193,21 @@ JY.ITEM_ORDER.forEach(function (id) {
   var plain = fresh(), rich = fresh({ up: { wallet: 2 } });
   ok(G.pxPrice(rich, 'mandu') < G.pxPrice(plain, 'mandu'), '지갑 강화 PX 할인');
   var b = fresh({ up: { boots: 4 } }), n = fresh();
-  b.current = n.current = 'quiet'; b.cv = n.cv = null;
+  b.current = n.current = 'quiet'; b.cv = pin('quiet'); n.cv = pin('quiet');
   // 체력 감소가 큰 카드로 비교
-  b.current = n.current = 'march40'; b.cv = n.cv = null; b.rank = n.rank = 2; b.stats.hp = n.stats.hp = 45;
+  b.current = n.current = 'march40'; b.cv = pin('march40'); n.cv = pin('march40'); b.rank = n.rank = 2; b.stats.hp = n.stats.hp = 45;
   var rb = G.choose(b, 'l'), rn = G.choose(n, 'l');
   ok(rb.deltas.hp > rn.deltas.hp, '전투화 강화: 체력이 낮을 때 소모 감소', [rb.deltas.hp, rn.deltas.hp]);
   // 체력이 높을 때는 더 오르는 쪽(100 쪽)을 줄인다
   var b2 = fresh({ up: { boots: 4 } }), n2 = fresh();
-  b2.stats.hp = n2.stats.hp = 70; b2.rank = n2.rank = 2; b2.current = n2.current = 'march40'; b2.cv = n2.cv = null;
+  b2.stats.hp = n2.stats.hp = 70; b2.rank = n2.rank = 2; b2.current = n2.current = 'march40'; b2.cv = pin('march40'); n2.cv = pin('march40');
   var dB = G.choose(b2, 'l').deltas.hp, dN = G.choose(n2, 'l').deltas.hp;
   ok(dB === dN, '전투화 강화: 체력이 높을 때 소모는 그대로 (100 쪽 쏠림 방지)', [dB, dN]);
   // 부적/행운: 운이 좋으면 지금 상태에서 더 안전한 결과 (뱀 잡기: 전우애 +12 vs 체력 -10, 전우애가 90이면 체력 -10이 안전)
   function snake(luck) {
     var safe = 0;
     for (var i = 0; i < 300; i++) {
-      var t = fresh(); t.stats.bd = 90; t.stats.hp = 90; t.luck = luck; t.current = 'em_snake'; t.cv = null;
+      var t = fresh(); t.stats.bd = 90; t.stats.hp = 90; t.luck = luck; t.current = 'em_snake'; t.cv = pin('em_snake');
       var r = G.choose(t, 'l'); if (r.deltas.hp < 0) safe++;
     }
     return safe / 300;
@@ -298,17 +300,17 @@ JY.ITEM_ORDER.forEach(function (id) {
 /* 12. 악조건 */
 (function () {
   var base = fresh(), all = fresh({ heat: JY.HEAT_ORDER.slice() });
-  all.current = base.current = 'mess_day'; all.cv = base.cv = null;
+  all.current = base.current = 'mess_day'; all.cv = pin('mess_day'); base.cv = pin('mess_day');
   var cb = G.currentCard(base), ca = G.currentCard(all);
   ok(Object.keys(cb.l.preview).length > 0 && !ca.l.preview.hp && !ca.l.preview.mt && !ca.l.preview.tr && !ca.l.preview.bd, '눈치 제로: 미리보기 점 없음', ca.l.preview);
   ok(G.pxPrice(all, 'mandu') === G.pxPrice(base, 'mandu') * 2, 'PX 폐점 위기: 가격 2배', [G.pxPrice(all, 'mandu'), G.pxPrice(base, 'mandu')]);
   ok(G.usePremium(all, 'leave3') === null, '보험 금지: 특급 보급품 사용 불가');
   var ins = G.newState({ start: '2026-03-02', insurance: true, up: { watch: 5 }, heat: ['noinsure'] });
   ok(ins.insurance === 0 && ins.undo === 0, '보험 금지: 보험·되돌리기 0');
-  all.current = base.current = 'em_snake'; all.cv = base.cv = null;
+  all.current = base.current = 'em_snake'; all.cv = pin('em_snake'); base.cv = pin('em_snake');
   ok(G.currentCard(all).urgent === G.currentCard(base).urgent - 1.5, '돌발 지옥: 제한 시간 단축', [G.currentCard(all).urgent, G.currentCard(base).urgent]);
   var c1 = fresh({ heat: ['chaos'] }), c0 = fresh();
-  c1.current = c0.current = 'em_snake'; c1.cv = c0.cv = null; c1.stats.mt = c0.stats.mt = 60;
+  c1.current = c0.current = 'em_snake'; c1.cv = pin('em_snake'); c0.cv = pin('em_snake'); c1.stats.mt = c0.stats.mt = 60;
   var t1 = G.choose(c1, 't').deltas.mt, t0 = G.choose(c0, 't').deltas.mt;
   ok(t0 < 0 && Math.abs(t1 - 2 * t0) <= 1, '돌발 지옥: 놓치면 피해 2배', [t1, t0]);
   var p1 = fresh(), p2 = fresh({ heat: ['noleave'] });
@@ -322,7 +324,7 @@ JY.ITEM_ORDER.forEach(function (id) {
   var m1 = fresh({ up: { boots: 4, helmet: 5, watch: 3 }, heat: ['noinsure'] });
   ok(m1.up.boots === 2 && m1.up.helmet === 2 && m1.undo === 0, '맨몸 복무: 강화 절반 · 되돌리기 없음', m1.up);
   var h1 = fresh({ heat: ['fragile'] }), h0 = fresh();
-  h1.current = h0.current = 'march40'; h1.cv = h0.cv = null; h1.rank = h0.rank = 2;
+  h1.current = h0.current = 'march40'; h1.cv = pin('march40'); h0.cv = pin('march40'); h1.rank = h0.rank = 2;
   ok(G.choose(h1, 'l').deltas.hp < G.choose(h0, 'l').deltas.hp, '롤러코스터: 체력이 더 크게 내려간다');
   var sA = fresh({ heat: ['haeng', 'blind'] }); sA.over = { good: true, list: ['normal'], day: sA.total };
   var sB = fresh(); sB.over = { good: true, list: ['normal'], day: sB.total };

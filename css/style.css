@@ -737,6 +737,7 @@ button { cursor: pointer; }
 /* 돌발 상황 */
 .prompt.urgent { border-color: var(--stamp); background: #fff1ec; box-shadow: 3px 3px 0 rgba(196, 54, 43, .4); }
 .who.alarm { background: var(--stamp); animation: alarm .5s steps(2) infinite; }
+.who.legend { background: #6b4a1f; color: #ffe7a8; }
 .card.urgent { border-color: var(--stamp); box-shadow: 0 8px 0 rgba(196, 54, 43, .45), 0 0 0 4px rgba(196, 54, 43, .35); }
 .card.urgent .char-wrap { animation: urgentShake .45s ease-in-out 3; }
 .urgent-bar {

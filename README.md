@@ -1,0 +1,90 @@
+# 전역각 🪖
+
+> **전역날까지 버텨라!** 띨빵한 군인들과 함께하는 한국 군대 생존 카드 게임 (휴대폰 세로 화면용 웹 게임)
+
+카드를 좌우로 넘겨 선택하고 **체력 · 멘탈 · 간부 신뢰 · 전우애** 네 가지를 지켜내세요.
+하나라도 **0이 되거나 100이 되면 전역 실패**입니다. 너무 열심히 하면 중대장이 장기복무 서류를 내밉니다.
+
+- 육군 18개월 실제 달력(입대일 → 전역일), 진급(이병 → 병장), 매월 10일 월급, 장병내일준비적금
+- 훈련소 5주 → 자대 배치 → 짬타이거, 곰신, 후임, 왕고, 행보관, 사단장 방문까지 160여 장의 이벤트 카드
+- 돌발 미니게임 6종: 비상 소집 · 제설 작업 · 불침번 · 사격 · 탄피 찾기 · 선임 이름 외우기
+- PX 아이템, 휴가(포상휴가 · 말년휴가 후 그대로 전역), 엔딩 19종 도감
+- 외부 이미지 없이 코드로 그린 띨빵한 캐릭터들 (큰 머리, 짝짝이 눈, 콧물 풍선)
+
+기획 의도와 레퍼런스 분석, 현실 고증 자료는 [`docs/DESIGN.md`](docs/DESIGN.md)에 정리했습니다.
+
+## 바로 플레이
+
+### 컴퓨터에서
+```bash
+# 저장소 폴더에서
+python3 -m http.server 8000
+# 브라우저로 http://localhost:8000 접속 (개발자 도구 → 휴대폰 화면 모드 추천)
+```
+`index.html`을 더블클릭해서 열어도 동작합니다(오프라인 캐시만 빠짐).
+
+### 휴대폰에서
+1. **GitHub Pages로 올리기** — 저장소 *Settings → Pages → Branch* 에서 이 브랜치와 `/ (root)`를 선택하면 `https://<아이디>.github.io/<저장소>/` 주소가 생깁니다.
+2. 휴대폰 브라우저로 접속 → **홈 화면에 추가**(iOS: 공유 → 홈 화면에 추가 / 안드로이드: 메뉴 → 앱 설치).
+   앱처럼 전체 화면으로 열리고, 한 번 접속하면 오프라인에서도 플레이됩니다(PWA).
+3. 파일 하나로 보내고 싶다면 `node tools/build.js` → `dist/jeonyeok.html` 하나만 휴대폰으로 보내서 열면 됩니다.
+
+### 앱스토어 앱으로 만들려면 (선택)
+웹 기술로 만들었기 때문에 [Capacitor](https://capacitorjs.com)로 감싸면 안드로이드/iOS 앱이 됩니다.
+```bash
+npm init -y && npm i @capacitor/core @capacitor/cli @capacitor/android
+npx cap init 전역각 kr.example.jeonyeok --web-dir .
+npx cap add android && npx cap open android   # Android Studio에서 빌드
+```
+
+## 조작
+| 동작 | 방법 |
+|---|---|
+| 선택 | 카드를 왼쪽/오른쪽으로 끌기, 또는 아래 버튼을 **두 번** 탭 |
+| 영향 미리보기 | 카드를 살짝 끌면 바뀔 스탯 위에 점이 뜸 (큰 점 = 크게 변함, 방향은 비밀) |
+| 결과 넘기기 | 결과 쪽지 아무 데나 탭 |
+| 가방 / PX / 휴가 / 메뉴 | 하단 도크 |
+| 키보드 | ← → 로 선택(두 번 누르면 결정), Enter로 계속 |
+
+## 프로젝트 구조
+```
+index.html            화면 뼈대 (타이틀 · 입영 통지서 · 게임 · 전역증 · 도감)
+css/style.css         스타일 (카키 종이 · 국방색 · 놋쇠 · 직인)
+js/art.js             캐릭터 · 배경 · 아이콘 SVG 생성기
+js/data/chars.js      등장인물 (김말년, 최원칙, 박덤벙, 정뺀질, 오순둥, 강삽질 상사 …)
+js/data/cards.js      이벤트 카드 (훈련소 · 자대 · 일반 · 연계 · 보직 · 말년)
+js/data/items.js      PX 아이템 · 엔딩
+js/core.js            게임 규칙 (달력, 진급, 월급, 휴가, 카드 선택, 엔딩) — DOM 없음
+js/minigames.js       미니게임 6종
+js/audio.js           Web Audio 합성 효과음
+js/ui.js              화면 렌더링 · 스와이프 · 모달 · 저장
+sw.js, manifest.webmanifest   오프라인 · 홈 화면 설치
+tools/simulate.js     밸런스 시뮬레이터 (무작위/최적 플레이 수천 판)
+tools/build.js        한 파일 빌드 (dist/jeonyeok.html)
+tools/make-icons.js   앱 아이콘 생성
+tests/smoke.js        Playwright 자동 플레이 테스트 (입대 → 엔딩)
+```
+
+## 개발
+```bash
+node tools/simulate.js 2000 1     # 정상 복무 밸런스 (판수, 속도)
+node tools/simulate.js 1000 3     # 속성 복무 밸런스
+node tests/smoke.js shots/        # 휴대폰 화면 자동 플레이 + 스크린샷 (Playwright 필요)
+node tools/build.js               # dist/jeonyeok.html 생성
+```
+
+### 카드 추가하기
+`js/data/cards.js`의 `CARDS` 배열에 하나 넣으면 끝입니다.
+```js
+{
+  id: 'my_card', who: 'haeng', bg: 'field', req: { season: 'winter', rank: [2, 4] },
+  text: '행보관: "오늘은 연병장에 눈사람 금지다."',
+  l: o('"네!"', { tr: 6, mt: -4 }, '행보관이 흡족해했다.'),
+  r: o('몰래 만든다', { mt: 8, tr: -8 }, '눈사람이 행보관을 닮았다.')
+}
+```
+수치는 `core.js`의 `BALANCE` 표로 한 번 보정되니, 추가한 뒤 `tools/simulate.js`로 성공률을 확인하세요.
+
+## 참고
+- 실제 제도(2026년 기준 봉급, 진급 심사, 휴대폰 사용 등)는 게임용으로 단순화했습니다. 정확한 정보는 국방부·병무청 공지를 확인하세요.
+- 등장인물과 사건은 모두 허구이며, 가혹행위는 웃음 소재로 쓰지 않았습니다.

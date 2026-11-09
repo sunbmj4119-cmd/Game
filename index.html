@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>전역각</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="전역날까지 버텨라! 띨빵한 군인들과 함께하는 한국 군대 생존 카드 게임.">
+<meta name="theme-color" content="#3a4722">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="전역각">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- build:body -->
+<div id="app">
+
+  <!-- 타이틀 -->
+  <section id="scr-title" class="screen title-screen">
+    <div class="title-top">
+      <p class="eyebrow">대한민국 육군 · 복무기간 18개월</p>
+      <h1 class="logo">전역<span>각</span></h1>
+      <p class="tagline">국방부 시계는 거꾸로 매달아도 돌아간다</p>
+    </div>
+    <div class="title-crowd" id="title-crowd" aria-hidden="true"></div>
+    <div class="title-actions">
+      <button class="btn btn-primary" id="btn-continue" hidden>이어하기</button>
+      <p class="save-info" id="save-info" hidden></p>
+      <button class="btn btn-primary" id="btn-new">입대하기</button>
+      <button class="btn btn-ghost" id="btn-album">엔딩 도감 <span id="album-count">0/19</span></button>
+    </div>
+    <p class="fine">좌우로 넘겨서 선택 · 체력·멘탈·간부 신뢰·전우애 중 하나라도 0이나 100이 되면 전역 실패</p>
+  </section>
+
+  <!-- 입영 통지서 (게임 설정) -->
+  <section id="scr-setup" class="screen setup-screen" hidden>
+    <form class="notice" id="setup-form" autocomplete="off">
+      <header class="notice-head">
+        <span class="notice-org">전역각 입영센터</span>
+        <h2>현역병 입영 통지서</h2>
+        <span class="notice-no" id="notice-no">제 2026-000000 호</span>
+      </header>
+
+      <div class="notice-face">
+        <div class="face-preview" id="face-preview"></div>
+        <button type="button" class="btn btn-small" id="btn-face">얼굴 다시 뽑기 🎲</button>
+      </div>
+
+      <label class="field">
+        <span>성명</span>
+        <input id="in-name" name="name" maxlength="6" placeholder="나띨빵" required>
+      </label>
+      <label class="field">
+        <span>입영일자</span>
+        <input id="in-date" name="start" type="date" required>
+      </label>
+      <p class="field-note" id="date-note">전역 예정일: -</p>
+
+      <fieldset class="field">
+        <legend>보직 (주특기)</legend>
+        <div class="mos-grid" id="mos-grid"></div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>복무 방식</legend>
+        <div class="pace-grid">
+          <label class="pace"><input type="radio" name="pace" value="1" checked><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3"><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외</small></span></label>
+        </div>
+      </fieldset>
+
+      <div class="notice-actions">
+        <button type="button" class="btn btn-ghost" id="btn-setup-back">취소</button>
+        <button type="submit" class="btn btn-primary">입영하기</button>
+      </div>
+      <div class="stamp" aria-hidden="true">입영<br>승인</div>
+    </form>
+  </section>
+
+  <!-- 게임 -->
+  <section id="scr-game" class="screen game-screen" hidden>
+    <header class="hud">
+      <div class="hud-row">
+        <div class="hud-rank" id="hud-rank"></div>
+        <div class="hud-name"><b id="hud-name">이병 나띨빵</b><small id="hud-date">2026.03.02 · 봄</small></div>
+        <div class="hud-dday"><small>전역까지</small><b id="hud-dday">D-547</b></div>
+      </div>
+      <div class="gauge" aria-label="복무율">
+        <div class="gauge-bar"><i id="gauge-fill"></i></div>
+        <span id="gauge-pct">0.0%</span>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <main class="stage">
+      <div class="prompt" id="prompt" aria-live="polite"></div>
+      <div class="card-zone" id="card-zone">
+        <div class="card" id="card" tabindex="0" aria-label="이벤트 카드 — 좌우로 넘겨 선택"></div>
+        <div class="result" id="result" hidden></div>
+      </div>
+      <div class="choices" id="choices">
+        <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
+        <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
+      </div>
+    </main>
+
+    <nav class="dock">
+      <button class="dock-btn" id="dock-bag"><i>🎒</i><span>가방</span><em id="bag-badge">0</em></button>
+      <button class="dock-btn" id="dock-px"><i>🏪</i><span>PX</span><em id="px-badge" hidden>!</em></button>
+      <button class="dock-btn" id="dock-leave"><i>🏖️</i><span>휴가</span><em id="leave-badge">0일</em></button>
+      <button class="dock-btn" id="dock-menu"><i>⚙️</i><span>메뉴</span></button>
+    </nav>
+  </section>
+
+  <!-- 엔딩 -->
+  <section id="scr-end" class="screen end-screen" hidden>
+    <div class="cert" id="cert"></div>
+    <div class="end-actions">
+      <button class="btn btn-primary" id="btn-reenlist">재입대하기 (악몽)</button>
+      <button class="btn btn-ghost" id="btn-end-album">엔딩 도감</button>
+      <button class="btn btn-ghost" id="btn-end-title">타이틀로</button>
+    </div>
+  </section>
+
+  <!-- 엔딩 도감 -->
+  <section id="scr-album" class="screen album-screen" hidden>
+    <header class="album-head">
+      <button class="btn btn-small" id="btn-album-back">← 뒤로</button>
+      <h2>엔딩 도감</h2>
+      <span id="album-progress">0/19</span>
+    </header>
+    <div class="album-grid" id="album-grid"></div>
+    <p class="album-stats" id="album-stats"></p>
+  </section>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-box" id="modal-box" role="dialog" aria-modal="true"></div>
+</div>
+<div id="mini" class="mini" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<!-- /build:body -->
+
+<script src="js/art.js"></script>
+<script src="js/data/chars.js"></script>
+<script src="js/data/cards.js"></script>
+<script src="js/data/items.js"></script>
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

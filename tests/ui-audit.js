@@ -156,6 +156,9 @@ function svgBounds() {
     });
     await T(function (t) { t.renderHUD(); t.renderCard(false); });
     await snap('game-special', true);
+    await page.evaluate(function () { var s = JY.UI._state(); s.current = 'v5e_captain_kim'; s.cv = null; JY.UI._t.renderCard(false); });
+    await snap('game-legend', true);
+    await page.evaluate(function () { var s = JY.UI._state(); s.current = 'hol_birthday'; s.cv = null; JY.UI._t.renderCard(false); });
     await T(function (t) { t.startCoach(); });
     await snap('coach-1', true);
     await page.evaluate(function () { document.querySelector('#coach-box [data-c="next"]').click(); document.querySelector('#coach-box [data-c="next"]').click(); document.querySelector('#coach-box [data-c="next"]').click(); });

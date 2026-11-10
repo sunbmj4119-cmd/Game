@@ -54,6 +54,8 @@
 | `money` | 돈 (원) | `{ money: -5000 }` |
 | `need` | x(특수 대답)를 여는 조건: `item` / `trait` / `aff` / `flag` / `money` | `{ need: { item: 'tuna' } }` |
 
+카드나 장면에 `legend: true`를 붙이면 '📜 레전드 썰'로 표시되고 레전드 수집에 들어간다 (커뮤니티에서 유명한 군대썰을 새로 쓴 장면).
+
 아이템 id: buldak 불닭, mandu 만두, chocopie 초코파이, banana 바나나우유, tuna 참치캔, hot6 에너지 드링크, polish 구두약, cream 달팽이 크림, matdasi 맛다시, earplug 귀마개, comic 만화책, homefood 엄마 반찬.
 성격 id: glutton 먹보, sleepy 잠꾸러기, insider 인싸, fm 원칙주의자, glass 유리멘탈, steel 강철멘탈, athlete 운동광, rich 금수저, lucky 행운아, nunchi 눈치백단, catlover 고양이 집사, romantic 연애 고수, clumsy 덜렁이.
 x에 아이템 need를 걸면 그 아이템 1개를 쓴다.

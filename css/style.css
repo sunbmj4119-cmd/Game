@@ -456,7 +456,7 @@ button { cursor: pointer; }
 .dock-btn i { font-style: normal; font-size: 22px; line-height: 1.2; }
 .dock-btn span { font-size: 12px; }
 .dock-btn em {
-  position: absolute; top: -3px; left: calc(50% + 7px);
+  position: absolute; top: -3px; left: calc(50% + 11px);
   font-style: normal;
   font-size: 12px; line-height: 16px;
   background: var(--brass);
@@ -1350,3 +1350,18 @@ ul.why em { font-style: normal; color: #2b6b36; }
   .loc-emoji { font-size: 24px; }
   .loc b { font-size: 14px; }
 }
+
+/* ═════════ v7: 자대 2D 월드 ═════════ */
+.world-wrap { position: relative; flex: 1; min-height: 160px; border: 2px solid var(--ink); border-radius: var(--r-md); overflow: hidden; background: #8fae5b; }
+canvas.world { position: absolute; left: 0; top: 0; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+.world-panel { flex: none; min-height: 84px; display: flex; flex-direction: column; gap: 4px; }
+.wp-title { font-size: 14px; line-height: 1.35; }
+.wp-title b { font-weight: 400; font-size: 16px; }
+.wp-title span { color: var(--muted); font-size: 13px; margin-left: 4px; }
+.wp-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.wp-act { width: 100%; grid-template-columns: 1fr auto; }
+.prompt .clock { font-weight: 400; font-family: var(--font-display); font-size: 18px; color: var(--olive-dark); }
+.prompt .clock.late { color: #a8231b; }
+.prompt .till { color: var(--muted); font-size: 12px; }
+.wp-who { align-self: center; font-size: 14px; color: var(--olive-dark); margin-right: 2px; }
+@media (max-height: 760px) { .dock-btn em { left: calc(50% + 8px); } }

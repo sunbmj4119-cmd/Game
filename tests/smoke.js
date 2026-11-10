@@ -107,7 +107,8 @@ function log() { if (verbose) console.log.apply(console, arguments); }
 
   var cards = 0, minis = 0, emergencies = 0, leaveTaken = false, pxDone = false, matesDone = false, undoUsed = false, specialUsed = 0;
   var shotResult = false, shotMini = false, shotDrag = false, shotUrgent = false;
-  for (var i = 0; i < 200; i++) {
+  var worldActs = 0, worldTurns = 0, shotWorld = false, shotAssign = false;
+  for (var i = 0; i < 700; i++) {
     var st = await page.evaluate(function () {
       return {
         over: !document.getElementById('scr-end').hidden,
@@ -115,10 +116,35 @@ function log() { if (verbose) console.log.apply(console, arguments); }
         modal: !document.getElementById('modal').hidden,
         result: !document.getElementById('result').hidden,
         alert: !document.getElementById('alert').hidden,
+        base: !document.getElementById('base').hidden,
+        coach: !document.getElementById('coach').hidden,
         urgent: document.getElementById('card').classList.contains('urgent')
       };
     });
     if (st.over) break;
+    if (st.coach) { await page.evaluate(function () { var b = document.querySelector('#coach-box [data-c="skip"]'); if (b) b.click(); }); await sleep(200); continue; }
+    if (st.modal && !shotAssign && (await page.$('.assign'))) { await sleep(400); await shot('04d-assign'); shotAssign = true; }
+    // 자대 2D 월드: 할 수 있는 물건 앞으로 가서 행동, 시간이 없으면 생활관에서 취침
+    if (st.base && !st.modal && !st.result && !st.mini && !st.alert) {
+      if (!shotWorld) { await sleep(500); await shot('04e-world'); shotWorld = true; }
+      var plan = await page.evaluate(function () {
+        var s = JY.UI._state(), opts = [];
+        if (s.ap > 0) JY.Game.locations(s).forEach(function (L) { L.acts.forEach(function (A) { if (A.ok && !A.special && !A.danger && !A.mini && JY.World._poi(L.id + '.' + A.id)) opts.push(L.id + '.' + A.id); }); });
+        var key = opts.length ? opts[Math.floor(Math.random() * opts.length)] : 'barracks.nap';
+        var q = JY.World._poi(key); JY.World._teleport(q.x, q.y + 18);
+        return { key: key, act: opts.length > 0, turn: s.turn };
+      });
+      await sleep(350);
+      if (plan.act) {
+        var btn = await page.$('.world-panel [data-w="act"]:not(.off)');
+        if (btn) { await btn.click().catch(function () {}); worldActs++; await sleep(450); continue; }
+      }
+      var sl = await page.$('.world-panel [data-w="sleep"]');
+      if (sl) { await sl.click().catch(function () {}); worldTurns++; await sleep(500); continue; }
+      await page.evaluate(function () { var s = JY.UI._state(); s.ap = 0; s.walkMin = 60; });
+      await sleep(1200);
+      continue;
+    }
     if (verbose) log(i, JSON.stringify(st), await page.evaluate(function () { var s = JY.UI._state(); return s ? s.current + ' day' + s.day : 'nostate'; }));
     if (st.mini) {
       minis++;
@@ -277,7 +303,7 @@ function log() { if (verbose) console.log.apply(console, arguments); }
   }
   var meta = await page.evaluate(function () { var m = JY.Meta.get(); return { gems: m.gems, jjam: m.jjam, lv: JY.Meta.level().lv, up: m.up, scenes: Object.keys(m.scenes).length, ach: Object.keys(m.ach).length, records: m.records.length }; });
   if (warnings.length) console.log('WARN:\n' + warnings.join('\n'));
-  console.log(JSON.stringify({ cards: cards, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, undoUsed: undoUsed, specialUsed: specialUsed, coach: coachSteps, ended: ended, meta: meta }));
+  console.log(JSON.stringify({ cards: cards, worldActs: worldActs, worldTurns: worldTurns, minis: minis, emergencies: emergencies, leaveTaken: leaveTaken, pxDone: pxDone, matesDone: matesDone, undoUsed: undoUsed, specialUsed: specialUsed, coach: coachSteps, ended: ended, meta: meta }));
   await browser.close();
   server.close();
   if (errors.length) { console.error('ERRORS:\n' + errors.join('\n')); process.exit(1); }

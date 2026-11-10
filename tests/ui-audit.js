@@ -517,12 +517,14 @@ function svgBounds() {
       JY.Meta.get().mapTutorial = true;
       JY.UI._t.setState(s); JY.UI._t.showScreen('scr-game'); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
     });
-    await snap('map', true);
-    for (var li of ['barracks', 'px', 'mess', 'gym', 'range', 'office', 'cyber', 'supply', 'hill', 'clinic', 'garage']) {
-      await T(function (t, id) { t.openLoc(id); }, li);
-      await snap('loc-' + li, true);
-      await T(function (t) { t.closeModal(); });
-    }
+    await sleep(400);
+    await snap('world', true);
+    await page.evaluate(function () { var q = JY.World._poi('barracks.diary'); JY.World._teleport(q.x, q.y + 18); });
+    await sleep(300); await snap('world-inside', true);
+    await page.evaluate(function () { var s = JY.UI._state(); var n = JY.World._npcs()[0]; if (n) { s.quest = { who: n.who, item: 'chocopie', ask: '초코파이… 딱 하나만 있으면 오늘 버틸 수 있을 것 같아.', thanks: '고마워', reward: { fx: { mt: 4 } }, done: false }; JY.World._teleport(n.x + 10, n.y + 6); } });
+    await sleep(300); await snap('world-npc', true);
+    await page.evaluate(function () { var h = JY.World._haeng(); var q = JY.World._poi('hill.hide'); JY.World._teleport(h.x + Math.cos(h.face || 0) * 70, h.y + Math.sin(h.face || 0) * 70); });
+    await sleep(300); await snap('world-haeng', true);
     await T(function (t) { t.openBag('craft'); });
     await snap('bag-craft', true);
     await T(function (t) { t.closeModal(); });
@@ -678,60 +680,85 @@ function svgBounds() {
   var txt = await p.textContent('.gear-row:nth-child(4) b');
   F('강화 수치 화면 반영', /\+1/.test(txt), txt);
 
-  // v6: 부대 지도에서 행동 → 결과 → 시간 감소, 조합, 장소 PX, 취침
+  // v7: 2D 월드 — 걸어가서 행동, 조합, PX, 특기 미니게임, 줍기, 부탁, 점호
   await p.evaluate(function () {
     var s = JY.Game.newState({ start: '2026-03-02', name: '점검병', unit: 'coast', seed: 21 });
-    s.rank = 2; s.day = 150; s.queue = []; s.current = null; s.assigned = true; s.phase = 'unit'; s.turn = 4; s.step = 'free'; s.ap = 3;
+    s.rank = 2; s.day = 150; s.queue = []; s.current = null; s.assigned = true; s.phase = 'unit'; s.turn = 4; s.step = 'free'; s.ap = 3; s.walkMin = 0;
     s.spec = { id: 'cook', lv: 3, xp: 0 }; s.money = 100000; s.pxDay = 0; s.emer.since = 0;
-    s.items = { ramen: 1, chocopie: 3 };
+    s.items = { ramen: 1, chocopie: 4 }; s.quest = null;
     JY.Game.STATS.forEach(function (k) { s.stats[k] = 50; });
     JY.Meta.get().mapTutorial = true;
-    JY.UI._t.setState(s); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
+    document.getElementById('modal').hidden = true;
+    JY.UI._t.setState(s); JY.UI._t.showScreen('scr-game'); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
   });
-  await sleep(200);
-  var m0 = await p.evaluate(function () { return { base: !document.getElementById('base').hidden, tiles: document.querySelectorAll('#base .loc').length, card: !document.getElementById('card-zone').hidden }; });
-  F('자대: 부대 지도 표시 (장소 10곳 이상)', m0.base && m0.tiles >= 10 && !m0.card, m0);
-  await tapSel('.loc[data-loc="barracks"]');
+  await sleep(500);
+  var m0 = await p.evaluate(function () { return { base: !document.getElementById('base').hidden, canvas: !!document.querySelector('#base canvas.world'), card: !document.getElementById('card-zone').hidden }; });
+  F('자대: 2D 월드 표시', m0.base && m0.canvas && !m0.card, m0);
+  // 키보드로 걸으면 위치가 바뀌고 시간이 간다
+  var w0 = await p.evaluate(function () { return { x: JY.World._me.x, y: JY.World._me.y, left: JY.Game.minutesLeft(JY.UI._state()) }; });
+  await p.keyboard.down('ArrowDown'); await sleep(1200); await p.keyboard.up('ArrowDown'); await sleep(200);
+  var w1 = await p.evaluate(function () { return { x: JY.World._me.x, y: JY.World._me.y, left: JY.Game.minutesLeft(JY.UI._state()) }; });
+  F('걷기: 이동하면 시간이 흐른다', w1.y > w0.y + 60 && w1.left < w0.left, [w0, w1]);
+  // 수다 자리로 가서 행동
+  await p.evaluate(function () { var q = JY.World._poi('barracks.chat'); JY.World._teleport(q.x, q.y + 16); });
+  await sleep(350);
   var bd0 = await p.evaluate(function () { return JY.UI._state().stats.bd; });
-  await tapSel('#modal-box .act[data-a="chat"]'); await sleep(400);
+  var ap0 = await p.evaluate(function () { return JY.UI._state().ap; });
+  await tapSel('.world-panel [data-w="act"]'); await sleep(400);
   var m1 = await p.evaluate(function () { var s = JY.UI._state(); return { ap: s.ap, bd: s.stats.bd, result: !document.getElementById('result').hidden }; });
-  F('자대: 수다 → 결과 쪽지 + 시간 1 + 전우애', m1.result && m1.ap === 2 && m1.bd !== bd0, m1);
+  F('물건 가까이 → 행동 → 결과 + 시간 1시간', m1.result && m1.ap === ap0 - 1 && m1.bd !== bd0, [m1, ap0]);
   if (m1.result) { await sleep(400); await tapSel('#result'); }
-  // 조합: 뽀글이, 초코파이 케이크 (요리 Lv3 → 2개)
+  // 조합: 뽀글이, 케이크 (요리 Lv3 → 2개)
   await tapSel('#dock-bag'); await tapSel('#modal-box [data-tab="craft"]');
   await tapSel('#modal-box [data-craft="bbog"]'); await tapSel('#modal-box [data-craft="cake"]');
-  var m2 = await p.evaluate(function () { var s = JY.UI._state(); return { bbog: s.items.bbog, cake: s.items.cake, ramen: s.items.ramen || 0, recipes: Object.keys(JY.Meta.get().recipes || {}) }; });
-  F('조합: 뽀글이·케이크 (요리 특기 하나 더) + 레시피 기록', m2.bbog === 2 && m2.cake === 2 && m2.ramen === 0 && m2.recipes.indexOf('bbog') >= 0, m2);
+  var m2 = await p.evaluate(function () { var s = JY.UI._state(); return { bbog: s.items.bbog, cake: s.items.cake, recipes: Object.keys(JY.Meta.get().recipes || {}) }; });
+  F('조합: 뽀글이·케이크 (요리 특기 하나 더)', m2.bbog === 2 && m2.cake === 2 && m2.recipes.indexOf('bbog') >= 0, m2);
   await tapSel('#modal-box [data-act="close"]');
-  // 장소 PX: 장보기 → 시간 1
-  await tapSel('.loc[data-loc="px"]'); await tapSel('#modal-box .act[data-a="shop"]');
+  // PX 계산대 → 장보기
+  await p.evaluate(function () { var q = JY.World._poi('px.shop'); JY.World._teleport(q.x, q.y + 16); });
+  await sleep(350);
+  var ap1 = await p.evaluate(function () { return JY.UI._state().ap; });
+  await tapSel('.world-panel [data-w="act"]');
   await tapSel('#modal-box .item[data-id="ramen"]');
   await tapSel('#modal-box [data-act="close"]');
   var m3 = await p.evaluate(function () { var s = JY.UI._state(); return { ap: s.ap, ramen: s.items.ramen }; });
-  F('지도 PX 장보기: 라면 구매 + 시간 1', m3.ramen === 1 && m3.ap === 1, m3);
-  // 특기 미니게임: 특식 만들기 → 결과
-  await tapSel('.loc[data-loc="mess"]'); await tapSel('#modal-box .act[data-a="feast"]'); await sleep(2600);
-  var mg = await p.evaluate(function () { return !document.getElementById('mini').hidden && !!document.getElementById('tm-btn'); });
-  F('특기 행동: 특식 만들기 미니게임 시작', mg);
-  for (var k = 0; k < 10 && mg; k++) { await p.evaluate(function () { var b = document.getElementById('tm-btn'); if (b && !b.disabled) b.click(); }); await sleep(700); if (!(await p.evaluate(function () { return !document.getElementById('mini').hidden; }))) break; }
-  await sleep(1900);
-  var m4 = await p.evaluate(function () { var s = JY.UI._state(); return { result: !document.getElementById('result').hidden, ap: s.ap, cd: s.cd['mess.feast'] }; });
-  F('특식 만들기 결과 + 2턴 쉬기', m4.result && m4.ap === 0 && m4.cd === 6, m4);
+  F('PX 계산대: 라면 구매 + 시간 1시간', m3.ramen === 1 && m3.ap === ap1 - 1, [m3, ap1]);
+  // 반짝이 줍기
+  var pk = await p.evaluate(function () { var s = JY.UI._state(), n = s.pick || 0, all = JY.World._pickups(), pp = all[0]; all.splice(1); JY.World._teleport(pp.x, pp.y + 50); return n; });
+  await p.keyboard.down('ArrowUp'); await sleep(450); await p.keyboard.up('ArrowUp'); await sleep(250);
+  var pk2 = await p.evaluate(function () { return JY.UI._state().pick || 0; });
+  F('반짝이를 밟으면 줍는다', pk2 === pk + 1, [pk, pk2]);
+  // 사람: 부탁 들어주기
+  var qq = await p.evaluate(function () { var s = JY.UI._state(); var n = JY.World._npcs()[0]; if (!n) return null; s.quest = { who: n.who, item: 'chocopie', ask: '초코파이 하나만', thanks: '고마워!', reward: { aff: {}, fx: { mt: 4 }, gem: 2 }, done: false }; JY.World._teleport(n.x + 8, n.y + 4); return n.who; });
+  await sleep(350);
+  if (qq) { await tapSel('.world-panel [data-w="quest"]'); await sleep(300); }
+  var m4 = await p.evaluate(function () { var s = JY.UI._state(); return { done: s.quest && s.quest.done, result: !document.getElementById('result').hidden }; });
+  F('사람 머리 위 ❗ 부탁: 물건 건네기', !!qq && m4.done && m4.result, [qq, m4]);
   if (m4.result) { await sleep(400); await tapSel('#result'); }
-  // 취침 → 밤 사건 또는 다음 턴
-  var day0 = await p.evaluate(function () { return JY.UI._state().day; });
-  await tapSel('#btn-sleep'); await sleep(500);
-  for (var g = 0; g < 8; g++) {
-    var q = await p.evaluate(function () { var s = JY.UI._state(); return { r: !document.getElementById('result').hidden, card: !!s.current && !document.getElementById('card-zone').hidden, mini: !document.getElementById('mini').hidden, alert: !document.getElementById('alert').hidden, base: !document.getElementById('base').hidden, turn: s.turn }; });
-    if (q.base && q.turn > 4) break;
-    if (q.alert) { await tapSel('#alert'); continue; }
-    if (q.r) { await sleep(400); await tapSel('#result'); continue; }
-    if (q.mini) { await p.evaluate(function () { document.getElementById('mini').hidden = true; JY.Game.finishMini(JY.UI._state(), 'good'); JY.UI._t.renderCard(false); }); continue; }
-    if (q.card) { await p.evaluate(function () { var b = document.querySelector('.choice[data-side="l"]'); b.click(); b.click(); }); await sleep(600); continue; }
-    await sleep(300);
+  // 특기 미니게임: 특식 만들기
+  await p.evaluate(function () { var s = JY.UI._state(); s.ap = Math.max(s.ap, 1); var q = JY.World._poi('mess.feast'); JY.World._teleport(q.x, q.y + 16); });
+  await sleep(350);
+  await tapSel('.world-panel [data-w="act"]'); await sleep(2600);
+  var mg = await p.evaluate(function () { return !document.getElementById('mini').hidden && !!document.getElementById('tm-btn'); });
+  F('특기 행동: 특식 만들기 미니게임', mg);
+  for (var k2 = 0; k2 < 10 && mg; k2++) { await p.evaluate(function () { var b = document.getElementById('tm-btn'); if (b && !b.disabled) b.click(); }); await sleep(700); if (!(await p.evaluate(function () { return !document.getElementById('mini').hidden; }))) break; }
+  await sleep(1900);
+  var m5r = await p.evaluate(function () { var s = JY.UI._state(); return { result: !document.getElementById('result').hidden, cd: s.cd['mess.feast'] }; });
+  F('특식 만들기 결과 + 2턴 쉬기', m5r.result && m5r.cd === 6, m5r);
+  if (m5r.result) { await sleep(400); await tapSel('#result'); }
+  // 22:00 점호: 생활관 안에 있으면 지각 아님
+  var day0 = await p.evaluate(function () { var s = JY.UI._state(); s.ap = 0; s.walkMin = 60; var q = JY.World._poi('barracks.nap'); JY.World._teleport(q.x, q.y + 20); return s.day; });
+  for (var g = 0; g < 10; g++) {
+    await sleep(500);
+    var q2 = await p.evaluate(function () { var s = JY.UI._state(); return { r: !document.getElementById('result').hidden, card: !!s.current && !document.getElementById('card-zone').hidden, mini: !document.getElementById('mini').hidden, alert: !document.getElementById('alert').hidden, base: !document.getElementById('base').hidden, turn: s.turn }; });
+    if (q2.base && q2.turn > 4 && !q2.r) break;
+    if (q2.alert) { await tapSel('#alert'); continue; }
+    if (q2.r) { await sleep(300); await tapSel('#result'); continue; }
+    if (q2.mini) { await p.evaluate(function () { document.getElementById('mini').hidden = true; JY.Game.finishMini(JY.UI._state(), 'good'); JY.UI._t.renderCard(false); }); continue; }
+    if (q2.card) { await p.evaluate(function () { var b = document.querySelector('.choice[data-side="l"]'); b.click(); b.click(); }); await sleep(600); continue; }
   }
-  var m5 = await p.evaluate(function () { var s = JY.UI._state(); return { turn: s.turn, day: s.day, step: s.step }; });
-  F('취침 → 2주 흐르고 다음 턴', m5.turn === 5 && m5.day - day0 === 14, [m5, day0]);
+  var m6 = await p.evaluate(function () { var s = JY.UI._state(); return { turn: s.turn, day: s.day, lates: s.lates || 0 }; });
+  F('22:00 점호 (생활관 안) → 지각 없이 2주 흐르고 다음 턴', m6.turn === 5 && m6.day - day0 === 14 && m6.lates === 0, [m6, day0]);
 
   await ctx2.close();
   await browser.close(); server.close();

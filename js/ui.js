@@ -364,28 +364,94 @@
     $('#card-zone').hidden = false;
     $('#choices').hidden = false;
   }
+  function clockText() {
+    var left = G.minutesLeft(state), t = 22 * 60 - left;
+    return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2);
+  }
+  function mapHeader() {
+    var dn = state.dutyNote, left = G.minutesLeft(state);
+    $('#prompt').className = 'prompt map-head';
+    $('#prompt').innerHTML = '<span class="who turn">📅 ' + weekLabel() + '</span> 🕗 <b class="clock' + (left <= 30 ? ' late' : '') + '">' + clockText() + '</b> 개인정비 <small class="till">· 22:00 점호</small>' +
+      (dn ? '<small class="duty-note">🪖 ' + esc(dn.text) + ' ' + fxText(dn.deltas) + '</small>' : '');
+  }
+  var worldSave = 0;
+  var WORLD_HOOKS = {
+    state: function () { return state; },
+    locations: function () { return state ? G.locations(state) : []; },
+    blocked: function () {
+      return busy || !state || state.over || !!state.current || !!state.pendingMini || !$('#modal').hidden || !$('#result').hidden || !$('#mini').hidden || !$('#alert').hidden || !$('#coach').hidden;
+    },
+    walk: function (m) {
+      G.walk(state, m); mapHeader();
+      if (Date.now() - worldSave > 3000) { worldSave = Date.now(); save(); }
+    },
+    minutesLeft: function () { return state ? G.minutesLeft(state) : 0; },
+    pickup: function (table, courier) {
+      var r = credit(G.pickup(state, table));
+      if (!r) return null;
+      save(); renderHUD();
+      var rare = (r.loot || []).some(function (l) { return l.rarity === 'e' || l.rarity === 'l'; });
+      if (rare) { confetti(); snd('gem'); } else snd('coin');
+      var l = (r.loot || [])[0];
+      if (l) toast((courier ? '📦 택배! ' : '✨ 득템! ') + JY.ITEMS[l.id].icon + ' ' + JY.ITEMS[l.id].name + ' · ' + RAR[l.rarity], 2000);
+      missionToast(Meta.track('act'));
+      return r;
+    },
+    act: function (L, a, seen) {
+      if (!a.ok) { toast(a.reason || '지금은 못 한다', 1800); return; }
+      snd('tap');
+      if (a.special === 'craft') { openBag('craft'); return; }
+      if (a.special === 'px') { openPX(); return; }
+      if (a.special === 'leave') { openLeave(); return; }
+      var res = credit(G.doAction(state, L.id, a.id, { world: true, seen: seen }));
+      if (!res) return;
+      busy = true; save();
+      missionToast(Meta.track('act'));
+      if (res.mini) { setTimeout(function () { runMini(res); }, 150); return; }
+      afterChoice(res);
+    },
+    talk: function (who) {
+      var r = G.talk(state, who);
+      if (!r) return;
+      save(); renderHUD();
+      toast(r.cooldown ? charName(who).name + ': (이번 주엔 이미 수다 떨었다)' : '💬 ' + charName(who).name + ': ' + r.line, 2600);
+      if (!r.cooldown) { snd('good'); animateDeltas(r.deltas); }
+    },
+    story: function (who) {
+      var id = G.npcStory(state, who);
+      if (!id) { toast('지금은 할 이야기가 없나 보다.', 1600); return; }
+      save(); snd('reveal');
+      renderCard(true);
+    },
+    quest: function () {
+      var r = credit(G.completeQuest(state));
+      if (!r) return;
+      busy = true; save(); snd('gem');
+      missionToast(Meta.track('act'));
+      afterChoice(r);
+    },
+    rollcall: function (inB) {
+      if (busy) return;
+      var res = G.rollcall(state, inB);
+      if (!res) return;
+      busy = true; credit(res); save();
+      snd(inB ? 'tap' : 'bad');
+      if (!res.night && !state.over) res.say = res.say || (inB ? '🌙 점호 끝. 소등. 내일도 군대다.' : '');
+      afterChoice(res);
+    },
+    toast: function (t) { toast(t, 2200); },
+    actLine: function (A) { return actLine(A); }
+  };
   function renderMap() {
     stopUrgent();
     $('#card-zone').hidden = true;
     $('#choices').hidden = true;
     var base = $('#base');
     base.hidden = false;
-    var locs = G.locations(state), apMax = G.apMax(state), dn = state.dutyNote;
-    $('#prompt').className = 'prompt map-head';
-    $('#prompt').innerHTML = '<span class="who turn">📅 ' + weekLabel() + '</span> 개인정비 시간 <b class="ap">' + '⏱'.repeat(state.ap) + '<s>' + '⏱'.repeat(Math.max(0, apMax - state.ap)) + '</s></b>' +
-      (dn ? '<small class="duty-note">🪖 ' + esc(dn.text) + ' ' + fxText(dn.deltas) + '</small>' : '');
-    base.innerHTML = '<div class="loc-grid">' + locs.map(function (L) {
-      var can = L.acts.filter(function (a) { return a.ok && a.special !== 'craft'; }).length;
-      var badges = (L.acts.some(function (a) { return a.ok && a.loot; }) ? '<i title="득템">🎁</i>' : '') + (L.acts.some(function (a) { return a.ok && a.spec; }) ? '<i title="특기">⭐</i>' : '') + (L.acts.some(function (a) { return a.ok && a.mini; }) ? '<i title="미니게임">🎮</i>' : '');
-      return '<button class="loc' + (can ? '' : ' off') + '" data-loc="' + L.id + '"><span class="loc-emoji">' + L.emoji + '</span><b>' + L.name + '</b>' +
-        '<small class="loc-risk r' + L.risk + '">' + RISK_WORD[L.risk] + '</small>' + (badges ? '<span class="loc-badges">' + badges + '</span>' : '') +
-        (L.npc ? '<span class="loc-who">' + esc(charName(L.npc).name) + '</span>' : '') + '</button>';
-    }).join('') + '</div>' +
-      '<button class="btn ' + (state.ap ? 'btn-ghost' : 'btn-primary') + ' sleep" id="btn-sleep">🌙 ' + (state.ap ? '쉬고 취침 (남은 시간은 체력 회복)' : '개인정비 끝! 취침 → 다음 턴') + '</button>';
-    $$('.loc', base).forEach(function (b) { b.onclick = function () { snd('tap'); openLoc(b.dataset.loc); }; });
-    $('#btn-sleep').onclick = sleep;
+    mapHeader();
     busy = false;
-    if (!Meta.get().mapTutorial) setTimeout(function () { startCoach(MAP_COACH, 'mapTutorial'); }, 500);
+    if (JY.World && window.HTMLCanvasElement) JY.World.mount(base, WORLD_HOOKS);
+    if (!Meta.get().mapTutorial) setTimeout(function () { startCoach(MAP_COACH, 'mapTutorial'); }, 600);
   }
 
   function actLine(A) {
@@ -400,63 +466,6 @@
     if (A.special) bits += '<span class="fxc">' + esc(A.desc || '') + '</span>';
     return bits;
   }
-  function openLoc(id) {
-    var L = G.locations(state).filter(function (l) { return l.id === id; })[0];
-    if (!L) return;
-    var html = '<div class="loc-head"><div class="loc-art">' + A.scene(L.bg, state.season) + (L.npc ? '<div class="loc-npc">' + charSVG(L.npc) + '</div>' : '') + '</div>' +
-      '<div class="loc-info"><h3>' + L.emoji + ' ' + L.name + '</h3><p class="sub">' + esc(L.desc) + '</p>' +
-      '<p class="loc-risk-line">' + (L.risk ? RISK_WORD[L.risk] + ' — 간부 눈이 있다. 노는 행동은 걸릴 수 있다' : '🙆 안전한 곳') + '</p></div></div>' +
-      '<p class="ap-line">남은 개인정비 시간 ⏱ ' + state.ap + '</p>' +
-      '<div class="acts">' + L.acts.map(function (a) {
-        return '<button class="act' + (a.ok ? '' : ' off') + (a.danger ? ' danger' : '') + (a.spec ? ' spec' : '') + '" data-a="' + a.id + '"' + (a.ok ? '' : ' aria-disabled="true"') + '>' +
-          '<i>' + a.emoji + '</i><span class="act-main"><b>' + a.name + (a.spec ? ' <em>⭐특기</em>' : '') + '</b><span class="act-fx">' + actLine(a) + '</span>' +
-          (a.ok ? (a.danger ? '<small class="warn">⚠ 스탯이 끝에 닿는다! 전역 실패 위험</small>' : '') + (a.risk ? '<small class="risk">👀 걸릴 확률 ' + Math.round(a.risk * 100) + '%</small>' : '') : '<small class="why">' + esc(a.reason || '') + '</small>') +
-          '</span><em class="cost">' + (a.cost ? '⏱' + a.cost : '무료') + '</em></button>';
-      }).join('') +
-      (L.npc ? '<button class="act talk" data-talk="' + L.npc + '"><i>💬</i><span class="act-main"><b>' + esc(charName(L.npc).name) + '에게 말 걸기</b><span class="act-fx"><span class="fxc">호감도 · 멘탈</span></span></span><em class="cost">무료</em></button>' : '') +
-      '</div><div class="modal-actions"><button class="btn btn-ghost" data-act="close">지도로</button></div>';
-    openModal(html, function (box) {
-      box.querySelector('[data-act="close"]').onclick = closeModal;
-      var t = box.querySelector('[data-talk]');
-      if (t) t.onclick = function () {
-        var r = G.talk(state, t.dataset.talk);
-        if (!r) return;
-        save(); renderHUD();
-        toast(r.cooldown ? esc(charName(t.dataset.talk).name) + ': (이번 주엔 이미 수다 떨었다)' : '💬 ' + charName(t.dataset.talk).name + ': ' + r.line, 2600);
-        if (!r.cooldown) { snd('good'); animateDeltas(r.deltas); }
-      };
-      $$('.act[data-a]', box).forEach(function (b) {
-        b.onclick = function () {
-          var a = L.acts.filter(function (x) { return x.id === b.dataset.a; })[0];
-          if (!a.ok) { toast(a.reason || '지금은 못 한다', 1800); return; }
-          snd('tap');
-          if (a.special === 'craft') { closeModal(); openBag('craft'); return; }
-          if (a.special === 'px') { closeModal(); openPX(); return; }
-          if (a.special === 'leave') { closeModal(); openLeave(); return; }
-          var res = credit(G.doAction(state, L.id, a.id));
-          closeModal();
-          if (!res) return;
-          busy = true;
-          save();
-          missionToast(Meta.track('act'));
-          if (res.mini) { setTimeout(function () { runMini(res); }, 150); return; }
-          afterChoice(res);
-        };
-      });
-    });
-  }
-
-  function sleep() {
-    if (busy || !state || state.over) return;
-    var res = G.endFree(state);
-    if (!res) return;
-    busy = true;
-    credit(res); save();
-    snd('tap');
-    if (!res.night && !state.over) res.say = res.say || '🌙 하루가 저물었다. 내일도 군대다.';
-    afterChoice(res);
-  }
-
   // 결과 쪽지에 붙는 득템 목록
   function lootHtml(res) {
     var out = '';
@@ -1610,9 +1619,9 @@
     { sel: '.dock', text: '위험하면 <b>가방</b>을 연다. PX·동료·휴가 버튼은 <b>쓸 수 있을 때 나타난다</b>. 목표: <b>전역일까지 살아남기</b>. 충성!' }
   ];
   var MAP_COACH = [
-    { sel: '#base .loc-grid', text: '훈련소 끝! 자대에서는 <b>부대 지도</b>를 돌아다닌다. 장소를 눌러 행동하면 <b>⏱ 개인정비 시간</b>을 쓴다.' },
-    { sel: '#prompt', text: '남은 시간 ⏱과 오늘 일과가 여기 뜬다. 👀·🚨 표시가 있는 곳은 <b>행보관에게 걸릴 수 있다</b>. 🎁는 득템, ⭐는 내 특기 행동.' },
-    { sel: '#btn-sleep', text: '시간을 다 쓰면 <b>취침</b>. 밤에 사건이 생기고 2주가 흐른다. 생활관에서 <b>뽀글이</b>도 만들어 보자!' }
+    { sel: '#base canvas', text: '훈련소 끝! 이제 <b>부대를 직접 걸어 다닌다</b>. 화면을 누른 채 끌면 걷고, 물건·사람을 톡 하면 그쪽으로 간다.' },
+    { sel: '.world-panel', text: '물건 가까이 가면 여기에 <b>할 수 있는 행동</b>이 뜬다 (꿀잠·뽀글이·사격·파밍…). 사람 머리 위 ❗는 <b>부탁</b>, ✨는 주울 수 있는 것.' },
+    { sel: '#prompt', text: '걸으면 시간이 간다. <b>22:00 점호</b> 때 생활관에 없으면 지각! 빨간 부채꼴은 <b>행보관의 시야</b> — 보이는 데서 놀면 걸린다.' }
   ];
   var coachStep = 0, coachSteps = COACH, coachKey = 'tutorialDone';
   function startCoach(steps, key) {
@@ -1926,7 +1935,7 @@
   }
 
   JY.UI = {
-    init: init, charSVG: charSVG, _state: function () { return state; },
+    init: init, charSVG: charSVG, charName: charName, _state: function () { return state; },
     // 자동 점검(tests/ui-audit.js)용 연결 고리
     _t: {
       setState: function (s) { state = G.migrate(s); G._setCur(state); busy = false; },
@@ -1940,7 +1949,7 @@
       renderTitle: renderTitle, renderSetup: renderSetup, showEnding: showEnding, stopUrgent: stopUrgent,
       startCoach: startCoach, endCoach: endCoach,
       animateDeltas: animateDeltas, showPreview: showPreview, talkBubble: talkBubble, toast: toast,
-      openLoc: openLoc, showAssign: showAssign
+      showAssign: showAssign
     }
   };
 

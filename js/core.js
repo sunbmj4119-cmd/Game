@@ -1123,7 +1123,8 @@
   var TURN_DAYS = { 1: 14, 3: 28 };          // 한 턴 = 2주 (속성 복무는 4주)
   var AP_BY_RANK = [0, 2, 3, 3, 4];          // 개인정비 시간: 이병 2 → 병장 4
   var RISK_P = [0, 0.06, 0.13, 0.22];        // 행보관에게 걸릴 확률 (장소 위험도별)
-  var NIGHT_P = 0.6;                         // 밤에 사건 카드가 나올 확률
+  var NIGHT_P = 0.4;                         // 밤에 사건 카드가 나올 확률 (이야기는 사람에게 말을 걸어서 듣는다)
+  var DUTY_CARD_P = 0.22;                    // 일과가 카드로 나올 확률 (나머지는 미니게임·자동)
   var INTERRUPT_P = 0.05;                    // 행동 중 돌발 상황이 끼어들 확률
   var UNIT_CARD_MULT = { 1: 1.6, 3: 1.3 };   // 자대 단계 카드(일과·밤·돌발) 효과 배수 (속성 복무는 이미 PACE_SWING이 크다)
   function BS() { return JY.BASE || {}; }
@@ -1195,16 +1196,18 @@
     s.turn = (s.turn || 0) + 1;
     s.step = 'duty';
     s.ap = apMax(s);
+    s.walkMin = 0; s.pick = 0;
     s.dutyNote = null;
+    makeQuest(s);
     res.events.push({ type: 'turn', turn: s.turn, ap: s.ap });
     var em = s.emer.since >= 2 ? pickEmergency(s) : null;
     if (em) { s.emer.since = 0; s.current = em; pickVariant(s, getCardDef(em)); return res; }
     var r = rand();
-    if (r < 0.45) {
+    if (r < DUTY_CARD_P) {
       var id = pickDutyCard(s);
       if (id) { s.current = id; pickVariant(s, getCardDef(id)); return res; }
     }
-    if (r < 0.62) {
+    if (r < DUTY_CARD_P + 0.3) {
       var m = pickDutyMini(s);
       if (m) { s.pendingMini = { id: m, days: 0, duty: true }; res.mini = m; return res; }
     }
@@ -1399,7 +1402,8 @@
     return res;
   }
 
-  function doAction(s, locId, actId) {
+  function doAction(s, locId, actId, opts) {
+    opts = opts || {};
     var L = locById(locId), A = actById(L, actId);
     if (!L || !A || A.special) return null;
     var st = actionStatus(s, L, A);
@@ -1412,7 +1416,8 @@
     if (A.need && A.need.item) s.items[A.need.item] -= 1;
     if (A.cd) s.cd[L.id + '.' + A.id] = s.turn + A.cd;
     s.emer.since += 0.5;
-    if (rand() < caughtP(s, L, A)) {
+    var caught = opts.world ? !!opts.seen && isRisky(A) : rand() < caughtP(s, L, A);
+    if (caught) {
       s.caught = (s.caught || 0) + 1;
       res.caught = true;
       applyStats(s, { hp: -5, mt: -4, tr: -3 }, res);
@@ -1433,6 +1438,93 @@
     applyAct(s, L, A, out, res);
     if (tier === 'great') gainGem(s, 2, res);
     return afterAct(s, res);
+  }
+
+
+  /* ── v7: 2D 월드에서 쓰는 것들 (줍기 · 부탁 · 점호 · 이야기 듣기 · 걸어 다닌 시간) ── */
+  var PICK_TABLES = { forest: 1, supply: 1, mess: 1, outside: 1, px: 1, cat: 1 };
+  function pickup(s, table) {
+    if (s.over || s.phase !== 'unit' || s.step !== 'free' || !PICK_TABLES[table]) return null;
+    if ((s.pick || 0) >= 6) return null;
+    CUR = s;
+    s.pick = (s.pick || 0) + 1;
+    var res = newRes();
+    rollLoot(s, table, res);
+    applyStats(s, { mt: 1 }, res, true, 3, 97);
+    return res;
+  }
+  // 걸어 다니면 개인정비 시간이 줄어든다 (60분 = 행동 하나)
+  function walk(s, minutes) {
+    if (s.phase !== 'unit' || s.step !== 'free' || s.current) return s.ap;
+    s.walkMin = (s.walkMin || 0) + minutes;
+    while (s.walkMin >= 60 && s.ap > 0) { s.walkMin -= 60; s.ap -= 1; }
+    if (s.ap <= 0) s.walkMin = Math.min(s.walkMin, 60);
+    return s.ap;
+  }
+  function minutesLeft(s) { return Math.max(0, (s.ap || 0) * 60 - (s.walkMin || 0)); }
+  // 22:00 점호: 생활관에 없으면 지각
+  function rollcall(s, inBarracks) {
+    if (s.over || s.phase !== 'unit' || s.step !== 'free' || s.current || s.pendingMini) return null;
+    CUR = s;
+    var pre = newRes();
+    if (!inBarracks) {
+      applyStats(s, { tr: -6, mt: -3 }, pre);
+      pre.events.push({ type: 'late', text: '🚨 점호 지각! 당직사관: "어디 갔다 왔나?" 반성문 한 장.' });
+      s.lates = (s.lates || 0) + 1;
+      var e = edgeEnding(s, pre);
+      if (e) { end(s, e, pre); return pre; }
+    }
+    s.ap = 0; s.walkMin = 0;
+    var res = endFree(s);
+    if (!res) return pre;
+    for (var k in pre.deltas) res.deltas[k] = (res.deltas[k] || 0) + pre.deltas[k];
+    res.events = pre.events.concat(res.events);
+    res.late = !inBarracks;
+    return res;
+  }
+  // 동료의 부탁 (턴마다 한 명): 물건을 가져다주면 호감도·보상
+  function makeQuest(s) {
+    var Q = (BS().quests || []).filter(function (q) { return npcAvailable(s, q.who) && (!s.quest || s.quest.who !== q.who); });
+    s.quest = Q.length && rand() < 0.65 ? JSON.parse(JSON.stringify(Q[randInt(0, Q.length - 1)])) : null;
+    if (s.quest) s.quest.done = false;
+  }
+  function completeQuest(s) {
+    var q = s.quest;
+    if (!q || q.done || s.over || !(s.items[q.item] > 0)) return null;
+    CUR = s;
+    var res = newRes();
+    s.items[q.item] -= 1;
+    q.done = true;
+    s.quests = (s.quests || 0) + 1;
+    if (q.reward.fx) applyStats(s, q.reward.fx, res, true, 3, 97);
+    for (var w in (q.reward.aff || {})) changeAff(s, w, q.reward.aff[w], res);
+    if (q.reward.gem) gainGem(s, q.reward.gem, res);
+    if (q.reward.leave) gainLeave(s, q.reward.leave, res, '부탁 들어준 보답', true);
+    res.say = q.thanks;
+    return res;
+  }
+  // 사람에게 말 걸어 이야기 듣기: 그 사람이 나오는 장면 카드 (턴마다 한 사람 한 번)
+  function npcStory(s, who) {
+    if (s.over || s.phase !== 'unit' || s.step !== 'free' || s.current || s.pendingMini) return null;
+    s.storyTurn = s.storyTurn || {};
+    if (s.storyTurn[who] === s.turn) return null;
+    var list = JY.CARDS.pool.filter(function (c) {
+      if (c.urgent || !eligible(s, c)) return false;
+      if (c.who === who) return true;
+      return (c.variants || []).some(function (v) { return v.who === who && variantOk(s, v); });
+    }).map(function (c) { return c.id; });
+    if (!list.length) return null;
+    var id = list[randInt(0, list.length - 1)];
+    s.storyTurn[who] = s.turn;
+    s.current = id;
+    pickVariant(s, getCardDef(id));
+    // 그 사람이 나오는 장면을 고른다
+    var c = getCardDef(id);
+    if (c.variants && c.who !== who) {
+      var idx = []; c.variants.forEach(function (v, i) { if (v.who === who && variantOk(s, v)) idx.push(i + 1); });
+      if (idx.length) s.cv.v = idx[randInt(0, idx.length - 1)];
+    }
+    return id;
   }
 
   /* ── 생활관 조합 ── */
@@ -1493,6 +1585,7 @@
     // v6 자대 생활
     TURN_DAYS: TURN_DAYS, locations: locations, doAction: doAction, endFree: endFree, actionStatus: function (s, l, a) { var L = locById(l); return actionStatus(s, L, actById(L, a)); },
     craft: craft, recipeStatus: recipeStatus, specDef: specDef, apMax: apMax, expectFx: expectFx,
+    pickup: pickup, walk: walk, minutesLeft: minutesLeft, rollcall: rollcall, completeQuest: completeQuest, npcStory: npcStory,
     _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});

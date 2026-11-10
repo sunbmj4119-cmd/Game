@@ -206,7 +206,7 @@
         { id: 'nap', emoji: '💤', name: '꿀잠 자기', fx: { hp: 7, mt: 3, tr: -3 }, say: ['침상에 누운 지 3초 만에 기절. 꿈에서도 점호를 했다.', '모포를 덮자 세상이 조용해졌다. 일어나니 저녁이다.', '"5분만…" 5분은 50분이 됐다.'] },
         { id: 'craft', emoji: '🍳', name: '조합 · 요리', special: 'craft', desc: '재료를 모아 뽀글이 등을 만든다' },
         { id: 'chat', emoji: '💬', name: '동기들과 수다', fx: { bd: 6, hp: -2, tr: -1 }, say: ['전역하면 뭐 할지 얘기하다 소등 시간이 됐다.', '박덤벙의 첫사랑 이야기 3부작이 완결됐다.', '누가 제일 군생활 꼬였나 대회. 내가 3등.'] },
-        { id: 'diary', emoji: '📝', name: '수양록 쓰기', fx: { mt: -5, tr: 3 }, say: ['오늘 하루를 꾹꾹 눌러 적었다. 마음이 차분해졌다.', '"전역까지 ○○일." 숫자를 쓰니 정신이 번쩍 든다.', '분대장이 검사한다는 말에 세 장을 채웠다.'] },
+        { id: 'diary', emoji: '📝', name: '수양록 쓰기', fx: { mt: -5, tr: 2 }, say: ['오늘 하루를 꾹꾹 눌러 적었다. 마음이 차분해졌다.', '"전역까지 ○○일." 숫자를 쓰니 정신이 번쩍 든다.', '분대장이 검사한다는 말에 세 장을 채웠다.'] },
         { id: 'alone', emoji: '🎧', name: '혼자만의 시간', fx: { bd: -5, mt: 3 }, say: ['이어폰을 끼고 창밖을 봤다. 아무도 말 걸지 않았다.', '구석 침상에서 책을 읽었다. 동기들이 서운해했다.'] },
         { id: 'tv', emoji: '📺', name: 'TV 채널 쟁탈전', cd: 1, roll: [{ p: 0.5, fx: { mt: 8, bd: -2 }, say: '걸그룹 채널 사수! 리모컨은 내 손에.' }, { p: 0.5, fx: { mt: -3, bd: 4 }, say: '병장님이 리모컨을 가져갔다. 같이 낚시 방송을 봤다.' }] }
       ]
@@ -299,6 +299,17 @@
     }
   ];
 
+  /* ───────── 동료의 부탁 (2D 월드에서 머리 위 ❗) ───────── */
+  JY.BASE.quests = [
+    { who: 'ppaen', item: 'banana', ask: '바나나우유 하나만… PX 가는 김에. 응? 응?', thanks: '정뺀질: "역시 넌 말이 통해~" 꿀팁을 하나 알려 줬다.', reward: { aff: { ppaen: 10 }, fx: { bd: 4 }, gem: 2 } },
+    { who: 'dumb', item: 'chocopie', ask: '초코파이… 딱 하나만 있으면 오늘 버틸 수 있을 것 같아.', thanks: '박덤벙이 초코파이를 반으로 쪼개 줬다. 우정의 맛.', reward: { aff: { dumb: 10 }, fx: { mt: 4 }, gem: 2 } },
+    { who: 'malnyeon', item: 'buldak', ask: '불닭 있냐? 말년엔 매운 게 당긴다.', thanks: '김말년: "넌 내 전역 선물 명단에 올랐다."', reward: { aff: { malnyeon: 10 }, fx: { bd: 5 }, gem: 3 } },
+    { who: 'fm', item: 'polish', ask: '구두약 남는 거 있나. 규정상 내일 검열이다.', thanks: '분대장: "…고맙다. 규정엔 없지만 기억하겠다."', reward: { aff: { fm: 10 }, fx: { tr: 5 }, gem: 2 } },
+    { who: 'hoobae', item: 'mandu', ask: '선임님… 냉동 만두가 너무 먹고 싶습니다.', thanks: '오순둥이 만두를 먹다 울었다. "선임님은 천사입니다."', reward: { aff: { hoobae: 12 }, fx: { bd: 5 }, gem: 2 } },
+    { who: 'haeng', item: 'hot6', ask: '행보관: "너. 에너지 드링크 있나? …없으면 말고."', thanks: '행보관이 원샷했다. "이번 주 작업 명단에서 빼 주지."', reward: { aff: { haeng: 10 }, fx: { tr: 6 }, leave: 1 } },
+    { who: 'cat', item: 'tuna', ask: '짬타이거가 빈 참치캔을 앞발로 툭툭 친다.', thanks: '짬타이거가 골골송을 불렀다. 오늘 하루 합격.', reward: { aff: { cat: 15 }, fx: { mt: 6 } } }
+  ];
+
   /* ───────── 일과: 턴마다 하나 (카드 · 미니게임 · 자동) ───────── */
   JY.BASE.duty = {
     cards: ['work_day', 'nightwatch', 'cctv', 'amguho', 'snow_again', 'weeding', 'leaves', 'cleaning_zone', 'alert_5min', 'ammo_guard', 'haeng_call', 'shooting', 'pt_test', 'yugyeok', 'jindo',
@@ -306,12 +317,12 @@
     mos: { cook: ['v5b_cook_line', 'v5b_potato_kp'], clerk: ['v5b_clerk_desk'], driver: ['v5b_driver_seat'], medic: ['v5b_medic_room'], infantry: ['v5b_rifleman'] },
     minis: [{ id: 'dressup' }, { id: 'watch' }, { id: 'shell' }, { id: 'snow', season: 'winter' }, { id: 'shoot', mos: 'infantry' }, { id: 'memory', mos: 'clerk' }],
     autos: [
-      { text: '오늘 일과: 제초 작업. 예초기 소리와 함께 하루가 갔다.', fx: { hp: -4, tr: 2 } },
-      { text: '오늘 일과: 진지 보수. 삽질 4시간. 손바닥에 굳은살이 생겼다.', fx: { hp: -5, tr: 3 } },
-      { text: '오늘 일과: 정신교육. 졸음과의 전쟁에서 이겼다.', fx: { mt: -3, tr: 2 } },
-      { text: '오늘 일과: 내무 검사 대비 청소. 관물대가 반짝인다.', fx: { hp: -2, tr: 3, mt: -2 } },
+      { text: '오늘 일과: 제초 작업. 예초기 소리와 함께 하루가 갔다.', fx: { hp: -4, mt: -1 } },
+      { text: '오늘 일과: 진지 보수. 삽질 4시간. 손바닥에 굳은살이 생겼다.', fx: { hp: -5, tr: 1 } },
+      { text: '오늘 일과: 정신교육. 졸음과의 전쟁에서 이겼다.', fx: { mt: -3, tr: 1 } },
+      { text: '오늘 일과: 내무 검사 대비 청소. 관물대가 반짝인다.', fx: { hp: -2, mt: -2 } },
       { text: '오늘 일과: 분대 전술 훈련. 엄폐물은 작은 소나무였다.', fx: { hp: -4, bd: 3 } },
-      { text: '오늘 일과: 보급품 하역. 박스 200개를 옮겼다.', fx: { hp: -5, bd: 3 } }
+      { text: '오늘 일과: 보급품 하역. 박스 200개를 옮겼다.', fx: { hp: -5, bd: 2 } }
     ]
   };
 })(window.JY = window.JY || {});

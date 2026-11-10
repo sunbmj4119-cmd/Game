@@ -45,9 +45,12 @@ module.exports = function (JY) {
     if (res && res.mini) G.finishMini(s, tier(skill));
   }
   function free(s, skill, stats) {
+    // 2D 월드에서 하는 일들: 반짝이 줍기(돌아다니다 몇 개), 부탁 들어주기, 점호 (가끔 지각)
+    if ((s.pick || 0) < 3 && Math.random() < 0.6) { var pr = G.pickup(s, ['forest', 'supply', 'forest'][s.pick || 0]); if (stats && pr && pr.loot) stats.loot += pr.loot.length; }
+    if (s.quest && !s.quest.done && s.items[s.quest.item] > 0 && Math.random() < skill) G.completeQuest(s);
     var ls = G.leaveStatus(s);
     if (ls.ok && (s.leave >= G.daysLeft(s) || (s.stats.mt < 25 && s.stats.hp < 70 && s.leave > 6))) { G.takeLeave(s, Math.min(s.leave, ls.max)); return; }
-    if (s.ap <= 0) { G.endFree(s); return; }
+    if (s.ap <= 0) { G.rollcall(s, Math.random() < 0.85 + 0.1 * skill); return; }
     var opts = [];
     G.locations(s).forEach(function (L) {
       L.acts.forEach(function (A) {
@@ -62,7 +65,7 @@ module.exports = function (JY) {
     if (!opts.length) { G.endFree(s); return; }
     opts.sort(function (a, b) { return b.v - a.v; });
     var pick = Math.random() < skill ? opts[0] : opts[Math.floor(Math.random() * opts.length)];
-    if (pick.v < -150 && Math.random() < skill) { G.endFree(s); return; } // 할 만한 게 없으면 쉰다
+    if (pick.v < -150 && Math.random() < skill) { G.rollcall(s, true); return; } // 할 만한 게 없으면 생활관에서 쉰다
     var r = G.doAction(s, pick.l, pick.a);
     if (stats && r) { stats.acts++; if (r.loot) stats.loot += r.loot.length; if (r.caught) stats.caught++; }
     if (r && r.mini) G.finishMini(s, tier(skill));

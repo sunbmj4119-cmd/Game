@@ -436,5 +436,54 @@ JY.ITEM_ORDER.forEach(function (id) {
   ok(mg.phase === 'train' && mg.assigned === true && mg.spec, '예전 저장 불러오기: 수료한 판은 자대 지도로 이어진다', [mg.phase, mg.assigned]);
 })();
 
+
+/* 14. v7: 2D 월드 규칙 (걷기 시간 · 점호 · 줍기 · 부탁 · 이야기 · 시야) */
+(function () {
+  function unit(opts) {
+    var u = G.newState(Object.assign({ start: '2026-03-02', unit: 'coast', mos: 'infantry', seed: 31 }, opts || {}));
+    u.rank = 2; u.day = 120; u.queue = []; u.current = null; u.assigned = true; u.phase = 'unit'; u.turn = 3; u.step = 'free'; u.ap = 3; u.walkMin = 0; u.pick = 0;
+    u.spec = { id: 'shoot', lv: 2, xp: 0 }; u.emer.since = 0;
+    G.STATS.forEach(function (k) { u.stats[k] = 50; });
+    return u;
+  }
+  var w = unit();
+  ok(G.minutesLeft(w) === 180, '개인정비 3시간 = 180분', G.minutesLeft(w));
+  G.walk(w, 70);
+  ok(w.ap === 2 && w.walkMin === 10 && G.minutesLeft(w) === 110, '70분 걸으면 시간 1 + 10분', [w.ap, w.walkMin]);
+  // 점호: 생활관에 있으면 그냥 취침, 없으면 지각
+  var r1 = unit(), tr0 = r1.stats.tr; var rr = G.rollcall(r1, false);
+  ok(rr && rr.late && r1.lates === 1 && (r1.turn === 4 || (r1.step === 'night' && !!r1.current)), '점호 지각: 벌점 + 밤 사건 또는 다음 턴', [rr && rr.late, r1.lates, r1.step, r1.turn]);
+  ok(rr.events.some(function (e) { return e.type === 'late'; }), '점호 지각 알림');
+  var r2 = unit(); var ok2 = G.rollcall(r2, true);
+  ok(ok2 && !ok2.late && !r2.lates, '생활관에서 점호: 벌점 없음');
+  // 줍기: 한 턴에 6번까지
+  var pk = unit(), got = 0;
+  for (var i = 0; i < 9; i++) { var pr = G.pickup(pk, 'forest'); if (pr) got += (pr.loot || []).length; }
+  ok(pk.pick === 6 && got === 6, '반짝이 줍기: 턴당 6개까지', [pk.pick, got]);
+  ok(G.pickup(unit(), 'nope') === null, '정해진 득템표만 줍기');
+  // 부탁: 물건을 건네면 보상
+  var q = unit(); q.quest = { who: 'dumb', item: 'chocopie', ask: '?', thanks: '고마워', reward: { aff: { dumb: 10 }, fx: { mt: 4 }, gem: 2 }, done: false };
+  q.items.chocopie = 0; ok(G.completeQuest(q) === null, '물건 없으면 부탁 못 들어줌');
+  q.items.chocopie = 1; var a0 = q.aff.dumb, qr = G.completeQuest(q);
+  ok(qr && q.quest.done && q.aff.dumb > a0 && !(q.items.chocopie > 0) && q.gems >= 2, '부탁 완료: 물건 주고 호감도·다이아', [a0, q.aff.dumb, q.gems]);
+  ok(G.completeQuest(q) === null, '같은 부탁은 한 번만');
+  var t = unit(); t.step = 'night'; t.turn = 3; t.current = 'quiet'; t.cv = pin('quiet'); G.choose(t, 'l');
+  ok(t.turn === 4 && (t.quest === null || (t.quest && JY.NPCS[t.quest.who])), '새 턴마다 부탁이 새로 (또는 없음)', t.quest);
+  // 이야기 듣기: 그 사람이 나오는 장면, 턴당 한 번
+  var st = unit(), id = G.npcStory(st, 'dumb');
+  var c = id && G.currentCard(st);
+  ok(id && c && c.who === 'dumb', '박덤벙에게 이야기 듣기: 박덤벙 장면', [id, c && c.who]);
+  G.choose(st, 'l');
+  ok(st.step === 'free' && !st.current, '이야기 끝나면 다시 개인정비 (시간 안 씀)', [st.step, st.ap]);
+  ok(G.npcStory(st, 'dumb') === null, '같은 사람 이야기는 턴당 한 번');
+  // 행보관 시야: 2D에선 보이면 걸리고, 안 보이면 안 걸림 (노는 행동만)
+  var s1 = unit(), r3 = G.doAction(s1, 'hill', 'hide', { world: true, seen: true });
+  ok(r3 && r3.caught, '보이는 데서 몰래 꿀잠 → 걸림');
+  var n = 0; for (var j = 0; j < 40; j++) { var s2 = unit({ seed: 900 + j }); var r4 = G.doAction(s2, 'hill', 'hide', { world: true, seen: false }); if (r4 && r4.caught) n++; }
+  ok(n === 0, '안 보이면 안 걸림', n);
+  var s3 = unit(), r5 = G.doAction(s3, 'office', 'paper', { world: true, seen: true });
+  ok(r5 && !r5.caught, '일하는 행동은 보여도 괜찮다 (서류 정리)');
+})();
+
 console.log('통과 ' + passes + '개' + (fails.length ? ', 실패 ' + fails.length + '개' : ''));
 if (fails.length) { console.log(fails.map(function (f) { return ' ✗ ' + f; }).join('\n')); process.exit(1); }

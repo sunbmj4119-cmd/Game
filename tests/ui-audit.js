@@ -60,6 +60,242 @@ function lint(opts) {
   return out;
 }
 
+/* 페이지 안에서 실행: 글자가 다른 것에 가려지거나 서로 겹치는지, 알아보기 쉬운지
+ * - covered: 글자 위에 불투명한 다른 요소(그림·막대·배지…)가 덮여 있음 (모달·결과 쪽지 같은 '위에 뜨는 창'은 의도라 제외)
+ * - text-overlap: 서로 다른 글자끼리 겹침 (배지 숫자와 라벨 등)
+ * - small-font: 12px 미만 글씨
+ * - low-contrast: 글자색과 실제 배경색 대비가 낮음 (WCAG 4.5:1, 큰 글씨 3:1)
+ * - ellipsis: 말줄임(…)으로 글이 잘림 */
+function readCheck() {
+  var vw = document.documentElement.clientWidth, vh = window.innerHeight, out = [];
+  var LAYERS = '#modal,#result,#alert,#coach,#toast,#flash,.confetti,#mini,#talk-bubble';
+  var force = document.createElement('style');
+  force.textContent = '*{pointer-events:auto !important}';
+  document.head.appendChild(force);
+  function nm(el) {
+    var c = el.getAttribute && el.getAttribute('class');
+    return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (c ? '.' + String(c).trim().split(/\s+/).slice(0, 2).join('.') : '');
+  }
+  function eff(el) { // 실제 불투명도 (조상까지 곱)
+    var o = 1;
+    for (var a = el; a && a.nodeType === 1; a = a.parentElement) {
+      var cs = getComputedStyle(a);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return 0;
+      o *= parseFloat(cs.opacity);
+      if (a.tagName.toLowerCase() !== 'svg' && a.namespaceURI === 'http://www.w3.org/2000/svg') {
+        var fo = parseFloat(a.getAttribute('opacity') || '1'); o *= isNaN(fo) ? 1 : fo;
+      }
+    }
+    return o;
+  }
+  function rgba(s) { var m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; var p = m[1].split(/[ ,/]+/).filter(Boolean).map(parseFloat); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+  function hex(s) { var m = String(s).match(/^#([0-9a-f]{3,8})$/i); if (!m) return null; var h = m[1]; if (h.length === 3) h = h.replace(/./g, '$&$&'); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 1]; }
+  function paint(el) { // 이 요소가 이 자리에 칠하는 색 (없으면 null)
+    var cs = getComputedStyle(el), o = eff(el);
+    if (o < 0.05) return null;
+    if (el.namespaceURI === 'http://www.w3.org/2000/svg') {
+      if (!/^(path|rect|circle|ellipse|polygon|polyline)$/.test(el.tagName)) return null;
+      var f = cs.fill; if (!f || f === 'none' || /url\(/.test(f)) return /url\(/.test(f) ? [128, 128, 128, o] : null;
+      var c = rgba(f) || hex(f); if (!c) return null;
+      var fo = parseFloat(cs.fillOpacity); c[3] *= (isNaN(fo) ? 1 : fo) * o; return c[3] > 0.02 ? c : null;
+    }
+    if (/^(img|canvas|video)$/i.test(el.tagName)) return [128, 128, 128, o];
+    var b = rgba(cs.backgroundColor);
+    if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+      var cols = (cs.backgroundImage.match(/rgba?\([^)]+\)/g) || []).map(rgba);
+      if (cols.length) { var avg = [0, 0, 0, 0]; cols.forEach(function (c) { for (var i = 0; i < 4; i++) avg[i] += c[i] / cols.length; }); if (!b || b[3] < avg[3]) b = avg; }
+    }
+    if (b && b[3] > 0.02) { b[3] *= o; return b; }
+    return null;
+  }
+  function lum(c) { return [c[0], c[1], c[2]].map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce(function (a, v, i) { return a + v * [0.2126, 0.7152, 0.0722][i]; }, 0); }
+  function over(top, bot) { var a = top[3]; return [top[0] * a + bot[0] * (1 - a), top[1] * a + bot[1] * (1 - a), top[2] * a + bot[2] * (1 - a), 1]; }
+  function clippedFrac(el, r) { // 스크롤이 아닌 '잘라 내는' 상자(overflow hidden·SVG 화면)에 글자가 얼마나 잘렸나
+    var x1 = r.left, y1 = r.top, x2 = r.right, y2 = r.bottom;
+    for (var a = el; a && a !== document.body; a = a.parentElement) {
+      if (a.namespaceURI === 'http://www.w3.org/2000/svg' && a.tagName.toLowerCase() !== 'svg') continue;
+      var cs = getComputedStyle(a);
+      if (/auto|scroll/.test(cs.overflowX + cs.overflowY)) break; // 스크롤해서 보는 곳: 그 바깥 잘림은 의미 없음
+      if (/hidden|clip/.test(cs.overflowX + cs.overflowY) && cs.textOverflow !== 'ellipsis') {
+        var q = a.getBoundingClientRect(); x1 = Math.max(x1, q.left); y1 = Math.max(y1, q.top); x2 = Math.min(x2, q.right); y2 = Math.min(y2, q.bottom);
+      }
+    }
+    var full = (r.right - r.left) * (r.bottom - r.top), vis = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    return full > 0 ? 1 - vis / full : 0;
+  }
+  function visibleRect(el, r) { // 스크롤 상자·화면 밖으로 잘린 부분 빼기
+    var x1 = Math.max(r.left, 0), y1 = Math.max(r.top, 0), x2 = Math.min(r.right, vw), y2 = Math.min(r.bottom, vh);
+    for (var a = el; a && a !== document.body; a = a.parentElement) {
+      if (a.namespaceURI === 'http://www.w3.org/2000/svg' && a.tagName.toLowerCase() !== 'svg') continue;
+      var cs = getComputedStyle(a);
+      if (/hidden|clip|auto|scroll/.test(cs.overflowX + cs.overflowY)) { var q = a.getBoundingClientRect(); x1 = Math.max(x1, q.left); y1 = Math.max(y1, q.top); x2 = Math.min(x2, q.right); y2 = Math.min(y2, q.bottom); }
+    }
+    return x2 - x1 > 2 && y2 - y1 > 2 ? { left: x1, top: y1, right: x2, bottom: y2 } : null;
+  }
+  // 1) 보이는 글자 조각 모으기
+  var texts = [], clipped = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    var tn = walker.currentNode, s = tn.nodeValue.trim();
+    if (!s) continue;
+    var host = tn.parentElement;
+    if (!host || host.closest('[hidden],script,style,defs,title')) continue;
+    if (eff(host) < 0.1) continue;
+    var deco = !!host.closest('[aria-hidden="true"]'); // 장식(직인 등): 대비·크기 검사는 빼고 겹침만
+    var rects;
+    if (host.namespaceURI === 'http://www.w3.org/2000/svg') rects = [host.getBoundingClientRect()]; // 그림 속 글자(간판 등)
+    else { var rg = document.createRange(); rg.selectNodeContents(tn); rects = rg.getClientRects(); }
+    Array.prototype.forEach.call(rects, function (r) {
+      if (r.width < 2 || r.height < 2) return;
+      var cf = clippedFrac(host, r);
+      if (cf > 0.12 && cf < 0.98 && /[가-힣A-Za-z0-9]/.test(s)) clipped.push({ t: 'text-clipped', el: nm(host), txt: s.slice(0, 20), cut: Math.round(cf * 100) + '%' });
+      var v = visibleRect(host, r); if (!v) return;
+      texts.push({ host: host, r: v, s: s.slice(0, 20), deco: deco });
+    });
+  }
+  var seen = {};
+  function add(o) { var k = o.t + '|' + o.el + '|' + o.txt; if (seen[k]) return; seen[k] = 1; out.push(o); }
+  // 2) 가려짐 + 대비
+  texts.forEach(function (T) {
+    var host = T.host, r = T.r, cs = getComputedStyle(host), fs = parseFloat(cs.fontSize);
+    var pts = [[(r.left + r.right) / 2, (r.top + r.bottom) / 2], [r.left + (r.right - r.left) * 0.15, (r.top + r.bottom) / 2], [r.right - (r.right - r.left) * 0.15, (r.top + r.bottom) / 2]];
+    var myLayer = host.closest(LAYERS);
+    pts.forEach(function (p, pi) {
+      var stack = document.elementsFromPoint(p[0], p[1]), below = null;
+      for (var i = 0; i < stack.length; i++) {
+        var e = stack[i];
+        if (e === force) continue;
+        if (e === host || host.contains(e) || e.contains(host)) { below = stack.slice(i); break; }
+        var L = e.closest(LAYERS);
+        if (L && L !== myLayer) return; // 위에 뜬 창(의도)
+        var c = paint(e);
+        if (c && c[3] >= 0.35) { add({ t: 'covered', el: nm(host), txt: T.s, by: nm(e) }); return; }
+      }
+      if (pi || !below || T.deco) return;
+      // 대비: 글자 아래 실제로 칠해진 색을 아래에서부터 합성
+      var layers = [];
+      for (var j = 0; j < below.length; j++) { var c2 = paint(below[j]); if (c2) { layers.push(c2); if (c2[3] >= 0.99) break; } }
+      var bg = [255, 255, 255, 1];
+      for (var k = layers.length - 1; k >= 0; k--) bg = over(layers[k], bg);
+      var fg = host.namespaceURI === 'http://www.w3.org/2000/svg' ? (rgba(cs.fill) || hex(cs.fill)) : rgba(cs.color);
+      if (!fg) return;
+      fg = fg.slice(); fg[3] *= eff(host);
+      var f2 = over(fg, bg), L1 = lum(f2), L2 = lum(bg), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+      var bold = parseInt(cs.fontWeight, 10) >= 700 || /Black Han Sans|Jua/.test(cs.fontFamily);
+      var large = fs >= 24 || (fs >= 18.5 && bold);
+      if (ratio < (large ? 3 : 4.5) && /[가-힣A-Za-z0-9]/.test(T.s)) add({ t: 'low-contrast', el: nm(host), txt: T.s, ratio: Math.round(ratio * 100) / 100, fs: fs });
+    });
+    if (T.deco) return;
+    if (fs < 12 && /[가-힣A-Za-z]/.test(T.s)) add({ t: 'small-font', el: nm(host), txt: T.s, fs: fs });
+    if (cs.textOverflow === 'ellipsis' && host.scrollWidth > host.clientWidth + 1) add({ t: 'ellipsis', el: nm(host), txt: T.s });
+  });
+  // 3) 글자끼리 겹침
+  for (var a = 0; a < texts.length; a++) for (var b = a + 1; b < texts.length; b++) {
+    var A = texts[a], B = texts[b];
+    if (A.host === B.host || A.host.contains(B.host) || B.host.contains(A.host)) continue;
+    var la = A.host.closest(LAYERS), lb = B.host.closest(LAYERS);
+    if (la !== lb) continue;
+    var w = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left), h = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+    if (w <= 1 || h <= 1) continue;
+    var sa = (A.r.right - A.r.left) * (A.r.bottom - A.r.top), sb = (B.r.right - B.r.left) * (B.r.bottom - B.r.top);
+    if (w * h > 0.12 * Math.min(sa, sb)) add({ t: 'text-overlap', el: nm(A.host) + ' × ' + nm(B.host), txt: A.s + ' × ' + B.s });
+  }
+  clipped.forEach(add);
+  // 글자가 다른 버튼·입력칸 상자(그림자 포함 3px)에 걸침
+  var controls = Array.prototype.filter.call(document.querySelectorAll('button, input, select, textarea, .btn'), function (c) { return !c.closest('[hidden]') && eff(c) > 0.1; })
+    .map(function (c) { var r = c.getBoundingClientRect(); return { c: c, r: { left: r.left, top: r.top, right: r.right, bottom: r.bottom + 3 } }; });
+  texts.forEach(function (T) {
+    if (T.deco || T.host.closest('button, .btn, input, select, textarea, label')) return;
+    var myLayer = T.host.closest(LAYERS);
+    controls.forEach(function (C) {
+      if (C.c.contains(T.host) || T.host.contains(C.c) || C.c.closest(LAYERS) !== myLayer) return;
+      var w = Math.min(T.r.right, C.r.right) - Math.max(T.r.left, C.r.left), h = Math.min(T.r.bottom, C.r.bottom) - Math.max(T.r.top, C.r.top);
+      if (w > 2 && h > 1.5) add({ t: 'text-on-control', el: nm(T.host) + ' × ' + nm(C.c), txt: T.s });
+    });
+  });
+  // 장식 도장(직인)이 버튼·입력칸에 닿는지
+  document.querySelectorAll('.stamp, .seal').forEach(function (d) {
+    if (d.closest('[hidden]') || eff(d) < 0.1) return;
+    var q = d.getBoundingClientRect();
+    document.querySelectorAll('button, input, select, textarea, a').forEach(function (c) {
+      if (c.closest('[hidden]') || eff(c) < 0.1) return;
+      var r = c.getBoundingClientRect(); if (!r.width) return;
+      var w = Math.min(q.right, r.right) - Math.max(q.left, r.left), h = Math.min(q.bottom, r.bottom) - Math.max(q.top, r.top);
+      if (w > 2 && h > 2) add({ t: 'deco-overlap', el: nm(d) + ' × ' + nm(c), txt: (c.textContent || c.value || '').trim().slice(0, 16) });
+    });
+  });
+  force.remove();
+  return out;
+}
+
+/* 페이지 안에서 실행: 꾸미기·소품·효과가 눈·입을 가리는지 (얼굴 꾸미기는 의도라 제외) */
+function faceCheck() {
+  var host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:232px;z-index:99999;background:#fff';
+  document.body.appendChild(host);
+  var out = [];
+  function area(r) { return Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top); }
+  function inter(a, b) { return area({ left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) }); }
+  function check(label, svg, withExtras) {
+    host.innerHTML = svg;
+    var s = host.querySelector('svg'); if (!s) return;
+    s.style.width = '200px'; s.style.height = '232px';
+    s.querySelectorAll('*').forEach(function (n) { n.style.animation = 'none'; });
+    // 눈·입이 실제로 칠해진 점들 중, 위에 그려진 모자·소품(·효과)이 덮는 비율
+    var SH = 'path,rect,circle,ellipse,polygon,line,polyline';
+    function hit(n, x, y) {
+      var m = n.getScreenCTM(); if (!m) return false;
+      var p = new DOMPoint(x, y).matrixTransform(m.inverse());
+      var cs = getComputedStyle(n);
+      var inFill = cs.fill !== 'none' && cs.fillOpacity !== '0' && n.isPointInFill && n.isPointInFill(p);
+      var inStroke = cs.stroke !== 'none' && n.isPointInStroke && n.isPointInStroke(p);
+      return inFill || inStroke;
+    }
+    ['eyes', 'mouth'].forEach(function (part) {
+      var g = s.querySelector('.' + part); if (!g) return;
+      var pr = g.getBoundingClientRect(); if (!pr.width) return;
+      var mine = g.querySelectorAll(SH), pts = [];
+      for (var i = 0; i <= 10; i++) for (var j = 0; j <= 6; j++) {
+        var x = pr.left + pr.width * i / 10, y = pr.top + pr.height * j / 6;
+        if (Array.prototype.some.call(mine, function (n) { return hit(n, x, y); })) pts.push([x, y]);
+      }
+      if (!pts.length) return;
+      var groups = [['hat', 0.1], ['prop', 0.1]].concat(withExtras ? [['extras', 0.25]] : []);
+      groups.forEach(function (gg) {
+        var shapes = s.querySelectorAll('.' + gg[0] + ' ' + SH.split(',').join(', .' + gg[0] + ' '));
+        var n = pts.filter(function (p) { return Array.prototype.some.call(shapes, function (sh) { return hit(sh, p[0], p[1]); }); }).length;
+        var cov = n / pts.length;
+        if (cov > gg[1]) out.push({ who: label, part: part, by: gg[0], cover: Math.round(cov * 100) + '%' });
+      });
+    });
+  }
+  Object.keys(JY.CHARS).forEach(function (w) { check(w, JY.UI.charSVG(w), false); });
+  var m = JY.Meta.get(), eq0 = JSON.stringify(m.cos.eq), own0 = JSON.stringify(m.cos.owned), face0 = m.face;
+  var base = Object.assign({ skin: '#f5c9a0', mouth: 'smile', brows: 'normal', head: 'round', extras: [] }, face0 || {}, { extras: [] });
+  var none = { hat: null, face: null, fx: null, body: null, prop: null };
+  // 내 얼굴은 직접 꾸미니까: 눈 모양 전부 × (훈련소 방탄모 + 모자 꾸미기 전부), 입 모양 전부 × (소품·효과 꾸미기 전부)
+  JY.FACE_OPTIONS.eyes.forEach(function (e) {
+    m.face = Object.assign({}, base, { eyes: e });
+    m.cos.eq = Object.assign({}, none);
+    check('me(눈 ' + e + ')+훈련소 방탄모', JY.UI.charSVG('me', { rank: 0 }), false);
+    JY.COSMETIC_ORDER.forEach(function (id) {
+      var c = JY.COSMETICS[id]; if (c.slot !== 'hat') return;
+      m.cos.owned[id] = true; m.cos.eq = Object.assign({}, none, { hat: id });
+      check('me(눈 ' + e + ')+' + id, JY.UI.charSVG('me', { rank: 4 }), false);
+    });
+  });
+  JY.FACE_OPTIONS.mouth.forEach(function (mo) {
+    m.face = Object.assign({}, base, { eyes: 'normal', mouth: mo });
+    JY.COSMETIC_ORDER.forEach(function (id) {
+      var c = JY.COSMETICS[id]; if (c.slot !== 'prop' && c.slot !== 'fx' && c.slot !== 'body') return;
+      m.cos.owned[id] = true; m.cos.eq = Object.assign({}, none); m.cos.eq[c.slot] = id;
+      check('me(입 ' + mo + ')+' + id, JY.UI.charSVG('me', { rank: 4 }), true);
+    });
+  });
+  m.face = face0; m.cos.eq = JSON.parse(eq0); m.cos.owned = JSON.parse(own0);
+  host.remove();
+  return out;
+}
+
 /* 페이지 안에서 실행: 캐릭터 그림이 viewBox 밖으로 나가는지 */
 function svgBounds() {
   var host = document.createElement('div');
@@ -103,8 +339,10 @@ function svgBounds() {
   await new Promise(function (r) { server.listen(0, r); });
   var url = 'http://127.0.0.1:' + server.address().port + '/';
   var browser = await chromium.launch();
-  var report = { layout: {}, svg: null, cardSize: {}, functional: [], errors: [] };
+  var report = { layout: {}, read: {}, svg: null, face: null, cardSize: {}, functional: [], errors: [] };
 
+  // AUDIT_VIEWS=360x640,390x844 로 일부 크기만 (빠른 확인용)
+  if (process.env.AUDIT_VIEWS) VIEWPORTS = VIEWPORTS.filter(function (v) { return process.env.AUDIT_VIEWS.split(',').indexOf(v.name) >= 0; });
   for (var vi = 0; vi < VIEWPORTS.length; vi++) {
     var V = VIEWPORTS[vi];
     var ctx = await browser.newContext({ viewport: { width: V.width, height: V.height }, deviceScaleFactor: shots && (V.name === '360x640' || V.name === '390x844') ? 2 : 1, isMobile: V.width < 700, hasTouch: true });
@@ -114,12 +352,15 @@ function svgBounds() {
     await page.route(/fonts\.(googleapis|gstatic)\.com/, function (r) { r.abort(); });
     await page.goto(url);
     await sleep(300);
-    var issues = [];
+    var issues = [], readIssues = [];
     async function snap(label, fixed) {
       await sleep(120);
       var r = await page.evaluate(lint, { fixed: !!fixed });
       r.forEach(function (x) { x.where = label; });
       issues = issues.concat(r);
+      var rr = await page.evaluate(readCheck);
+      rr.forEach(function (x) { x.where = label; });
+      readIssues = readIssues.concat(rr);
       if (shots && (V.name === '360x640')) { fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, V.name + '-' + label + '.png') }); }
     }
     async function T(fn, arg) { await page.evaluate(function (a) { var t = JY.UI._t; return (new Function('t', 'a', 'return (' + a.fn + ')(t, a.arg)'))(t, a); }, { fn: fn.toString(), arg: arg }); await sleep(150); }
@@ -158,6 +399,35 @@ function svgBounds() {
     await snap('game-special', true);
     await page.evaluate(function () { var s = JY.UI._state(); s.current = 'v5e_captain_kim'; s.cv = null; JY.UI._t.renderCard(false); });
     await snap('game-legend', true);
+    // 효과: 스탯 변화 숫자, 미리보기 점(투시경 화살표), 말풍선, 알림
+    await page.evaluate(function () { JY.UI._t.showPreview('l'); });
+    await snap('game-preview', true);
+    await page.evaluate(function () {
+      var t = JY.UI._t; t.showPreview(null); t.animateDeltas({ hp: -12, mt: 15, tr: -8, bd: 11 });
+      t.talkBubble(JY.UI._state().current ? JY.Game.currentCard(JY.UI._state()).who : 'captain'); t.toast('🎯 임무 완료! 카드 30장 넘기기 💎 +5 · 짬 +20', 3000);
+    });
+    await sleep(350);
+    await snap('game-fx', true);
+    // 배경 12종 × 덩치 큰 인물들: 그림 속 간판·칠판 글씨가 인물에 가리지 않는지 (스크린샷 없이 검사만)
+    var sweep = await page.evaluate(function (fnSrc) {
+      var check = new Function('return (' + fnSrc + ')')();
+      var m = JY.Meta.get(), eq0 = JSON.stringify(m.cos.eq);
+      m.cos.eq = { hat: 'gold', face: 'sunglasses', fx: 'sparkle', body: 'dress', prop: 'shovel' };
+      var card = document.getElementById('card'), res = [];
+      ['barracks', 'night', 'training', 'field', 'gate', 'rain', 'mess', 'office', 'home', 'px', 'hospital', 'beach'].forEach(function (bg) {
+        var hats = JY.COSMETIC_ORDER.filter(function (id) { return JY.COSMETICS[id].slot === 'hat'; });
+        var who = ['haeng', 'general', 'cat', 'boar', 'captain', 'jogyo', 'hoobae'].concat(hats.map(function (h) { return 'me+' + h; }));
+        who.forEach(function (w) {
+          if (w.indexOf('me+') === 0) m.cos.eq.hat = w.slice(3);
+          card.innerHTML = JY.art.scene(bg, 'summer') + '<div class="char-wrap">' + JY.UI.charSVG(w.indexOf('me+') === 0 ? 'me' : w) + '</div><div class="nametape"><b>이름</b><span>역할</span></div>';
+          check().forEach(function (x) { if (x.t === 'covered' || x.t === 'text-overlap' || x.t === 'text-clipped') { x.where = 'scene-' + bg + '+' + w; res.push(x); } });
+        });
+      });
+      m.cos.eq = JSON.parse(eq0);
+      return res;
+    }, readCheck.toString());
+    readIssues = readIssues.concat(sweep);
+    await page.evaluate(function () { JY.UI._t.showPreview(null); var b = document.getElementById('talk-bubble'); if (b) b.hidden = true; var t = document.getElementById('toast'); if (t) t.hidden = true; });
     await page.evaluate(function () { var s = JY.UI._state(); s.current = 'hol_birthday'; s.cv = null; JY.UI._t.renderCard(false); });
     await T(function (t) { t.startCoach(); });
     await snap('coach-1', true);
@@ -227,8 +497,9 @@ function svgBounds() {
       await snap('mini-' + mg, true);
       await page.evaluate(function () { document.getElementById('mini').hidden = true; });
     }
-    if (vi === 0) report.svg = await page.evaluate(svgBounds);
+    if (vi === 0) { report.svg = await page.evaluate(svgBounds); report.face = await page.evaluate(faceCheck); }
     report.layout[V.name] = issues;
+    report.read[V.name] = readIssues;
     await ctx.close();
   }
 
@@ -263,7 +534,7 @@ function svgBounds() {
   var c = await st();
   F('특급: 포상휴가증 +3', c.leave === b.leave + 3, [b.leave, c.leave]);
   var badge = await p.textContent('#leave-badge');
-  F('휴가 배지 갱신', badge === c.leave + '일', badge);
+  F('휴가 배지 갱신', badge === String(c.leave), badge);
   await tapSel('#modal-box .item[data-id="insight"]'); await tapSel('#modal-box [data-act="usep"]');
   var d = await st();
   F('특급: 투시경 사용', d.insight === c.insight + 12, [c.insight, d.insight]);
@@ -367,6 +638,21 @@ function svgBounds() {
     console.log('\n[' + vn + '] 레이아웃 문제 ' + keys.length + '개');
     keys.slice(0, 40).forEach(function (k) { var x = uniq[k]; console.log('  - ' + k + ' ' + JSON.stringify(Object.assign({}, x, { where: undefined, el: undefined, t: undefined }))); });
   });
+  // 읽기 쉬움·겹침
+  var readTotal = 0;
+  Object.keys(report.read).forEach(function (vn) {
+    var list = report.read[vn], uniq = {};
+    list.forEach(function (x) { var k = x.t + ' ' + x.el + ' "' + x.txt + '"'; if (!uniq[k]) uniq[k] = { x: x, at: [] }; if (uniq[k].at.indexOf(x.where) < 0) uniq[k].at.push(x.where); });
+    var keys = Object.keys(uniq).sort();
+    readTotal += keys.length;
+    console.log('\n[' + vn + '] 겹침·가독성 문제 ' + keys.length + '개');
+    keys.forEach(function (k) { var u = uniq[k], x = u.x; console.log('  - ' + k + (x.by ? ' ← ' + x.by : '') + (x.ratio ? ' 대비 ' + x.ratio : '') + (x.fs ? ' ' + x.fs + 'px' : '') + ' @' + u.at.slice(0, 4).join(',') + (u.at.length > 4 ? '…' : '')); });
+  });
+  total += readTotal;
+  console.log('\n꾸미기·소품이 눈·입을 가림:', report.face.length ? '' : '없음');
+  report.face.forEach(function (x) { console.log('  - ' + x.who + ' ' + x.part + ' ← ' + x.by); });
+  total += report.face.length;
+  if (process.env.AUDIT_JSON) fs.writeFileSync(process.env.AUDIT_JSON, JSON.stringify(report, null, 1));
   console.log('\n카드 크기:', JSON.stringify(report.cardSize));
   console.log('\n캐릭터 그림이 틀 밖으로:', report.svg.length ? '' : '없음');
   report.svg.forEach(function (x) { console.log('  - ' + x.who + ' ' + JSON.stringify(x.over)); });

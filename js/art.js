@@ -219,6 +219,10 @@
 
   function drawHat(type, camoId, rank, dy) {
     dy = dy || 0;
+    // 모자 챙이 눈(졸린 눈 눈꺼풀 포함)을 가리지 않게 조금씩 올린다
+    if (type === 'helmet' || type === 'helmetBig' || type === 'gold') dy -= 11;
+    if (type === 'cap' || type === 'general' || type === 'jogyo') dy -= 12;
+    if (type === 'beanie') dy -= 6;
     var t = function (s) { return dy ? '<g transform="translate(0 ' + dy + ')">' + s + '</g>' : s; };
     switch (type) {
       case 'cap':
@@ -237,7 +241,7 @@
       case 'helmet':
       case 'helmetBig': {
         var big = type === 'helmetBig';
-        var o = big ? 7 : 0;
+        var o = 0; // 큰 방탄모도 눈은 가리지 않게 (턱끈 없이 헐렁한 것만 다르다)
         return '<g transform="translate(0 ' + (o + dy) + ')">' +
           '<path d="M30 84 Q26 14 100 12 Q174 14 170 84 Q100 72 30 84Z" fill="url(#' + camoId + ')" stroke="' + INK + '" stroke-width="3"/>' +
           '<path d="M28 84 Q100 70 172 84 L174 92 Q100 80 26 92Z" fill="#3e4a28" stroke="' + INK + '" stroke-width="2.5"/>' +
@@ -442,9 +446,9 @@
       drawBrows(spec.brows) +
       drawEyes(eyes, skin) +
       drawNose(spec.nose) +
-      drawMouth(mouth) +
-      drawExtras(extras, skin) +
-      drawHat(hat, camoId, spec.hatRank, spec.hatDy) +
+      '<g class="mouth">' + drawMouth(mouth) + '</g>' +
+      '<g class="extras">' + drawExtras(extras, skin) + '</g>' +
+      '<g class="hat">' + drawHat(hat, camoId, spec.hatRank, spec.hatDy) + '</g>' +
       '</g>' +
       drawProp(spec.prop).replace(/\{skin\}/g, skin) +
       '</g></svg>';
@@ -558,21 +562,21 @@
         b = '<rect width="400" height="300" fill="#efe4c8"/><rect y="210" width="400" height="90" fill="#b98d5e"/>' +
           '<path d="M0 210 L400 210" stroke="#8e6a43" stroke-width="4"/>';
         for (var i = 0; i < 6; i++) b += '<rect x="' + (14 + i * 66) + '" y="70" width="56" height="130" rx="3" fill="#a6b08a" stroke="#6f7a58" stroke-width="3"/><path d="M' + (14 + i * 66) + ' 110 L' + (70 + i * 66) + ' 110" stroke="#6f7a58" stroke-width="2"/><rect x="' + (22 + i * 66) + '" y="80" width="40" height="22" fill="#d9ddc7"/>';
-        b += '<rect x="150" y="20" width="100" height="28" rx="4" fill="#fff" stroke="#999" stroke-width="2"/><text x="200" y="40" font-size="15" text-anchor="middle" fill="#555" font-weight="700">생활관</text>';
+        b += '<rect x="150" y="14" width="100" height="26" rx="4" fill="#fff" stroke="#999" stroke-width="2"/><text x="200" y="33" font-size="15" text-anchor="middle" fill="#444" font-weight="700">생활관</text>';
         break;
       case 'office':
         outdoor = false;
         b = '<rect width="400" height="300" fill="#e3e8ea"/><rect y="220" width="400" height="80" fill="#9aa5ab"/>' +
-          '<rect x="30" y="40" width="130" height="90" rx="4" fill="#2f5d4a" stroke="#6b5435" stroke-width="6"/><text x="95" y="80" font-size="14" text-anchor="middle" fill="#e8f5e9">근무 편성표</text><path d="M48 96 L142 96 M48 110 L120 110" stroke="#e8f5e9" stroke-width="2"/>' +
-          '<circle cx="320" cy="70" r="30" fill="#fff" stroke="#555" stroke-width="5"/><path d="M320 70 L320 50 M320 70 L334 78" stroke="#333" stroke-width="4" stroke-linecap="round"/>' +
-          '<rect x="210" y="180" width="180" height="16" fill="#7b5a3a"/><text x="200" y="22" font-size="15" text-anchor="middle" fill="#666" font-weight="700">행정반</text>';
+          '<rect x="112" y="12" width="176" height="96" rx="4" fill="#2f5d4a" stroke="#6b5435" stroke-width="6"/><text x="200" y="33" font-size="14" text-anchor="middle" fill="#e8f5e9" font-weight="700">행정반 근무 편성표</text><path d="M130 52 L270 52 M130 66 L250 66" stroke="#e8f5e9" stroke-width="2"/>' +
+          '<circle cx="330" cy="62" r="26" fill="#fff" stroke="#555" stroke-width="5"/><path d="M330 62 L330 44 M330 62 L342 69" stroke="#333" stroke-width="4" stroke-linecap="round"/>' +
+          '<rect x="210" y="180" width="180" height="16" fill="#7b5a3a"/>';
         break;
       case 'mess':
         outdoor = false;
         b = '<rect width="400" height="300" fill="#dfeef0"/>';
         for (var x = 0; x < 400; x += 40) for (var y = 0; y < 220; y += 40) b += '<rect x="' + x + '" y="' + y + '" width="38" height="38" fill="#eef7f8"/>';
         b += '<rect y="210" width="400" height="90" fill="#9fb6bb"/><rect x="0" y="190" width="400" height="22" fill="#c0c9cc"/>' +
-          '<text x="200" y="40" font-size="15" text-anchor="middle" fill="#57707a" font-weight="700">식당</text>';
+          '<rect x="164" y="14" width="72" height="26" rx="4" fill="#fff" stroke="#9fb6bb" stroke-width="2"/><text x="200" y="33" font-size="15" text-anchor="middle" fill="#3f5960" font-weight="700">식당</text>';
         break;
       case 'px':
         outdoor = false;
@@ -582,7 +586,7 @@
           b += '<rect x="10" y="' + (60 + r * 56) + '" width="380" height="6" fill="#8d7a63"/>';
           for (var k = 0; k < 12; k++) b += '<rect x="' + (16 + k * 31) + '" y="' + (34 + r * 56) + '" width="24" height="26" rx="3" fill="' + cols[(k + r) % cols.length] + '"/>';
         }
-        b += '<rect x="140" y="6" width="120" height="24" rx="4" fill="#1b4332"/><text x="200" y="23" font-size="14" text-anchor="middle" fill="#fff" font-weight="800">PX (WA마트)</text>';
+        b += '<rect x="140" y="14" width="120" height="26" rx="4" fill="#1b4332"/><text x="200" y="32" font-size="14" text-anchor="middle" fill="#fff" font-weight="800">PX (WA마트)</text>';
         break;
       case 'night':
         b = '<rect width="400" height="300" fill="#1d2546"/><circle cx="320" cy="60" r="26" fill="#fff3b0"/><circle cx="332" cy="52" r="24" fill="#1d2546"/>';
@@ -600,7 +604,7 @@
       case 'gate':
         b = '<rect width="400" height="300" fill="#cfe3ee"/><path d="M0 200 L400 200 L400 300 L0 300Z" fill="#9c9c94"/>' +
           '<rect x="20" y="110" width="90" height="100" fill="#e6dccb" stroke="#7a6e5c" stroke-width="3"/><path d="M10 110 L65 80 L120 110Z" fill="#a33b3b"/>' +
-          '<text x="65" y="150" font-size="14" text-anchor="middle" fill="#444" font-weight="800">위병소</text>' +
+          '<rect x="160" y="14" width="80" height="26" rx="4" fill="#7a2a24"/><text x="200" y="32" font-size="14" text-anchor="middle" fill="#fff" font-weight="800">위병소</text>' +
           '<rect x="120" y="170" width="260" height="12" fill="#fff" stroke="#444" stroke-width="2"/><path d="M140 170 L160 182 M180 170 L200 182 M220 170 L240 182 M260 170 L280 182 M300 170 L320 182 M340 170 L360 182" stroke="#e3342f" stroke-width="6"/>';
         break;
       case 'home':

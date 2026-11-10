@@ -99,10 +99,10 @@
   JY.BOX = {
     price: 30,
     tiers: [
-      { id: 'common', name: '일반', color: '#8a8a7a', p: 0.55, pool: ['skip', 'pxpass', 'feast'], count: 2 },
-      { id: 'rare', name: '희귀', color: '#3a86ff', p: 0.28, pool: ['insight', 'clover', 'leave3'], count: 2 },
-      { id: 'epic', name: '영웅', color: '#9b5de5', p: 0.13, pool: ['insurance'], cosmetic: true },
-      { id: 'legend', name: '전설', color: '#f2a516', p: 0.04, legendCos: 'crown', gems: 100 }
+      { id: 'common', name: '일반', color: '#5f5f52', p: 0.55, pool: ['skip', 'pxpass', 'feast'], count: 2 },
+      { id: 'rare', name: '희귀', color: '#1f5fcf', p: 0.28, pool: ['insight', 'clover', 'leave3'], count: 2 },
+      { id: 'epic', name: '영웅', color: '#7a3cc8', p: 0.13, pool: ['insurance'], cosmetic: true },
+      { id: 'legend', name: '전설', color: '#a65f00', p: 0.04, legendCos: 'crown', gems: 100 }
     ]
   };
 

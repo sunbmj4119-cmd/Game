@@ -367,8 +367,8 @@
     }
     $('#conds').hidden = !chips.length;
     var bagN = 0; for (var id in state.items) bagN += state.items[id] || 0;
-    $('#bag-badge').textContent = bagN;
-    $('#leave-badge').textContent = state.leave + '일';
+    $('#bag-badge').textContent = bagN > 99 ? '99' : bagN;
+    $('#leave-badge').textContent = state.leave;
     // 도크: 지금 쓸 수 없는 버튼은 숨긴다 (PX는 열릴 때 '띠링' 하고 나타난다)
     var px = G.pxStatus(state), pxBtn = $('#dock-px');
     var pxWas = !pxBtn.hidden;
@@ -407,8 +407,10 @@
       var d = document.createElement('span');
       d.className = 'delta ' + (v > 0 ? 'up' : 'down');
       d.textContent = (v > 0 ? '+' : '') + v;
+      el.querySelectorAll('.delta').forEach(function (n) { n.remove(); });
       el.appendChild(d);
-      setTimeout(function (n) { return function () { n.remove(); }; }(d), 1150);
+      el.classList.add('changing');
+      setTimeout(function (n, s) { return function () { n.remove(); if (!s.querySelector('.delta')) s.classList.remove('changing'); }; }(d, el), 1150);
     }
   }
 
@@ -416,8 +418,10 @@
   function fitCard() {
     var zone = $('#card-zone'), card = $('#card');
     if (!zone || !card) return;
-    var r = zone.getBoundingClientRect();
-    if (!r.width || !r.height) return;
+    var r0 = zone.getBoundingClientRect();
+    if (!r0.width || !r0.height) return;
+    var padT = parseFloat(getComputedStyle(zone).paddingTop) || 0; // 돌발 막대 자리
+    var r = { width: r0.width, height: r0.height - padT };
     // 세로 카드가 기본. 높이가 모자라면 작게 줄이지 않고 가로로 넓힌다
     var ratio = 0.82, w, h;
     if (r.height >= Math.min(r.width, 400) / ratio) { w = Math.min(r.width, 400); h = w / ratio; }
@@ -435,6 +439,7 @@
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
     $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : c.legend ? '<span class="who legend">📜 레전드 썰</span> ' : '') + esc(c.text);
     var card = $('#card');
+    $('#card-zone').classList.toggle('urgent', !!c.urgent); // 돌발 막대는 카드 위 빈자리에 (그림을 덮지 않게)
     card.className = 'card' + (c.urgent ? ' urgent' : '');
     card.style.transform = '';
     card.style.opacity = '';
@@ -801,7 +806,8 @@
     var cols = ['#e0b347', '#56662f', '#c4362b', '#f6f0dc', '#8fc6ea'];
     for (var i = 0; i < 40; i++) {
       var p = document.createElement('i');
-      p.style.left = (Math.random() * 100) + '%';
+      // 가장자리로만 떨어진다 (가운데 글씨를 덮지 않게)
+      p.style.left = (i % 2 ? 95 + Math.random() * 4.5 : Math.random() * 4.5) + '%';
       p.style.background = cols[i % cols.length];
       p.style.animationDelay = (Math.random() * 0.5) + 's';
       p.style.animationDuration = (1.2 + Math.random() * 0.9) + 's';
@@ -1228,7 +1234,7 @@
     grid.className = 'album-grid' + (albumTab === 'medals' ? ' medals' : albumTab === 'scenes' ? ' scenes' : '');
     if (albumTab === 'scenes') {
       grid.innerHTML = '<div class="collect-head"><b>' + cp.n + ' / ' + cp.total + '</b> 장면 수집 <i class="lv-bar big"><i style="width:' + Math.round(cp.frac * 100) + '%"></i></i>' +
-        '<small>카드는 같아도 장면·질문이 여러 버전이다. 📜 레전드 썰 <b>' + Meta.legendProgress().n + ' / ' + Meta.legendProgress().total + '</b></small></div>' +
+        '<small>카드는 같아도 장면·질문이 여러 버전이다. 📜 레전드 썰 ' + Meta.legendProgress().n + ' / ' + Meta.legendProgress().total + '</small></div>' +
         JY.COLLECT_MILESTONES.map(function (ms, i) {
           var reached = cp.frac >= ms.at, got = m.collectClaimed[i];
           var cos = ms.cos ? ' + ' + JY.COSMETICS[ms.cos].icon + ' ' + JY.COSMETICS[ms.cos].name : '';
@@ -1738,7 +1744,8 @@
       renderAlbum: function (t) { albumTab = t; renderAlbum(renderTitle); },
       renderRank: function (t) { rankTab = t; renderRank(renderTitle); },
       renderTitle: renderTitle, renderSetup: renderSetup, showEnding: showEnding, stopUrgent: stopUrgent,
-      startCoach: startCoach, endCoach: endCoach
+      startCoach: startCoach, endCoach: endCoach,
+      animateDeltas: animateDeltas, showPreview: showPreview, talkBubble: talkBubble, toast: toast
     }
   };
 

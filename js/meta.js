@@ -28,7 +28,7 @@
     m.cos.owned = m.cos.owned || {}; m.cos.eq = m.cos.eq || {};
     ['hat', 'face', 'fx', 'body', 'prop'].forEach(function (k) { if (m.cos.eq[k] === undefined) m.cos.eq[k] = null; });
     m.stats.units = m.stats.units || {}; m.stats.mosOut = m.stats.mosOut || {};
-    m.up = m.up || {}; m.scenes = m.scenes || {}; m.collectClaimed = m.collectClaimed || {};
+    m.up = m.up || {}; m.scenes = m.scenes || {}; m.recipes = m.recipes || {}; m.collectClaimed = m.collectClaimed || {};
     if (!m.welcome) { m.welcome = true; m.gems += 50; m.gemsTotal += 50; m.pendingWelcome = true; m.v3gift = true; m.stash.insurance = (m.stash.insurance || 0) + 1; }
     if (!m.v3gift) { // 업데이트 선물: 그동안 플레이한 만큼 짬
       m.v3gift = true;
@@ -222,6 +222,9 @@
     if (o.good && (s.heat || []).length >= 3) ids.push('heat3');
     if (o.good && (s.heat || []).length >= JY.HEAT_ORDER.length) ids.push('heatall');
     if (legendProgress().n >= 20) ids.push('legend20');
+    if (Object.keys(m.recipes || {}).length >= 5) ids.push('chef5');
+    if (s.legendLoot > 0) ids.push('legendloot');
+    if (s.spec && s.spec.lv >= 5) ids.push('spec5');
     var ach = unlock(ids);
     // 짬: 버틴 날 + 점수 + 전역 보너스
     var served = o.good ? s.total + 1 : o.day;

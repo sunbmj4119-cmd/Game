@@ -10,11 +10,10 @@ global.localStorage = { getItem: function (k) { return store[k] || null; }, setI
 var root = path.join(__dirname, '..');
 require('./data-files').load({ noMeta: false });
 var JY = global.JY, G = JY.Game, Meta = JY.Meta;
+var AP = require('./autoplay')(JY), ST = { acts: 0, loot: 0, caught: 0 };
 var PLAYERS = +process.argv[2] || 60, RUNS = +process.argv[3] || 40, PACE = +process.argv[4] || 3;
 var HEAT = process.env.HEAT ? process.env.HEAT.split(',') : null;
 
-function exp(o) { var fx = {}; function add(s, w) { for (var k in s) fx[k] = (fx[k] || 0) + s[k] * w; } add(o.fx || {}, 1); (o.roll || []).forEach(function (r) { add(r.fx || {}, r.p); }); return fx; }
-function sc(s, fx) { var t = 0; G.STATS.forEach(function (k) { var v = s.stats[k] + (fx[k] || 0); t -= (v - 50) * (v - 50); if (v <= 4 || v >= 96) t -= 1e5; }); return t; }
 
 var byRun = [];
 for (var r = 0; r < RUNS; r++) byRun.push({ ok: 0, days: 0, cards: 0, lv: 0, upg: 0, collect: 0, n: 0, quitRisk: 0 });
@@ -26,35 +25,8 @@ for (var p = 0; p < PLAYERS; p++) {
   var skill = 0.6;
   var lv5 = null, lv10 = null, maxed = null;
   for (var run = 0; run < RUNS; run++) {
-    var s = G.newState({ start: '2026-03-02', pace: PACE, mos: ['infantry', 'cook', 'clerk', 'driver', 'medic'][run % 5], trait: JY.TRAIT_ORDER[(p + run) % JY.TRAIT_ORDER.length], up: Meta.get().up, heat: HEAT });
-    var g = 0;
-    while (!s.over && g++ < 600) {
-      // 위험하면 가끔 아이템 사용, PX에서 사두기
-      if (Math.random() < skill) G.STATS.forEach(function (k) {
-        var v = s.stats[k]; if (v > 22 && v < 78) return;
-        for (var id in s.items) {
-        if (!(s.items[id] > 0)) continue;
-        var fx = JY.ITEMS[id].fx, f = fx[k] || 0;
-        if (!((v <= 22 && f > 0) || (v >= 78 && f < 0))) continue;
-        // 다른 스탯을 위험 구간으로 밀어 넣는 아이템은 안 쓴다
-        if (G.STATS.some(function (o) { return o !== k && fx[o] && (s.stats[o] + fx[o] <= 15 || s.stats[o] + fx[o] >= 85); })) continue;
-        G.useItem(s, id); break;
-      }
-      });
-      if (G.pxStatus(s).ok && s.money > 20000 && Math.random() < 0.5) { ['mandu', 'hot6', 'earplug', 'comic', 'polish', 'chocopie'].forEach(function (id) { G.buy(s, id); }); G.closePX(s, true); }
-      var ls = G.leaveStatus(s);
-      if (ls.ok && (s.leave >= G.daysLeft(s) || (s.stats.mt < 25 && s.stats.hp < 70 && s.leave > 6))) G.takeLeave(s, Math.min(s.leave, ls.max));
-      if (s.over) break;
-      var v = G._view(s);
-      var best = sc(s, exp(v.l)) >= sc(s, exp(v.r)) ? 'l' : 'r';
-      var side = Math.random() < skill ? best : (best === 'l' ? 'r' : 'l');
-      var sp = G._special(s);
-      if (sp && Math.random() < 0.5) side = 'x';
-      if (G.getCardDef(s.current).urgent && Math.random() < 0.15) side = 't';
-      var cc = G.currentCard(s); Meta.see(cc.key);
-      var res = G.choose(s, side);
-      if (res && res.mini) G.finishMini(s, Math.random() < 0.3 ? 'great' : Math.random() < 0.7 ? 'good' : 'bad');
-    }
+    var s = G.newState({ start: '2026-03-02', pace: PACE, trait: JY.TRAIT_ORDER[(p + run) % JY.TRAIT_ORDER.length], up: Meta.get().up, heat: HEAT });
+    AP.play(s, skill, { see: Meta.see, stats: ST });
     var fr = Meta.finishRun(s);
     // 짬으로 가장 싼 강화부터
     for (var guard = 0; guard < 20; guard++) {

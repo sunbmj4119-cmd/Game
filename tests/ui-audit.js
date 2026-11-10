@@ -505,8 +505,44 @@ function svgBounds() {
     await page.evaluate(function () { document.getElementById('score-panel').scrollIntoView(); });
     await sleep(300);
     await snap('ending-score');
+
+    // v6 자대 지도: 지도 · 장소 11곳 · 조합 · 득템 결과 · 배치 명령
+    await page.evaluate(function () {
+      var s = JY.Game.newState({ start: '2026-03-02', name: '아주긴이름', unit: 'mech', trait: 'glass', seed: 5 });
+      s.rank = 3; s.day = 300; s.queue = []; s.current = null; s.assigned = true; s.phase = 'unit'; s.turn = 9; s.step = 'free'; s.ap = 3;
+      s.spec = { id: 'drive', lv: 3, xp: 2 }; s.money = 500000; s.leave = 6; s.lastLeaveEnd = -99; s.pxDay = 0;
+      s.dutyNote = { text: '오늘 일과: 보급품 하역. 박스 200개를 옮겼다.', deltas: { hp: -5, bd: 3 } };
+      s.items = { ramen: 2, tuna: 1, coffee: 1, milk: 1, gunbbang: 1, star: 1, chocopie: 3, mandu: 1, hotbar: 1, buldak: 1, ration: 1, matdasi: 1, kkal: 1, bosscoffee: 1 };
+      s.recipes = { bbog: 1, party: 1 };
+      JY.Meta.get().mapTutorial = true;
+      JY.UI._t.setState(s); JY.UI._t.showScreen('scr-game'); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
+    });
+    await snap('map', true);
+    for (var li of ['barracks', 'px', 'mess', 'gym', 'range', 'office', 'cyber', 'supply', 'hill', 'clinic', 'garage']) {
+      await T(function (t, id) { t.openLoc(id); }, li);
+      await snap('loc-' + li, true);
+      await T(function (t) { t.closeModal(); });
+    }
+    await T(function (t) { t.openBag('craft'); });
+    await snap('bag-craft', true);
+    await T(function (t) { t.closeModal(); });
+    await T(function (t) {
+      t.showResult({ say: '선반 맨 위 상자를 열었다. 행보관 서랍 깊은 곳에 무언가가 있었다.', deltas: { hp: -2, tr: 3 },
+        events: [{ type: 'speclv', text: '🚚 특기 운전 Lv4!' }, { type: 'tag', spec: 'drive', n: 2 }],
+        loot: [{ id: 'kkal', rarity: 'e' }, { id: 'bosscoffee', rarity: 'l' }, { id: 'gunbbang', rarity: 'c' }, { id: 'ration', rarity: 'r' }], tier: 'great' }, function () {});
+    });
+    await snap('result-loot', true);
+    await page.evaluate(function () { document.getElementById('result').hidden = true; });
+    await T(function (t) {
+      var s = JY.UI._state();
+      s.assignInfo = { spec: 'drive', lv: 3, mos: 'driver', unit: 'mech', tags: { shoot: 3, fit: 4, cook: 1, admin: 2, drive: 9, medic: 1, social: 5 },
+        why: [{ txt: '번쩍 든다', n: 3 }, { txt: '나사를 풀어 본다', n: 2 }, { txt: '엉덩이 들고 빨리', n: 1 }], shown: false };
+      t.showAssign();
+    });
+    await snap('modal-assign', true);
+    await T(function (t) { t.closeModal(); });
     // 미니게임 화면
-    for (var mg of ['dressup', 'memory']) {
+    for (var mg of ['dressup', 'memory', 'cook']) {
       await page.evaluate(function (id) { JY.Mini.start(id, { stats: { hp: 50, mt: 50 }, mos: 'clerk', face: function (w) { return JY.UI.charSVG(w); } }, function () {}); }, mg);
       await sleep(2300);
       await snap('mini-' + mg, true);
@@ -532,6 +568,7 @@ function svgBounds() {
     var s = JY.Game.newState({ start: '2026-03-02', name: '점검병', mos: 'clerk' });
     s.rank = 2; s.day = 120; s.queue = []; s.money = 200000; s.pxDay = 0; s.leave = 9; s.lastLeaveEnd = -99;
     s.items = { mandu: 2, chocopie: 2 }; s.current = 'hol_birthday'; s.cv = null; s.promo = [0, 35, 60, 9999, 9999];
+    s.assigned = true; s.cardsOnly = true; // 카드 규칙 검사 (자대 지도는 아래에서 따로)
     JY.Game.STATS.forEach(function (k) { s.stats[k] = 50; });
     JY.UI._t.setState(s); JY.UI._t.showScreen('scr-game'); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
   });
@@ -609,6 +646,8 @@ function svgBounds() {
     return r;
   });
   F('도크: 훈련소에선 쓸 수 없는 버튼 숨김', dk[0] && dk[1] && dk[2] && !dk[3], dk);
+
+
   // 휴가 출발
   await p.evaluate(function () { var s = JY.UI._state(); s.lastLeaveEnd = -99; s.conds = []; s.blockUntil = 0; JY.UI._t.renderHUD(); });
   var h0 = await st();
@@ -638,6 +677,61 @@ function svgBounds() {
   F('막사: 지갑 강화', up.lv === 1 && up.jjam === j0 - 80, up);
   var txt = await p.textContent('.gear-row:nth-child(4) b');
   F('강화 수치 화면 반영', /\+1/.test(txt), txt);
+
+  // v6: 부대 지도에서 행동 → 결과 → 시간 감소, 조합, 장소 PX, 취침
+  await p.evaluate(function () {
+    var s = JY.Game.newState({ start: '2026-03-02', name: '점검병', unit: 'coast', seed: 21 });
+    s.rank = 2; s.day = 150; s.queue = []; s.current = null; s.assigned = true; s.phase = 'unit'; s.turn = 4; s.step = 'free'; s.ap = 3;
+    s.spec = { id: 'cook', lv: 3, xp: 0 }; s.money = 100000; s.pxDay = 0; s.emer.since = 0;
+    s.items = { ramen: 1, chocopie: 3 };
+    JY.Game.STATS.forEach(function (k) { s.stats[k] = 50; });
+    JY.Meta.get().mapTutorial = true;
+    JY.UI._t.setState(s); JY.UI._t.renderHUD(); JY.UI._t.renderCard(false);
+  });
+  await sleep(200);
+  var m0 = await p.evaluate(function () { return { base: !document.getElementById('base').hidden, tiles: document.querySelectorAll('#base .loc').length, card: !document.getElementById('card-zone').hidden }; });
+  F('자대: 부대 지도 표시 (장소 10곳 이상)', m0.base && m0.tiles >= 10 && !m0.card, m0);
+  await tapSel('.loc[data-loc="barracks"]');
+  var bd0 = await p.evaluate(function () { return JY.UI._state().stats.bd; });
+  await tapSel('#modal-box .act[data-a="chat"]'); await sleep(400);
+  var m1 = await p.evaluate(function () { var s = JY.UI._state(); return { ap: s.ap, bd: s.stats.bd, result: !document.getElementById('result').hidden }; });
+  F('자대: 수다 → 결과 쪽지 + 시간 1 + 전우애', m1.result && m1.ap === 2 && m1.bd !== bd0, m1);
+  if (m1.result) { await sleep(400); await tapSel('#result'); }
+  // 조합: 뽀글이, 초코파이 케이크 (요리 Lv3 → 2개)
+  await tapSel('#dock-bag'); await tapSel('#modal-box [data-tab="craft"]');
+  await tapSel('#modal-box [data-craft="bbog"]'); await tapSel('#modal-box [data-craft="cake"]');
+  var m2 = await p.evaluate(function () { var s = JY.UI._state(); return { bbog: s.items.bbog, cake: s.items.cake, ramen: s.items.ramen || 0, recipes: Object.keys(JY.Meta.get().recipes || {}) }; });
+  F('조합: 뽀글이·케이크 (요리 특기 하나 더) + 레시피 기록', m2.bbog === 2 && m2.cake === 2 && m2.ramen === 0 && m2.recipes.indexOf('bbog') >= 0, m2);
+  await tapSel('#modal-box [data-act="close"]');
+  // 장소 PX: 장보기 → 시간 1
+  await tapSel('.loc[data-loc="px"]'); await tapSel('#modal-box .act[data-a="shop"]');
+  await tapSel('#modal-box .item[data-id="ramen"]');
+  await tapSel('#modal-box [data-act="close"]');
+  var m3 = await p.evaluate(function () { var s = JY.UI._state(); return { ap: s.ap, ramen: s.items.ramen }; });
+  F('지도 PX 장보기: 라면 구매 + 시간 1', m3.ramen === 1 && m3.ap === 1, m3);
+  // 특기 미니게임: 특식 만들기 → 결과
+  await tapSel('.loc[data-loc="mess"]'); await tapSel('#modal-box .act[data-a="feast"]'); await sleep(2600);
+  var mg = await p.evaluate(function () { return !document.getElementById('mini').hidden && !!document.getElementById('tm-btn'); });
+  F('특기 행동: 특식 만들기 미니게임 시작', mg);
+  for (var k = 0; k < 10 && mg; k++) { await p.evaluate(function () { var b = document.getElementById('tm-btn'); if (b && !b.disabled) b.click(); }); await sleep(700); if (!(await p.evaluate(function () { return !document.getElementById('mini').hidden; }))) break; }
+  await sleep(1900);
+  var m4 = await p.evaluate(function () { var s = JY.UI._state(); return { result: !document.getElementById('result').hidden, ap: s.ap, cd: s.cd['mess.feast'] }; });
+  F('특식 만들기 결과 + 2턴 쉬기', m4.result && m4.ap === 0 && m4.cd === 6, m4);
+  if (m4.result) { await sleep(400); await tapSel('#result'); }
+  // 취침 → 밤 사건 또는 다음 턴
+  var day0 = await p.evaluate(function () { return JY.UI._state().day; });
+  await tapSel('#btn-sleep'); await sleep(500);
+  for (var g = 0; g < 8; g++) {
+    var q = await p.evaluate(function () { var s = JY.UI._state(); return { r: !document.getElementById('result').hidden, card: !!s.current && !document.getElementById('card-zone').hidden, mini: !document.getElementById('mini').hidden, alert: !document.getElementById('alert').hidden, base: !document.getElementById('base').hidden, turn: s.turn }; });
+    if (q.base && q.turn > 4) break;
+    if (q.alert) { await tapSel('#alert'); continue; }
+    if (q.r) { await sleep(400); await tapSel('#result'); continue; }
+    if (q.mini) { await p.evaluate(function () { document.getElementById('mini').hidden = true; JY.Game.finishMini(JY.UI._state(), 'good'); JY.UI._t.renderCard(false); }); continue; }
+    if (q.card) { await p.evaluate(function () { var b = document.querySelector('.choice[data-side="l"]'); b.click(); b.click(); }); await sleep(600); continue; }
+    await sleep(300);
+  }
+  var m5 = await p.evaluate(function () { var s = JY.UI._state(); return { turn: s.turn, day: s.day, step: s.step }; });
+  F('취침 → 2주 흐르고 다음 턴', m5.turn === 5 && m5.day - day0 === 14, [m5, day0]);
 
   await ctx2.close();
   await browser.close(); server.close();

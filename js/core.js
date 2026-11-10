@@ -231,14 +231,19 @@
       gems: 0,
       log: [],
       pendingMini: null,
-      over: null
+      over: null,
+      // v6: 훈련소(train) → 자대(unit). 훈련소 선택이 소질(tags)로 쌓여 특기·보직·자대가 정해진다
+      phase: 'train', tags: {}, tagLog: [], assigned: false, spec: null,
+      fixedMos: !!MOS[opts.mos], fixedUnit: !!(opts.unit && JY.UNITS && JY.UNITS[opts.unit]),
+      turn: 0, step: null, ap: 0, cd: {}, recipes: {}, loots: 0, caught: 0
     };
     CUR = state;
     var unitIds = JY.UNIT_ORDER || [];
     state.unit = opts.unit && JY.UNITS && JY.UNITS[opts.unit] ? opts.unit : (unitIds.length ? unitIds[randInt(0, unitIds.length - 1)] : null);
     state.trait = opts.trait && JY.TRAITS && JY.TRAITS[opts.trait] ? opts.trait : null;
     var tr = traitOf(state), un = unitOf(state);
-    [tr.start, un.start].forEach(function (d) { if (d) for (var k in d) state.stats[k] = clamp(state.stats[k] + d[k], 10, 90); });
+    // 자대 보너스는 배치가 정해질 때 (미리 정해 둔 판만 지금)
+    [tr.start, state.fixedUnit ? un.start : null].forEach(function (d) { if (d) for (var k in d) state.stats[k] = clamp(state.stats[k] + d[k], 10, 90); });
     if (tr.money) state.money += tr.money;
     asArr(tr.flags).forEach(function (f) { state.flags[f] = true; });
     if (tr.vars) for (var v in tr.vars) state.vars[v] = (state.vars[v] || 0) + tr.vars[v];
@@ -356,6 +361,7 @@
       if (id) s.emer.since = 0;
     }
     if (!id) id = pickRandom(s);
+    if (id === 'tr_assign' && !s.assigned) assign(s);
     s.current = id;
     pickVariant(s, getCardDef(id));
     return id;
@@ -735,13 +741,15 @@
   }
 
   function cardDays(s, c, out) {
-    if (out && out.days) return out.days;
     if (c.days === 'fill') return Math.max(1, TRAIN_DAYS - s.day);
+    if (s.rank < 1) return 2;
+    if (out && out.days) return out.days;
     if (c.days) return c.days;
     return randInt(3, 6) * s.pace;
   }
 
   function finishTurn(s, res, days) {
+    if (s.phase === 'unit') return finishUnitCard(s, res);
     var e = edgeEnding(s, res);
     if (e) { end(s, e, res); return res; }
     tickConds(s, res);
@@ -755,6 +763,8 @@
     if (e) { end(s, e, res); return res; }
     s.cards += 1;
     s.emer.since += 1;
+    if (s.rank >= 1 && !s.assigned) assign(s, res);
+    if (s.rank >= 1 && s.assigned && !s.queue.length && !s.cardsOnly) { enterUnit(s, res); return res; }
     nextCard(s);
     return res;
   }
@@ -773,14 +783,18 @@
       if (opt.need && opt.need.item) s.items[opt.need.item] -= 1;
       s.specials += 1;
     } else opt = side === 'l' || side === 'left' ? vw.l : side === 't' && vw.t ? vw.t : vw.r;
+    var sideKey = side === 'l' || side === 'left' ? 'l' : side === 'r' || side === 'right' ? 'r' : side;
+    var label = sideKey === 'l' || sideKey === 'r' ? fill(s, pickStr(opt.t, s.cv.k >> (sideKey === 'l' ? 4 : 8))) : '';
     var out = resolveOutcome(s, opt);
     // 돌발 지옥: 돌발 상황의 결과가 커진다
     var uf = c.urgent ? heatDefs(s).reduce(function (a, h) { return a * ((side === 't' ? h.timeoutFx : h.urgentFx) || 1); }, 1) : 1;
+    if (s.phase === 'unit') uf *= UNIT_CARD_MULT[s.pace] || 1.5; // 자대에선 카드가 2주(4주)에 한두 장: 한 장의 무게를 키운다
     if (uf !== 1) for (var fk in out.fx) if (STATS.indexOf(fk) >= 0) out.fx[fk] = Math.round(out.fx[fk] * uf);
     var res = newRes();
     res.scene = vw.key;
     res.special = side === 'x';
     applyOutcome(s, out, res);
+    addTags(s, c, sideKey, opt, label, res);
     s.seen[c.id] = s.day;
     s.lastWho = vw.who;
     c = { id: c.id, who: vw.who, urgent: c.urgent };
@@ -811,6 +825,7 @@
     if (!pm) return null;
     CUR = s;
     s.pendingMini = null;
+    if (pm.act) return finishActMini(s, pm, tier);
     var def = MINI[pm.id];
     var r = def[tier] || def.good;
     var res = newRes();
@@ -877,6 +892,7 @@
     if (s.rank < 1) return { ok: false, reason: '훈련병은 휴가가 없다. 수료부터 하자.' };
     if (s.pendingMini) return { ok: false, reason: '지금은 바쁘다!' };
     if (getCardDef(s.current) && getCardDef(s.current).urgent) return { ok: false, reason: '돌발 상황 중이다!' };
+    if (s.phase === 'unit' && (s.step !== 'free' || s.current)) return { ok: false, reason: '휴가는 개인정비 시간에 행정반에서 신청한다.' };
     if (s.leave < 1) return { ok: false, reason: '남은 휴가가 없다. 포상휴가를 노려보자.' };
     var blockCond = s.conds.filter(function (c) { return condDef(c.id).blockLeave; })[0];
     if (blockCond) return { ok: false, reason: condDef(blockCond.id).name + ' 중에는 휴가 통제다. 카드 ' + blockCond.left + '장 뒤 해제.' };
@@ -926,6 +942,7 @@
     if (pick === 'ret_late') s.flags.lateTempted = true;
     if (s.current) s.queue.unshift(s.current);
     s.current = pick;
+    if (s.phase === 'unit') { s.ap = 0; s.step = 'night'; } // 휴가는 이번 턴의 나머지를 쓴다
     return res;
   }
 
@@ -964,7 +981,11 @@
     return true;
   }
 
-  function closePX(s, bought) { if (bought) s.pxDay = s.day + Math.round(4 * s.pace * heatDefs(s).reduce(function (a, h) { return a * (h.pxCd || 1); }, 1)); }
+  function closePX(s, bought) {
+    if (!bought) return;
+    if (s.phase === 'unit') { s.ap = Math.max(0, s.ap - 1); s.pxDay = s.day + 1; return; } // 자대: 한 번 다녀오면 이번 턴은 끝 (다음 턴에 다시 열림)
+    s.pxDay = s.day + Math.round(4 * s.pace * heatDefs(s).reduce(function (a, h) { return a * (h.pxCd || 1); }, 1));
+  }
 
   function useItem(s, id) {
     if (s.over || !(s.items[id] > 0)) return null;
@@ -977,6 +998,8 @@
     mult *= 1 + 0.1 * ((s.up && s.up.pack) || 0); // 군용 배낭 강화
     for (var k in it.fx) fx[k] = Math.round(it.fx[k] * (it.fx[k] > 0 ? mult : 1));
     applyStats(s, fx, res, true);
+    if (it.aff) for (var w in it.aff) changeAff(s, w, it.aff[w], res);
+    if (it.luck) s.luck += it.luck;
     return res;
   }
 
@@ -1061,6 +1084,9 @@
     add('미니게임 대성공 ' + s.minis.great + '회', s.minis.great * 200);
     add('돌발 상황 대응 ' + s.emer.ok + '회', s.emer.ok * 150);
     add('절친 ' + bffCount(s) + '명', bffCount(s) * 300);
+    if (s.spec) add('특기 ' + (specDef(s.spec.id).name || '') + ' Lv' + s.spec.lv, (s.spec.lv - 1) * 250);
+    add('득템 ' + (s.loots || 0) + '개', (s.loots || 0) * 40);
+    add('레시피 ' + Object.keys(s.recipes || {}).length + '종', Object.keys(s.recipes || {}).length * 150);
     if (o2.good) add('전역 통장', Math.floor(bank(s).total / 20000));
     var base = parts.reduce(function (a, p) { return a + p.n; }, 0);
     var mult = (s.pace === 3 ? 0.7 : 1) * (traitOf(s).scoreMult || 1) * (1 + heatBonus(s));
@@ -1092,6 +1118,343 @@
   }
 
   // 저장본 호환: 1판 저장(v1)에 새 필드 채우기
+
+  /* ═════════ v6: 훈련소 소질 → 배치, 자대 생활(부대 지도) ═════════ */
+  var TURN_DAYS = { 1: 14, 3: 28 };          // 한 턴 = 2주 (속성 복무는 4주)
+  var AP_BY_RANK = [0, 2, 3, 3, 4];          // 개인정비 시간: 이병 2 → 병장 4
+  var RISK_P = [0, 0.06, 0.13, 0.22];        // 행보관에게 걸릴 확률 (장소 위험도별)
+  var NIGHT_P = 0.6;                         // 밤에 사건 카드가 나올 확률
+  var INTERRUPT_P = 0.05;                    // 행동 중 돌발 상황이 끼어들 확률
+  var UNIT_CARD_MULT = { 1: 1.6, 3: 1.3 };   // 자대 단계 카드(일과·밤·돌발) 효과 배수 (속성 복무는 이미 PACE_SWING이 크다)
+  function BS() { return JY.BASE || {}; }
+  function specDef(id) { return (BS().specs || {})[id] || {}; }
+  function specLv(s) { return s.spec ? s.spec.lv : 0; }
+
+  // 훈련소 선택지 → 소질 점수
+  function addTags(s, c, side, opt, label, res) {
+    if (s.phase !== 'train' || s.assigned || !c || (side !== 'l' && side !== 'r')) return;
+    var t = opt.tag || ((BS().tags || {})[c.id] || {})[side];
+    if (!t) return;
+    s.tags = s.tags || {}; s.tagLog = s.tagLog || [];
+    for (var k in t) {
+      s.tags[k] = (s.tags[k] || 0) + t[k];
+      res.events.push({ type: 'tag', spec: k, n: t[k] });
+      s.tagLog.push({ spec: k, n: t[k], txt: label });
+    }
+  }
+
+  // 배치: 가장 많이 쌓인 소질 = 특기 → 보직, 소질 조합 → 자대
+  function assign(s, res) {
+    if (s.assigned) return;
+    s.assigned = true;
+    var T = s.tags || {}, order = BS().specOrder || ['social'];
+    var best = null;
+    order.forEach(function (k) { var v = (T[k] || 0) + rand() * 0.9; if (!best || v > best.v) best = { k: k, v: v }; });
+    var spec = best.k, pts = T[spec] || 0;
+    s.spec = { id: spec, lv: 1 + (pts >= 5 ? 1 : 0) + (pts >= 9 ? 1 : 0), xp: 0 };
+    if (!s.fixedMos) s.mos = specDef(spec).mos || 'infantry';
+    if (!s.fixedUnit && BS().unitWeights) {
+      var W = BS().unitWeights, ub = null;
+      (JY.UNIT_ORDER || Object.keys(W)).forEach(function (u) {
+        var w = W[u] || {}, v = rand() * 2;
+        for (var k in w) v += (T[k] || 0) * w[k];
+        if (!ub || v > ub.v) ub = { u: u, v: v };
+      });
+      if (ub) s.unit = ub.u;
+      var st = unitOf(s).start;
+      if (st) for (var k2 in st) s.stats[k2] = clamp(s.stats[k2] + st[k2], 10, 90);
+    }
+    var why = (s.tagLog || []).filter(function (x) { return x.spec === spec && x.txt; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 3);
+    s.assignInfo = { spec: spec, lv: s.spec.lv, mos: s.mos, unit: s.unit, tags: JSON.parse(JSON.stringify(T)), why: why, shown: false };
+    addLog(s, '특기 ' + (specDef(spec).name || spec) + ' · ' + MOS[s.mos].name + ' 배치');
+    if (res) res.events.push({ type: 'assign', spec: spec });
+  }
+
+  function enterUnit(s, res) {
+    s.phase = 'unit';
+    s.current = null;
+    startTurn(s, res);
+  }
+  function apMax(s) { return (AP_BY_RANK[s.rank] || 3) + (s.flags.apBonus ? 1 : 0); }
+
+  function pickDutyCard(s) {
+    var D = BS().duty || {}, ids = (D.cards || []).concat((D.mos || {})[s.mos] || []);
+    var list = ids.filter(function (id) { var c = getCardDef(id); return c && eligible(s, c) && !c.urgent; });
+    if (!list.length) return null;
+    var fresh = list.filter(function (id) { return s.seen[id] === undefined; });
+    var from = fresh.length && rand() < 0.6 ? fresh : list;
+    return from[randInt(0, from.length - 1)];
+  }
+  function pickDutyMini(s) {
+    var list = ((BS().duty || {}).minis || []).filter(function (m) { return (!m.season || m.season === s.season) && (!m.mos || m.mos === s.mos) && MINI[m.id]; });
+    return list.length ? list[randInt(0, list.length - 1)].id : null;
+  }
+
+  // 새 턴: 일과(카드·미니게임·자동) → 개인정비
+  function startTurn(s, res) {
+    s.turn = (s.turn || 0) + 1;
+    s.step = 'duty';
+    s.ap = apMax(s);
+    s.dutyNote = null;
+    res.events.push({ type: 'turn', turn: s.turn, ap: s.ap });
+    var em = s.emer.since >= 2 ? pickEmergency(s) : null;
+    if (em) { s.emer.since = 0; s.current = em; pickVariant(s, getCardDef(em)); return res; }
+    var r = rand();
+    if (r < 0.45) {
+      var id = pickDutyCard(s);
+      if (id) { s.current = id; pickVariant(s, getCardDef(id)); return res; }
+    }
+    if (r < 0.62) {
+      var m = pickDutyMini(s);
+      if (m) { s.pendingMini = { id: m, days: 0, duty: true }; res.mini = m; return res; }
+    }
+    var autos = (BS().duty || {}).autos || [{ text: '오늘 일과: 무사히 끝났다.', fx: {} }];
+    var a = autos[randInt(0, autos.length - 1)];
+    var before = {}; STATS.forEach(function (k) { before[k] = res.deltas[k] || 0; });
+    applyStats(s, a.fx, res, true, 3, 97);
+    var d = {}; STATS.forEach(function (k) { var v = (res.deltas[k] || 0) - before[k]; if (v) d[k] = v; });
+    s.dutyNote = { text: a.text, deltas: d };
+    s.step = 'free';
+    return res;
+  }
+
+  // 자대 단계에서 카드(일과·밤 사건·돌발)가 끝났을 때
+  function finishUnitCard(s, res) {
+    var e = edgeEnding(s, res);
+    if (e) { end(s, e, res); return res; }
+    s.cards += 1;
+    s.emer.since += 1;
+    if (s.insight > 0) s.insight -= 1;
+    if (s.luck > 0) s.luck -= 1;
+    s.current = null;
+    if (s.step === 'duty') { s.step = 'free'; return res; }
+    if (s.step === 'night') return endTurn(s, res);
+    return res;
+  }
+
+  // 개인정비 끝 → 밤 사건(있으면) → 턴 끝
+  function endFree(s) {
+    if (s.over || s.phase !== 'unit' || s.step !== 'free' || s.current || s.pendingMini) return null;
+    CUR = s;
+    var res = newRes();
+    if (s.ap > 0) applyStats(s, { hp: 2 * s.ap }, res, true, 3, 97); // 남은 시간은 쉰다
+    s.step = 'night';
+    if (s.queue.length || rand() < NIGHT_P) {
+      var id = null;
+      while (s.queue.length && !id) { var q = s.queue.shift(); if (getCardDef(q)) id = q; }
+      if (!id) id = pickRandom(s);
+      s.current = id; pickVariant(s, getCardDef(id));
+      res.night = true;
+      return res;
+    }
+    return endTurn(s, res);
+  }
+
+  function endTurn(s, res) {
+    tickConds(s, res);
+    var e = edgeEnding(s, res);
+    if (e) { end(s, e, res); return res; }
+    s.current = null;
+    advance(s, TURN_DAYS[s.pace] || 14, res);
+    if (s.day >= s.total) { discharge(s, res); return res; }
+    e = edgeEnding(s, res);
+    if (e) { end(s, e, res); return res; }
+    startTurn(s, res);
+    return res;
+  }
+
+  /* ── 부대 지도 ── */
+  function locById(id) { return (BS().locs || []).filter(function (l) { return l.id === id; })[0]; }
+  function actById(L, id) { return L && L.acts.filter(function (a) { return a.id === id; })[0]; }
+  function locShown(s, L) {
+    if (!L.show) return true;
+    return (L.show.spec && s.spec && s.spec.id === L.show.spec) || (L.show.unit && s.unit === L.show.unit);
+  }
+  function npcAt(s, L) {
+    var list = (L.npc || []).filter(function (w) { return npcAvailable(s, w); });
+    return list.length ? list[(s.turn + L.id.length) % list.length] : null;
+  }
+  function isRisky(A) { return A.risky !== undefined ? A.risky : !A.spec && !A.special && !((A.fx || {}).tr > 2); }
+  function caughtP(s, L, A) {
+    if (!isRisky(A)) return 0;
+    var p = RISK_P[A.risk !== undefined ? A.risk : L.risk] || 0;
+    if (s.spec && s.spec.id === 'social') p *= Math.max(0.2, 1 - 0.15 * s.spec.lv);
+    heatDefs(s).forEach(function (h) { if (h.whoW && h.whoW.who === 'haeng') p *= 1.5; });
+    if (s.conds.some(function (c) { return c.id === 'inspect'; })) p *= 1.5;
+    return Math.min(0.5, p);
+  }
+  // 특기 보너스를 반영한 효과 (미리보기와 실제가 같다)
+  function actFx(s, A, base) {
+    var fx = {}, src = base || A.fx || {};
+    var mine = s.spec && (A.spec === s.spec.id || A.xpSpec === s.spec.id);
+    var m = mine ? 1 + 0.12 * (s.spec.lv - (A.spec ? 1 : 0)) + (A.xpSpec ? 0.1 : 0) : 1;
+    for (var k in src) { var v = src[k]; fx[k] = v > 0 ? Math.round(v * m) : v; }
+    if (s.spec && s.spec.id === 'fit' && A.id === 'workout' && fx.hp < 0) fx.hp = Math.min(0, fx.hp + s.spec.lv);
+    if (s.spec && s.spec.id === 'medic' && A.id === 'treat' && fx.hp > 0) fx.hp += s.spec.lv;
+    return fx;
+  }
+  function expectFx(s, fx) { // 실제로 바뀔 양 (특성·부대·악조건·속도 배수 포함)
+    var out = {};
+    for (var k in fx) { if (STATS.indexOf(k) < 0 || !fx[k]) continue; out[k] = Math.round(fx[k] * statMult(s, k, fx[k]) * (PACE_SWING[s.pace] || 1)); }
+    return out;
+  }
+  function actionStatus(s, L, A) {
+    if (s.over || s.phase !== 'unit') return { ok: false, reason: '' };
+    if (A.spec && (!s.spec || s.spec.id !== A.spec)) return { ok: false, lock: true, reason: (specDef(A.spec).emoji || '') + ' ' + (specDef(A.spec).name || '') + ' 특기 전용' };
+    if (s.step !== 'free' || s.current || s.pendingMini) return { ok: false, reason: '지금은 개인정비 시간이 아니다.' };
+    var key = L.id + '.' + A.id;
+    if (A.cd && s.cd[key] && s.turn < s.cd[key]) return { ok: false, reason: (s.cd[key] - s.turn) + '턴 뒤 다시 가능' };
+    var cost = A.ap === undefined ? (A.special === 'craft' ? 0 : 1) : A.ap;
+    if (cost > s.ap) return { ok: false, reason: '오늘 개인정비 시간이 끝났다' };
+    if (A.money && s.money < A.money) return { ok: false, reason: '돈이 모자라다 (' + A.money + '원)' };
+    if (A.need && A.need.item && !(s.items[A.need.item] > 0)) return { ok: false, reason: (JY.ITEMS[A.need.item] || {}).name + ' 필요' };
+    if (A.special === 'leave') { var ls = leaveStatus(s); if (!ls.ok) return { ok: false, reason: ls.reason }; }
+    if (A.special === 'px') { var ps = pxStatus(s); if (!ps.ok) return { ok: false, reason: ps.reason }; }
+    return { ok: true, cost: cost };
+  }
+  // 화면용: 지도에 보일 장소·행동 목록
+  function locations(s) {
+    return (BS().locs || []).filter(function (L) { return locShown(s, L); }).map(function (L) {
+      var who = npcAt(s, L);
+      return {
+        id: L.id, name: L.name, emoji: L.emoji, bg: L.bg, desc: L.desc, risk: L.risk, npc: who,
+        acts: L.acts.filter(function (A) { return !A.spec || (s.spec && s.spec.id === A.spec); }).map(function (A) {
+          var st = actionStatus(s, L, A);
+          // 미니게임은 '보통' 결과를 미리 보여 주고, 대성공·실패까지 따져 위험 표시
+          var tiers = A.tiers || {}, fx;
+          if (A.roll) { fx = {}; A.roll.forEach(function (r) { for (var k in (r.fx || {})) fx[k] = (fx[k] || 0) + r.fx[k] * r.p; }); for (var k0 in fx) fx[k0] = Math.round(fx[k0]); fx = actFx(s, A, fx); }
+          else fx = actFx(s, A, A.mini ? (tiers.good || {}).fx : A.fx);
+          var exp = fx ? expectFx(s, fx) : null, danger = false;
+          var outs = A.mini ? [(tiers.great || {}).fx, (tiers.bad || {}).fx] : A.roll ? A.roll.map(function (r) { return r.fx; }) : [];
+          [exp].concat(outs.map(function (o) { return expectFx(s, actFx(s, A, o)); })).forEach(function (e) {
+            if (e) for (var k in e) { var v = s.stats[k] + e[k]; if (v <= 0 || v >= 100) danger = true; }
+          });
+          return { id: A.id, emoji: A.emoji, name: A.name, desc: A.desc, special: A.special, mini: A.mini, roll: !!A.roll, fx: exp, danger: danger,
+            loot: !!A.loot, money: A.money, need: A.need, spec: A.spec, leave: A.leave, ok: st.ok, reason: st.reason, cost: st.cost === undefined ? (A.ap === undefined ? 1 : A.ap) : st.cost,
+            risk: caughtP(s, L, A) };
+        })
+      };
+    });
+  }
+
+  function rollLoot(s, table, res) {
+    var T = (BS().loot || {})[table]; if (!T) return null;
+    var bonus = 0.025 * specLv(s) + (s.luck > 0 ? 0.05 : 0) + 0.01 * ((s.up && s.up.charm) || 0) + (traitOf(s).luck ? 0.04 : 0);
+    var r = rand(), tier = r < 0.02 + bonus * 0.3 ? 'l' : r < 0.10 + bonus * 0.8 ? 'e' : r < 0.38 + bonus ? 'r' : 'c';
+    var order = ['l', 'e', 'r', 'c'], i = order.indexOf(tier);
+    while (i < order.length && !(T[order[i]] && T[order[i]].length)) i++;
+    if (i >= order.length) return null;
+    tier = order[i];
+    var id = T[tier][randInt(0, T[tier].length - 1)];
+    if (!JY.ITEMS[id]) return null;
+    s.items[id] = clamp((s.items[id] || 0) + 1, 0, 9);
+    s.loots = (s.loots || 0) + 1;
+    var got = { id: id, rarity: tier };
+    (res.loot = res.loot || []).push(got);
+    if (tier === 'l') { addLog(s, '전설 득템: ' + JY.ITEMS[id].name); s.legendLoot = (s.legendLoot || 0) + 1; }
+    return got;
+  }
+
+  function gainXp(s, n, res) {
+    if (!s.spec || !n) return;
+    s.spec.xp += n;
+    while (s.spec.lv < 5 && s.spec.xp >= 3 * s.spec.lv) {
+      s.spec.xp -= 3 * s.spec.lv;
+      s.spec.lv += 1;
+      res.events.push({ type: 'speclv', spec: s.spec.id, lv: s.spec.lv, text: (specDef(s.spec.id).emoji || '') + ' 특기 ' + (specDef(s.spec.id).name || '') + ' Lv' + s.spec.lv + '!' });
+      addLog(s, '특기 ' + (specDef(s.spec.id).name || '') + ' Lv' + s.spec.lv);
+    }
+  }
+
+  // 결과 적용: 행동 그 자체 또는 미니게임 등급별 결과
+  function applyAct(s, L, A, out, res) {
+    var src = out, say = out.say;
+    if (out.roll) {
+      var pickR = function () { var r = rand(), acc = 0; for (var i = 0; i < out.roll.length; i++) { acc += out.roll[i].p; if (r < acc) return out.roll[i]; } return out.roll[out.roll.length - 1]; };
+      src = pickR();
+      if (s.luck > 0 || (traitOf(s).luck && rand() < traitOf(s).luck)) { var b = pickR(); if (rollScore(s, b) > rollScore(s, src)) src = b; }
+      say = src.say;
+    }
+    applyStats(s, actFx(s, A, src.fx), res);
+    if (src.aff || A.aff) { var af = src.aff || A.aff; for (var w in af) changeAff(s, w, af[w], res); }
+    var lv = src.leave || (out === A ? A.leave : 0);
+    if (lv) { lv += (A.spec && s.spec && s.spec.lv >= 4 ? 1 : 0); gainLeave(s, lv, res, A.spec ? '포상휴가' : '휴가', true); }
+    var table = src.loot || (out === A ? A.loot : null);
+    if (table && (A.lootP === undefined || rand() < A.lootP)) {
+      var n = A.lootN || 1;
+      for (var i = 0; i < n; i++) rollLoot(s, table, res);
+    }
+    if (A.setChance && rand() < A.setChance.p && !s.flags[A.setChance.flag]) { s.flags[A.setChance.flag] = true; res.events.push({ type: 'flag', text: '🎉 ' + A.setChance.say }); }
+    if (s.spec && (A.spec === s.spec.id || A.xpSpec === s.spec.id)) gainXp(s, A.xp || 1, res);
+    res.say = Array.isArray(say) ? say[randInt(0, say.length - 1)] : (say || '');
+  }
+
+  function afterAct(s, res) {
+    var e = edgeEnding(s, res);
+    if (e) { end(s, e, res); return res; }
+    if (!s.over && !s.current && s.rank >= 1 && s.emer.since >= 2 && rand() < INTERRUPT_P) {
+      var em = pickEmergency(s);
+      if (em) { s.emer.since = 0; s.current = em; pickVariant(s, getCardDef(em)); res.interrupt = true; }
+    }
+    return res;
+  }
+
+  function doAction(s, locId, actId) {
+    var L = locById(locId), A = actById(L, actId);
+    if (!L || !A || A.special) return null;
+    var st = actionStatus(s, L, A);
+    if (!st.ok) return null;
+    CUR = s;
+    var res = newRes();
+    res.loc = L.id; res.act = A.id;
+    s.ap -= st.cost;
+    if (A.money) { s.money -= A.money; res.events.push({ type: 'money', n: -A.money }); }
+    if (A.need && A.need.item) s.items[A.need.item] -= 1;
+    if (A.cd) s.cd[L.id + '.' + A.id] = s.turn + A.cd;
+    s.emer.since += 0.5;
+    if (rand() < caughtP(s, L, A)) {
+      s.caught = (s.caught || 0) + 1;
+      res.caught = true;
+      applyStats(s, { hp: -5, mt: -4, tr: -3 }, res);
+      res.say = ['행보관: "거기 너! 할 일 없지? 따라와." 삽을 들고 한 시간 작업했다.', '당직사관과 눈이 마주쳤다. "너 지금 뭐 하냐?" 연병장 청소 당첨.', '"여기서 뭐 하나?" 중대장이었다. 진지 보수 작업에 끌려갔다.'][randInt(0, 2)];
+      return afterAct(s, res);
+    }
+    if (A.mini) { s.pendingMini = { id: A.mini, loc: L.id, act: A.id, days: 0 }; res.mini = A.mini; return res; }
+    applyAct(s, L, A, A, res);
+    return afterAct(s, res);
+  }
+
+  function finishActMini(s, pm, tier) {
+    var L = locById(pm.loc), A = actById(L, pm.act), res = newRes();
+    res.loc = L.id; res.act = A.id; res.tier = tier;
+    s.minis.played += 1;
+    if (tier === 'great') s.minis.great += 1;
+    var out = (A.tiers || {})[tier] || (A.tiers || {}).good || {};
+    applyAct(s, L, A, out, res);
+    if (tier === 'great') gainGem(s, 2, res);
+    return afterAct(s, res);
+  }
+
+  /* ── 생활관 조합 ── */
+  function recipeStatus(s, R) {
+    var miss = [];
+    for (var id in R.need) { var have = s.items[id] || 0; if (have < R.need[id]) miss.push({ id: id, need: R.need[id], have: have }); }
+    return { ok: !miss.length && !s.over, miss: miss };
+  }
+  function craft(s, rid) {
+    var R = (BS().recipes || []).filter(function (r) { return r.id === rid; })[0];
+    if (!R || !recipeStatus(s, R).ok) return null;
+    CUR = s;
+    var res = newRes();
+    for (var id in R.need) s.items[id] -= R.need[id];
+    var n = 1 + (s.spec && s.spec.id === 'cook' && s.spec.lv >= 3 ? 1 : 0);
+    s.items[R.id] = clamp((s.items[R.id] || 0) + n, 0, 9);
+    res.crafted = { id: R.id, n: n, first: !s.recipes[R.id] };
+    s.recipes[R.id] = (s.recipes[R.id] || 0) + 1;
+    if (s.spec && s.spec.id === 'cook') gainXp(s, 1, res);
+    return res;
+  }
+
   function migrate(s) {
     if (!s) return s;
     if (!s.conds) s.conds = [];
@@ -1110,6 +1473,8 @@
     if (s.undo === undefined) s.undo = 0;
     if (!s.vlast) s.vlast = {};
     if (s.specials === undefined) s.specials = 0;
+    // v6 이전 저장: 훈련소는 그대로, 수료 뒤 남은 카드가 끝나면 자대 지도로
+    if (!s.phase) { s.phase = 'train'; s.tags = {}; s.tagLog = []; s.assigned = s.rank >= 1; s.spec = s.rank >= 1 ? { id: 'social', lv: 1, xp: 0 } : null; s.turn = 0; s.step = null; s.ap = 0; s.cd = {}; s.recipes = {}; s.loots = 0; s.caught = 0; }
     s.v = 3;
     return s;
   }
@@ -1125,6 +1490,9 @@
     dailyConfig: dailyConfig, migrate: migrate,
     fmtDate: fmtDate, todayStr: todayStr, getCardDef: getCardDef, preview: preview,
     unitOf: unitOf, traitOf: traitOf, condDef: condDef, heatBonus: heatBonus, heatHas: heatHas,
+    // v6 자대 생활
+    TURN_DAYS: TURN_DAYS, locations: locations, doAction: doAction, endFree: endFree, actionStatus: function (s, l, a) { var L = locById(l); return actionStatus(s, L, actById(L, a)); },
+    craft: craft, recipeStatus: recipeStatus, specDef: specDef, apMax: apMax, expectFx: expectFx,
     _index: index, _eligible: eligible, _checkReq: checkReq, _view: view, _special: function (s) { return specialFor(s, view(s)); }, _setCur: function (s) { CUR = s; }
   };
 })(window.JY = window.JY || {});

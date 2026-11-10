@@ -224,15 +224,11 @@
   function renderSetup() {
     var m = Meta.get();
     setup.face = m.face || randomFace();
-    setup.mos = 'infantry';
     setup.rerolled = false;
     $('#in-name').value = m.lastName || pick(NAMES);
     $('#in-date').value = G.todayStr();
     $('#notice-no').textContent = '제 ' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900000) + 100000) + ' 호';
-    $('#mos-grid').innerHTML = Object.keys(G.MOS).map(function (k) {
-      var mo = G.MOS[k];
-      return '<button type="button" class="mos" data-mos="' + k + '" aria-pressed="' + (k === setup.mos) + '"><b>' + mo.emoji + ' ' + mo.name + '</b><small>' + mo.desc + '</small><small>✦ ' + mo.perk + '</small></button>';
-    }).join('');
+    $('#spec-row').innerHTML = JY.BASE.specOrder.map(function (k) { var d = G.specDef(k); return '<span title="' + esc(d.desc) + '">' + d.emoji + ' ' + d.name + '</span>'; }).join('');
     drawTraits();
     setup.heat = (m.lastHeat || []).slice();
     $('#field-heat').hidden = !(m.discharges > 0);
@@ -293,7 +289,7 @@
     var name = ($('#in-name').value || '').trim() || '나띨빵';
     var paceEl = document.querySelector('input[name="pace"]:checked');
     beginRun({
-      name: name, start: $('#in-date').value || G.todayStr(), mos: setup.mos, face: setup.face,
+      name: name, start: $('#in-date').value || G.todayStr(), face: setup.face,
       pace: paceEl && paceEl.value === '3' ? 3 : 1, trait: setup.trait, heat: $('#field-heat').hidden ? [] : setup.heat.slice(),
       insurance: !$('#row-insurance').hidden && $('#in-insurance').checked
     });
@@ -302,14 +298,14 @@
   function openDaily() {
     var cfg = G.dailyConfig();
     var m = Meta.get(), best = m.daily[cfg.date];
-    var U = JY.UNITS[cfg.unit], T = JY.TRAITS[cfg.trait], M = G.MOS[cfg.mos];
+    var U = JY.UNITS[cfg.unit], T = JY.TRAITS[cfg.trait];
     var ins = Meta.stash('insurance');
     openModal('<h3>⭐ 오늘의 작전</h3><p class="sub">' + G.fmtDate(Date.parse(cfg.date + 'T00:00:00Z')) + ' · 모든 사람이 같은 부대, 같은 성격, 같은 운으로 시작한다. 점수로 겨룬다.</p>' +
       '<div class="daily-cfg">' +
       '<div><i>' + U.emoji + '</i><b>' + U.name + '</b><small>' + U.perk + '</small></div>' +
       '<div><i>' + T.emoji + '</i><b>' + T.name + '</b><small>' + T.desc + '</small></div>' +
-      '<div><i>' + M.emoji + '</i><b>' + M.name + '</b><small>' + M.perk + '</small></div>' +
-      '<div><i>⏩</i><b>속성 복무</b><small>카드 약 45장 · 10분 내외</small></div>' +
+      '<div><i>🎓</i><b>특기는 각자</b><small>훈련소 선택으로 정해진다</small></div>' +
+      '<div><i>⏩</i><b>속성 복무</b><small>10분 내외</small></div>' +
       '</div>' +
       '<label class="field"><span>성명</span><input id="daily-name" maxlength="6" value="' + esc(m.lastName || pick(NAMES)) + '"></label>' +
       (ins ? '<label class="check-row"><input type="checkbox" id="daily-ins" checked><span>🛡️ 전역 보험 챙기기 <small>(보유 ' + ins + '개)</small></span></label>' : '') +
@@ -322,9 +318,157 @@
         var insEl = box.querySelector('#daily-ins');
         if (JY.Sound) JY.Sound.unlock();
         closeModal();
-        beginRun({ name: name, start: cfg.start, mos: cfg.mos, face: Meta.get().face || randomFace(), pace: 3, trait: cfg.trait, unit: cfg.unit, seed: cfg.seed, daily: cfg.date, insurance: insEl ? insEl.checked : false });
+        beginRun({ name: name, start: cfg.start, face: Meta.get().face || randomFace(), pace: 3, trait: cfg.trait, unit: cfg.unit, seed: cfg.seed, daily: cfg.date, insurance: insEl ? insEl.checked : false });
       };
     });
+  }
+
+
+  /* ═════════ v6: 배치 명령 · 부대 지도 · 장소 · 득템 · 조합 ═════════ */
+  var RAR = { c: '일반', r: '희귀', e: '영웅', l: '전설' };
+  var RISK_WORD = ['🙆 안전', '👀 조금', '👀 보통', '🚨 위험'];
+  function specChip(id, lv) { var d = G.specDef(id); return (d.emoji || '') + ' ' + (d.name || '') + (lv ? ' Lv' + lv : ''); }
+  function fxText(fx) {
+    var out = '';
+    G.STATS.forEach(function (k) { var v = fx && fx[k]; if (!v) return; out += '<span class="fxc ' + (v > 0 ? 'up' : 'down') + '">' + SHORT[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>'; });
+    return out;
+  }
+  function weekLabel() {
+    var d = new Date(Date.parse(G.dateOf(state).replace(/\./g, '-') + 'T00:00:00Z'));
+    return (d.getUTCMonth() + 1) + '월 ' + Math.min(4, Math.floor((d.getUTCDate() - 1) / 7) + 1) + '주';
+  }
+
+  // 훈련소 끝: 자대 배치 명령서 (훈련소 선택이 어떻게 쌓였는지)
+  function showAssign() {
+    var a = state.assignInfo; if (!a) return;
+    a.shown = true; save();
+    var S = G.specDef(a.spec), U = JY.UNITS[a.unit] || {}, M = G.MOS[a.mos] || {};
+    var order = JY.BASE.specOrder, max = 1;
+    order.forEach(function (k) { max = Math.max(max, a.tags[k] || 0); });
+    var bars = order.map(function (k) {
+      var v = a.tags[k] || 0, d = G.specDef(k);
+      return '<div class="tagbar' + (k === a.spec ? ' on' : '') + '"><span>' + d.emoji + ' ' + d.name + '</span><i><s style="width:' + Math.round(v / max * 100) + '%"></s></i><b>' + v + '</b></div>';
+    }).join('');
+    openModal('<div class="assign"><p class="assign-eyebrow">📜 자대 배치 명령</p>' +
+      '<h3>' + S.emoji + ' 특기 「' + S.name + '」 <em>Lv' + a.lv + '</em></h3><p class="sub">' + esc(S.desc) + '</p>' +
+      '<div class="assign-grid"><div><small>보직</small><b>' + (M.emoji || '') + ' ' + (M.name || '') + '</b></div><div><small>자대</small><b>' + (U.emoji || '') + ' ' + esc(U.name || '') + '</b></div></div>' +
+      (a.why.length ? '<p class="assign-why">훈련소에서 눈에 띈 모습</p><ul class="why">' + a.why.map(function (w) { return '<li>“' + esc(w.txt) + '” <em>+' + w.n + '</em></li>'; }).join('') + '</ul>' : '') +
+      '<div class="tagbars">' + bars + '</div>' +
+      '<div class="modal-actions"><button class="btn btn-primary" data-act="close">충성! 자대로 간다</button></div></div>',
+    function (box) { box.querySelector('[data-act="close"]').onclick = closeModal; });
+    confetti(); snd('reveal');
+  }
+
+  function hideMap() {
+    $('#base').hidden = true;
+    $('#card-zone').hidden = false;
+    $('#choices').hidden = false;
+  }
+  function renderMap() {
+    stopUrgent();
+    $('#card-zone').hidden = true;
+    $('#choices').hidden = true;
+    var base = $('#base');
+    base.hidden = false;
+    var locs = G.locations(state), apMax = G.apMax(state), dn = state.dutyNote;
+    $('#prompt').className = 'prompt map-head';
+    $('#prompt').innerHTML = '<span class="who turn">📅 ' + weekLabel() + '</span> 개인정비 시간 <b class="ap">' + '⏱'.repeat(state.ap) + '<s>' + '⏱'.repeat(Math.max(0, apMax - state.ap)) + '</s></b>' +
+      (dn ? '<small class="duty-note">🪖 ' + esc(dn.text) + ' ' + fxText(dn.deltas) + '</small>' : '');
+    base.innerHTML = '<div class="loc-grid">' + locs.map(function (L) {
+      var can = L.acts.filter(function (a) { return a.ok && a.special !== 'craft'; }).length;
+      var badges = (L.acts.some(function (a) { return a.ok && a.loot; }) ? '<i title="득템">🎁</i>' : '') + (L.acts.some(function (a) { return a.ok && a.spec; }) ? '<i title="특기">⭐</i>' : '') + (L.acts.some(function (a) { return a.ok && a.mini; }) ? '<i title="미니게임">🎮</i>' : '');
+      return '<button class="loc' + (can ? '' : ' off') + '" data-loc="' + L.id + '"><span class="loc-emoji">' + L.emoji + '</span><b>' + L.name + '</b>' +
+        '<small class="loc-risk r' + L.risk + '">' + RISK_WORD[L.risk] + '</small>' + (badges ? '<span class="loc-badges">' + badges + '</span>' : '') +
+        (L.npc ? '<span class="loc-who">' + esc(charName(L.npc).name) + '</span>' : '') + '</button>';
+    }).join('') + '</div>' +
+      '<button class="btn ' + (state.ap ? 'btn-ghost' : 'btn-primary') + ' sleep" id="btn-sleep">🌙 ' + (state.ap ? '쉬고 취침 (남은 시간은 체력 회복)' : '개인정비 끝! 취침 → 다음 턴') + '</button>';
+    $$('.loc', base).forEach(function (b) { b.onclick = function () { snd('tap'); openLoc(b.dataset.loc); }; });
+    $('#btn-sleep').onclick = sleep;
+    busy = false;
+    if (!Meta.get().mapTutorial) setTimeout(function () { startCoach(MAP_COACH, 'mapTutorial'); }, 500);
+  }
+
+  function actLine(A) {
+    var bits = '';
+    if (A.roll) bits += '<span class="fxc">🎲 운 · 평균</span>';
+    if (A.fx) bits += fxText(A.fx);
+    if (A.mini) bits = '<span class="fxc">🎮 미니게임 · 보통이면</span>' + bits;
+    if (A.loot) bits += '<span class="fxc loot">🎁 득템</span>';
+    if (A.leave) bits += '<span class="fxc up">🏖️ 휴가 +' + A.leave + '</span>';
+    if (A.money) bits += '<span class="fxc">💰 ' + won(A.money) + '</span>';
+    if (A.need && A.need.item) bits += '<span class="fxc">' + JY.ITEMS[A.need.item].icon + ' ' + JY.ITEMS[A.need.item].name + ' 1개</span>';
+    if (A.special) bits += '<span class="fxc">' + esc(A.desc || '') + '</span>';
+    return bits;
+  }
+  function openLoc(id) {
+    var L = G.locations(state).filter(function (l) { return l.id === id; })[0];
+    if (!L) return;
+    var html = '<div class="loc-head"><div class="loc-art">' + A.scene(L.bg, state.season) + (L.npc ? '<div class="loc-npc">' + charSVG(L.npc) + '</div>' : '') + '</div>' +
+      '<div class="loc-info"><h3>' + L.emoji + ' ' + L.name + '</h3><p class="sub">' + esc(L.desc) + '</p>' +
+      '<p class="loc-risk-line">' + (L.risk ? RISK_WORD[L.risk] + ' — 간부 눈이 있다. 노는 행동은 걸릴 수 있다' : '🙆 안전한 곳') + '</p></div></div>' +
+      '<p class="ap-line">남은 개인정비 시간 ⏱ ' + state.ap + '</p>' +
+      '<div class="acts">' + L.acts.map(function (a) {
+        return '<button class="act' + (a.ok ? '' : ' off') + (a.danger ? ' danger' : '') + (a.spec ? ' spec' : '') + '" data-a="' + a.id + '"' + (a.ok ? '' : ' aria-disabled="true"') + '>' +
+          '<i>' + a.emoji + '</i><span class="act-main"><b>' + a.name + (a.spec ? ' <em>⭐특기</em>' : '') + '</b><span class="act-fx">' + actLine(a) + '</span>' +
+          (a.ok ? (a.danger ? '<small class="warn">⚠ 스탯이 끝에 닿는다! 전역 실패 위험</small>' : '') + (a.risk ? '<small class="risk">👀 걸릴 확률 ' + Math.round(a.risk * 100) + '%</small>' : '') : '<small class="why">' + esc(a.reason || '') + '</small>') +
+          '</span><em class="cost">' + (a.cost ? '⏱' + a.cost : '무료') + '</em></button>';
+      }).join('') +
+      (L.npc ? '<button class="act talk" data-talk="' + L.npc + '"><i>💬</i><span class="act-main"><b>' + esc(charName(L.npc).name) + '에게 말 걸기</b><span class="act-fx"><span class="fxc">호감도 · 멘탈</span></span></span><em class="cost">무료</em></button>' : '') +
+      '</div><div class="modal-actions"><button class="btn btn-ghost" data-act="close">지도로</button></div>';
+    openModal(html, function (box) {
+      box.querySelector('[data-act="close"]').onclick = closeModal;
+      var t = box.querySelector('[data-talk]');
+      if (t) t.onclick = function () {
+        var r = G.talk(state, t.dataset.talk);
+        if (!r) return;
+        save(); renderHUD();
+        toast(r.cooldown ? esc(charName(t.dataset.talk).name) + ': (이번 주엔 이미 수다 떨었다)' : '💬 ' + charName(t.dataset.talk).name + ': ' + r.line, 2600);
+        if (!r.cooldown) { snd('good'); animateDeltas(r.deltas); }
+      };
+      $$('.act[data-a]', box).forEach(function (b) {
+        b.onclick = function () {
+          var a = L.acts.filter(function (x) { return x.id === b.dataset.a; })[0];
+          if (!a.ok) { toast(a.reason || '지금은 못 한다', 1800); return; }
+          snd('tap');
+          if (a.special === 'craft') { closeModal(); openBag('craft'); return; }
+          if (a.special === 'px') { closeModal(); openPX(); return; }
+          if (a.special === 'leave') { closeModal(); openLeave(); return; }
+          var res = credit(G.doAction(state, L.id, a.id));
+          closeModal();
+          if (!res) return;
+          busy = true;
+          save();
+          missionToast(Meta.track('act'));
+          if (res.mini) { setTimeout(function () { runMini(res); }, 150); return; }
+          afterChoice(res);
+        };
+      });
+    });
+  }
+
+  function sleep() {
+    if (busy || !state || state.over) return;
+    var res = G.endFree(state);
+    if (!res) return;
+    busy = true;
+    credit(res); save();
+    snd('tap');
+    if (!res.night && !state.over) res.say = res.say || '🌙 하루가 저물었다. 내일도 군대다.';
+    afterChoice(res);
+  }
+
+  // 결과 쪽지에 붙는 득템 목록
+  function lootHtml(res) {
+    var out = '';
+    if (res.loot && res.loot.length) {
+      out += '<div class="loot"><b>🎁 득템!</b>' + res.loot.map(function (l) {
+        var it = JY.ITEMS[l.id];
+        return '<span class="lt ' + l.rarity + '"><i>' + it.icon + '</i>' + esc(it.name) + '<em>' + RAR[l.rarity] + '</em></span>';
+      }).join('') + '</div>';
+    }
+    var tags = (res.events || []).filter(function (e) { return e.type === 'tag'; });
+    if (tags.length) out += '<div class="tagchips">' + tags.map(function (e) { var d = G.specDef(e.spec); return '<span>📈 ' + d.emoji + ' ' + d.name + ' 소질 +' + e.n + '</span>'; }).join('') + '</div>';
+    return out;
   }
 
   /* ── HUD ─────────────────────────────── */
@@ -356,6 +500,7 @@
     // 지금 걸린 상황·효과는 아이콘만 (눌러서 설명). 보험처럼 신경 쓸 필요 없는 건 안 보인다
     function chip(cls, data, emoji, name) { return '<button class="' + cls + '" ' + data + ' aria-label="' + name + '">' + emoji + '</button>'; }
     var chips = state.conds.map(function (c) { var d = G.condDef(c.id); return chip('cond', 'data-cond="' + c.id + '"', d.emoji, d.name); });
+    if (state.spec) chips.unshift('<button class="cond spec" data-spec="1" aria-label="특기">' + G.specDef(state.spec.id).emoji + '<em>' + state.spec.lv + '</em></button>');
     if (state.insight > 0) chips.push(chip('cond buff', 'data-buff="insight"', '🔭', '투시경'));
     if (state.luck > 0) chips.push(chip('cond buff', 'data-buff="clover"', '🍀', '행운'));
     var key = chips.join('');
@@ -372,7 +517,7 @@
     // 도크: 지금 쓸 수 없는 버튼은 숨긴다 (PX는 열릴 때 '띠링' 하고 나타난다)
     var px = G.pxStatus(state), pxBtn = $('#dock-px');
     var pxWas = !pxBtn.hidden;
-    pxBtn.hidden = !px.ok;
+    pxBtn.hidden = !px.ok || state.phase === 'unit';
     pxBtn.classList.toggle('off', !px.ok);
     $('#px-badge').hidden = !px.ok;
     if (px.ok && !pxWas) { pxBtn.classList.remove('pop'); void pxBtn.offsetWidth; pxBtn.classList.add('pop'); }
@@ -434,10 +579,16 @@
   function renderCard(enter) {
     if (!state || state.over) return;
     stopUrgent();
+    if (state.phase === 'unit' && !state.current && !state.pendingMini) { renderMap(); return; }
+    hideMap();
+    if (state.current === 'tr_assign' && state.assignInfo && !state.assignInfo.shown) setTimeout(showAssign, 350);
     var c = G.currentCard(state);
     var nm = charName(c.who);
     $('#prompt').className = 'prompt' + (c.urgent ? ' urgent' : '');
-    $('#prompt').innerHTML = (c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : c.legend ? '<span class="who legend">📜 레전드 썰</span> ' : '') + esc(c.text);
+    var tagChip = c.urgent ? '<span class="who alarm">🚨 돌발</span> ' : c.legend ? '<span class="who legend">📜 레전드 썰</span> ' :
+      state.phase === 'unit' && state.step === 'duty' ? '<span class="who duty">🪖 오늘 일과</span> ' : state.phase === 'unit' && state.step === 'night' ? '<span class="who night">🌙 밤</span> ' :
+      state.rank < 1 ? '<span class="who train">🎓 훈련소 ' + Math.min(5, Math.floor(state.day / 7) + 1) + '주차</span> ' : '';
+    $('#prompt').innerHTML = tagChip + esc(c.text);
     var card = $('#card');
     $('#card-zone').classList.toggle('urgent', !!c.urgent); // 돌발 막대는 카드 위 빈자리에 (그림을 덮지 않게)
     card.className = 'card' + (c.urgent ? ' urgent' : '');
@@ -657,7 +808,8 @@
       if (!r2) { busy = false; renderCard(true); return; }
       var merged = {
         say: [res.say, r2.say].filter(Boolean).join(' '),
-        deltas: {}, events: (res.events || []).concat(r2.events || []), ending: r2.ending || res.ending
+        deltas: {}, events: (res.events || []).concat(r2.events || []), ending: r2.ending || res.ending,
+        loot: (res.loot || []).concat(r2.loot || []), tier: r2.tier
       };
       [res.deltas, r2.deltas].forEach(function (d) { for (var k in d) merged.deltas[k] = (merged.deltas[k] || 0) + d[k]; });
       afterChoice(merged);
@@ -725,14 +877,19 @@
       if (!v) return;
       chips += '<span class="chip ' + (v > 0 ? 'up' : 'down') + '">' + ICON[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
     });
-    var evs = (res.events || []).map(function (e) {
+    var evs = (res.events || []).filter(function (e) { return e.type !== 'tag' && e.type !== 'assign' && e.type !== 'turn'; }).map(function (e) {
+      if (e.type === 'speclv') { setTimeout(confetti, 250); return '<div class="ev-big"><small>⭐ 특기 레벨 업</small><b>' + esc(e.text) + '</b><span>특기 행동이 더 강해진다</span></div>'; }
       if (e.type === 'cond') { var d = G.condDef(e.id); return '<div class="ev-big"><small>📢 이번 주 상황</small><b>' + esc(d.emoji + ' ' + d.name) + '</b><span>' + esc(d.desc) + '</span></div>'; }
       return '<div>' + esc(eventLine(e)) + '</div>';
     }).join('');
-    var head = res.emergency ? (res.timeout ? '<div class="note-head bad">⏱ 시간 초과!</div>' : '<div class="note-head">🚨 돌발 상황 대처 완료</div>') : '';
+    var head = res.emergency ? (res.timeout ? '<div class="note-head bad">⏱ 시간 초과!</div>' : '<div class="note-head">🚨 돌발 상황 대처 완료</div>') :
+      res.caught ? '<div class="note-head bad">👀 걸렸다!</div>' : res.tier === 'great' ? '<div class="note-head">🌟 대성공!</div>' : '';
+    var lootRare = (res.loot || []).some(function (l) { return l.rarity === 'e' || l.rarity === 'l'; });
+    if (lootRare) setTimeout(function () { confetti(); snd('gem'); }, 200);
+    else if (res.loot && res.loot.length) setTimeout(function () { snd('coin'); }, 150);
     box.innerHTML = '<div class="note' + (res.emergency ? ' urgent' : '') + '">' + head +
       (res.say ? '<p>' + esc(res.say) + '</p>' : '') +
-      (chips ? '<div class="chips">' + chips + '</div>' : '') +
+      (chips ? '<div class="chips">' + chips + '</div>' : '') + lootHtml(res) +
       (evs ? '<div class="events">' + evs + '</div>' : '') +
       (canUndo(res) ? '<button class="undo-btn" id="undo-btn">⌚ 국방부 시계 되돌리기 <em>' + (JSON.parse(undoSnap).undo) + '회</em></button>' : '') +
       '<span class="tap-next">탭해서 계속 ▶</span></div>';
@@ -850,7 +1007,22 @@
     var sel = null;
     tab = tab || 'items';
     function html() {
-      var tabs = '<div class="tabs small"><button data-tab="items" aria-selected="' + (tab === 'items') + '">일반 아이템</button><button data-tab="premium" aria-selected="' + (tab === 'premium') + '">특급 보급품 💎</button></div>';
+      var tabs = '<div class="tabs small"><button data-tab="items" aria-selected="' + (tab === 'items') + '">아이템</button>' +
+        (state.phase === 'unit' ? '<button data-tab="craft" aria-selected="' + (tab === 'craft') + '">조합 🍳</button>' : '') +
+        '<button data-tab="premium" aria-selected="' + (tab === 'premium') + '">특급 💎</button></div>';
+      if (tab === 'craft') {
+        var known = Meta.get().recipes || {};
+        var rows = JY.BASE.recipes.map(function (R) {
+          var it = JY.ITEMS[R.id], st = G.recipeStatus(state, R), seen = known[R.id] || state.recipes[R.id];
+          var ing = Object.keys(R.need).map(function (id) { var have = state.items[id] || 0, ok = have >= R.need[id]; return '<span class="ing' + (ok ? ' ok' : '') + '">' + JY.ITEMS[id].icon + ' ' + JY.ITEMS[id].name + ' ' + Math.min(have, R.need[id]) + '/' + R.need[id] + '</span>'; }).join('');
+          return '<div class="recipe' + (st.ok ? ' ready' : '') + '"><div class="rc-top"><i>' + (seen ? it.icon : '❓') + '</i><span><b>' + (seen ? esc(it.name) : '???') + '</b><small>' + (seen ? esc(it.desc) : '힌트: ' + esc(R.hint)) + '</small>' +
+            (seen ? '<span class="rc-fx">' + fxText(it.fx) + (it.aff ? '<span class="fxc up">💗 호감도</span>' : '') + '</span>' : '') + '</span>' +
+            '<button class="btn btn-small ' + (st.ok ? 'btn-primary' : 'btn-ghost') + '" data-craft="' + R.id + '"' + (st.ok ? '' : ' disabled') + '>만들기</button></div><div class="rc-ing">' + ing + '</div></div>';
+        }).join('');
+        return '<h3>가방</h3>' + tabs + '<p class="sub">재료를 모아 생활관 요리를 만든다 (시간 안 듦). 만든 요리는 가방에서 먹는다.' + (state.spec && state.spec.id === 'cook' && state.spec.lv >= 3 ? ' 🍳 요리 특기: 하나 더!' : '') + '</p><div class="recipes">' + rows + '</div>' +
+          '<div class="modal-actions"><button class="btn btn-ghost" data-act="close">닫기</button></div>';
+      }
+
       if (tab === 'premium') {
         var ids = JY.PREMIUM_ORDER.filter(function (id) { return Meta.stash(id) > 0; });
         var list = ids.length ? '<div class="item-grid">' + ids.map(function (id) {
@@ -897,6 +1069,21 @@
         if (!(state.items[sel] > 0)) sel = null;
         rerender(box);
       };
+      $$('[data-craft]', box).forEach(function (b) {
+        b.onclick = function () {
+          var r = G.craft(state, b.dataset.craft);
+          if (!r) return;
+          var it = JY.ITEMS[r.crafted.id], m = Meta.get();
+          var isNew = !m.recipes[r.crafted.id];
+          m.recipes[r.crafted.id] = (m.recipes[r.crafted.id] || 0) + 1; Meta.save();
+          missionToast(Meta.track('craft'));
+          save(); renderHUD();
+          if (isNew) { confetti(); snd('reveal'); toast('📖 새 레시피 발견! ' + it.icon + ' ' + it.name + (r.crafted.n > 1 ? ' ×' + r.crafted.n : ''), 2800); }
+          else { snd('coin'); toast(it.icon + ' ' + it.name + ' 완성!' + (r.crafted.n > 1 ? ' ×' + r.crafted.n : ''), 2000); }
+          (r.events || []).forEach(function (e) { if (e.type === 'speclv') toast(e.text, 2600); });
+          rerender(box);
+        };
+      });
       var up = box.querySelector('[data-act="usep"]');
       if (up) up.onclick = function () {
         var id = sel;
@@ -1422,12 +1609,19 @@
     { sel: '#stats', text: '카드를 살짝 끌면 바뀔 스탯 위에 <b>점</b>이 뜬다. 큰 점 = 크게 변함. 오를지 내릴지는 글을 읽고 맞혀라.' },
     { sel: '.dock', text: '위험하면 <b>가방</b>을 연다. PX·동료·휴가 버튼은 <b>쓸 수 있을 때 나타난다</b>. 목표: <b>전역일까지 살아남기</b>. 충성!' }
   ];
-  var coachStep = 0;
-  function startCoach() {
+  var MAP_COACH = [
+    { sel: '#base .loc-grid', text: '훈련소 끝! 자대에서는 <b>부대 지도</b>를 돌아다닌다. 장소를 눌러 행동하면 <b>⏱ 개인정비 시간</b>을 쓴다.' },
+    { sel: '#prompt', text: '남은 시간 ⏱과 오늘 일과가 여기 뜬다. 👀·🚨 표시가 있는 곳은 <b>행보관에게 걸릴 수 있다</b>. 🎁는 득템, ⭐는 내 특기 행동.' },
+    { sel: '#btn-sleep', text: '시간을 다 쓰면 <b>취침</b>. 밤에 사건이 생기고 2주가 흐른다. 생활관에서 <b>뽀글이</b>도 만들어 보자!' }
+  ];
+  var coachStep = 0, coachSteps = COACH, coachKey = 'tutorialDone';
+  function startCoach(steps, key) {
     if ($('#scr-game').hidden) return;
+    coachSteps = steps || COACH; coachKey = key || 'tutorialDone';
     coachStep = 0; showCoach();
   }
   function showCoach() {
+    var COACH = coachSteps;
     var c = COACH[coachStep], el = document.querySelector(c.sel), ov = $('#coach');
     if (!el) { endCoach(); return; }
     var r = el.getBoundingClientRect();
@@ -1440,10 +1634,10 @@
     box.style.top = below ? Math.min(window.innerHeight - 170, r.bottom + 16) + 'px' : 'auto';
     box.style.bottom = below ? 'auto' : Math.max(12, window.innerHeight - r.top + 16) + 'px';
     ov.hidden = false;
-    box.querySelector('[data-c="next"]').onclick = function () { snd('tap'); coachStep += 1; if (coachStep >= COACH.length) endCoach(); else showCoach(); };
+    box.querySelector('[data-c="next"]').onclick = function () { snd('tap'); coachStep += 1; if (coachStep >= coachSteps.length) endCoach(); else showCoach(); };
     box.querySelector('[data-c="skip"]').onclick = endCoach;
   }
-  function endCoach() { $('#coach').hidden = true; Meta.get().tutorialDone = true; Meta.save(); }
+  function endCoach() { $('#coach').hidden = true; Meta.get()[coachKey] = true; Meta.save(); }
 
   /* ── 짬 · 레벨업 ─────────────────────── */
   function jjamPanel(r, mdone) {
@@ -1672,10 +1866,9 @@
     $('#in-name').addEventListener('input', updateSetupPreview);
     $('#in-date').addEventListener('change', updateDateNote);
     $('#in-date').addEventListener('input', updateDateNote);
-    $('#mos-grid').addEventListener('click', function (e) {
-      var b = e.target.closest('.mos'); if (!b) return;
-      setup.mos = b.dataset.mos; snd('tap');
-      $$('.mos').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    $('#spec-row').addEventListener('click', function (e) {
+      var b = e.target.closest('span'); if (!b) return;
+      toast(b.textContent + ': ' + b.title, 2600);
     });
     $('#btn-setup-back').onclick = renderTitle;
     $('#setup-form').addEventListener('submit', function (e) { e.preventDefault(); if (JY.Sound) JY.Sound.unlock(); startGame(); });
@@ -1688,6 +1881,7 @@
     $('.hud-name').addEventListener('click', function (e) { if (!e.target.closest('.cond')) openMenu(); });
     $('#conds').addEventListener('click', function (e) {
       var b = e.target.closest('.cond'); if (!b || !state) return;
+      if (b.dataset.spec && state.spec) { var sd = G.specDef(state.spec.id); toast(sd.emoji + ' 특기 ' + sd.name + ' Lv' + state.spec.lv + ' (경험 ' + state.spec.xp + '/' + (3 * state.spec.lv) + ') — ' + sd.desc, 3200); return; }
       if (b.dataset.cond) {
         var d = G.condDef(b.dataset.cond), c = state.conds.filter(function (x) { return x.id === b.dataset.cond; })[0];
         toast(d.emoji + ' ' + d.name + ': ' + d.desc + (c ? ' (카드 ' + c.left + '장 남음)' : ''), 2800);
@@ -1745,7 +1939,8 @@
       renderRank: function (t) { rankTab = t; renderRank(renderTitle); },
       renderTitle: renderTitle, renderSetup: renderSetup, showEnding: showEnding, stopUrgent: stopUrgent,
       startCoach: startCoach, endCoach: endCoach,
-      animateDeltas: animateDeltas, showPreview: showPreview, talkBubble: talkBubble, toast: toast
+      animateDeltas: animateDeltas, showPreview: showPreview, talkBubble: talkBubble, toast: toast,
+      openLoc: openLoc, showAssign: showAssign
     }
   };
 

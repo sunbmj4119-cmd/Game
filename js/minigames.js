@@ -494,6 +494,71 @@
     }
   };
 
+
+  /* ── v6: 타이밍 게임 (특식 만들기 · 족구 · 특급전사) ──
+   * 움직이는 표시가 초록 칸에 왔을 때 누른다. 라운드마다 칸이 좁아지고 빨라진다. */
+  function timing(cfg, done) {
+    var ui = frame(cfg.title, cfg.howto);
+    ui.stage.insertAdjacentHTML('afterbegin', '<div class="tm-wrap"><div class="tm-label" id="tm-label">준비</div>' +
+      '<div class="tm-track"><i class="tm-zone" id="tm-zone"></i><b class="tm-ptr" id="tm-ptr">' + cfg.icon + '</b></div>' +
+      '<button class="btn btn-primary tm-btn" id="tm-btn" disabled>' + cfg.btn + '</button><div class="tm-log" id="tm-log"></div></div>');
+    var zoneEl = $('#tm-zone'), ptr = $('#tm-ptr'), btn = $('#tm-btn'), lab = $('#tm-label'), logEl = $('#tm-log');
+    var r = 0, hits = 0, pos = 0, dir = 1, speed = 0, zone = [0, 0], running = false, last = 0, marks = '';
+    ui.time.style.width = '100%';
+    function round() {
+      var zw = Math.max(0.1, cfg.zone - r * 0.025), z0 = rnd(0.08, 0.92 - zw);
+      zone = [z0, z0 + zw];
+      zoneEl.style.left = (z0 * 100) + '%'; zoneEl.style.width = (zw * 100) + '%';
+      speed = cfg.speed * (1 + r * 0.14);
+      pos = Math.random() < 0.5 ? 0 : 1; dir = pos ? -1 : 1;
+      lab.textContent = cfg.labels[r % cfg.labels.length];
+      ui.left.textContent = (r + 1) + '/' + cfg.rounds;
+      ui.right.textContent = '성공 ' + hits;
+      running = true; last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+    function loop(now) {
+      if (!running) return;
+      var dt = Math.min(0.05, (now - last) / 1000); last = now;
+      pos += dir * speed * dt;
+      if (pos > 1) { pos = 1; dir = -1; }
+      if (pos < 0) { pos = 0; dir = 1; }
+      ptr.style.left = (pos * 100) + '%';
+      raf = requestAnimationFrame(loop);
+    }
+    on(btn, 'click', function () {
+      if (!running) return;
+      running = false; cancelAnimationFrame(raf);
+      var hit = pos >= zone[0] && pos <= zone[1];
+      if (hit) { hits += 1; snd('coin'); } else { snd('miss'); if (JY.buzz) JY.buzz(40); }
+      marks += hit ? '⭕' : '❌'; logEl.textContent = marks;
+      ui.right.textContent = '성공 ' + hits;
+      r += 1;
+      if (r < cfg.rounds) later(round, 520);
+      else {
+        btn.disabled = true;
+        var tier = hits >= cfg.great ? 'great' : hits >= cfg.good ? 'good' : 'bad';
+        later(function () { finish(ui, tier, cfg.msg[tier][0], cfg.msg[tier][1].replace('{n}', hits).replace('{t}', cfg.rounds), done); }, 400);
+      }
+    });
+    countdown(ui, function () { btn.disabled = false; round(); });
+  }
+  GAMES.cook = function (o, done) {
+    timing({ title: '특식 만들기', howto: '움직이는 국자가 초록 칸에 왔을 때 눌러라! 3단계 요리.', icon: '🥄', btn: '지금!', rounds: 3, speed: 0.95, zone: 0.24,
+      labels: ['물 붓기', '면 넣기', '불 끄기'], great: 3, good: 2,
+      msg: { great: ['완벽한 특식!', '{n}/{t} 성공'], good: ['맛있게 됐다', '{n}/{t} 성공'], bad: ['냄비가 탔다…', '{n}/{t} 성공'] } }, done);
+  };
+  GAMES.jokgu = function (o, done) {
+    timing({ title: '족구 한 판', howto: '공이 초록 칸(발 앞)에 왔을 때 눌러서 받아 차라!', icon: '⚽', btn: '뻥!', rounds: 3, speed: 1.15, zone: 0.22,
+      labels: ['서브 받기', '토스', '강스파이크!'], great: 3, good: 2,
+      msg: { great: ['결승 득점!', '{n}/{t} 성공'], good: ['아깝다!', '{n}/{t} 성공'], bad: ['헛발질…', '{n}/{t} 성공'] } }, done);
+  };
+  GAMES.pushup = function (o, done) {
+    timing({ title: '특급전사: 팔굽혀펴기', howto: '가슴이 초록 칸까지 내려갈 때 눌러야 한 개로 센다!', icon: '💪', btn: '하나!', rounds: 5, speed: 1.25, zone: 0.2,
+      labels: ['하나', '둘', '셋', '넷', '다섯!'], great: 5, good: 3,
+      msg: { great: ['특급전사!', '{n}/{t} 정자세'], good: ['1급 합격', '{n}/{t} 정자세'], bad: ['팔이 후들후들', '{n}/{t} 정자세'] } }, done);
+  };
+
   JY.Mini = {
     start: function (id, opts, done) {
       clearAll();
@@ -501,6 +566,6 @@
       try { fn(opts || {}, done); }
       catch (e) { clearAll(); if (root) { root.hidden = true; root.innerHTML = ''; } done('good'); }
     },
-    names: { dressup: '비상 소집', snow: '제설 작업', watch: '불침번', shoot: '사격', shell: '탄피 찾기', memory: '선임 이름 외우기' }
+    names: { dressup: '비상 소집', snow: '제설 작업', watch: '불침번', shoot: '사격', shell: '탄피 찾기', memory: '선임 이름 외우기', cook: '특식 만들기', jokgu: '족구', pushup: '특급전사' }
   };
 })(window.JY = window.JY || {});

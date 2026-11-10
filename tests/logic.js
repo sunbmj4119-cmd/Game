@@ -22,6 +22,7 @@ function fresh(opts) {
   var s = G.newState(Object.assign({ start: '2026-03-02', mos: 'infantry', name: '점검병', unit: 'coast' }, opts || {}));
   s.rank = 1; s.day = 60; s.queue = []; s.current = 'quiet'; s.cv = pin('quiet');
   s.promo = [0, 35, 9999, 9999, 9999]; // 점검 중엔 진급이 끼어들지 않게
+  s.assigned = true; s.cardsOnly = true;   // 카드 규칙만 본다 (v6 자대 지도는 13번에서)
   G.STATS.forEach(function (k) { s.stats[k] = 50; });
   return s;
 }
@@ -133,7 +134,7 @@ JY.ITEM_ORDER.forEach(function (id) {
   for (var j = 0; j < 30; j++) {
     var st = G.newState({ start: '2026-03-02' });
     starts[[st.current].concat(st.queue).join(',')] = 1;
-    ok(st.queue.length === 10, '시작 카드 11장', st.queue.length + 1);
+    ok(st.queue.length === 16, '시작 카드 17장 (훈련소 13 + 배치 + 자대 도착 3)', st.queue.length + 1);
     var g = 0; while (st.rank < 1 && g++ < 20) G.choose(st, 'r');
     ok(st.day === 35, '훈련소는 정확히 35일', st.day);
   }
@@ -330,6 +331,109 @@ JY.ITEM_ORDER.forEach(function (id) {
   var sB = fresh(); sB.over = { good: true, list: ['normal'], day: sB.total };
   var hb = JY.HEAT.haeng.bonus + JY.HEAT.blind.bonus;
   ok(Math.abs(G.score(sA).total / G.score(sB).total - (1 + hb)) < 0.01, '악조건 점수 배수 (행보관 + 눈치 제로)', [G.score(sA).total, G.score(sB).total, hb]);
+})();
+
+
+/* 13. v6: 훈련소 소질 → 배치 → 자대 지도 */
+(function () {
+  // 훈련소: 카드마다 이틀, 선택하면 소질이 쌓인다
+  var s = G.newState({ start: '2026-03-02', seed: 7 });
+  ok(s.phase === 'train' && !s.assigned, '시작은 훈련소');
+  s.current = 'apt_record'; s.cv = { id: 'apt_record', v: 0, k: 0 };
+  var r = G.choose(s, 'l');
+  ok(s.tags.shoot === 3 && r.events.some(function (e) { return e.type === 'tag' && e.spec === 'shoot'; }), '적성 카드: 사격 소질 +3', s.tags);
+  ok(s.day === 2, '훈련소 카드는 이틀', s.day);
+  s.current = 'tr_zero'; s.cv = { id: 'tr_zero', v: 0, k: 0 };
+  G.choose(s, 'l');
+  ok(s.tags.shoot === 6, '기존 훈련 카드도 소질 (영점사격 +3)', s.tags);
+  // 배치 발표 카드가 나올 때 특기·보직·자대
+  s.queue = ['tr_assign', 'ja_arrive']; s.current = 'quiet'; s.cv = pin('quiet');
+  G.choose(s, 'l');
+  ok(s.current === 'tr_assign' && s.assigned, '배치 발표 때 배치 결정');
+  ok(s.spec && s.spec.id === 'shoot' && s.spec.lv === 2 && s.mos === 'infantry', '가장 큰 소질 → 특기 사격 Lv2 · 소총수', s.spec);
+  ok(!!s.unit && s.assignInfo && s.assignInfo.why.length >= 1 && /숨/.test(s.assignInfo.why[0].txt), '배치 이유에 고른 선택지', s.assignInfo && s.assignInfo.why);
+  var t2 = G.newState({ start: '2026-03-02', seed: 3 });
+  t2.tags = { cook: 9, admin: 2 }; t2.queue = ['tr_assign']; t2.current = 'quiet'; t2.cv = pin('quiet'); G.choose(t2, 'r');
+  ok(t2.spec.id === 'cook' && t2.mos === 'cook' && t2.spec.lv === 3, '요리 소질 → 취사병 · 요리 Lv3', t2.spec);
+  // 배치 → 자대 도착 카드 → 부대 지도
+  G.choose(s, 'r');
+  ok(s.rank === 1 && s.phase === 'train', '수료: 이병, 아직 자대 도착 카드', [s.rank, s.phase, s.current]);
+  G.choose(s, 'l');
+  ok(s.phase === 'unit' && s.turn === 1, '자대 도착 카드가 끝나면 자대 생활 1턴', [s.phase, s.turn]);
+  var guard = 0;
+  while ((s.current || s.pendingMini) && guard++ < 5) { if (s.pendingMini) G.finishMini(s, 'good'); else G.choose(s, 'l'); }
+  ok(s.step === 'free' && s.ap === G.apMax(s) && s.ap === 2, '일과 끝 → 개인정비 (이병 ⏱2)', [s.step, s.ap]);
+
+  function unit(opts) {
+    var u = G.newState(Object.assign({ start: '2026-03-02', unit: 'coast', mos: 'infantry', seed: 11 }, opts || {}));
+    u.rank = 2; u.day = 120; u.queue = []; u.current = null; u.assigned = true; u.phase = 'unit'; u.turn = 3; u.step = 'free'; u.ap = 3; u.pendingMini = null;
+    u.spec = { id: (opts && opts.spec) || 'social', lv: 2, xp: 0 }; u.emer.since = 0;
+    G.STATS.forEach(function (k) { u.stats[k] = 50; });
+    return u;
+  }
+  // 행동: 시간·효과·미리보기
+  var a = unit(), locs = G.locations(a), bar = locs.filter(function (l) { return l.id === 'barracks'; })[0];
+  var chat = bar.acts.filter(function (x) { return x.id === 'chat'; })[0];
+  ok(chat.ok && chat.fx.bd > 0 && chat.cost === 1, '지도: 생활관 수다 미리보기', chat);
+  var bd0 = a.stats.bd, r1 = G.doAction(a, 'barracks', 'chat');
+  ok(r1 && a.ap === 2 && (r1.caught || a.stats.bd - bd0 === chat.fx.bd), '수다: 시간 1 쓰고 미리보기만큼 전우애', [a.ap, a.stats.bd - bd0, chat.fx.bd, r1.caught]);
+  // 특기 전용 행동은 다른 특기에게 잠김
+  var lock = G.actionStatus(a, 'range', 'sharp');
+  ok(!lock.ok && lock.lock, '특등사수 도전은 사격 특기 전용', lock);
+  // 필요 물건·돈
+  ok(!G.actionStatus(a, 'office', 'coffee').ok, '커피 없으면 커피 타기 불가');
+  a.items.coffee = 1; var tr0 = a.stats.tr; G.doAction(a, 'office', 'coffee');
+  ok(!(a.items.coffee > 0) && a.stats.tr > tr0, '커피 타 드리기: 커피 1개 쓰고 신뢰 상승', a.stats.tr - tr0);
+  a.money = 0; ok(!G.actionStatus(a, 'px', 'freezer').ok, '돈 없으면 냉동고 뽑기 불가');
+  // 시간이 다 떨어지면 행동 불가
+  a.ap = 0; ok(!G.actionStatus(a, 'barracks', 'nap').ok, '개인정비 시간 0이면 행동 불가');
+  // 득템
+  var gotLoot = 0, legend = 0;
+  for (var i = 0; i < 60; i++) { var u = unit({ seed: 100 + i }); var lr = G.doAction(u, 'supply', 'scavenge'); if (lr && lr.loot) { gotLoot += lr.loot.length; lr.loot.forEach(function (l) { if (!(u.items[l.id] > 0)) legend = -999; }); } }
+  ok(gotLoot > 40 && legend === 0, '보급창고 파밍: 득템이 가방에 들어간다', gotLoot);
+  // 행보관에게 걸림: 위험한 곳일수록, 눈치 특기는 덜
+  function caughtRate(spec) { var n = 0; for (var i = 0; i < 300; i++) { var u = unit({ seed: 500 + i, spec: spec }); var cr = G.doAction(u, 'hill', 'hide'); if (cr && cr.caught) n++; } return n / 300; }
+  var cOther = caughtRate('shoot'), cSocial = caughtRate('social');
+  ok(cOther > 0.07 && cOther < 0.22 && cSocial < cOther, '뒷산 몰래 꿀잠: 가끔 걸리고 눈치 특기는 덜 걸림', [cOther, cSocial]);
+  // 특기 행동 → 미니게임 → 등급별 결과, 경험치·레벨
+  var sh = unit({ spec: 'shoot' }); sh.spec.lv = 2; sh.spec.xp = 5;
+  var mr = G.doAction(sh, 'range', 'sharp');
+  ok(mr && mr.mini === 'shoot' && sh.pendingMini && sh.cd['range.sharp'] === sh.turn + 4, '특등사수 도전: 사격 미니게임 + 4턴 쉬기', mr);
+  var leave0 = sh.leave, fr = G.finishMini(sh, 'great');
+  ok(sh.leave - leave0 === 3 && sh.spec.lv === 3, '대성공: 포상휴가 3일 + 특기 레벨 업', [sh.leave - leave0, sh.spec]);
+  ok(fr.events.some(function (e) { return e.type === 'speclv'; }), '특기 레벨 업 알림');
+  // 조합
+  var c = unit();
+  ok(!G.craft(c, 'bbog'), '라면 없으면 뽀글이 불가');
+  c.items.ramen = 1; var cr2 = G.craft(c, 'bbog');
+  ok(cr2 && c.items.bbog === 1 && !(c.items.ramen > 0) && cr2.crafted.first && c.recipes.bbog === 1, '뽀글이 조합: 라면 → 뽀글이 (새 레시피)', cr2 && cr2.crafted);
+  var mt0 = c.stats.mt; G.useItem(c, 'bbog'); ok(c.stats.mt > mt0, '뽀글이 먹으면 멘탈 상승');
+  var ck = unit({ spec: 'cook' }); ck.spec.lv = 3; ck.items.chocopie = 3; G.craft(ck, 'cake');
+  ok(ck.items.cake === 2, '요리 특기 Lv3: 하나 더', ck.items.cake);
+  c.items.tuna = 1; c.items.hotbar = 1; G.craft(c, 'catsnack'); var cat0 = c.aff.cat; G.useItem(c, 'catsnack');
+  ok(c.aff.cat > cat0, '짬타이거 특식: 고양이 호감도', [cat0, c.aff.cat]);
+  // 턴 끝: 밤 → 날짜가 흐르고 다음 턴
+  var e = unit({ pace: 3 }); var day0 = e.day, turn0 = e.turn;
+  var er = G.endFree(e);
+  var g2 = 0;
+  while ((e.current || e.pendingMini) && e.step === 'night' && g2++ < 5) G.choose(e, 'l');
+  ok(e.day - day0 === G.TURN_DAYS[3] && e.turn === turn0 + 1, '취침 → 4주 흐르고 다음 턴 (속성 복무)', [e.day - day0, e.turn]);
+  // 휴가는 개인정비 때만, 쓰면 그 턴은 끝
+  var lv = unit(); lv.leave = 5; lv.lastLeaveEnd = -999;
+  lv.step = 'duty'; ok(!G.leaveStatus(lv).ok, '일과 중엔 휴가 신청 불가');
+  lv.step = 'free'; ok(G.leaveStatus(lv).ok, '개인정비 때 휴가 신청 가능');
+  G.takeLeave(lv, 3); ok(lv.ap === 0 && lv.step === 'night' && !!lv.current, '휴가 다녀오면 그 턴은 복귀 카드로 끝', [lv.ap, lv.step, lv.current]);
+  // PX: 자대에선 다녀오면 시간 1
+  var px = unit(); px.money = 100000; G.buy(px, 'ramen'); G.closePX(px, true);
+  ok(px.ap === 2 && px.items.ramen === 1, 'PX 장보기: 개인정비 시간 1', px.ap);
+  // 위험 경고: 끝에 닿는 행동은 표시
+  var d = unit(); d.stats.hp = 95;
+  var nap = G.locations(d).filter(function (l) { return l.id === 'barracks'; })[0].acts.filter(function (x) { return x.id === 'nap'; })[0];
+  ok(nap.danger, '체력 95에서 꿀잠: 위험 표시', nap);
+  // 예전 저장(단계 없음)도 열린다
+  var old = clone(fresh()); delete old.phase; delete old.tags; delete old.assigned; delete old.cardsOnly;
+  var mg = G.migrate(old);
+  ok(mg.phase === 'train' && mg.assigned === true && mg.spec, '예전 저장 불러오기: 수료한 판은 자대 지도로 이어진다', [mg.phase, mg.assigned]);
 })();
 
 console.log('통과 ' + passes + '개' + (fails.length ? ', 실패 ' + fails.length + '개' : ''));

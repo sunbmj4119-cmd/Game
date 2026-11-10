@@ -86,15 +86,16 @@
       </fieldset>
 
       <fieldset class="field" id="field-mos">
-        <legend>보직 (주특기)</legend>
-        <div class="mos-grid" id="mos-grid"></div>
+        <legend>보직 · 특기</legend>
+        <p class="spec-note" id="spec-note">훈련소에서 고르는 선택이 쌓여 <b>특기·보직·자대</b>가 정해진다.</p>
+        <div class="spec-row" id="spec-row"></div>
       </fieldset>
 
       <fieldset class="field" id="field-pace">
         <legend>복무 방식</legend>
         <div class="pace-grid">
-          <label class="pace"><input type="radio" name="pace" value="1"><span><b>정상 복무</b><small>카드 약 120장 · 30분 내외</small></span></label>
-          <label class="pace"><input type="radio" name="pace" value="3" checked><span><b>속성 복무</b><small>카드 약 45장 · 10분 내외 · 점수 ×0.7</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="1"><span><b>정상 복무</b><small>자대 약 37턴 · 30분 내외</small></span></label>
+          <label class="pace"><input type="radio" name="pace" value="3" checked><span><b>속성 복무</b><small>자대 약 18턴 · 10분 내외 · 점수 ×0.7</small></span></label>
         </div>
       </fieldset>
 
@@ -108,7 +109,7 @@
         <input type="checkbox" id="in-insurance" checked>
         <span>🛡️ 전역 보험 챙기기 <small id="insurance-count"></small></span>
       </label>
-      <p class="field-note">자대는 훈련소 수료 때 무작위로 배치된다.</p>
+      <p class="field-note">보직·특기·자대는 훈련소에서의 선택으로 정해진다.</p>
 
       <div class="notice-actions">
         <button type="button" class="btn btn-ghost" id="btn-setup-back">취소</button>
@@ -142,6 +143,7 @@
         <button class="choice" data-side="l"><span>◀</span><b id="choice-l"></b></button>
         <button class="choice" data-side="r"><b id="choice-r"></b><span>▶</span></button>
       </div>
+      <div class="base" id="base" hidden></div>
       <div class="timeout-hint" id="timeout-hint" hidden></div>
       <div class="alert" id="alert" hidden></div>
       <div class="result" id="result" hidden></div>
@@ -273,6 +275,7 @@
 <script src="js/data/items.js"></script>
 <script src="js/data/world.js"></script>
 <script src="js/data/shop.js"></script>
+<script src="js/data/base.js"></script>
 <script src="js/core.js"></script>
 <script src="js/meta.js"></script>
 <script src="js/rank.js"></script>

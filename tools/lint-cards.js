@@ -36,7 +36,7 @@ var BGS = ['barracks', 'night', 'training', 'field', 'gate', 'rain', 'mess', 'of
 var SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 var MOS = ['infantry', 'cook', 'clerk', 'driver', 'medic'];
 var REQ_KEYS = ['rank', 'season', 'mos', 'unit', 'trait', 'month', 'flag', 'noflag', 'vars', 'stat', 'aff', 'left', 'minDay', 'leaveGte'];
-var OPT_KEYS = ['t', 'fx', 'say', 'roll', 'cases', 'need', 'aff', 'gem', 'leave', 'money', 'flag', 'unflag', 'cond', 'add', 'mini', 'end', 'next', 'vars', 'item', 'items', 'tuned', 'days', 'mood', 'queue', 'luck', 'insight', 'p', 'if', 'set', 'chain', 'unset', 'save', 'block'];
+var OPT_KEYS = ['t', 'fx', 'say', 'roll', 'cases', 'need', 'aff', 'gem', 'leave', 'money', 'flag', 'unflag', 'cond', 'add', 'mini', 'end', 'next', 'vars', 'item', 'items', 'tuned', 'days', 'mood', 'queue', 'luck', 'insight', 'p', 'if', 'set', 'chain', 'unset', 'save', 'block', 'tag'];
 
 var errors = [], warns = [], stat = { scenes: 0, fx: { hp: [], mt: [], tr: [], bd: [] } };
 function arr(x) { return x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]; }

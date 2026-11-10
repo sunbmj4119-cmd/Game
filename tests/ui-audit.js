@@ -212,6 +212,21 @@ function readCheck() {
       if (w > 2 && h > 1.5) add({ t: 'text-on-control', el: nm(T.host) + ' × ' + nm(C.c), txt: T.s });
     });
   });
+  // 작은 그림(스탯 아이콘·계급장 등)이 자기 틀 밖으로 나가 잘리는지 (배경·인물 그림은 따로 검사)
+  document.querySelectorAll('svg').forEach(function (sv) {
+    if (sv.closest('[hidden]') || eff(sv) < 0.1) return;
+    var cls = sv.getAttribute('class') || '';
+    if (/\b(scene|char)\b/.test(cls) || sv.closest('.char-wrap, .face-preview, #me-big, #shop-me')) return;
+    var box = sv.getBoundingClientRect(); if (box.width < 4 || box.height < 4) return;
+    var worst = 0, what = '';
+    sv.querySelectorAll('path, circle, ellipse, rect, polygon, line, text').forEach(function (n) {
+      if (n.closest('defs, clipPath, mask, pattern, [clip-path]')) return;
+      var r = n.getBoundingClientRect(); if (!r.width && !r.height) return;
+      var o = Math.max(box.left - r.left, box.top - r.top, r.right - box.right, r.bottom - box.bottom);
+      if (o > worst) { worst = o; what = n.tagName; }
+    });
+    if (worst > 1.5) add({ t: 'icon-clipped', el: nm(sv) + (sv.parentElement ? ' in ' + nm(sv.parentElement.closest('[class],[id]') || sv.parentElement) : ''), txt: what + ' ' + Math.round(worst) + 'px 밖' });
+  });
   // 장식 도장(직인)이 버튼·입력칸에 닿는지
   document.querySelectorAll('.stamp, .seal').forEach(function (d) {
     if (d.closest('[hidden]') || eff(d) < 0.1) return;

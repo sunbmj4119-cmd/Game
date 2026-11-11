@@ -233,6 +233,39 @@ button { font: inherit; color: inherit; }
 .res-lines li.bad b { color: var(--red); }
 body.is3d #cv { background: #c9d5e1; }
 
+/* ── 퍼 담기판: 짊어진 눈 게이지, 보급 버튼, 집하장 화살표 ── */
+.carry { position: relative; width: 66px; height: 66px; display: grid; place-items: center; justify-self: center; }
+.carry svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.carry .tr-fg { stroke: #9fd3ff; transition: stroke-dashoffset .15s linear; stroke-dashoffset: 119.4; }
+.carry.mid .tr-fg { stroke: var(--gold); }
+.carry.full .tr-fg { stroke: #ff6a55; }
+.carry-t { position: relative; display: grid; justify-items: center; line-height: 1; color: #fff; }
+.carry-t b { font-family: var(--f-title); font-weight: 400; font-size: 18px; font-variant-numeric: tabular-nums; }
+.carry-t small { font-size: 10.5px; color: #c9d6e6; margin-top: 1px; }
+.carry em { position: absolute; bottom: -15px; font-style: normal; font-size: 11px; color: #fff; background: rgba(14,24,42,.74); padding: 1px 7px; border-radius: 8px; white-space: nowrap; }
+.carry.full { animation: beat .45s ease-in-out infinite alternate; }
+.carry.full .carry-t b { color: #ffb3a8; font-size: 15px; }
+.shopbtn { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 5; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 16px; padding: 12px 16px; background: var(--gold); color: #2a2208; font-size: 17px; box-shadow: 0 5px 0 var(--gold-d), 0 10px 22px rgba(0,0,0,.25); cursor: pointer; }
+.shopbtn svg { width: 20px; height: 20px; }
+.shopbtn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-d); }
+.shopbtn.glow { animation: glow 1.2s ease-in-out infinite alternate; }
+@keyframes glow { to { box-shadow: 0 5px 0 var(--gold-d), 0 0 0 6px rgba(255,210,74,.45), 0 10px 22px rgba(0,0,0,.25); } }
+.shopbtn i { position: absolute; top: -7px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--red); color: #fff; font-style: normal; font-size: 13px; line-height: 22px; text-align: center; padding: 0 6px; box-shadow: 0 0 0 2px #fff; }
+#hint em { font-style: normal; color: #9fd3ff; }
+#hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 90px); }
+.ov-dump { color: #ffd84a; font-size: 20px; font-family: var(--f-title); text-shadow: 0 2px 0 #3a2a10, 0 0 8px rgba(0,0,0,.45); }
+.ov-full { background: #c8402e; color: #fff; font-size: 13px; padding: 3px 9px; border-radius: 10px; font-family: var(--f-title); box-shadow: 0 2px 0 #7c2318; }
+.ov-inspect { display: grid; justify-items: center; background: #fff; color: #c0392b; padding: 6px 14px; border-radius: 12px; border: 3px solid #c0392b; transform-origin: center; font-family: var(--f-title); font-size: 20px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.ov-inspect span { font-family: var(--f-body); font-size: 13px; color: var(--ink); }
+.ov-dumpsign { background: rgba(30,40,30,.84); color: #fff; font-size: 12.5px; padding: 3px 9px; border-radius: 9px; }
+.ov-dumpsign b { color: #9fd3ff; font-weight: 400; }
+#arrow3d { position: absolute; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; pointer-events: none; z-index: 3; }
+#arrow3d svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.fac-head { display: grid; gap: 2px; background: var(--navy); color: #fff; border-radius: 14px; padding: 12px 14px; }
+.fac-head b { font-family: var(--f-title); font-weight: 400; font-size: 17px; }
+.fac-head span { color: var(--gold); font-size: 15px; }
+.fac-head small { color: #c9d6e6; font-size: 12.5px; }
+
 </style>
 </head>
 <body>
@@ -242,19 +275,20 @@ body.is3d #cv { background: #c9d5e1; }
   <header id="hud" hidden>
     <div class="hud-top">
       <div class="pill rank"><span id="h-ins" class="ins"></span><span class="rank-txt"><b id="h-day">1일차</b><small id="h-wx">눈</small></span></div>
-      <div class="timer"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-bg" cx="22" cy="22" r="19"/><circle id="h-ring" class="tr-fg" cx="22" cy="22" r="19"/></svg><b id="h-time">60</b></div>
+      <div class="carry" id="h-carry" aria-label="짊어진 눈"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-bg" cx="22" cy="22" r="19"/><circle id="h-cring" class="tr-fg" cx="22" cy="22" r="19"/></svg><span class="carry-t"><b id="h-load">0</b><small id="h-cap">/40</small></span><em>짊어진 눈</em></div>
       <div class="pill bank"><i class="pie" aria-hidden="true"></i><b id="h-bank">0</b></div>
     </div>
-    <div class="prog"><div class="bar"><i id="h-fill"></i><em id="h-goal"></em></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
+    <div class="prog"><div class="bar"><i id="h-fill"></i></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
     <button id="h-scan" class="scan" aria-label="남은 눈 표시"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>남은 눈</button>
   </header>
+  <button id="h-shop" class="shopbtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16l-1.5 11h-13z" fill="currentColor"/><path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>보급·인력<i id="h-shop-n" hidden></i></button>
   <div id="chip" hidden></div>
   <div id="flash" hidden></div>
   <div id="splat" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 18c14 0 18 26 30 30s34-14 42 0-18 26-12 40 30 22 22 36-34 4-42 16 2 40-14 44-22-26-36-26-30 26-42 14 6-34-6-44-36-6-36-22 30-16 30-32-22-30-10-40 30 8 40 0 10-56 18-56z" fill="#fbfdff" stroke="#c9d8e6" stroke-width="4"/><circle cx="160" cy="40" r="10" fill="#fbfdff"/><circle cx="40" cy="168" r="8" fill="#fbfdff"/><circle cx="178" cy="150" r="6" fill="#fbfdff"/></svg><b>누가 던졌어!!</b></div>
 
   <div id="say" hidden><div class="say-face" id="say-face"></div><p id="say-text"></p></div>
   <div id="banner" hidden></div>
-  <div id="hint" hidden><b>화면을 누른 채 끌면 걷는다</b><span>넉가래는 알아서 민다. 톡 누르면 그쪽으로 간다.</span></div>
+  <div id="hint" hidden><b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span></div>
 
   <section id="title" class="screen">
     <div class="title-box">
@@ -270,7 +304,6 @@ body.is3d #cv { background: #c9d5e1; }
     </div>
   </section>
 
-  <section id="result" class="screen dim" hidden></section>
 
   <section id="shop" class="screen dim" hidden>
     <div class="shop">
@@ -281,7 +314,7 @@ body.is3d #cv { background: #c9d5e1; }
       </header>
       <nav id="s-tabs" class="tabs" role="tablist"></nav>
       <div id="s-list" class="list"></div>
-      <footer class="shop-foot"><button id="s-go" class="btn big">작업 개시</button></footer>
+      <footer class="shop-foot"><button id="s-go" class="btn big">작업 계속</button></footer>
     </div>
   </section>
 
@@ -1110,26 +1143,26 @@ body.is3d #cv { background: #c9d5e1; }
     { id: 'A', name: '생활관 앞 길', x: 80, y: 130, w: 380, h: 120, value: 1, cost: 0, ground: 'walk',
       parts: [['생활관 앞 왼쪽', 0, 0, 0.5, 1], ['생활관 앞 오른쪽', 0.5, 0, 1, 1]],
       reveal: '이병의 첫 전장. 생활관 창문으로 선임들이 구경한다.' },
-    { id: 'B', name: '족구장', x: 480, y: 130, w: 300, h: 150, value: 1, cost: 600, ground: 'court',
+    { id: 'B', name: '족구장', x: 480, y: 130, w: 300, h: 150, value: 1, cost: 400, relay: [630, 300], ground: 'court',
       parts: [['족구장 왼쪽 코트', 0, 0, 0.5, 1], ['족구장 오른쪽 코트', 0.5, 0, 1, 1]],
       reveal: '눈 치우자마자 족구가 시작된다. 지는 쪽이 내일 제설이다.' },
-    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 4000, ground: 'parade',
+    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1500, relay: [200, 618], ground: 'parade',
       parts: [['1소대 자리', 0, 0, 0.5, 0.5], ['2소대 자리', 0.5, 0, 1, 0.5], ['3소대 자리', 0, 0.5, 0.5, 1], ['4소대 자리', 0.5, 0.5, 1, 1]],
       reveal: '구령대 앞 바닥에 "충성". 사열 때 얼어 죽을 뻔한 그곳.' },
-    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 15000, ground: 'yard',
+    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, relay: [520, 440], ground: 'yard',
       parts: [['배식구 가는 길', 0, 0, 1, 0.5], ['짬통 가는 길', 0, 0.5, 1, 1]],
       reveal: '짬통 옆엔 짬타이거가 산다. 고양이는 눈을 안 치운다. 구경만 한다.' },
-    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 4, cost: 40000, ground: 'road',
+    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 4, cost: 22000, relay: [482, 780], ground: 'road',
       parts: [['진입로 위쪽', 0, 0, 1, 0.34], ['진입로 가운데', 0, 0.34, 1, 0.67], ['진입로 아래쪽', 0, 0.67, 1, 1]],
       reveal: '간부 차량이 다니는 길. 다 치워 놓으면 꼭 차가 지나가며 진흙눈을 튀긴다.' },
-    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 6, cost: 120000, ground: 'tank',
+    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 6, cost: 65000, relay: [325, 760], ground: 'tank',
       parts: [['1호 전차 주변', 0, 0, 1, 0.5], ['2호 전차 주변', 0, 0.5, 1, 1]],
       holes: [[80, 690, 70, 50], [200, 800, 70, 50]],
       reveal: 'K-전차 두 대가 눈을 맞고 있다. 포탑에 눈사람 만들면 영창(농담).' },
-    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 8, cost: 300000, ground: 'gate',
+    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 8, cost: 180000, relay: [100, 1135], ground: 'gate',
       parts: [['위병소 왼쪽', 0, 0, 0.5, 1], ['위병소 오른쪽', 0.5, 0, 1, 1]],
       reveal: '부대의 얼굴. 사단장님 차가 여기로 들어온다. 한 톨도 남기면 안 된다.' },
-    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 12, cost: 700000, ground: 'pad',
+    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 12, cost: 450000, relay: [635, 1030], ground: 'pad',
       parts: [['헬기장 북쪽', 0, 0, 1, 0.5], ['헬기장 남쪽', 0, 0.5, 1, 1]],
       reveal: '가끔 헬기가 내려앉는다. 하강풍이 눈을 날려 준다. 처음으로 고마운 존재.' }
   ];
@@ -1173,46 +1206,55 @@ body.is3d #cv { background: #c9d5e1; }
 
   // 플레이어 도구. r = 미는 범위(px), p = 한 번에 치우는 깊이, aura = 몸 주변 전체
   var TOOLS = [
-    { id: 'broom', name: '싸리비', r: 10, p: 1, cost: 0, desc: '훈련소에서 받은 그 빗자루. 한 번에 한 뼘.' },
-    { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 300, desc: '군대 제설의 상징. 밀면 밀린다.' },
-    { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 3000, desc: '보급창고 구석에서 찾은 왕넉가래.' },
-    { id: 'twin', name: '쌍넉가래', r: 25, p: 2, cost: 20000, desc: '양손에 하나씩. 팔은 내 것이 아니다.' },
-    { id: 'cart', name: '손수레 제설기', r: 32, p: 2, cost: 90000, desc: '바퀴 달린 넉가래. 문명의 시작.' },
-    { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 350000, aura: true, desc: '내 주변이 전부 녹는다. 군화는 녹슨다.' },
-    { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 1500000, vehicle: true, desc: '옆 부대에서 빌려 왔다. 반납은 안 했다.' },
-    { id: 'truck', name: '군용 제설차', r: 70, p: 3, cost: 6000000, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차.' },
-    { id: 'heli', name: '제설 헬기', r: 110, p: 4, cost: 30000000, vehicle: true, aura: true, desc: '하강풍으로 눈을 날려 버린다. 예산은 묻지 마라.' }
+    { id: 'broom', name: '싸리비', r: 10, p: 1, cost: 0, cap: 40, desc: '훈련소에서 받은 그 빗자루. 한 번에 한 뼘.' },
+    { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 250, cap: 80, desc: '군대 제설의 상징. 밀면 밀린다.' },
+    { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 1200, cap: 150, desc: '보급창고 구석에서 찾은 왕넉가래.' },
+    { id: 'twin', name: '쌍넉가래', r: 25, p: 2, cost: 8000, cap: 300, desc: '양손에 하나씩. 팔은 내 것이 아니다.' },
+    { id: 'cart', name: '손수레 제설기', r: 32, p: 2, cost: 50000, cap: 700, desc: '바퀴 달린 넉가래. 문명의 시작.' },
+    { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 150000, cap: 1200, aura: true, desc: '내 주변이 전부 녹는다. 군화는 녹슨다.' },
+    { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 500000, cap: 3000, vehicle: true, desc: '옆 부대에서 빌려 왔다. 반납은 안 했다.' },
+    { id: 'truck', name: '군용 제설차', r: 70, p: 3, cost: 1500000, cap: 8000, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차.' },
+    { id: 'heli', name: '제설 헬기', r: 110, p: 4, cost: 5000000, cap: 20000, vehicle: true, aura: true, desc: '하강풍으로 눈을 날려 버린다. 예산은 묻지 마라.' }
   ];
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
   var CREW = [
-    { id: 'hoobae', name: '후임', tag: '이병', rank: 0, cost: 150, grow: 1.32, max: 12, r: 9, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
+    { id: 'hoobae', cap: 20, name: '후임', tag: '이병', rank: 0, cost: 150, grow: 1.32, max: 12, r: 9, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
       desc: '초코파이 하나면 영혼까지 갈아 넣는다.', lines: ['넵!', '알겠습니다!', '이거 언제 끝납니까…', '손이 안 느껴집니다…', '초코파이 감사합니다!'] },
-    { id: 'donggi', name: '동기', tag: '일병', rank: 1, cost: 1500, grow: 1.34, max: 10, r: 13, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
+    { id: 'donggi', cap: 32, name: '동기', tag: '일병', rank: 1, cost: 1500, grow: 1.34, max: 10, r: 13, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
-    { id: 'cook', name: '취사병', tag: '일병', rank: 1, cost: 6000, grow: 1.35, max: 8, r: 12, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
+    { id: 'cook', cap: 40, name: '취사병', tag: '일병', rank: 1, cost: 6000, grow: 1.35, max: 8, r: 12, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
       desc: '아침 배식 끝나고 바로 끌려왔다. 국자 대신 삽.', lines: ['점심 준비해야 하는데…', '국자가 그립다', '오늘 점심 짜장이다'] },
-    { id: 'malnyeon', name: '말년 병장', tag: '병장', rank: 2, cost: 25000, grow: 1.38, max: 6, r: 22, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
+    { id: 'malnyeon', cap: 70, name: '말년 병장', tag: '병장', rank: 2, cost: 25000, grow: 1.38, max: 6, r: 22, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
       desc: '작업 시간의 40%는 잔다. 깨어 있으면 제일 잘 민다.', lines: ['나 전역 며칠 남았지?', '후임아 여기도', '라떼는 눈이 허리까지 왔어'] },
-    { id: 'admin', name: '행정병', tag: '상병', rank: 2, cost: 70000, grow: 1.38, max: 6, r: 16, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
+    { id: 'admin', cap: 45, name: '행정병', tag: '상병', rank: 2, cost: 70000, grow: 1.38, max: 6, r: 16, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
       desc: '키보드만 치던 손이 넉가래를 잡았다. 의외로 빠르다.', lines: ['엑셀로 치우면 안 되나', '결재 올려야 하는데', '이것도 보고서 써야 합니까?'] },
-    { id: 'reserve', name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 250000, grow: 1.4, max: 8, r: 18, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
+    { id: 'reserve', cap: 60, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 250000, grow: 1.4, max: 8, r: 18, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
       desc: '동원훈련 왔다가 끌려왔다. 느리지만 요령이 있다.', lines: ['내가 이걸 또 하네', '요즘 애들은 말이야~', '집에 가고 싶다', '우리 땐 삽 하나로 다 했어'] },
-    { id: 'plow', name: '제설차', tag: '운전병', rank: 3, cost: 1200000, grow: 1.6, max: 3, r: 34, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
+    { id: 'plow', cap: 500, name: '제설차', tag: '운전병', rank: 3, cost: 1200000, grow: 1.6, max: 3, r: 34, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
       desc: '운전병과 함께 지원 나온 제설차. 빵빵거리며 다 민다.', lines: ['빵빵!', '비켜, 비켜!', '후진합니다~ 후진합니다~'] }
   ];
 
   // 보급 (레벨 업그레이드)
   var PERKS = [
     { id: 'eisen', name: '아이젠', max: 5, cost: 300, grow: 2.3, desc: '군화에 아이젠. 걷는 속도 +12%' },
-    { id: 'hotpack', name: '핫팩', max: 5, cost: 500, grow: 2.5, desc: '하루 작업 시간 +8초' },
+    { id: 'back', name: '튼튼한 등짝', max: 5, cost: 400, grow: 2.4, desc: '한 번에 지는 눈 +30% (인력 +20%)' },
     { id: 'matsta', name: '맛스타', max: 5, cost: 900, grow: 2.6, desc: '당 충전. 내 손이 10% 더 빠르다' },
-    { id: 'praise', name: '행보관 칭찬', max: 10, cost: 1500, grow: 2.4, desc: '초코파이 보상 +15%' },
+    { id: 'praise', name: '행보관 칭찬', max: 10, cost: 2000, grow: 2.5, desc: '초코파이 보상 +15%' },
     { id: 'gong', name: '꽹과리', max: 3, cost: 2500, grow: 3, desc: '고라니가 덜 온다 (하루 고라니 -25%)' },
     { id: 'medic', name: '의무병 대기', max: 5, cost: 4000, grow: 2.6, desc: '다친 인력이 15% 빨리 일어난다' },
     { id: 'song', name: '군가 스피커', max: 5, cost: 6000, grow: 2.7, desc: '인력 전원 이동 +12%, 손 +6%' },
     { id: 'gear', name: '인력 장비 보급', max: 5, cost: 15000, grow: 2.9, desc: '인력 전원의 미는 범위 +15%' }
   ];
+
+  // 공장: 집하장에 부은 눈을 가공해서 값을 올린다
+  var PROC = [
+    { id: 'press', name: '눈 압축기', max: 5, cost: 1500, grow: 2.6, add: 0.3, desc: '부은 눈을 눈벽돌로 꾹. 보상 +30%' },
+    { id: 'sculpt', name: '눈조각 작업장', max: 5, cost: 25000, grow: 2.8, add: 0.6, need: ['press', 3], desc: '사단장님 환영 눈사람을 만든다. 보상 +60%' }
+  ];
+
+  // 눈 집하장 (처음부터 있다). 구역마다 '양동이 릴레이'를 사면 그 자리도 집하장이 된다
+  var DUMP = { x: 135, y: 285, r: 26 };
 
   // 얼굴 (전역각 등장인물을 그대로 쓰거나 비슷하게)
   var FACES = {
@@ -1222,26 +1264,26 @@ body.is3d #cv { background: #c9d5e1; }
 
   var RANKS = [
     { name: '이병', life: 0 },
-    { name: '일병', life: 3000 },
-    { name: '상병', life: 40000 },
-    { name: '병장', life: 200000 }
+    { name: '일병', life: 2000 },
+    { name: '상병', life: 25000 },
+    { name: '병장', life: 150000 }
   ];
   var DISCHARGE_LIFE = 1000000; // 전역 신고 가능
 
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
   var WEATHER = {
-    light: { name: '잔설', depth: [1, 2], fall: 0.45, mult: 0.9, flakes: 25 },
-    normal: { name: '눈', depth: [1, 3], fall: 1, mult: 1, flakes: 70 },
-    heavy: { name: '함박눈', depth: [2, 4], fall: 1.8, mult: 1.25, flakes: 150 },
-    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.6, mult: 1.6, flakes: 260 }
+    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, flakes: 25 },
+    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, flakes: 70 },
+    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, flakes: 150 },
+    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, flakes: 260 }
   };
 
   // 방해꾼과 사건
   var HAZ = {
     deer: { from: 2, speed: 96, life: [9, 13], hitR: 11, injure: 7, stun: 1.6, kick: 0.35 },
-    snowball: { from: 4, p: 0.6, stun: 0.5 },
+    snowball: { from: 3, p: 0.6, stun: 0.5 },
     car: { zone: 'E', trips: [1, 2], speed: 70, r: 12, slush: 0.55 },
-    roof: { every: 22, stun: 1.2, injure: 3 },
+    roof: { every: 45, stun: 1.2, injure: 3 },
     heli: { zone: 'H', p: 0.45, r: 60, life: 7 },
     cats: { zone: 'D', n: 2 }
   };
@@ -1255,7 +1297,12 @@ body.is3d #cv { background: #c9d5e1; }
     near: ['거의 다 왔다! 마무리 깔끔하게!', '조금만 더! 점호 전에 끝낸다!'],
     regrow: ['치운 데 또 쌓였다! 다시!', '하늘을 탓하지 마라. 삽을 들어라.'],
     sleep: ['병장! 자냐?!', '말년이라고 봐줄 줄 알았나!'],
-    late: ['10초 남았다!', '시간 없다! 뛰어!'],
+    full: ['가득 찼다! 집하장 가서 부어!', '더 못 담는다. 비우고 와!'],
+    spill: ['짊어진 눈 다 쏟았잖아!', '고라니 때문에 처음부터다!'],
+    inspect: ['검열 통과! 이 구역은 합격이다.', '깨끗하군. 계속 이렇게 유지해.'],
+    dayEnd: ['오늘 수고했다. 내일도 눈 온다.', '하루 끝! …근데 눈은 계속 온다.'],
+    relay: ['양동이 릴레이 개시! 줄 서라!', '인간 컨베이어 가동!'],
+    proc: ['기계 들어왔다. 눈도 이제 돈이다.', '사단장님 오시면 눈사람 보여 드린다.'],
     deer: ['고라니다!! 피해!', '야 고라니! 고라니 들어왔다!', '저 고라니 또 왔네…', '고라니 잡지 마! 쫓기만 해!'],
     deerHit: ['의무병! 의무병!', '고라니한테 받혔다!', '괜찮나?! …괜찮네. 다시 치워.'],
     meHit: ['야! 초코파이 떨어뜨렸잖아!', '고라니한테 진 거냐?'],
@@ -1278,14 +1325,15 @@ body.is3d #cv { background: #c9d5e1; }
   JY.SNOW = {
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
-    BASE_DAY: 60, GOAL: 0.8, INSPECT_GOAL: 0.9, FALL: 0.005, HIT: 0.12, SPEED: 78, PART_DONE: 0.97
+    DAY_LEN: 150, FALL: 0.01, HIT: 0.12, SPEED: 78, PART_DONE: 0.97, PART_RESET: 0.7, INSPECT: 0.95
   };
 })(window.JY = window.JY || {});
 
 /* js/snow/sim.js */
-/* 제설각 — 게임 규칙 (DOM 없음, Node에서도 돈다) */
+/* 제설각 — 게임 규칙 (DOM 없음, Node에서도 돈다)
+ * 퍼 담고 → 집하장까지 나르고 → 부으면 초코파이. 치운 곳은 그대로 남고, 눈은 계속 내린다. */
 (function (JY) {
   'use strict';
   var S = JY.SNOW, CELL = S.CELL, GW = S.GW, GH = S.GH, HAZ = S.HAZ;
@@ -1303,52 +1351,56 @@ body.is3d #cv { background: #c9d5e1; }
 
   /* ── 저장 데이터 ── */
   function newSave() {
-    return { v: 2, bank: 0, life: 0, day: 1, tool: 0, crew: {}, perks: {}, zones: { A: true }, medals: 0, discharges: 0,
-      last: 0, best: 0, total: 0, crewRate: 0, seed: (Math.random() * 1e9) | 0, seen: {}, deerHits: 0 };
+    return { v: 3, bank: 0, life: 0, day: 1, dayT: 0, tool: 0, crew: {}, perks: {}, proc: {}, relays: {}, zones: { A: true }, fresh: { A: true },
+      medals: 0, discharges: 0, last: 0, best: 0, total: 0, crewRate: 0, seed: (Math.random() * 1e9) | 0, seen: {}, deerHits: 0,
+      snow: null, px: S.SPAWN.x, py: S.SPAWN.y, load: 0, loadVal: 0, today: 0, made: { brick: 0, snowman: 0 } };
   }
   function migrate(s) {
     var d = newSave();
     if (!s || typeof s !== 'object') return d;
+    if ((s.v || 1) < 3) { s.snow = null; s.dayT = 0; s.px = d.px; s.py = d.py; s.load = 0; s.loadVal = 0; s.fresh = {}; Object.keys(s.zones || {}).forEach(function (k) { s.fresh[k] = true; }); s.v = 3; }
     Object.keys(d).forEach(function (k) { if (s[k] === undefined) s[k] = d[k]; });
     Object.keys(s.zones).forEach(function (k) { if (!S.ZONES.some(function (Z) { return Z.id === k; })) delete s.zones[k]; });
     s.zones.A = true;
     if (s.tool >= S.TOOLS.length) s.tool = S.TOOLS.length - 1;
+    if (s.snow && s.snow.length !== Math.ceil(GW * GH / 3) * 4) s.snow = null;
+    if (!s.snow) Object.keys(s.zones).forEach(function (k) { s.fresh[k] = true; });
     return s;
   }
 
   function lvl(save, id) { return save.perks[id] || 0; }
   function crewN(save, id) { return save.crew[id] || 0; }
+  function procLvl(save, id) { return save.proc[id] || 0; }
   function rankOf(save) { var r = 0; S.RANKS.forEach(function (R, i) { if (save.life >= R.life) r = i; }); return r; }
   function nextRank(save) { return S.RANKS[rankOf(save) + 1] || null; }
   function crewCost(C, n) { return Math.round(C.cost * Math.pow(C.grow, n)); }
   function perkCost(P, l) { return Math.round(P.cost * Math.pow(P.grow, l)); }
-  function incomeMult(save) { return (1 + 0.15 * lvl(save, 'praise')) * (1 + 0.1 * save.medals); }
-  function dayLength(save) { return S.BASE_DAY + 8 * lvl(save, 'hotpack'); }
+  function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
+  function incomeMult(save) { return (1 + 0.15 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }
   function toolOf(save) { return S.TOOLS[save.tool]; }
+  function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back'))); }
   function crewCount(save) { return S.CREW.reduce(function (a, C) { return a + crewN(save, C.id); }, 0); }
   function canDischarge(save) { return rankOf(save) >= 3 && save.life >= S.DISCHARGE_LIFE; }
   function medalGain(save) { return Math.floor(Math.sqrt(save.life / 50000)); }
   function zoneById(id) { for (var i = 0; i < S.ZONES.length; i++) if (S.ZONES[i].id === id) return S.ZONES[i]; return null; }
+  function relayCost(Z) { return Math.round(Z.cost * 0.6); }
 
   function weatherFor(save) {
     var d = save.day;
     if (d === 1) return { id: 'light', inspect: false };
     if (d <= 3) return { id: 'normal', inspect: false };
     var r = mulberry(save.seed + d * 7919)();
-    var inspect = d % 7 === 0;
-    var id = r < 0.2 ? 'light' : r < 0.65 ? 'normal' : r < 0.9 ? 'heavy' : 'blizzard';
-    if (inspect && id === 'blizzard') id = 'heavy';
-    return { id: id, inspect: inspect };
+    return { id: r < 0.2 ? 'light' : r < 0.62 ? 'normal' : r < 0.88 ? 'heavy' : 'blizzard', inspect: d % 7 === 0 };
   }
 
   /* ── 상점 ── */
   function offers(save) {
-    var rank = rankOf(save), out = { tool: [], crew: [], perk: [], zone: [] };
+    var rank = rankOf(save), out = { tool: [], crew: [], perk: [], zone: [], factory: [] };
     S.TOOLS.forEach(function (T, i) {
       if (i < save.tool - 1 || i > save.tool + 2) return;
       var st = i <= save.tool ? 'own' : i === save.tool + 1 ? 'buy' : 'later';
       out.tool.push({ kind: 'tool', id: T.id, i: i, name: T.name, desc: T.desc, cost: T.cost, state: st, cur: i === save.tool,
-        stat: '범위 ' + T.r + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
+        stat: '범위 ' + T.r + ' · 적재 ' + T.cap + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
     });
     S.CREW.forEach(function (C) {
       var n = crewN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank;
@@ -1358,6 +1410,17 @@ body.is3d #cv { background: #c9d5e1; }
     S.PERKS.forEach(function (P) {
       var l = lvl(save, P.id), cost = perkCost(P, l);
       out.perk.push({ kind: 'perk', id: P.id, name: P.name, desc: P.desc, cost: cost, n: l, max: P.max, state: l >= P.max ? 'max' : 'buy', ok: l < P.max && save.bank >= cost });
+    });
+    S.PROC.forEach(function (P) {
+      var l = procLvl(save, P.id), cost = perkCost(P, l), need = P.need && procLvl(save, P.need[0]) < P.need[1];
+      out.factory.push({ kind: 'proc', id: P.id, name: P.name, desc: P.desc, cost: cost, n: l, max: P.max,
+        state: need ? 'lock' : l >= P.max ? 'max' : 'buy', lockText: need ? '압축기 Lv' + P.need[1] + '부터' : '', ok: !need && l < P.max && save.bank >= cost });
+    });
+    S.ZONES.forEach(function (Z) {
+      if (!Z.relay || !save.zones[Z.id]) return;
+      var has = !!save.relays[Z.id], cost = relayCost(Z);
+      out.factory.push({ kind: 'relay', id: Z.id, name: '양동이 릴레이 · ' + Z.name, desc: '후임들이 줄 서서 집하장까지 나른다. 이 구역 옆에 붓는 곳이 생긴다', cost: cost, n: has ? 1 : 0, max: 1,
+        state: has ? 'max' : 'buy', ok: !has && save.bank >= cost });
     });
     S.ZONES.forEach(function (Z, i) {
       if (save.zones[Z.id]) return;
@@ -1369,14 +1432,16 @@ body.is3d #cv { background: #c9d5e1; }
   }
 
   function buy(save, kind, id) {
-    var list = offers(save)[kind] || [], o = null;
-    list.forEach(function (x) { if (x.id === id) o = x; });
+    var list = offers(save)[kind === 'proc' || kind === 'relay' ? 'factory' : kind] || [], o = null;
+    list.forEach(function (x) { if (x.id === id && x.kind === kind) o = x; });
     if (!o || !o.ok) return { ok: false };
     save.bank -= o.cost;
     if (kind === 'tool') save.tool = o.i;
     else if (kind === 'crew') save.crew[id] = crewN(save, id) + 1;
     else if (kind === 'perk') save.perks[id] = lvl(save, id) + 1;
-    else if (kind === 'zone') { save.zones[id] = true; save.seen['new' + id] = true; }
+    else if (kind === 'proc') save.proc[id] = procLvl(save, id) + 1;
+    else if (kind === 'relay') save.relays[id] = true;
+    else if (kind === 'zone') { save.zones[id] = true; save.fresh[id] = true; save.seen['new' + id] = true; }
     return { ok: true, cost: o.cost, item: o };
   }
 
@@ -1416,8 +1481,19 @@ body.is3d #cv { background: #c9d5e1; }
     return false;
   }
 
-  /* ── 하루 ── */
-  // 밤사이 쌓인 눈: 칸마다 제각각이 아니라 바람에 쌓인 언덕처럼 (값 노이즈)
+  /* ── 눈 저장 (base64) ── */
+  function enc(u8) {
+    if (typeof btoa === 'function') { var s = ''; for (var i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); }
+    return Buffer.from(u8).toString('base64');
+  }
+  function dec(str, n) {
+    var out = new Uint8Array(n), i;
+    if (typeof atob === 'function') { var s = atob(str); for (i = 0; i < n && i < s.length; i++) out[i] = s.charCodeAt(i); }
+    else { var b = Buffer.from(str, 'base64'); for (i = 0; i < n && i < b.length; i++) out[i] = b[i]; }
+    return out;
+  }
+
+  // 오래 쌓인 눈: 칸마다 제각각이 아니라 바람에 쌓인 언덕처럼 (값 노이즈)
   function lattice(seed, x, y) { var h = (x * 374761393 + y * 668265263 + seed * 2246822519) ^ 0x5bf03635; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
   function drift(seed, gx, gy) {
     var v = 0, amp = 0.65, f = 1 / 7, tot = 0;
@@ -1429,36 +1505,44 @@ body.is3d #cv { background: #c9d5e1; }
     }
     return Math.min(0.999, Math.max(0, v / tot));
   }
-  function schedule(w, save) {
-    var R = w.rand, dl = w.dayLen, ev = [], day = save.day, i;
+
+  /* ── 하루 일정 (방해꾼) ── */
+  function schedule(w, save, from) {
+    var R = w.rand, dl = S.DAY_LEN, ev = [], day = save.day, i;
+    function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
     if (day >= HAZ.deer.from) {
       var n = Math.round(Math.min(4, 1 + (day - 1) / 4) * (1 - 0.25 * lvl(save, 'gong')));
-      for (i = 0; i < n; i++) ev.push({ t: 6 + R() * (dl - 18), k: 'deer' });
+      for (i = 0; i < n; i++) at(10 + R() * (dl - 20), 'deer');
     }
-    if (day >= HAZ.snowball.from && R() < HAZ.snowball.p) ev.push({ t: 10 + R() * (dl - 20), k: 'snowball' });
-    if (save.zones[HAZ.car.zone]) { var trips = HAZ.car.trips[0] + (R() < 0.5 ? 1 : 0); for (i = 0; i < trips; i++) ev.push({ t: 8 + R() * (dl - 28), k: 'car' }); }
-    if (day >= 3) for (var t = 14 + R() * 10; t < dl - 6; t += HAZ.roof.every * (0.7 + R() * 0.6)) ev.push({ t: t, k: 'roof' });
-    if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) ev.push({ t: 12 + R() * (dl - 26), k: 'heli' });
+    if (day >= HAZ.snowball.from && R() < HAZ.snowball.p) at(15 + R() * (dl - 30), 'snowball');
+    if (save.zones[HAZ.car.zone]) { var trips = HAZ.car.trips[0] + (R() < 0.5 ? 1 : 0); for (i = 0; i < trips; i++) at(10 + R() * (dl - 30), 'car'); }
+    if (day >= 2) for (var t = 20 + R() * 20; t < dl - 5; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
+    if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) at(20 + R() * (dl - 40), 'heli');
     ev.sort(function (a, b) { return a.t - b.t; });
     return ev;
+  }
+
+  function dumpsOf(save) {
+    var list = [{ x: S.DUMP.x, y: S.DUMP.y, r: S.DUMP.r, main: true, zone: 'A' }];
+    S.ZONES.forEach(function (Z) { if (Z.relay && save.zones[Z.id] && save.relays[Z.id]) list.push({ x: Z.relay[0], y: Z.relay[1], r: 20, main: false, zone: Z.id }); });
+    return list;
   }
 
   function createWorld(save, opts) {
     opts = opts || {};
     var wxi = weatherFor(save), wx = S.WEATHER[wxi.id];
     var w = {
-      save: save, rand: mulberry(save.seed + save.day * 101 + (opts.salt || 0)),
+      save: save, rand: mulberry(save.seed + save.day * 101 + (opts.salt || 0) + Math.floor(save.dayT)),
       depth: new Uint8Array(GW * GH), zone: new Int8Array(GW * GH).fill(-1), partOf: new Int16Array(GW * GH).fill(-1),
-      cells: [], zoneOpen: [], zoneTotal: [], zoneClear: [], parts: [], total: 0, clear: 0,
-      time: 0, dayLen: dayLength(save), weather: wxi.id, wx: wx, inspect: wxi.inspect,
-      goal: wxi.inspect ? S.INSPECT_GOAL : S.GOAL, mult: incomeMult(save) * wx.mult,
-      earned: 0, crewEarned: 0, units: 0, partBonus: 0, lost: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
-      player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save),
+      cells: [], zoneOpen: [], zoneTotal: [], zoneClear: [], parts: [], total: 0, clear: 0, inspected: {},
+      time: save.dayT || 0, dayLen: S.DAY_LEN, weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
+      earned: 0, crewEarned: 0, crewT: 0, units: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
+      player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save), dumps: dumpsOf(save),
       events: [], deer: [], car: null, heli: null, cats: []
     };
-    var R = w.rand;
+    var R = w.rand, stored = save.snow && !opts.fresh ? dec(save.snow, GW * GH) : null;
     S.ZONES.forEach(function (Z, zi) {
-      var open = !!save.zones[Z.id];
+      var open = !!save.zones[Z.id], isNew = !!save.fresh[Z.id] || !stored;
       w.zoneOpen[zi] = open; w.zoneTotal[zi] = 0; w.zoneClear[zi] = 0;
       var pBase = w.parts.length;
       if (open) Z.parts.forEach(function (p) { w.parts.push({ zi: zi, name: p[0], x: Z.x + p[1] * Z.w, y: Z.y + p[2] * Z.h, w: (p[3] - p[1]) * Z.w, h: (p[4] - p[2]) * Z.h, total: 0, clear: 0, done: false }); });
@@ -1468,26 +1552,33 @@ body.is3d #cv { background: #c9d5e1; }
           if (inHole(Z, cx, cy)) continue;
           var idx = gy * GW + gx;
           w.zone[idx] = zi;
-          if (open) {
-            w.depth[idx] = Math.min(wx.depth[1], wx.depth[0] + Math.floor(drift(save.seed + save.day, gx, gy) * (wx.depth[1] - wx.depth[0] + 1)));
-            w.cells.push(idx); w.zoneTotal[zi]++;
-            for (var k = pBase; k < w.parts.length; k++) {
-              var P = w.parts[k];
-              if (cx >= P.x && cx < P.x + P.w && cy >= P.y && cy < P.y + P.h) { w.partOf[idx] = k; P.total++; break; }
-            }
-          } else w.depth[idx] = 3;
+          if (!open) { w.depth[idx] = 3; continue; }
+          var lo = Z.id === 'A' && !save.discharges && save.day <= 1 ? 1 : 2, hi = Z.id === 'A' && !save.discharges && save.day <= 1 ? 3 : 4;
+          w.depth[idx] = isNew ? Math.min(hi, lo + Math.floor(drift(save.seed + zi * 13, gx, gy) * (hi - lo + 1))) : stored[idx];
+          w.cells.push(idx); w.zoneTotal[zi]++;
+          if (!w.depth[idx]) { w.clear++; w.zoneClear[zi]++; }
+          for (var k = pBase; k < w.parts.length; k++) {
+            var P = w.parts[k];
+            if (cx >= P.x && cx < P.x + P.w && cy >= P.y && cy < P.y + P.h) { w.partOf[idx] = k; P.total++; if (!w.depth[idx]) P.clear++; break; }
+          }
         }
       }
+      if (!opts.demo) delete save.fresh[Z.id];
     });
+    w.parts.forEach(function (P) { P.done = P.total > 0 && P.clear / P.total >= S.PART_DONE; });
     w.total = w.cells.length;
-    var tool = toolOf(save);
-    w.player = { x: S.SPAWN.x, y: S.SPAWN.y, dir: { x: 0, y: 1 }, hitT: 0, walk: 0, moving: false, idleT: 0, swing: 0, stun: 0, r: tool.r, p: tool.p, aura: !!tool.aura };
-    var song = lvl(save, 'song'), gear = lvl(save, 'gear');
+    var tool = toolOf(save), px = save.px, py = save.py;
+    if (opts.demo || blocked(px, py, 6)) { px = S.SPAWN.x; py = S.SPAWN.y; }
+    w.player = { x: px, y: py, dir: { x: 0, y: 1 }, hitT: 0, walk: 0, moving: false, idleT: 0, swing: 0, stun: 0, r: tool.r, p: tool.p, aura: !!tool.aura,
+      cap: capOf(save), load: opts.demo ? 0 : Math.min(save.load, capOf(save)), val: opts.demo ? 0 : save.loadVal, fullSaid: false };
+    var song = lvl(save, 'song'), gear = lvl(save, 'gear'), back = lvl(save, 'back');
     S.CREW.forEach(function (C) {
       for (var i = 0; i < crewN(save, C.id); i++) {
-        w.crew.push({ def: C, n: i, x: S.DOOR.x + (R() - 0.5) * 220, y: S.DOOR.y + 14 + R() * 30, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
+        w.crew.push({ def: C, n: i, x: S.DUMP.x + 40 + (R() - 0.5) * 200, y: S.DUMP.y - 20 - R() * 40, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
           hitT: R() * C.hit, retarget: 0, stuck: 0, walk: R() * 10, asleep: false, sleepT: 2 + R() * 4, swing: 0, moving: false, injured: 0,
-          speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0 });
+          speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
+          cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null });
+        var e = w.crew[w.crew.length - 1]; if (blocked(e.x, e.y, 6)) { e.x = S.DUMP.x + 30; e.y = S.DUMP.y; }
       }
     });
     w.haeng = { x: 330, y: 290, dir: { x: 0, y: 1 }, tx: 330, ty: 290, wait: 2, walk: 0, moving: false, shoutT: 0 };
@@ -1495,8 +1586,18 @@ body.is3d #cv { background: #c9d5e1; }
       var D = zoneById(HAZ.cats.zone);
       for (var c = 0; c < HAZ.cats.n; c++) w.cats.push({ x: D.x + 30 + R() * (D.w - 60), y: D.y + D.h - 20 - R() * 60, dir: { x: 1, y: 0 }, tx: 0, ty: 0, wait: R() * 3, walk: 0, moving: false });
     }
-    w.events = schedule(w, save);
+    w.events = schedule(w, save, w.time);
     return w;
+  }
+
+  // 지금 세계를 저장 데이터에 적는다 (눈, 내 위치, 짊어진 눈, 하루 시각)
+  function serialize(w) {
+    if (w.demo) return;
+    var s = w.save;
+    s.snow = enc(w.depth); s.px = Math.round(w.player.x); s.py = Math.round(w.player.y);
+    s.load = w.player.load; s.loadVal = w.player.val; s.dayT = w.time;
+    if (w.crewT > 20) s.crewRate = w.crewEarned / w.crewT;
+    s.last = Date.now();
   }
 
   function cellIndex(x, y) {
@@ -1510,8 +1611,13 @@ body.is3d #cv { background: #c9d5e1; }
     if (old === d) return;
     w.depth[idx] = d; w.dirty.push(idx);
     var p = w.partOf[idx];
-    if (!old && d) { w.clear--; w.zoneClear[w.zone[idx]]--; if (p >= 0) w.parts[p].clear--; }
-    else if (old && !d) { w.clear++; w.zoneClear[w.zone[idx]]++; if (p >= 0) partClear(w, p); }
+    if (!old && d) { w.clear--; w.zoneClear[w.zone[idx]]--; if (p >= 0) { var P = w.parts[p]; P.clear--; if (P.done && P.clear / P.total < S.PART_RESET) P.done = false; } }
+    else if (old && !d) { w.clear++; w.zoneClear[w.zone[idx]]++; if (p >= 0) partClear(w, p); inspectZone(w, w.zone[idx]); }
+  }
+  function pay(w, amount, src) {
+    if (w.demo || amount <= 0) return;
+    w.save.bank += amount; w.save.life += amount; w.save.today += amount;
+    if (src === 'crew') w.crewEarned += amount;
   }
   function partClear(w, p) {
     var P = w.parts[p];
@@ -1519,40 +1625,67 @@ body.is3d #cv { background: #c9d5e1; }
     if (!P.done && P.total && P.clear / P.total >= S.PART_DONE) {
       P.done = true;
       var bonus = Math.round(P.total * S.ZONES[P.zi].value * 0.25 * w.mult);
-      w.partBonus += bonus;
-      if (!w.demo) { w.save.bank += bonus; w.save.life += bonus; }
+      w.earned += bonus; pay(w, bonus, 'part');
       w.fx.push({ t: 'part', name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, bonus: bonus, p: p });
     }
   }
+  function inspectZone(w, zi) {
+    if (w.inspected[zi] || !w.zoneTotal[zi] || w.zoneClear[zi] / w.zoneTotal[zi] < S.INSPECT) return;
+    w.inspected[zi] = true;
+    var Z = S.ZONES[zi], bonus = Math.round(w.zoneTotal[zi] * Z.value * 0.6 * w.mult * (w.inspect ? 2 : 1));
+    w.earned += bonus; pay(w, bonus, 'inspect');
+    w.fx.push({ t: 'inspect', zone: Z.id, name: Z.name, x: Z.x + Z.w / 2, y: Z.y + Z.h / 2, bonus: bonus });
+    say(w, 'inspect', true);
+  }
 
-  function clearAt(w, cx, cy, r, p, src) {
+  // who: 눈을 담는 사람(load/cap/val). 없으면(헬기) 바로 돈
+  function clearAt(w, cx, cy, r, p, src, who) {
+    var room = who ? who.cap - who.load : 1e9;
+    if (room <= 0) return 0;
     var x0 = Math.max(0, Math.floor((cx - r) / CELL)), x1 = Math.min(GW - 1, Math.floor((cx + r) / CELL));
     var y0 = Math.max(0, Math.floor((cy - r) / CELL)), y1 = Math.min(GH - 1, Math.floor((cy + r) / CELL));
     var rr = (r + 3) * (r + 3), removed = 0, val = 0;
-    for (var gy = y0; gy <= y1; gy++) {
-      for (var gx = x0; gx <= x1; gx++) {
+    for (var gy = y0; gy <= y1 && room > 0; gy++) {
+      for (var gx = x0; gx <= x1 && room > 0; gx++) {
         var ccx = gx * CELL + CELL / 2 - cx, ccy = gy * CELL + CELL / 2 - cy;
         if (ccx * ccx + ccy * ccy > rr) continue;
         var idx = gy * GW + gx, zi = w.zone[idx];
         if (zi < 0 || !w.zoneOpen[zi]) continue;
         var d = w.depth[idx];
         if (!d) continue;
-        var take = d < p ? d : p;
-        removed += take; val += take * S.ZONES[zi].value;
+        var take = Math.min(d, p, room);
+        removed += take; val += take * S.ZONES[zi].value; room -= take;
         setDepth(w, idx, d - take);
       }
     }
     if (removed) {
-      var gain = val * w.mult;
-      w.earned += gain; w.units += removed;
-      if (src !== 'player') w.crewEarned += gain;
-      if (!w.demo) { w.save.bank += gain; w.save.life += gain; }
-      w.fx.push({ t: 'clear', x: cx, y: cy, n: removed, gain: gain, src: src });
+      w.units += removed;
+      if (who) { who.load += removed; who.val += val; }
+      else { var g = val * w.mult * 0.5; w.earned += g; pay(w, g, src); }
+      w.fx.push({ t: 'clear', x: cx, y: cy, n: removed, src: src });
     }
     return removed;
   }
 
-  // 눈을 다시 쌓는다 (고라니 발길질, 차 진흙눈, 지붕 눈)
+  // 집하장에 붓기
+  function deposit(w, who, src, dump) {
+    if (!who.load) return 0;
+    var amount = who.val * w.mult;
+    w.earned += amount; pay(w, amount, src);
+    var mk = w.save.made;
+    if (!w.demo && procLvl(w.save, 'press')) mk.brick += who.load / 40;
+    if (!w.demo && procLvl(w.save, 'sculpt')) mk.snowman += who.load / 400;
+    w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y });
+    who.load = 0; who.val = 0;
+    return amount;
+  }
+  function nearestDump(w, x, y) {
+    var best = null, bd = 1e9;
+    w.dumps.forEach(function (d) { var k = Math.hypot(d.x - x, d.y - y); if (k < bd) { bd = k; best = d; } });
+    return best;
+  }
+
+  // 눈을 다시 쌓는다 (고라니 발길질, 차 진흙눈, 지붕 눈, 쏟은 눈)
   function dumpAt(w, cx, cy, r, add, prob, max) {
     var x0 = Math.max(0, Math.floor((cx - r) / CELL)), x1 = Math.min(GW - 1, Math.floor((cx + r) / CELL));
     var y0 = Math.max(0, Math.floor((cy - r) / CELL)), y1 = Math.min(GH - 1, Math.floor((cy + r) / CELL));
@@ -1560,9 +1693,18 @@ body.is3d #cv { background: #c9d5e1; }
     for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) {
       var idx = gy * GW + gx, zi = w.zone[idx];
       if (zi < 0 || !w.zoneOpen[zi] || w.depth[idx] >= max || w.rand() > prob) continue;
-      setDepth(w, idx, Math.min(max, w.depth[idx] + add)); n++;
+      var before = w.depth[idx], after = Math.min(max, before + add);
+      setDepth(w, idx, after); n += after - before;
     }
     return n;
+  }
+  // 짊어진 눈을 쏟는다
+  function spill(w, who) {
+    if (!who.load) return 0;
+    var left = who.load, r = 8;
+    while (left > 0 && r < 60) { left -= dumpAt(w, who.x, who.y, r, 1, 0.7, 3); r += 6; }
+    var lost = who.load; who.load = 0; who.val = 0;
+    return lost;
   }
 
   function say(w, key, force) {
@@ -1579,11 +1721,12 @@ body.is3d #cv { background: #c9d5e1; }
   function pickTarget(w, e) {
     var R = w.rand, best = -1, bs = 1e9, n = w.cells.length;
     if (!n) return;
+    var home = e.home;
     for (var k = 0; k < 16; k++) {
       var idx = w.cells[(R() * n) | 0], d = w.depth[idx];
       if (!d) continue;
       var x = (idx % GW) * CELL + 5, y = ((idx / GW) | 0) * CELL + 5;
-      var s = Math.hypot(x - e.x, y - e.y) - d * 18;
+      var dump = nearestDump(w, x, y), s = Math.hypot(x - e.x, y - e.y) * 0.7 + (dump ? Math.hypot(dump.x - x, dump.y - y) * 0.5 : 0) - d * 18;
       if (s < bs) { bs = s; best = idx; }
     }
     if (best < 0) { e.tidx = -1; e.tx = w.player.x + (R() - 0.5) * 120; e.ty = w.player.y + (R() - 0.5) * 120; e.retarget = 2; return; }
@@ -1640,7 +1783,6 @@ body.is3d #cv { background: #c9d5e1; }
   function stepHazards(w, dt) {
     var R = w.rand, save = w.save, P = w.player, medic = lvl(save, 'medic'), i;
     while (w.events.length && w.events[0].t <= w.time) spawn(w, w.events.shift().k);
-    // 고라니
     for (i = w.deer.length - 1; i >= 0; i--) {
       var d = w.deer[i];
       d.t += dt; d.turnT -= dt; d.hitT -= dt; d.kickT -= dt;
@@ -1665,17 +1807,16 @@ body.is3d #cv { background: #c9d5e1; }
         if (c.injured > 0 || c.def.vehicle) continue;
         if (Math.abs(c.x - d.x) < hr && Math.abs(c.y - d.y) < hr) {
           c.injured = HAZ.deer.injure * (1 - 0.15 * medic); c.asleep = false; d.hitT = 0.8; d.heading += Math.PI * 0.8; w.hits++;
+          spill(w, c); c.state = 'work';
           w.fx.push({ t: 'deerHit', e: c, x: c.x, y: c.y }); say(w, 'deerHit', true); break;
         }
       }
       if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr) {
         P.stun = HAZ.deer.stun * (1 - 0.1 * medic); d.hitT = 1; d.heading += Math.PI * 0.8; w.hits++;
-        var lose = w.demo ? 0 : Math.min(Math.floor(save.bank), Math.floor(w.earned * 0.03) + 5);
-        if (lose > 0) { save.bank -= lose; w.lost += lose; }
-        w.fx.push({ t: 'meHit', x: P.x, y: P.y, lose: lose }); say(w, 'meHit', true);
+        var lost = spill(w, P);
+        w.fx.push({ t: 'meHit', x: P.x, y: P.y, spilled: lost }); say(w, lost ? 'spill' : 'meHit', true);
       }
     }
-    // 간부 차량: 진입로를 올라갔다가 내려간다
     var car = w.car;
     if (car) {
       var cs = HAZ.car.speed * dt;
@@ -1687,14 +1828,12 @@ body.is3d #cv { background: #c9d5e1; }
       w.crew.forEach(function (c) { if (Math.abs(c.x - car.x) < 18 && Math.abs(c.y - car.y) < 22) { c.x += c.x < car.x ? -26 : 26; c.retarget = 0; } });
       if (P.stun <= 0 && Math.abs(P.x - car.x) < 16 && Math.abs(P.y - car.y) < 20) { P.stun = 0.8; P.x += P.x < car.x ? -24 : 24; w.fx.push({ t: 'carHit', x: P.x, y: P.y }); }
     }
-    // 헬기: 하강풍으로 눈을 날려 준다
     var hl = w.heli;
     if (hl) {
       hl.t += dt; hl.tick -= dt;
-      if (hl.t > 1.5 && hl.t < hl.life - 1.2 && hl.tick <= 0) { hl.tick = 0.15; clearAt(w, hl.x + (R() - 0.5) * 30, hl.y + (R() - 0.5) * 30, HAZ.heli.r, 2, 'heli'); }
+      if (hl.t > 1.5 && hl.t < hl.life - 1.2 && hl.tick <= 0) { hl.tick = 0.15; clearAt(w, hl.x + (R() - 0.5) * 30, hl.y + (R() - 0.5) * 30, HAZ.heli.r, 2, 'heli', null); }
       if (hl.t > hl.life) w.heli = null;
     }
-    // 짬타이거
     w.cats.forEach(function (c) {
       c.wait -= dt;
       var pd = Math.hypot(P.x - c.x, P.y - c.y);
@@ -1704,10 +1843,20 @@ body.is3d #cv { background: #c9d5e1; }
     });
   }
 
+  function newDay(w) {
+    var save = w.save, R = w.rand, earned = save.today;
+    save.day++; save.today = 0; w.time = 0;
+    var wxi = weatherFor(save); w.weather = wxi.id; w.wx = S.WEATHER[wxi.id]; w.inspect = wxi.inspect; w.inspected = {};
+    w.events = schedule(w, save, 0);
+    var n = 0;
+    if (w.wx.dump) w.cells.forEach(function (idx) { if (R() < w.wx.dump && w.depth[idx] < 3) { setDepth(w, idx, w.depth[idx] + 1); n++; } });
+    w.fx.push({ t: 'day', day: save.day, weather: w.weather, earned: earned, dumped: n, inspect: w.inspect });
+  }
+
   function step(w, dt, input) {
-    if (w.done) return;
     var save = w.save, R = w.rand, P = w.player;
     w.time += dt; w.sayT -= dt;
+    if (w.time >= w.dayLen) newDay(w);
     stepHazards(w, dt);
     // 나
     var ix = input ? input.x : 0, iy = input ? input.y : 0, mag = Math.hypot(ix, iy);
@@ -1725,15 +1874,19 @@ body.is3d #cv { background: #c9d5e1; }
     if (P.hitT <= 0) {
       P.hitT += S.HIT / (1 + 0.1 * lvl(save, 'matsta'));
       if (P.hitT < 0) P.hitT = 0;
-      if (P.stun <= 0) {
+      if (P.stun <= 0 && P.load < P.cap) {
         var cx = P.aura ? P.x : P.x + P.dir.x * P.r * 0.6, cy = P.aura ? P.y : P.y + P.dir.y * P.r * 0.6 + 2;
-        if (clearAt(w, cx, cy, P.r, P.p, 'player')) P.swing = 1;
+        if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) P.swing = 1;
       }
     }
-    if (P.idleT > 4 && !w.flags.idleSaid) { say(w, 'idle'); w.flags.idleSaid = true; }
+    if (P.load >= P.cap) { if (!P.fullSaid) { P.fullSaid = true; w.fx.push({ t: 'full' }); say(w, 'full', true); } } else P.fullSaid = false;
+    var dp = nearestDump(w, P.x, P.y);
+    if (P.load > 0 && dp && Math.hypot(dp.x - P.x, dp.y - P.y) < dp.r) deposit(w, P, 'player', dp);
+    if (P.idleT > 6 && !w.flags.idleSaid) { say(w, 'idle'); w.flags.idleSaid = true; }
     if (P.idleT === 0) w.flags.idleSaid = false;
 
-    // 인력
+    // 인력: 담고 → 꽉 차면 가까운 집하장(릴레이)으로 → 붓고 → 다시
+    if (w.crew.length) w.crewT += dt;
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       e.swing = Math.max(0, e.swing - dt * 5);
@@ -1743,8 +1896,16 @@ body.is3d #cv { background: #c9d5e1; }
         if (e.sleepT <= 0) { e.asleep = R() < C.sleep; e.sleepT = 3 + R() * 4; if (e.asleep) w.fx.push({ t: 'zzz', e: e }); }
         if (e.asleep) { e.moving = false; continue; }
       }
+      if (e.state === 'haul') {
+        var dd = nearestDump(w, e.x, e.y);
+        if (Math.hypot(dd.x - e.x, dd.y - e.y) < dd.r * 0.8) { deposit(w, e, 'crew', dd); e.state = 'work'; e.tidx = -1; continue; }
+        var mv0 = steer(e, dd.x, dd.y, e.speed, dt, 6);
+        if (mv0 < e.speed * dt * 0.25) { e.stuck += dt; if (e.stuck > 1.2) { e.stuck = 0; e.x += (R() - 0.5) * 16; e.y += (R() - 0.5) * 16; if (blocked(e.x, e.y, 6)) { e.x = dd.x; e.y = dd.y; } } } else e.stuck = 0;
+        continue;
+      }
       e.retarget -= dt;
       if (e.tidx < 0 || e.retarget <= 0 || !w.depth[e.tidx]) pickTarget(w, e);
+      if (e.tidx < 0 && e.load > 0) { e.state = 'haul'; continue; }
       var dist = Math.hypot(e.tx - e.x, e.ty - e.y), near = e.r * 0.5;
       if (dist > near) {
         var mv = steer(e, e.tx, e.ty, e.speed, dt, 6);
@@ -1753,12 +1914,13 @@ body.is3d #cv { background: #c9d5e1; }
       e.hitT -= dt;
       if (e.hitT <= 0) {
         e.hitT += e.hit; if (e.hitT < 0) e.hitT = 0;
-        if (clearAt(w, e.x + e.dir.x * e.r * 0.6, e.y + e.dir.y * e.r * 0.6 + 2, e.r, e.p, 'crew')) e.swing = 1;
+        if (clearAt(w, e.x + e.dir.x * e.r * 0.6, e.y + e.dir.y * e.r * 0.6 + 2, e.r, e.p, 'crew', e)) e.swing = 1;
+        if (e.load >= e.cap) e.state = 'haul';
       }
       if (R() < dt * 0.02) w.fx.push({ t: 'chat', e: e });
     }
 
-    // 행보관: 돌아다니며 감시
+    // 행보관: 돌아다니며 감시, 조는 병장 깨우기
     var Hh = w.haeng;
     Hh.wait -= dt; Hh.shoutT -= dt;
     if (Hh.wait <= 0 && w.cells.length) { var pt = randomOpenPoint(w); Hh.tx = pt.x; Hh.ty = pt.y; Hh.wait = 5 + R() * 4; }
@@ -1770,47 +1932,18 @@ body.is3d #cv { background: #c9d5e1; }
       }
     }
 
-    // 눈이 계속 내린다
+    // 눈은 계속 내린다
     w.fallAcc += w.cells.length * S.FALL * w.wx.fall * dt;
     while (w.fallAcc >= 1) {
       w.fallAcc -= 1;
-      var k = w.cells[(R() * w.cells.length) | 0], dd = w.depth[k];
-      if (dd < 3) setDepth(w, k, dd + 1);
+      var k = w.cells[(R() * w.cells.length) | 0], d0 = w.depth[k];
+      if (d0 < 3) setDepth(w, k, d0 + 1);
     }
-
-    var pc = pct(w);
-    if (pc >= 0.5 && !w.flags.half) { w.flags.half = true; say(w, 'half'); }
-    if (pc >= w.goal - 0.08 && !w.flags.near) { w.flags.near = true; say(w, 'near'); }
-    if (w.dayLen - w.time <= 10 && !w.flags.late) { w.flags.late = true; say(w, 'late', true); }
-    if (pc >= 0.98) { w.done = true; w.early = true; }
-    if (w.time >= w.dayLen) w.done = true;
   }
 
   function pct(w) { return w.total ? w.clear / w.total : 0; }
 
-  function gradeOf(w) {
-    var p = pct(w);
-    return p >= 0.95 ? 'S' : p >= w.goal ? 'A' : p >= 0.5 ? 'B' : 'C';
-  }
-
-  function finishDay(w) {
-    var save = w.save, p = pct(w), g = gradeOf(w);
-    var rate = { S: 0.4, A: 0.2, B: 0, C: 0 }[g] * (w.inspect ? 2 : 1);
-    var bonus = Math.round(w.earned * rate);
-    var left = Math.max(0, w.dayLen - w.time), timeBonus = w.early && w.time > 0 ? Math.round(w.earned / w.time * left * 0.6) : 0;
-    bonus += timeBonus;
-    save.bank += bonus; save.life += bonus;
-    save.day++; save.total += w.units; save.deerHits += w.hits;
-    save.best = Math.max(save.best, Math.round(w.earned + bonus));
-    save.crewRate = w.time > 0 ? w.crewEarned / w.time : 0;
-    save.last = Date.now();
-    var r1 = rankOf(save);
-    return { day: save.day - 1, pct: p, grade: g, earned: Math.floor(w.earned), bonus: bonus, units: w.units, weather: w.weather, inspect: w.inspect,
-      rankUp: r1 > w.rank0 ? r1 : 0, goal: w.goal, early: !!w.early, left: left, timeBonus: timeBonus,
-      partBonus: w.partBonus, parts: w.parts.filter(function (x) { return x.done; }).length, partsTotal: w.parts.length, lost: w.lost, hits: w.hits };
-  }
-
-  // 앱을 꺼 둔 동안: 지난 작업의 인력 수입 × 시간 × 10% (최대 8시간)
+  // 앱을 꺼 둔 동안: 인력 수입 × 시간 × 10% (최대 8시간)
   function offline(save, now) {
     if (!save.last || !save.crewRate) return 0;
     var sec = Math.min((now - save.last) / 1000, 8 * 3600);
@@ -1819,11 +1952,11 @@ body.is3d #cv { background: #c9d5e1; }
   }
 
   JY.SnowSim = {
-    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, rankOf: rankOf, nextRank: nextRank,
-    crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, dayLength: dayLength, toolOf: toolOf, crewCount: crewCount,
-    canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy,
-    blocked: blocked, createWorld: createWorld, step: step, pct: pct, gradeOf: gradeOf, finishDay: finishDay, offline: offline,
-    cellIndex: cellIndex, clearAt: clearAt, dumpAt: dumpAt, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById
+    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
+    crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
+    canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
+    blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
+    cellIndex: cellIndex, clearAt: clearAt, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
   };
 })(window.JY = window.JY || {});
 
@@ -1891,6 +2024,8 @@ body.is3d #cv { background: #c9d5e1; }
     rank: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, i === 3 ? 0.5 : 0.14, 'triangle', 0.13, i * 0.13); }); },
     stamp: function () { noise(0.14, 0.25, 'lowpass', 260, 0.7); tone(90, 0.18, 'sine', 0.22, 0, 50); },
     pop: function () { tone(520, 0.08, 'sine', 0.08, 0, 880); },
+    pour: function (k) { noise(0.35 * (0.5 + k * 0.5), 0.1 + k * 0.12, 'lowpass', 700, 0.6); noise(0.2, 0.05 * k, 'bandpass', 2500, 1); },
+    coin: function () { tone(1046, 0.08, 'triangle', 0.08, 0.05); tone(1568, 0.14, 'triangle', 0.08, 0.12); },
     ding: function () { tone(1568, 0.5, 'sine', 0.12); tone(2093, 0.6, 'sine', 0.08, 0.06); tone(3136, 0.3, 'sine', 0.04, 0.1); },
     deer: function () {
       // 고라니 비명: 높고 거친 소리가 꺾인다
@@ -2293,7 +2428,6 @@ body.is3d #cv { background: #c9d5e1; }
           parts.push({ x: f.x + Math.cos(ang) * r * 0.6, y: f.y + Math.sin(ang) * r * 0.6, z: rnd(2, 6), vx: Math.cos(ang) * sp + (mine ? P.dir.x * 25 : 0), vy: Math.sin(ang) * sp * 0.6 + (mine ? P.dir.y * 25 : 0), vz: rnd(30, 70), life: rnd(0.45, 0.8), t: 0, s: rnd(1.2, 2.6), salt: mine && P.aura });
         }
         if (mine) {
-          gainAcc += f.gain;
           if (scrapeT <= 0 && JY.SnowSfx) { JY.SnowSfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; }
         } else if (crewScrapeT <= 0 && JY.SnowSfx) { JY.SnowSfx.scrape(0.25); crewScrapeT = 0.22; }
       } else if (f.t === 'zzz') {
@@ -2317,7 +2451,10 @@ body.is3d #cv { background: #c9d5e1; }
         if (f.lose) floats.push({ x: f.x, y: f.y - 36, text: '-' + f.lose, t: 0, life: 1.4, color: '#ff6a55', size: 12, pie: true });
         shake = Math.max(shake, 4);
       }
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part)$/.test(f.t)) hooks.event(f);
+      if (f.t === 'dump' && (f.src === 'player' || Math.random() < 0.3)) { floats.push({ x: f.x, y: f.y - 30, text: '+' + Math.floor(f.pay), t: 0, life: 1.2, color: '#ffd84a', size: 13, pie: true }); if (JY.SnowSfx && f.src === 'player' && mode === 'play') { JY.SnowSfx.pour(1); JY.SnowSfx.coin(); } }
+      if (f.t === 'full') floats.push({ x: 0, y: 0, text: '가득!', t: 0, life: 1.4, color: '#ff6a55', size: 12, follow: world.player });
+      if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -2425,7 +2562,14 @@ body.is3d #cv { background: #c9d5e1; }
     world.cats.forEach(function (k) { list.push({ y: k.y, f: function () { c.fillStyle = '#e8913a'; c.beginPath(); c.arc(k.x, k.y - 5, 5, 0, 7); c.fill(); c.beginPath(); c.arc(k.x + 4, k.y - 10, 3.5, 0, 7); c.fill(); } }); });
     if (world.car) { var cr = world.car; list.push({ y: cr.y + 12, f: function () { c.fillStyle = '#4f5d36'; rr(c, cr.x - 9, cr.y - 16, 18, 30, 4); c.fill(); c.fillStyle = '#9cc3dc'; c.fillRect(cr.x - 7, cr.y - (cr.dir.y < 0 ? 12 : -4), 14, 6); } }); }
     if (world.heli) { var hl = world.heli; list.push({ y: hl.y + 20, f: function () { c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(hl.x, hl.y, 60, 0, 7); c.fill(); c.fillStyle = '#4c5a35'; c.beginPath(); c.ellipse(hl.x, hl.y - 10, 16, 10, 0, 0, 7); c.fill(); c.fillRect(hl.x - 36, hl.y - 12, 22, 4); } }); }
-    list.push({ y: world.player.y + 0.1, f: function () { drawPlayer(c, world.player); } });
+    list.push({ y: world.player.y + 0.1, f: function () { drawPlayer(c, world.player); var P = world.player; if (P.load > 0) { var k = Math.min(1, P.load / P.cap); c.fillStyle = '#9a8a5c'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 14, 3 + k * 5, 0, 7); c.fill(); c.fillStyle = '#fbfdff'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 17 - k * 3, 2 + k * 3, 0, 7); c.fill(); } } });
+    world.dumps.forEach(function (d) { list.push({ y: d.y - d.r, f: function () {
+      c.fillStyle = 'rgba(138,106,68,.35)'; c.beginPath(); c.arc(d.x, d.y, d.r, 0, 7); c.fill();
+      c.strokeStyle = '#8a6a44'; c.lineWidth = 3; c.stroke();
+      c.fillStyle = '#f7fafd'; c.beginPath(); c.ellipse(d.x, d.y - 4, d.r * 0.55, d.r * 0.38, 0, 0, 7); c.fill();
+      c.fillStyle = '#2f3a25'; c.font = '700 9px ' + FONT; c.textAlign = 'center'; c.fillText(d.main ? '눈 집하장' : '릴레이', d.x, d.y - d.r - 4); } }); });
+    if (world.player.load >= world.player.cap * 0.6) { var Pp = world.player, nd = G.nearestDump(world, Pp.x, Pp.y), an = Math.atan2(nd.y - Pp.y, nd.x - Pp.x);
+      if (Math.hypot(nd.x - Pp.x, nd.y - Pp.y) > 40) list.push({ y: 1e9, f: function () { c.save(); c.translate(Pp.x + Math.cos(an) * 30, Pp.y - 10 + Math.sin(an) * 30); c.rotate(an); c.fillStyle = '#ff6a55'; c.beginPath(); c.moveTo(10, 0); c.lineTo(-6, -7); c.lineTo(-6, 7); c.closePath(); c.fill(); c.restore(); } }); }
     list.sort(function (a, b) { return a.y - b.y; });
     list.forEach(function (o) { o.f(); });
     // 날리는 눈 조각
@@ -2515,6 +2659,7 @@ body.is3d #cv { background: #c9d5e1; }
   }
   function botInput() {
     var P = world.player;
+    if (P.load >= P.cap * 0.95 || (P.load > 0 && bot.idx < 0)) { var dp = G.nearestDump(world, P.x, P.y), ddx = dp.x - P.x, ddy = dp.y - P.y, dl = Math.hypot(ddx, ddy) || 1; return { x: ddx / dl, y: ddy / dl }; }
     bot.t -= 1 / 60;
     if (bot.t <= 0 || bot.idx < 0 || !world.depth[bot.idx]) {
       var best = -1, bs = 1e9;
@@ -2566,7 +2711,7 @@ body.is3d #cv { background: #c9d5e1; }
   /* ── 루프 ── */
   function frame(t) {
     raf = requestAnimationFrame(frame);
-    var raw = last ? Math.min(0.15, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
+    var raw = last ? Math.min(0.25, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
     if (world && (mode === 'play' || mode === 'demo')) {
       var inp = mode === 'demo' || autopilot ? botInput() : readInput(), n = Math.ceil(raw / 0.05);
       for (var sn = 0; sn < n && !world.done; sn++) G.step(world, raw / n, inp);
@@ -2576,7 +2721,7 @@ body.is3d #cv { background: #c9d5e1; }
       if (hooks.tick && mode === 'play') hooks.tick(world);
     }
     if (world) { stepFx(dt); camera(dt); for (var i = 0; i < flakes.length; i++) { var f = flakes[i]; f.y += (16 + f.z * 46) * dt; if (f.y > vh + 4) { f.y = -4; f.x = Math.random() * vw; } } }
-    if (world) flushDirty(mode === 'demo' ? 8 : 16);
+    if (world) flushDirty(mode === 'demo' ? 4 : 6);
     render();
   }
 
@@ -3011,6 +3156,80 @@ body.is3d #cv { background: #c9d5e1; }
     scene.add(lockGroup);
   }
 
+  /* ── 눈 집하장·공장·릴레이 ── */
+  var dumpGroup = null, piles = {}, pileLevel = { main: 0.6, relay: 0.4 }, relayCrew = [], arrowEl = null, dumpRings = [];
+  // 집하장 자리는 눈을 치워 둔 마당
+  function carveDumps() {
+    world.dumps.forEach(function (d) {
+      for (var gy = Math.floor((d.y - d.r - 10) / CELL); gy <= Math.ceil((d.y + d.r + 10) / CELL); gy++) for (var gx = Math.floor((d.x - d.r - 10) / CELL); gx <= Math.ceil((d.x + d.r + 10) / CELL); gx++) {
+        if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+        var cx = gx * CELL + 5, cy = gy * CELL + 5, k = Math.hypot(cx - d.x, cy - d.y);
+        if (k < d.r + 6 && world.zone[gy * GW + gx] < 0) baseH[gy * GW + gx] = k < d.r ? -0.1 : 0.15;
+      }
+    });
+  }
+  function buildDumps() {
+    if (dumpGroup) scene.remove(dumpGroup);
+    dumpGroup = new T.Group(); piles = {}; relayCrew = []; dumpRings = [];
+    var save = world.save;
+    world.dumps.forEach(function (d) {
+      var x = d.x * U, z = d.y * U, r = d.r * U, parts = [];
+      // 바닥 테두리(나무 판자)와 표지판
+      for (var a = 0; a < 16; a++) { var an = a / 16 * Math.PI * 2; parts.push([box(0.7, 0.35, 0.18, { ry: -an, x: x + Math.cos(an) * r, y: 0.17, z: z + Math.sin(an) * r }), a % 2 ? '#8a6a44' : '#a07c50']); }
+      parts.push([cyl(0.07, 0.07, 2.2, { x: x - r - 0.3, y: 1.1, z: z + r * 0.4 }), '#6b4a32']);
+      dumpGroup.add(mesh(merge(parts)));
+      var ring = new T.Mesh(new T.RingGeometry(r * 0.92, r * 1.05, 40), new T.MeshBasicMaterial({ color: d.main ? '#ffd24a' : '#9fd3ff', transparent: true, opacity: 0.7, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.05, z); dumpGroup.add(ring); dumpRings.push(ring);
+      var tt = textTex(d.main ? '눈 집하장' : '양동이 릴레이', { size: 40, bg: d.main ? '#2f3a25' : '#fff6c9', color: d.main ? '#f2ecd8' : '#3a3018', border: d.main ? '#1a2214' : '#6b5a2a' });
+      var sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 52, tt.image.height / 52), new T.MeshLambertMaterial({ map: tt })); sm.position.set(x - r - 0.3, 2.3, z + r * 0.4 + 0.06); dumpGroup.add(sm);
+      var pile = new T.Mesh(geos.pile || (geos.pile = merge([[sph(1, { s: [1, 0.55, 1] }), '#f7fafd'], [sph(0.6, { s: [1, 0.6, 1], x: 0.5, y: 0.2, z: -0.3 }), '#ffffff'], [sph(0.5, { s: [1, 0.6, 1], x: -0.5, y: 0.15, z: 0.35 }), '#eef3f8']])), matV);
+      pile.position.set(x, 0, z); dumpGroup.add(pile); piles[d.main ? 'main' : d.zone] = { m: pile, r: r, main: d.main };
+      if (!d.main) {
+        for (var c = 0; c < 3; c++) {
+          var o = makePerson({ coat: '#5b6a3a', face: 'hoobae', tool: null, scale: 1.1 });
+          o.g.position.set(x + r + 0.6 + c * 1.1, 0, z - 0.4 + c * 0.6); o.body.rotation.y = -0.6; scene.remove(o.g); dumpGroup.add(o.g); relayCrew.push(o);
+        }
+      }
+    });
+    // 공장: 압축기와 눈조각 작업장 (집하장 옆)
+    var mx = S.DUMP.x * U, mz = S.DUMP.y * U, press = G.procLvl(save, 'press'), sculpt = G.procLvl(save, 'sculpt'), fp = [];
+    if (press) {
+      fp.push([box(2.2, 1.4, 1.6, { x: mx + 4, y: 0.7, z: mz - 1 }), '#6b7a8a'], [box(0.9, 1.6, 0.9, { x: mx + 4, y: 2.1, z: mz - 1 }), '#8a98a6'], [box(2.6, 0.12, 1.9, { x: mx + 4, y: 1.45, z: mz - 1 }), '#e2b33c']);
+      var bricks = Math.min(14, 2 + press * 2 + Math.floor((save.made.brick || 0) / 50));
+      for (var b = 0; b < bricks; b++) fp.push([box(0.7, 0.35, 0.4, { x: mx + 3 + (b % 4) * 0.75, y: 0.18 + Math.floor(b / 8) * 0.36, z: mz + 1.0 + (Math.floor(b / 4) % 2) * 0.45 }), '#f2f6fa']);
+    }
+    if (sculpt) {
+      var men = Math.min(5, sculpt + Math.floor((save.made.snowman || 0) / 20));
+      for (var sIdx = 0; sIdx < men; sIdx++) {
+        var sx = mx - 3.5 - sIdx * 1.6, sz = mz + 2.6;
+        fp.push([sph(0.75, { x: sx, y: 0.7, z: sz }), '#fbfdff'], [sph(0.5, { x: sx, y: 1.6, z: sz }), '#fbfdff']);
+        var gen = new T.Sprite(faceMat('general', 'normal')); gen.center.set(0.5, 0.05); gen.scale.set(1.25, 1.25, 1); gen.position.set(sx, 1.25, sz + 0.1); dumpGroup.add(gen);
+      }
+      var st = textTex('사단장님 환영', { size: 34 }); var sp2 = new T.Mesh(new T.PlaneGeometry(st.image.width / 60, st.image.height / 60), new T.MeshLambertMaterial({ map: st })); sp2.position.set(mx - 4.5, 2.7, mz + 2.2); dumpGroup.add(sp2);
+    }
+    if (fp.length) dumpGroup.add(mesh(merge(fp)));
+    scene.add(dumpGroup);
+  }
+  function stepDumps(dt) {
+    var t = performance.now() / 1000;
+    pileLevel.main = Math.max(0.6, Math.min(2.4, pileLevel.main - dt * 0.03)); pileLevel.relay = Math.max(0.4, Math.min(1.5, pileLevel.relay - dt * 0.05));
+    Object.keys(piles).forEach(function (k) { var p = piles[k], lv = p.main ? pileLevel.main : pileLevel.relay, s = p.r * 0.55 * (0.7 + lv * 0.35); p.m.scale.set(s, s * (0.6 + lv * 0.25), s); });
+    relayCrew.forEach(function (o, i) { o.body.rotation.z = Math.sin(t * 6 + i * 2) * 0.35; o.body.position.y = Math.abs(Math.sin(t * 6 + i * 2)) * 0.15; });
+    var hot = world && world.player.load > 0;
+    dumpRings.forEach(function (r) { r.material.opacity = hot ? 0.55 + Math.sin(t * 6) * 0.35 : 0.35; r.scale.setScalar(hot ? 1 + Math.sin(t * 6) * 0.04 : 1); });
+  }
+  // 짐이 많으면 가장 가까운 집하장 쪽 화살표
+  function stepArrow() {
+    if (!arrowEl) { arrowEl = document.createElement('div'); arrowEl.id = 'arrow3d'; arrowEl.innerHTML = '<svg viewBox="0 0 40 40"><path d="M6 20h20M20 10l10 10-10 10" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20h20M20 10l10 10-10 10" stroke="#ff6a55" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'; ov.appendChild(arrowEl); }
+    var P = world.player, show = mode === 'play' && P.load >= P.cap * 0.6;
+    arrowEl.style.display = show ? '' : 'none';
+    if (!show) return;
+    var d = G.nearestDump(world, P.x, P.y), a = project(P.x, P.y, 2.2), b = project(d.x, d.y, 0.5), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    var dist = Math.hypot(b[0] - a[0], b[1] - a[1]); if (dist < 50) { arrowEl.style.display = 'none'; return; }
+    var rr2 = 64 + Math.sin(performance.now() / 160) * 6;
+    arrowEl.style.transform = 'translate(' + (a[0] + Math.cos(ang) * rr2).toFixed(1) + 'px,' + (a[1] + Math.sin(ang) * rr2).toFixed(1) + 'px) rotate(' + ang.toFixed(3) + 'rad)';
+  }
+
   /* ── 사람·차·고라니 ── */
   var SKIN = '#f1c7a1';
   function bodyGeo(coat) {
@@ -3127,6 +3346,13 @@ body.is3d #cv { background: #c9d5e1; }
     obj.shadow.position.y = 0.04;
   }
   function removeObj(o) { if (o) scene.remove(o.g || o); }
+  // 등에 진 마대: 짊어진 만큼 커진다
+  function sack(o, k) {
+    if (o.vehicle) { if (o.hopper) o.hopper.scale.set(1, Math.max(0.05, k), 1); return; }
+    if (!o.sack) { o.sack = new T.Mesh(geos.sack || (geos.sack = merge([[sph(0.42, { s: [1, 1.1, 0.8], y: 0 }), '#9a8a5c'], [sph(0.36, { s: [1, 0.5, 0.75], y: 0.34 }), '#fbfdff'], [cyl(0.08, 0.12, 0.15, { y: 0.5 }), '#6b5a34']])), matV); o.sack.position.set(0, 1.0, -0.5); o.body.add(o.sack); }
+    o.sack.visible = k > 0.02;
+    var sc = 0.45 + Math.min(1, k) * 0.85; o.sack.scale.setScalar(sc);
+  }
 
   function buildActors() {
     [playerObj, haengObj, carObj, heliObj].forEach(removeObj);
@@ -3237,7 +3463,7 @@ body.is3d #cv { background: #c9d5e1; }
           var side = Math.random() < 0.5 ? -1 : 1, dx = mine ? P.dir.x : 0, dz = mine ? P.dir.y : 0;
           emit(f.x * U + rnd(-0.6, 0.6), 0.4, f.y * U + rnd(-0.6, 0.6), (dx * 3 + -dz * side * 4 + rnd(-1.5, 1.5)) * (heli ? 2 : 1), rnd(3, 6.5), (dz * 3 + dx * side * 4 + rnd(-1.5, 1.5)) * (heli ? 2 : 1), rnd(0.5, 0.9), mine && P.aura ? [0.75, 0.9, 1] : null);
         }
-        if (mine) { gainAcc += f.gain; if (scrapeT <= 0 && sfx) { sfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; } }
+        if (mine) { if (scrapeT <= 0 && sfx) { sfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; } }
         else if (crewScrapeT <= 0 && sfx) { sfx.scrape(0.22); crewScrapeT = 0.22; }
       } else if (f.t === 'part') {
         for (k = 0; k < 40; k++) emit(f.x * U + rnd(-3, 3), 0.6, f.y * U + rnd(-3, 3), rnd(-3, 3), rnd(5, 10), rnd(-3, 3), rnd(0.8, 1.4), Math.random() < 0.5 ? [1, 0.84, 0.3] : [1, 1, 1]);
@@ -3280,6 +3506,23 @@ body.is3d #cv { background: #c9d5e1; }
       } else if (f.t === 'snowball') {
         if (hooks.event && mode === 'play') hooks.event(f);
         if (sfx && mode === 'play') sfx.splat();
+      } else if (f.t === 'dump') {
+        var dm = f.src === 'player', fromX = f.fromX * U, fromZ = f.fromY * U, tx = f.x * U, tz = f.y * U, nn = Math.min(dm ? 40 : 8, 4 + (f.units / 4 | 0));
+        for (k = 0; k < nn; k++) { var tt = rnd(0.45, 0.75); emit(fromX + rnd(-0.4, 0.4), 2.2, fromZ + rnd(-0.4, 0.4), (tx - fromX) / tt + rnd(-1, 1), 7 * tt + rnd(0, 2), (tz - fromZ) / tt + rnd(-1, 1), tt + 0.05); }
+        pileLevel[f.main ? 'main' : 'relay'] += f.units / 300;
+        if (dm || Math.random() < 0.35) { var od = addOv('+' + fmt(f.pay) + '<i class="pie"></i>', 'ov-dump', f.x, f.y, 4, dm ? 1.4 : 0.9); od.rise = 1.6; }
+        if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
+        if (dm && hooks.event) hooks.event(f);
+      } else if (f.t === 'full') {
+        addOv('가득!', 'ov-full', 0, 0, 4.4, 1.6, world.player);
+        if (sfx) sfx.deny();
+        if (hooks.event) hooks.event(f);
+      } else if (f.t === 'inspect') {
+        var oi = addOv('검열 통과!<span>' + f.name + ' · +' + fmt(f.bonus) + '</span>', 'ov-inspect', f.x, f.y, 2, 2.6); oi.rise = 0.4;
+        for (k = 0; k < 60; k++) emit(f.x * U + rnd(-6, 6), 0.6, f.y * U + rnd(-6, 6), rnd(-3, 3), rnd(6, 11), rnd(-3, 3), rnd(0.9, 1.5), [1, 0.84, 0.3]);
+        if (hooks.event && mode === 'play') hooks.event(f);
+      } else if (f.t === 'day') {
+        if (hooks.event && mode === 'play') hooks.event(f);
       } else if (f.t === 'up') {
         addOv('다시 일어났다', 'ov-chat', 0, 0, 4.3, 1.2, f.e);
       }
@@ -3295,12 +3538,14 @@ body.is3d #cv { background: #c9d5e1; }
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
     placePerson(playerObj, P, { lie: P.stun > 0.6 });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
+    sack(playerObj, P.load / P.cap);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
       setExpr(o, e.injured > 0 ? 'hurt' : e.asleep ? 'sleep' : 'normal');
       placePerson(o, e, { lie: e.injured > 0 || e.asleep });
+      sack(o, e.load / e.cap);
     });
     // 고라니
     while (deerObjs.length < w.deer.length) deerObjs.push(makeDeer());
@@ -3359,7 +3604,7 @@ body.is3d #cv { background: #c9d5e1; }
     scene.fog.near = dist * 1.05; scene.fog.far = dist * 2.4;
   }
   function lighting() {
-    var k = world && world.dayLen ? Math.min(1, world.time / world.dayLen) : 0.3;
+    var k = world && world.dayLen ? 0.25 + 0.75 * Math.sin(Math.min(1, world.time / world.dayLen) * Math.PI) : 0.6;
     hemi.color.setRGB(0.84 + k * 0.12, 0.89 + k * 0.07, 1); hemi.intensity = 0.6 + k * 0.06;
     sun.color.setRGB(1, 0.86 + k * 0.1, 0.78 + k * 0.12); sun.intensity = 0.66 + k * 0.12;
     if (scene.fog) scene.fog.color.setRGB(0.78 + k * 0.06, 0.84 + k * 0.04, 0.9);
@@ -3381,6 +3626,7 @@ body.is3d #cv { background: #c9d5e1; }
   }
   function botInput() {
     var P = world.player;
+    if (P.load >= P.cap * 0.95 || (P.load > 0 && bot.idx < 0)) { var dp = G.nearestDump(world, P.x, P.y), ddx = dp.x - P.x, ddy = dp.y - P.y, dl = Math.hypot(ddx, ddy) || 1; return { x: ddx / dl, y: ddy / dl }; }
     bot.t -= 1 / 60;
     if (bot.t <= 0 || bot.idx < 0 || !world.depth[bot.idx]) {
       var best = -1, bs = 1e9;
@@ -3442,32 +3688,27 @@ body.is3d #cv { background: #c9d5e1; }
     slowAvg = slowAvg * 0.97 + raw * 0.03;
     if (slowAvg > 0.026 && pr > 1 && mode === 'play' && ++slowN > 120) { pr = Math.max(1, pr - 0.5); renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false); slowN = 0; slowAvg = 0.016; }
     if (world && (mode === 'play' || mode === 'demo')) {
-      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), n = Math.ceil(Math.min(0.15, raw) / 0.05);
-      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, Math.min(0.15, raw) / n, inp);
+      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), span = Math.min(0.25, raw), n = Math.ceil(span / 0.05);
+      for (var sn = 0; sn < n; sn++) G.step(world, span / n, inp);
       onFx();
-      if (mode === 'demo' && world.done) { begin(world.save, 'demo'); return; }
-      if (mode === 'play' && world.done && !doneSent) { doneSent = true; mode = 'end'; if (hooks.done) hooks.done(world); }
       if (hooks.tick && mode === 'play') hooks.tick(world);
     }
     if (world) {
       flushSnow();
       if (scanT > 0) { scanT -= dt; if (scanT <= 0) recolorAll(); }
       syncActors(dt); stepParticles(dt); camera3(dt); stepOverlays(dt); lighting();
-      gainT -= dt; scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
-      if (gainAcc >= 1 && gainT <= 0 && mode === 'play') {
-        var P = world.player, o = addOv('+' + Math.floor(gainAcc) + '<i class="pie"></i>', 'ov-gain', P.x + rnd(-6, 6), P.y, 4.2, 0.9); o.rise = 1.4;
-        gainAcc -= Math.floor(gainAcc); gainT = 0.32; if (JY.SnowSfx) JY.SnowSfx.tick();
-      }
+      scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
+      stepDumps(dt); stepArrow();
     }
     renderer.render(scene, camera);
   }
 
   function begin(save, m) {
     world = G.createWorld(save, { demo: m === 'demo', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });
-    mode = m; doneSent = false; gainAcc = 0; moveTo = null; stick = null; scanT = 0; focus = null;
+    mode = m; doneSent = false; moveTo = null; stick = null; scanT = 0; focus = null;
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
-    buildSnow(); buildLocks(); buildActors();
+    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;
   }
@@ -3526,18 +3767,22 @@ body.is3d #cv { background: #c9d5e1; }
 })(window.JY = window.JY || {});
 
 /* js/snow/ui.js */
-/* 제설각 — 화면 흐름: 타이틀, 작업(HUD), 검열 결과, 보급·인력, 진급, 전역 */
+/* 제설각 — 화면 흐름: 타이틀 → 계속 이어지는 작업(HUD) ↔ 보급·인력·공장, 진급, 전역 */
 (function (JY) {
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v1';
-  var save = load(), tab = 'crew', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, tutT = 0;
-  var GRADE = { S: '특급', A: '양호', B: '미흡', C: '재작업' };
+  var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
 
   function $(id) { return document.getElementById(id); }
   function load() { try { var raw = localStorage.getItem(KEY); return G.migrate(raw ? JSON.parse(raw) : null); } catch (e) { return G.newSave(); } }
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } lastSave = Date.now(); }
+  function persist() {
+    var w = V.world && V.world();
+    if (w && !w.demo && V.mode && V.mode() !== 'demo') G.serialize(w);
+    try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ }
+    lastSave = Date.now();
+  }
   function fmt(n) { return Math.floor(n).toLocaleString('ko-KR'); }
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -3546,14 +3791,15 @@ body.is3d #cv { background: #c9d5e1; }
   function insignia(r) { return JY.art ? JY.art.rankInsignia(r + 1) : ''; }
 
   function show(id) {
-    ['title', 'result', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
-    $('hud').hidden = id !== 'play';
-    if (id !== 'play' && id !== 'shop') $('say').hidden = true;
+    ['title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
+    $('hud').hidden = id !== 'play' && id !== 'shop';
+    $('h-shop').hidden = id !== 'play';
+    if (id === 'title') $('say').hidden = true;
     $('say').classList.toggle('low', id === 'shop');
     if (id !== 'play') $('hint').hidden = true;
   }
 
-  /* ── 행보관 말풍선 ── */
+  /* ── 행보관 말풍선·알림 ── */
   function say(textOrKey, ms) {
     var L = S.LINES[textOrKey], text = L ? pick(L) : textOrKey;
     if (!text) return;
@@ -3571,58 +3817,16 @@ body.is3d #cv { background: #c9d5e1; }
     b.innerHTML = html; m.hidden = false;
     b.onclick = function (e) { var el = e.target.closest('[data-m]'); if (!el) return; var k = el.getAttribute('data-m'); m.hidden = true; if (onClick) onClick(k); };
   }
-
-  /* ── 타이틀 ── */
-  function title() {
-    show('title');
-    V.demo(save);
-    var r = G.rankOf(save);
-    $('t-info').innerHTML = save.day > 1 || save.discharges
-      ? '<span class="ins">' + insignia(r) + '</span><span>' + S.RANKS[r].name + ' · ' + save.day + '일차</span><span class="sep"></span>' + pie() + '<b>' + fmt(save.bank) + '</b>' +
-        (G.crewCount(save) ? '<span class="sep"></span><span>인력 ' + G.crewCount(save) + '명</span>' : '') + (save.medals ? '<span class="sep"></span><span>전역 메달 ' + save.medals + '</span>' : '')
-      : '<span>이병 · 싸리비 하나로 시작한다</span>';
-    $('t-start').textContent = save.day > 1 ? save.day + '일차 작업 개시' : '작업 개시';
-    $('t-shop').hidden = save.day <= 1 && !save.bank;
-    $('t-sound').textContent = X && X.muted() ? '소리 끔' : '소리 켬';
-  }
-
-  /* ── 작업 ── */
-  function startDay() {
-    if (X) X.unlock();
-    var w = V.play(save);
-    show('play');
-    hud = {};
-    $('h-ins').innerHTML = insignia(G.rankOf(save));
-    $('h-day').textContent = save.day + '일차';
-    $('h-wx').textContent = w.wx.name + (w.inspect ? ' · 순시' : '');
-    $('h-goal').style.left = Math.round(w.goal * 100) + '%';
-    var bn = $('banner');
-    bn.innerHTML = '<b>' + save.day + '일차 제설 작전</b><span>' + w.wx.name + (w.inspect ? ' · 대대장 순시' : '') + ' · 목표 ' + Math.round(w.goal * 100) + '%' + (w.wx.mult !== 1 ? ' · 보상 ×' + w.wx.mult : '') + '</span>';
-    bn.hidden = false; bn.classList.remove('in'); void bn.offsetWidth; bn.classList.add('in');
-    setTimeout(function () { bn.hidden = true; }, 2200);
-    setTimeout(function () { say(w.inspect ? 'inspect' : w.weather === 'heavy' || w.weather === 'blizzard' ? 'heavy' : 'start'); }, 500);
-    if (X) { X.whistle(false); X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2); }
-    if (!save.seen.tut) { $('hint').hidden = false; tutT = 0; }
-    scanReady = 0; $('h-scan').disabled = !V.scan; $('h-scan').classList.remove('cool');
-    var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
-    if (fresh) {
-      delete save.seen['new' + fresh.id]; persist();
-      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」 — ' + fresh.reveal, 4200); }, 2300);
-    }
-  }
-
-  /* ── 방해꾼 알림 ── */
   var chipTimer = 0;
   function chip(text, cls) {
     var c = $('chip'); c.textContent = text; c.className = cls || ''; c.hidden = false;
     clearTimeout(chipTimer); chipTimer = setTimeout(function () { c.hidden = true; }, 2600);
   }
-  function onEvent(f) {
-    if (f.t === 'deer') { chip('고라니 출현! 부딪히면 다친다', 'warn'); vibrate(80); }
-    else if (f.t === 'meHit') { chip(f.lose ? '고라니한테 받혀서 초코파이 ' + fmt(f.lose) + '개 떨어뜨림!' : '고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
-    else if (f.t === 'snowball') { splat(); vibrate(50); }
-    else if (f.t === 'car') chip('간부 차량 통과 중… 진입로가 더러워진다', 'warn');
-    else if (f.t === 'heli') chip('헬기 착륙! 하강풍이 헬기장 눈을 날린다', 'good');
+  function banner(big, small, ms) {
+    var bn = $('banner');
+    bn.innerHTML = '<b>' + esc(big) + '</b>' + (small ? '<span>' + esc(small) + '</span>' : '');
+    bn.hidden = false; bn.classList.remove('in'); void bn.offsetWidth; bn.classList.add('in');
+    setTimeout(function () { bn.hidden = true; }, ms || 2200);
   }
   function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* 무시 */ } }
   function flash() { var f = $('flash'); f.hidden = false; f.classList.remove('in'); void f.offsetWidth; f.classList.add('in'); setTimeout(function () { f.hidden = true; }, 500); }
@@ -3631,6 +3835,67 @@ body.is3d #cv { background: #c9d5e1; }
     sp.style.left = x + '%'; sp.style.top = y + '%'; sp.hidden = false; sp.classList.remove('in'); void sp.offsetWidth; sp.classList.add('in');
     setTimeout(function () { sp.hidden = true; }, 2600);
   }
+
+  /* ── 타이틀 ── */
+  function title() {
+    show('title');
+    V.demo(save);
+    var r = G.rankOf(save), started = !!save.snow;
+    $('t-info').innerHTML = started || save.discharges
+      ? '<span class="ins">' + insignia(r) + '</span><span>' + S.RANKS[r].name + ' · ' + save.day + '일차</span><span class="sep"></span>' + pie() + '<b>' + fmt(save.bank) + '</b>' +
+        (G.crewCount(save) ? '<span class="sep"></span><span>인력 ' + G.crewCount(save) + '명</span>' : '') + (save.medals ? '<span class="sep"></span><span>전역 메달 ' + save.medals + '</span>' : '')
+      : '<span>이병 · 싸리비 하나로 부대를 치운다</span>';
+    $('t-start').textContent = started ? '이어서 작업' : '작업 개시';
+    $('t-shop').hidden = !started;
+    $('t-sound').textContent = X && X.muted() ? '소리 끔' : '소리 켬';
+  }
+
+  /* ── 작업 ── */
+  function play(resume) {
+    if (X) X.unlock();
+    var w = V.play(save);
+    show('play');
+    hud = {};
+    rankSeen = G.rankOf(save);
+    $('h-ins').innerHTML = insignia(rankSeen);
+    dayLabel(w);
+    if (X) X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2);
+    if (!resume) {
+      banner(save.day + '일차 제설 작전', S.WEATHER[w.weather].name + ' · 퍼 담고 → 집하장에 부어라', 2400);
+      setTimeout(function () { say(w.weather === 'heavy' || w.weather === 'blizzard' ? 'heavy' : 'start'); }, 600);
+      if (X) X.whistle(false);
+    }
+    if (!save.seen.tut) $('hint').hidden = false;
+    scanReady = 0; $('h-scan').disabled = !V.scan; $('h-scan').classList.remove('cool');
+    var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
+    if (fresh) {
+      delete save.seen['new' + fresh.id]; persist();
+      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」 — ' + fresh.reveal, 4200); }, resume ? 400 : 2300);
+    }
+  }
+  function dayLabel(w) {
+    $('h-day').textContent = save.day + '일차';
+    $('h-wx').textContent = S.WEATHER[w.weather].name + (w.inspect ? ' · 순시' : '');
+  }
+
+  function onEvent(f) {
+    if (f.t === 'deer') { chip('고라니 출현! 부딪히면 짊어진 눈을 쏟는다', 'warn'); vibrate(80); }
+    else if (f.t === 'meHit') { chip(f.spilled ? '고라니한테 받혀서 짊어진 눈 ' + fmt(f.spilled) + ' 다 쏟았다!' : '고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
+    else if (f.t === 'snowball') { splat(); vibrate(50); }
+    else if (f.t === 'car') chip('간부 차량 통과 중… 진입로가 더러워진다', 'warn');
+    else if (f.t === 'heli') chip('헬기 착륙! 하강풍이 헬기장 눈을 날린다', 'good');
+    else if (f.t === 'full') vibrate(30);
+    else if (f.t === 'inspect') { chip('행보관 검열 통과: ' + f.name + ' +' + fmt(f.bonus), 'good'); if (X) X.stamp(); }
+    else if (f.t === 'day') {
+      var w = V.world(); dayLabel(w);
+      banner(f.day + '일차', S.WEATHER[f.weather].name + (f.inspect ? ' · 대대장 순시 (검열 보너스 ×2)' : '') + ' · 어제 ' + fmt(f.earned) + ' 벌었다', 2600);
+      if (f.dumped) setTimeout(function () { say('밤사이 눈이 또 왔다. 다시 치워!'); }, 900);
+      else say('dayEnd');
+      if (X) { X.whistle(false); X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[f.weather] || 0.2); }
+      persist();
+    }
+  }
+
   var scanReady = 0;
   function scan() {
     if (!V.scan || Date.now() < scanReady) return;
@@ -3638,67 +3903,48 @@ body.is3d #cv { background: #c9d5e1; }
   }
 
   function tick(w) {
-    var left = Math.max(0, Math.ceil(w.dayLen - w.time)), p = G.pct(w), pc = Math.floor(p * 100), bank = Math.floor(save.bank);
-    if (hud.left !== left) { hud.left = left; $('h-time').textContent = left; $('h-time').parentNode.classList.toggle('late', left <= 10); }
-    var ring = Math.round((1 - w.time / w.dayLen) * 1000) / 1000;
-    if (hud.ring !== ring) { hud.ring = ring; $('h-ring').style.strokeDashoffset = String(119.4 * (1 - ring)); }
-    if (hud.pc !== pc) { hud.pc = pc; $('h-pct').textContent = pc + '%'; $('h-fill').style.width = Math.min(100, p * 100) + '%'; $('hud').classList.toggle('goal-ok', p >= w.goal); }
+    var P = w.player, p = G.pct(w), pc = Math.floor(p * 100), bank = Math.floor(save.bank), ld = Math.floor(P.load), full = P.load >= P.cap;
+    if (hud.pc !== pc) { hud.pc = pc; $('h-pct').textContent = pc + '%'; $('h-fill').style.width = Math.min(100, p * 100) + '%'; }
     if (hud.bank !== bank) { hud.bank = bank; $('h-bank').textContent = fmt(bank); }
-    if (!save.seen.tut && w.player.moving && w.time > 1.2) { save.seen.tut = true; $('hint').hidden = true; }
+    if (hud.ld !== ld || hud.cap !== P.cap) {
+      hud.ld = ld; hud.cap = P.cap;
+      $('h-load').textContent = full ? '가득!' : fmt(ld); $('h-cap').textContent = full ? '' : '/' + fmt(P.cap);
+      $('h-cring').style.strokeDashoffset = String(119.4 * (1 - Math.min(1, P.load / P.cap)));
+      $('h-carry').classList.toggle('full', full); $('h-carry').classList.toggle('mid', !full && P.load > P.cap * 0.6);
+    }
+    if (!save.seen.tut && P.moving && P.load > 0) { save.seen.tut = true; $('hint').hidden = true; }
+    var r = G.rankOf(save);
+    if (r > rankSeen) { rankSeen = r; $('h-ins').innerHTML = insignia(r); rankUp(r); }
+    else if (G.canDischarge(save) && !save.seen.dis) { save.seen.dis = true; V.pause(true); modal('<div class="m-rank"><p class="kicker">전역 신고 가능</p><h3>이제 전역할 수 있다</h3><p>보급·인력의 <b>전역</b> 탭에서 신고하면 처음부터 다시 시작하지만, 전역 메달로 초코파이 보상이 영원히 늘어난다.</p><button class="btn big" data-m="ok">알겠다</button></div>', function () { V.pause(false); }); }
+    var any = G.offers(save), n = 0;
+    ['tool', 'crew', 'factory', 'zone'].forEach(function (k) { any[k].forEach(function (o) { if (o.ok) n++; }); });
+    if (hud.n !== n) { hud.n = n; $('h-shop').classList.toggle('glow', n > 0); $('h-shop-n').textContent = n ? n : ''; $('h-shop-n').hidden = !n; }
     if (Date.now() - lastSave > 5000) persist();
-  }
-
-  function dayDone(w) {
-    var r = G.finishDay(w);
-    persist();
-    if (X) { X.whistle(true); X.wind(0); }
-    setTimeout(function () { result(r); }, 700);
-  }
-
-  /* ── 검열 결과 ── */
-  function result(r) {
-    show('result');
-    var base = r.bonus - r.timeBonus;
-    var lines = '<li><span>치운 눈</span><b>' + fmt(r.units) + '칸</b></li>' +
-      '<li><span>작업 보상</span><b>' + pie() + fmt(r.earned) + '</b></li>' +
-      '<li><span>검열 보너스' + (r.inspect ? ' (순시 ×2)' : '') + '</span><b>' + (base ? '+' + fmt(base) : '없음') + '</b></li>' +
-      (r.early ? '<li class="early"><span>조기 퇴근 (' + Math.floor(r.left) + '초 남김)</span><b>+' + fmt(r.timeBonus) + '</b></li>' : '') +
-      (r.partsTotal ? '<li class="early"><span>구역 완료 ' + r.parts + '/' + r.partsTotal + ' (띵!)</span><b>' + (r.partBonus ? '+' + fmt(r.partBonus) : '없음') + '</b></li>' : '') +
-      (r.hits ? '<li class="bad"><span>고라니·지붕 피해 ' + r.hits + '번</span><b>' + (r.lost ? '-' + fmt(r.lost) : '부상만') + '</b></li>' : '');
-    $('result').innerHTML = '<div class="card res">' +
-      '<div class="res-head"><div class="face">' + haengFace() + '</div><div><p class="kicker">행보관 검열 · ' + r.day + '일차</p><h2>' + esc(S.WEATHER[r.weather].name) + (r.inspect ? ' · 대대장 순시' : '') + '</h2></div></div>' +
-      '<div class="res-pct"><div><b>' + Math.floor(r.pct * 100) + '<small>%</small></b><span>제설률 · 목표 ' + Math.round(r.goal * 100) + '%</span></div><div class="stamp g-' + r.grade + '">' + GRADE[r.grade] + '</div></div>' +
-      '<ul class="res-lines">' + lines + '</ul>' +
-      '<p class="res-say">“' + esc(pick(S.LINES.grade[r.grade])) + '”</p>' +
-      '<div class="res-total"><span>보유 초코파이</span><b>' + pie() + fmt(save.bank) + '</b></div>' +
-      '<div class="res-btns"><button class="btn ghost" data-r="shop">보급·인력</button><button class="btn big" data-r="next">' + save.day + '일차 작업</button></div></div>';
-    if (X) setTimeout(X.stamp, 350);
-    $('result').onclick = function (e) {
-      var b = e.target.closest('[data-r]'); if (!b) return;
-      if (b.getAttribute('data-r') === 'shop') shop(); else startDay();
-    };
-    if (r.rankUp) setTimeout(function () { rankUp(r.rankUp); }, 900);
-    else if (G.canDischarge(save) && !save.seen.dis) { save.seen.dis = true; persist(); setTimeout(function () { modal('<div class="m-rank"><p class="kicker">전역 신고 가능</p><h3>이제 전역할 수 있다</h3><p>보급·인력 관리의 <b>전역</b> 탭에서 신고하면 처음부터 다시 시작하지만, 전역 메달로 초코파이 보상이 영원히 늘어난다.</p><button class="btn big" data-m="ok">알겠다</button></div>'); }, 900); }
   }
 
   function rankUp(r) {
     var unlocked = S.CREW.filter(function (C) { return C.rank === r; }).map(function (C) { return C.name; });
     if (X) X.rank();
-    V.shake(3);
+    V.shake(3); V.pause(true);
     modal('<div class="m-rank"><div class="m-ins">' + insignia(r) + '</div><p class="kicker">진급을 축하한다</p><h3>' + S.RANKS[r].name + ' 진급!</h3>' +
       (unlocked.length ? '<p>새로 부려 먹을 수 있다: <b>' + unlocked.join(', ') + '</b></p>' : '<p>짬이 찼다. 이제 시키는 쪽이다.</p>') +
-      '<button class="btn big" data-m="ok">충성!</button></div>');
+      '<button class="btn big" data-m="ok">충성!</button></div>', function () { V.pause(false); });
   }
 
-  /* ── 보급·인력 ── */
-  var TABS = [['crew', '인력'], ['tool', '도구'], ['perk', '보급'], ['zone', '구역'], ['dis', '전역']];
+  /* ── 보급·인력·공장 ── */
+  var TABS = [['tool', '도구'], ['crew', '인력'], ['factory', '공장'], ['perk', '보급'], ['zone', '구역'], ['dis', '전역']];
   var PERK_ICON = {
     eisen: '<path d="M5 6h7v6l6 2a3 3 0 0 1 3 3v1H5z" fill="#3b3f33"/><path d="M6 19l1 3M10 19l1 3M14 19l1 3M18 19l1 3" stroke="#9aa3ab" stroke-width="1.6" stroke-linecap="round"/>',
-    hotpack: '<rect x="5" y="6" width="14" height="14" rx="3" fill="#e4572e"/><path d="M9 3c-1 1 1 2 0 3M12 3c-1 1 1 2 0 3M15 3c-1 1 1 2 0 3" stroke="#e4572e" stroke-width="1.4" fill="none"/><rect x="8" y="10" width="8" height="5" rx="1" fill="#fff3"/>',
+    back: '<path d="M6 7c0-3 12-3 12 0l1 12c0 2-14 2-14 0z" fill="#8a7a52"/><path d="M8 7c1-2 7-2 8 0" stroke="#5a4c2c" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="6" rx="5" ry="1.6" fill="#fbfdff"/>',
     matsta: '<rect x="7" y="3" width="10" height="18" rx="2" fill="#2f8f5b"/><rect x="7" y="8" width="10" height="7" fill="#f4d35e"/><rect x="9" y="1.5" width="6" height="2" rx="1" fill="#9aa3ab"/>',
     praise: '<path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.6L12 16.6 6 19.9l1.5-6.6-5-4.5 6.6-.6z" fill="#ffd24a" stroke="#b8901a" stroke-width="1"/>',
+    gong: '<circle cx="12" cy="12" r="8" fill="#d9a53a" stroke="#8a6512" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#b8861b"/><path d="M19 4l3-2" stroke="#6b4a32" stroke-width="2"/>',
+    medic: '<rect x="4" y="5" width="16" height="14" rx="3" fill="#fff" stroke="#c8402e" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="#c8402e" stroke-width="3"/>',
     song: '<path d="M4 9h4l6-5v16l-6-5H4z" fill="#4d5b31"/><path d="M17 8a5 5 0 0 1 0 8M19.5 5.5a8.5 8.5 0 0 1 0 13" stroke="#4d5b31" stroke-width="1.8" fill="none" stroke-linecap="round"/>',
-    gear: '<path d="M6 20L16 6" stroke="#8a6a44" stroke-width="2.2" stroke-linecap="round"/><rect x="13" y="2" width="9" height="5" rx="1.5" transform="rotate(35 17 4)" fill="#e7ae2f"/><path d="M18 20L8 6" stroke="#8a6a44" stroke-width="2.2" stroke-linecap="round"/><rect x="2" y="2" width="9" height="5" rx="1.5" transform="rotate(-35 7 4)" fill="#e7ae2f"/>'
+    gear: '<path d="M6 20L16 6" stroke="#8a6a44" stroke-width="2.2" stroke-linecap="round"/><rect x="13" y="2" width="9" height="5" rx="1.5" transform="rotate(35 17 4)" fill="#e7ae2f"/><path d="M18 20L8 6" stroke="#8a6a44" stroke-width="2.2" stroke-linecap="round"/><rect x="2" y="2" width="9" height="5" rx="1.5" transform="rotate(-35 7 4)" fill="#e7ae2f"/>',
+    press: '<rect x="4" y="12" width="16" height="9" rx="1" fill="#6b7a8a"/><rect x="9" y="3" width="6" height="9" fill="#8a98a6"/><rect x="6" y="16" width="5" height="3" fill="#fbfdff"/><rect x="13" y="16" width="5" height="3" fill="#fbfdff"/>',
+    sculpt: '<circle cx="12" cy="16" r="6" fill="#fbfdff" stroke="#9fb6cd"/><circle cx="12" cy="8" r="4.5" fill="#fbfdff" stroke="#9fb6cd"/><path d="M8 5h8l-1-3H9z" fill="#2f3a25"/><circle cx="12" cy="3.4" r="1" fill="#e2b33c"/>',
+    relay: '<path d="M3 18h18" stroke="#8a6a44" stroke-width="2"/><circle cx="6" cy="9" r="2.5" fill="#f1c7a1"/><circle cx="12" cy="9" r="2.5" fill="#f1c7a1"/><circle cx="18" cy="9" r="2.5" fill="#f1c7a1"/><rect x="4" y="12" width="4" height="6" fill="#5b6a3a"/><rect x="10" y="12" width="4" height="6" fill="#5b6a3a"/><rect x="16" y="12" width="4" height="6" fill="#5b6a3a"/><path d="M8 13l2-1M14 13l2-1" stroke="#555" stroke-width="2"/>'
   };
 
   function iconCanvas(draw) {
@@ -3739,36 +3985,48 @@ body.is3d #cv { background: #c9d5e1; }
       });
     }
     var d = document.createElement('div'); d.className = 'ico-svg';
-    d.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (PERK_ICON[o.id] || '') + '</svg>';
+    d.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (PERK_ICON[o.kind === 'relay' ? 'relay' : o.id] || '') + '</svg>';
     return d;
   }
 
-  function shop() {
+  function openShop() {
+    var w = V.world();
+    if (w && V.mode() === 'play') { G.serialize(w); V.pause(true); }
+    dirty = false;
     show('shop');
-    V.demo(save);
     renderShop();
+  }
+  function closeShop() {
+    persist();
+    if (dirty) play(true); else { show('play'); V.pause(false); }
+    dirty = false;
   }
 
   function renderShop() {
     $('s-bank').textContent = fmt(save.bank);
-    $('s-go').textContent = save.day + '일차 작업 개시';
-    var showDis = G.rankOf(save) >= 3 || save.discharges > 0;
+    var showDis = G.rankOf(save) >= 3 || save.discharges > 0, all = G.offers(save);
     $('s-tabs').innerHTML = TABS.filter(function (t) { return t[0] !== 'dis' || showDis; }).map(function (t) {
-      var o = t[0] === 'dis' ? [] : G.offers(save)[t[0]], n = o.filter(function (x) { return x.ok; }).length;
+      var o = t[0] === 'dis' ? [] : all[t[0]], n = o.filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
     if (tab === 'dis') { renderDischarge(list); return; }
-    var items = G.offers(save)[tab];
-    if (!items.length) { list.innerHTML = '<p class="empty">모든 구역을 맡았다. 이제 부대 전체가 우리 담당이다.</p>'; return; }
+    if (tab === 'factory') {
+      var mk = save.made, pm = G.procMult(save);
+      var head = document.createElement('div'); head.className = 'fac-head';
+      head.innerHTML = '<b>눈 집하장 가공 라인</b><span>부은 눈 값 ×' + pm.toFixed(1) + '</span>' + (mk.brick >= 1 || mk.snowman >= 1 ? '<small>지금까지 눈벽돌 ' + fmt(mk.brick) + '장 · 환영 눈사람 ' + fmt(mk.snowman) + '개</small>' : '<small>압축기를 들이면 부은 눈이 눈벽돌이 된다</small>');
+      list.appendChild(head);
+    }
+    var items = all[tab];
+    if (!items.length) { list.insertAdjacentHTML('beforeend', '<p class="empty">' + (tab === 'zone' ? '모든 구역을 맡았다. 이제 부대 전체가 우리 담당이다.' : '살 것이 없다.') + '</p>'); return; }
     items.forEach(function (o) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' : o.kind === 'perk' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
+      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
       var label;
       if (o.state === 'buy') label = pie() + fmt(o.cost);
       else if (o.state === 'own') label = o.cur ? '사용 중' : '보유';
-      else if (o.state === 'max') label = '최대';
+      else if (o.state === 'max') label = o.kind === 'relay' ? '가동 중' : '최대';
       else if (o.state === 'later') label = '다음 단계';
       else label = esc(o.lockText);
       var ico = document.createElement('div'); ico.className = 'ico'; ico.appendChild(itemIcon(o));
@@ -3794,14 +4052,15 @@ body.is3d #cv { background: #c9d5e1; }
       '<button class="btn big" id="dis-go"' + (can ? '' : ' disabled') + '>' + (can ? '전역 신고하기' : '아직 전역할 때가 아니다') + '</button></div>';
     var go = $('dis-go');
     if (go) go.onclick = function () {
-      modal('<div class="m-rank"><p class="kicker">정말 전역?</p><h3>전역 신고</h3><p>초코파이, 도구, 인력, 구역이 모두 처음으로 돌아간다. 전역 메달 <b>+' + gain + '개</b>를 받는다.</p><div class="res-btns"><button class="btn ghost" data-m="no">조금 더 한다</button><button class="btn big" data-m="yes">충성! 전역합니다</button></div></div>', function (k) {
+      modal('<div class="m-rank"><p class="kicker">정말 전역?</p><h3>전역 신고</h3><p>초코파이, 도구, 인력, 구역, 공장이 모두 처음으로 돌아간다. 전역 메달 <b>+' + gain + '개</b>를 받는다.</p><div class="res-btns"><button class="btn ghost" data-m="no">조금 더 한다</button><button class="btn big" data-m="yes">충성! 전역합니다</button></div></div>', function (k) {
         if (k !== 'yes') return;
-        var r = G.discharge(save); persist();
+        var r = G.discharge(save); persistRaw();
         if (X) X.rank();
-        modal('<div class="m-rank"><div class="m-ins">' + insignia(3) + '</div><p class="kicker">전역을 축하한다</p><h3>전역 메달 +' + r.medals + '</h3><p>메달 ' + r.total + '개 · 모든 보상 +' + r.total * 10 + '%. 그리고… 새 이병으로 재입대했다.</p><button class="btn big" data-m="ok">다시 싸리비를 든다</button></div>', function () { tab = 'crew'; title(); });
+        modal('<div class="m-rank"><div class="m-ins">' + insignia(3) + '</div><p class="kicker">전역을 축하한다</p><h3>전역 메달 +' + r.medals + '</h3><p>메달 ' + r.total + '개 · 모든 보상 +' + r.total * 10 + '%. 그리고… 새 이병으로 재입대했다.</p><button class="btn big" data-m="ok">다시 싸리비를 든다</button></div>', function () { tab = 'tool'; title(); });
       });
     };
   }
+  function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
   function onShopClick(e) {
     var t = e.target.closest('[data-tab]');
@@ -3812,55 +4071,62 @@ body.is3d #cv { background: #c9d5e1; }
     var r = G.buy(save, kind, id);
     if (!r.ok) { if (X) X.deny(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); return; }
     if (X) X.buy();
-    persist();
-    toast(esc(r.item.name) + (kind === 'crew' ? ' 투입!' : kind === 'zone' ? ' 담당!' : kind === 'tool' ? ' 지급!' : ' 보급!'));
+    dirty = true; persistRaw();
+    toast(esc(r.item.name) + ({ crew: ' 투입!', zone: ' 담당!', tool: ' 지급!', relay: ' 가동!', proc: ' 설치!' }[kind] || ' 보급!'));
     if (kind === 'crew' && Math.random() < 0.5) say('hire', 2000);
     if (kind === 'tool') say('tool', 2000);
     if (kind === 'zone') say('zone', 2000);
+    if (kind === 'relay') say('relay', 2000);
+    if (kind === 'proc') say('proc', 2000);
     renderShop();
   }
 
   /* ── 시작 ── */
   function boot() {
-    var hooks = { say: function (k) { say(k); }, tick: tick, done: dayDone, event: onEvent };
+    var hooks = { say: function (k) { say(k); }, tick: tick, event: onEvent };
     try { V.init($('cv'), hooks); } catch (e) { V = V2; V.init($('cv'), hooks); }
     document.body.classList.toggle('is3d', !!V.is3D);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { V.rebuildArt(); });
     $('say-face').innerHTML = haengFace();
-    $('t-start').onclick = startDay;
-    $('t-shop').onclick = shop;
+    $('t-start').onclick = function () { play(false); };
+    $('t-shop').onclick = function () { play(true); openShop(); };
     $('t-sound').onclick = function () { if (!X) return; X.setMuted(!X.muted()); $('t-sound').textContent = X.muted() ? '소리 끔' : '소리 켬'; if (!X.muted()) { X.unlock(); X.pop(); } };
-    $('s-go').onclick = startDay;
-    $('s-back').onclick = title;
+    $('s-go').onclick = closeShop;
+    $('s-back').onclick = closeShop;
+    $('h-shop').onclick = openShop;
     $('shop').addEventListener('click', onShopClick);
     $('h-pause').onclick = pause;
     $('h-scan').onclick = scan;
-    window.addEventListener('keydown', function (e) { if ((e.key === 'Tab' || e.key === 'q') && V.mode() === 'play') { e.preventDefault(); scan(); } });
-    document.addEventListener('visibilitychange', function () { if (document.hidden && V.mode() === 'play') pause(); });
+    window.addEventListener('keydown', function (e) {
+      if (V.mode() !== 'play') return;
+      if (e.key === 'Tab' || e.key === 'q') { e.preventDefault(); scan(); }
+      if (e.key === 'b' || e.key === 'e') openShop();
+    });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
+    window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());
     title();
     if (off > 0) {
       save.bank += off; save.life += off;
       modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>후임들이 눈을 치웠다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 인력은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>');
     }
-    save.last = Date.now(); persist();
+    save.last = Date.now(); persistRaw();
   }
 
   function pause() {
     if (V.mode() !== 'play') return;
-    V.pause(true);
-    modal('<div class="m-rank"><p class="kicker">잠깐</p><h3>작업 중지</h3><p>지금 그만두면 지금까지 치운 만큼만 검열받는다.</p><div class="res-btns"><button class="btn ghost" data-m="quit">여기까지</button><button class="btn big" data-m="go">계속 치운다</button></div></div>', function (k) {
-      V.pause(false);
-      if (k === 'quit') { var w = V.world(); w.time = w.dayLen; }
+    V.pause(true); persist();
+    modal('<div class="m-rank"><p class="kicker">잠깐</p><h3>쉬는 시간</h3><p>치운 곳과 짊어진 눈은 그대로 저장된다.</p><div class="res-btns"><button class="btn ghost" data-m="quit">처음 화면</button><button class="btn big" data-m="go">계속 치운다</button></div></div>', function (k) {
+      if (k === 'quit') { persist(); title(); } else V.pause(false);
     });
   }
 
   window.__SNOW = {
     view: function () { return V; },
     save: function () { return save; },
-    setSave: function (s) { save = G.migrate(s); persist(); },
-    startDay: startDay, shop: shop, title: title, endNow: function () { var w = V.world(); if (w) w.time = w.dayLen; },
-    autopilot: V.setAutopilot
+    setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); },
+    play: play, startDay: function () { play(false); }, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
+    autopilot: function (b) { V.setAutopilot(b); }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

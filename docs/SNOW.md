@@ -79,3 +79,42 @@
 생활관 앞 길 → 족구장 → 연병장 → 취사장 앞 → 부대 진입로 → 전차 주차장 → 위병소 앞 → 헬기장. 페이싱(가상 플레이어): 연병장 5일차, 취사장 6일차, 진입로 14일차, 전차 21일차, 전역 가능 27일차 전후.
 
 참고: [Kotaku — PowerWash Sim devs on making cleaning fun](https://kotaku.com/powerwash-sim-devs-on-making-cleaning-fun-advanced-cro-1847319502), [EGM — PowerWash Simulator](https://egmnow.com/powerwash-simulator-feels-perfectly-numbingly-mindless/), [Leaf Blower Revolution (Steam)](https://store.steampowered.com/app/1468260), [LBR 리뷰](https://libertywingspan.com/70895/ae/videogame-volumes-leaf-blower-revolution/), [LBR 시작 가이드](https://www.yekbot.com/leaf-blower-revolution-starting-guide/), [PC Gamer — Crime Scene Cleaner](https://pcgamer.com/games/sim/powerwash-simulator-meets-pulp-fiction-in-this-first-person-scrubber-where-you-clean-up-after-horrific-murders).
+
+## v3: Moon Sweepers식 "퍼 담고 → 나르고 → 붓기" (2026-11)
+
+> "대중성과 편리성, 흥미유도 등을 고려하여 너가 알아서 모두 진행해 줘." — 분석: [MOONSWEEPERS.md](MOONSWEEPERS.md)
+
+### 바뀐 핵심 루프
+1. **퍼 담기**: 치우면 초코파이가 아니라 **짐**이 된다. 도구마다 적재량(싸리비 40 → 넉가래 80 → … → 헬기 20,000), `튼튼한 등짝`으로 +30%씩
+2. **나르기**: 가득 차면 더 못 담는다. 게이지가 빨개지고, 가장 가까운 **눈 집하장** 쪽 화살표가 뜬다
+3. **붓기**: 집하장 원 안에 들어가면 자동으로 붓고 초코파이(+효과음, 숫자)
+4. **하루 타이머 없음**: 치운 곳은 그대로 남고 저장된다(눈 상태·위치·짐까지). 눈은 계속 조금씩 내리고, 하루(150초)가 지나면 날씨가 바뀌며 함박눈·폭설이면 밤사이 다시 덮인다
+5. **보급·인력은 언제든**: 오른쪽 아래 버튼(살 수 있는 게 있으면 빛남). 여는 동안 게임은 멈춘다
+
+### 공장과 자동화 (군대판)
+- **양동이 릴레이**: 구역마다 사면 그 옆이 붓는 곳이 된다. 후임 셋이 줄 서서 집하장까지 나르는 모습(인간 컨베이어)
+- **눈 압축기**(보상 +30%씩, 눈벽돌이 쌓인다) → **눈조각 작업장**(압축기 Lv3부터, +60%씩, 사단장님 얼굴을 한 환영 눈사람)
+- **인력**: 담고 → 꽉 차면 가장 가까운 집하장/릴레이로 → 붓고 → 다시. 등에 진 마대 크기가 짐 양
+
+### 재미 장치
+- 구역 조각을 다 치우면 **띵!**(다시 덮이면 또 받을 수 있다), 구역을 95% 치우면 **행보관 검열 통과** 보너스(하루 한 번, 순시 날은 두 배)
+- 고라니에 받히면 **짊어진 눈을 다 쏟는다** (인력도 쏟는다)
+- 진급하면 게임이 멈추고 축하, 전역 가능해지면 한 번 알려 준다
+
+### 페이싱 (tests/snow-sim.js, 80% 효율 가상 플레이어, 분)
+| 시점 | 무엇 |
+|---|---|
+| 0.4 | 넉가래 |
+| 1.4 | 족구장 |
+| 2.8 | 일병 |
+| 10 | 연병장 + 릴레이 |
+| 12 | 눈 압축기 |
+| 15 | 상병 |
+| 18 | 취사장 앞 |
+| 35 | 병장 |
+| 38 | 부대 진입로 |
+| 56 | 전차 주차장 |
+| 63 | 전역 가능 |
+| 73 / 85 | 위병소 앞 / 헬기장 |
+
+Moon Sweepers의 대표 비판("초반 진척 벽", "2시간이면 다 연다")을 피하도록, 처음 20분은 2~5분마다 새 것이 열리고 전역(다시 시작 + 메달)으로 이어진다.

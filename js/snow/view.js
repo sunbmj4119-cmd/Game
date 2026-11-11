@@ -19,6 +19,7 @@
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
   function ell(c, x, y, rx, ry) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
+  var focusT = null;
   function circ(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
   function layer(w, h) { var c = document.createElement('canvas'); c.width = Math.ceil(w * K); c.height = Math.ceil(h * K); var x = c.getContext('2d'); x.scale(K, K); return [c, x]; }
 
@@ -382,7 +383,9 @@
       if (f.t === 'dump' && (f.src === 'player' || Math.random() < 0.3)) { floats.push({ x: f.x, y: f.y - 30, text: '+' + Math.floor(f.pay), t: 0, life: 1.2, color: '#ffd84a', size: 13, pie: true }); if (JY.SnowSfx && f.src === 'player' && mode === 'play') { JY.SnowSfx.pour(1); JY.SnowSfx.coin(); } }
       if (f.t === 'full') floats.push({ x: 0, y: 0, text: '가득!', t: 0, life: 1.4, color: '#ff6a55', size: 12, follow: world.player });
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
+      if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -498,6 +501,18 @@
       c.fillStyle = '#2f3a25'; c.font = '700 9px ' + FONT; c.textAlign = 'center'; c.fillText(d.main ? '눈 집하장' : '릴레이', d.x, d.y - d.r - 4); } }); });
     if (world.player.load >= world.player.cap * 0.6) { var Pp = world.player, nd = G.nearestDump(world, Pp.x, Pp.y), an = Math.atan2(nd.y - Pp.y, nd.x - Pp.x);
       if (Math.hypot(nd.x - Pp.x, nd.y - Pp.y) > 40) list.push({ y: 1e9, f: function () { c.save(); c.translate(Pp.x + Math.cos(an) * 30, Pp.y - 10 + Math.sin(an) * 30); c.rotate(an); c.fillStyle = '#ff6a55'; c.beginPath(); c.moveTo(10, 0); c.lineTo(-6, -7); c.lineTo(-6, 7); c.closePath(); c.fill(); c.restore(); } }); }
+    // 상호작용 물건: 내 눈사람, 족구공, 트랙터, 눈덩이, 고른 것
+    (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
+    var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
+    if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    if (ac) {
+      var KB = ac.ball; list.push({ y: KB.y, f: function () { c.fillStyle = '#f4f1e6'; circ(c, KB.x, KB.y - 3 - KB.h, 3.4); c.fill(); c.strokeStyle = '#e2b33c'; c.lineWidth = 1.2; c.stroke(); } });
+      ac.balls.forEach(function (b) { list.push({ y: b.y + 1e5, f: function () { c.fillStyle = 'rgba(40,60,90,.25)'; circ(c, b.x, b.y, 2.2); c.fill(); c.fillStyle = '#fff'; circ(c, b.x, b.y - b.h * 0.6, 2.6); c.fill(); } }); });
+    }
+    if (focusT && mode === 'play') { var ft = focusT; list.push({ y: 2e5, f: function () {
+      c.strokeStyle = '#ffd84a'; c.lineWidth = 2; c.beginPath(); c.arc(ft.x, ft.y, 9, 0, 7); c.stroke();
+      c.font = '700 9px ' + FONT; c.textAlign = 'center'; var tw = c.measureText(ft.verb).width + 10;
+      c.fillStyle = 'rgba(22,35,58,.88)'; rr(c, ft.x - tw / 2, ft.y - 46, tw, 14, 6); c.fill(); c.fillStyle = '#ffd84a'; c.fillText(ft.verb, ft.x, ft.y - 36); } }); }
     list.sort(function (a, b) { return a.y - b.y; });
     list.forEach(function (o) { o.f(); });
     // 날리는 눈 조각
@@ -674,6 +689,9 @@
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
     shake: function (n) { shake = Math.max(shake, n); },
+    look: function () { if (!world) return null; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
+    setFocus: function (t) { focusT = t || null; },
+    isFP: function () { return false; },
     _screenToWorld: function (x, y) { var r = cv.getBoundingClientRect(); return { x: camX + (x - r.left) / zoom, y: camY + (y - r.top) / zoom }; },
     _teleport: function (x, y) { if (world) { world.player.x = x; world.player.y = y; camera(0, true); } },
     _drawPerson: drawPerson, _drawVehicle: drawVehicle, _drawPie: drawPie, _toolKind: toolKind, FONT: FONT

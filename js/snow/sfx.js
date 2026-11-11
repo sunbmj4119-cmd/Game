@@ -78,6 +78,12 @@
     thud: function () { tone(110, 0.2, 'sine', 0.25, 0, 55); noise(0.12, 0.15, 'lowpass', 400, 0.8); },
     rumble: function () { noise(0.9, 0.18, 'lowpass', 180, 0.7); tone(60, 0.8, 'sine', 0.12, 0, 40); },
     honk: function () { tone(392, 0.18, 'square', 0.06); tone(466, 0.18, 'square', 0.05); tone(392, 0.25, 'square', 0.06, 0.24); tone(466, 0.25, 'square', 0.05, 0.24); },
+    whoosh: function () { noise(0.18, 0.08, 'bandpass', 900, 0.7); },
+    salute: function () { tone(330, 0.07, 'square', 0.04); noise(0.05, 0.08, 'highpass', 3000, 0.7); },
+    meow: function () { tone(700, 0.35, 'triangle', 0.07, 0, 1100); tone(1000, 0.25, 'triangle', 0.05, 0.25, 600); },
+    vroom: function () { tone(70, 0.9, 'sawtooth', 0.08, 0, 160); tone(90, 0.7, 'square', 0.03, 0.1, 140); },
+    siren: function () { [0, 0.3].forEach(function (w) { tone(880, 0.25, 'square', 0.035, w, 660); }); },
+    kick: function () { tone(160, 0.1, 'sine', 0.2, 0, 70); noise(0.06, 0.1, 'lowpass', 900, 0.8); },
     splat: function () { noise(0.25, 0.25, 'lowpass', 900, 0.8); tone(180, 0.12, 'sine', 0.1, 0, 90); },
     wind: function (level) {
       var c = ctx(); if (!c) return;

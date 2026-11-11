@@ -19,7 +19,8 @@
   function newSave() {
     return { v: 3, bank: 0, life: 0, day: 1, dayT: 0, tool: 0, crew: {}, perks: {}, proc: {}, relays: {}, zones: { A: true }, fresh: { A: true },
       medals: 0, discharges: 0, last: 0, best: 0, total: 0, crewRate: 0, seed: (Math.random() * 1e9) | 0, seen: {}, deerHits: 0,
-      snow: null, px: S.SPAWN.x, py: S.SPAWN.y, load: 0, loadVal: 0, today: 0, made: { brick: 0, snowman: 0 } };
+      snow: null, px: S.SPAWN.x, py: S.SPAWN.y, load: 0, loadVal: 0, today: 0, made: { brick: 0, snowman: 0 },
+      snowmen: [], daily: {}, stats: {} };
   }
   function migrate(s) {
     var d = newSave();
@@ -204,7 +205,7 @@
       time: save.dayT || 0, dayLen: S.DAY_LEN, weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
       earned: 0, crewEarned: 0, crewT: 0, units: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
       player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save), dumps: dumpsOf(save),
-      events: [], deer: [], car: null, heli: null, cats: []
+      events: [], deer: [], car: null, heli: null, cats: [], mod: { speed: 1, hit: 1, crew: 1, stun: 1 }, dumpedP: 0
     };
     var R = w.rand, stored = save.snow && !opts.fresh ? dec(save.snow, GW * GH) : null;
     S.ZONES.forEach(function (Z, zi) {
@@ -341,6 +342,7 @@
     var mk = w.save.made;
     if (!w.demo && procLvl(w.save, 'press')) mk.brick += who.load / 40;
     if (!w.demo && procLvl(w.save, 'sculpt')) mk.snowman += who.load / 400;
+    if (src === 'player') w.dumpedP += who.load;
     w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y });
     who.load = 0; who.val = 0;
     return amount;
@@ -420,7 +422,7 @@
       say(w, 'deer', true);
       w.fx.push({ t: 'deer', e: w.deer[w.deer.length - 1] });
     } else if (k === 'snowball') {
-      w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun);
+      w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun * w.mod.stun);
       w.fx.push({ t: 'snowball' }); say(w, 'snowball', true);
     } else if (k === 'car') {
       if (w.car) return;
@@ -436,7 +438,7 @@
       var b = cand[(R() * cand.length) | 0], segW = 60 + R() * 70, sx = b.x + R() * Math.max(1, b.w - segW), sy = b.y + b.h + 18;
       for (var x = sx; x < sx + segW; x += CELL) for (var yy = sy; yy < sy + 30; yy += CELL) dumpAt(w, x, yy, 5, 3, 1, 3);
       var hit = function (e) { return e.x > sx - 6 && e.x < sx + segW + 6 && e.y > b.y + b.h && e.y < sy + 34; };
-      if (hit(w.player)) w.player.stun = Math.max(w.player.stun, HAZ.roof.stun * (1 - 0.1 * medic));
+      if (hit(w.player)) w.player.stun = Math.max(w.player.stun, HAZ.roof.stun * (1 - 0.1 * medic) * w.mod.stun);
       w.crew.forEach(function (c) { if (hit(c)) { c.injured = Math.max(c.injured, HAZ.roof.injure * (1 - 0.15 * medic)); w.hits++; } });
       w.fx.push({ t: 'roof', x: sx, y: b.y + b.h, w: segW, b: b.id }); say(w, 'roof', true);
     } else if (k === 'heli') {
@@ -470,7 +472,7 @@
       var hr = HAZ.deer.hitR + 5;
       for (var j = 0; j < w.crew.length; j++) {
         var c = w.crew[j];
-        if (c.injured > 0 || c.def.vehicle) continue;
+        if (c.injured > 0 || c.def.vehicle || c.off) continue;
         if (Math.abs(c.x - d.x) < hr && Math.abs(c.y - d.y) < hr) {
           c.injured = HAZ.deer.injure * (1 - 0.15 * medic); c.asleep = false; d.hitT = 0.8; d.heading += Math.PI * 0.8; w.hits++;
           spill(w, c); c.state = 'work';
@@ -478,7 +480,7 @@
         }
       }
       if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr) {
-        P.stun = HAZ.deer.stun * (1 - 0.1 * medic); d.hitT = 1; d.heading += Math.PI * 0.8; w.hits++;
+        P.stun = HAZ.deer.stun * (1 - 0.1 * medic) * w.mod.stun; d.hitT = 1; d.heading += Math.PI * 0.8; w.hits++;
         var lost = spill(w, P);
         w.fx.push({ t: 'meHit', x: P.x, y: P.y, spilled: lost }); say(w, lost ? 'spill' : 'meHit', true);
       }
@@ -492,7 +494,7 @@
       var ci = cellIndex(car.x, car.y);
       if (ci >= 0 && !car.seen[ci]) { car.seen[ci] = 1; dumpAt(w, car.x, car.y, HAZ.car.r, 1, HAZ.car.slush, 3); }
       w.crew.forEach(function (c) { if (Math.abs(c.x - car.x) < 18 && Math.abs(c.y - car.y) < 22) { c.x += c.x < car.x ? -26 : 26; c.retarget = 0; } });
-      if (P.stun <= 0 && Math.abs(P.x - car.x) < 16 && Math.abs(P.y - car.y) < 20) { P.stun = 0.8; P.x += P.x < car.x ? -24 : 24; w.fx.push({ t: 'carHit', x: P.x, y: P.y }); }
+      if (P.stun <= 0 && Math.abs(P.x - car.x) < 16 && Math.abs(P.y - car.y) < 20) { P.stun = 0.8 * w.mod.stun; P.x += P.x < car.x ? -24 : 24; w.fx.push({ t: 'carHit', x: P.x, y: P.y }); }
     }
     var hl = w.heli;
     if (hl) {
@@ -500,12 +502,16 @@
       if (hl.t > 1.5 && hl.t < hl.life - 1.2 && hl.tick <= 0) { hl.tick = 0.15; clearAt(w, hl.x + (R() - 0.5) * 30, hl.y + (R() - 0.5) * 30, HAZ.heli.r, 2, 'heli', null); }
       if (hl.t > hl.life) w.heli = null;
     }
+    // 짬타이거: 뛰어오면 도망, 가만히 있으면 구경. 쓰다듬으면 멈추고, 짬을 주면 따라온다
     w.cats.forEach(function (c) {
       c.wait -= dt;
-      var pd = Math.hypot(P.x - c.x, P.y - c.y);
-      if (pd < 34) { c.tx = c.x + (c.x - P.x) * 2; c.ty = c.y + (c.y - P.y) * 2; c.wait = 3; }
+      if (c.pet > 0) { c.pet -= dt; c.moving = false; return; }
+      var pd = Math.hypot(P.x - c.x, P.y - c.y), flee = pd < 34 && P.moving && !(c.follow > 0);
+      if (flee) { c.tx = c.x + (c.x - P.x) * 2; c.ty = c.y + (c.y - P.y) * 2; c.wait = 3; c.fleeT = 3; }
       else if (c.wait <= 0) { var D = zoneById(HAZ.cats.zone); c.tx = D.x + 20 + R() * (D.w - 40); c.ty = D.y + 20 + R() * (D.h - 40); c.wait = 4 + R() * 6; }
-      if (Math.hypot(c.tx - c.x, c.ty - c.y) > 3) steer(c, c.tx, c.ty, pd < 34 ? 90 : 22, dt, 4); else c.moving = false;
+      c.fleeT = (c.fleeT || 0) - dt;
+      var sp = c.fleeT > 0 ? 90 : c.follow > 0 ? (pd > 40 ? 74 : 30) : 22;
+      if (Math.hypot(c.tx - c.x, c.ty - c.y) > 3) steer(c, c.tx, c.ty, sp, dt, 4); else c.moving = false;
     });
   }
 
@@ -523,25 +529,31 @@
     var save = w.save, R = w.rand, P = w.player;
     w.time += dt; w.sayT -= dt;
     if (w.time >= w.dayLen) newDay(w);
+    if (JY.SnowAct && !w.demo) JY.SnowAct.step(w, dt, input);
     stepHazards(w, dt);
     // 나
     var ix = input ? input.x : 0, iy = input ? input.y : 0, mag = Math.hypot(ix, iy);
     if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
     if (P.stun > 0) { P.stun -= dt; mag = 0; }
-    var tool = toolOf(save), speed = S.SPEED * (1 + 0.12 * lvl(save, 'eisen')) * (tool.vehicle ? 1.15 : 1);
+    var tool = toolOf(save), speed = S.SPEED * (1 + 0.12 * lvl(save, 'eisen')) * (tool.vehicle ? 1.15 : 1) * w.mod.speed;
+    var face = input && input.face;   // 1인칭: 보는 쪽이 앞 (옆걸음·뒷걸음 가능)
+    P.reach = (input && input.reach) || 0;
+    if (face && P.stun <= 0) { var fm = Math.hypot(face.x, face.y) || 1; P.dir.x = face.x / fm; P.dir.y = face.y / fm; }
     if (mag > 0.08) {
       var moved = moveEnt(P, ix * speed * dt, iy * speed * dt, 6);
-      P.dir.x += (ix / mag - P.dir.x) * Math.min(1, dt * 14); P.dir.y += (iy / mag - P.dir.y) * Math.min(1, dt * 14);
-      var m = Math.hypot(P.dir.x, P.dir.y) || 1; P.dir.x /= m; P.dir.y /= m;
+      if (!face) {
+        P.dir.x += (ix / mag - P.dir.x) * Math.min(1, dt * 14); P.dir.y += (iy / mag - P.dir.y) * Math.min(1, dt * 14);
+        var m = Math.hypot(P.dir.x, P.dir.y) || 1; P.dir.x /= m; P.dir.y /= m;
+      }
       P.moving = moved > 0.01; P.walk += moved * 0.18; P.idleT = 0;
     } else { P.moving = false; if (P.stun <= 0) P.idleT += dt; }
     P.swing = Math.max(0, P.swing - dt * 6);
     P.hitT -= dt;
     if (P.hitT <= 0) {
-      P.hitT += S.HIT / (1 + 0.1 * lvl(save, 'matsta'));
+      P.hitT += S.HIT / (1 + 0.1 * lvl(save, 'matsta')) * w.mod.hit;
       if (P.hitT < 0) P.hitT = 0;
-      if (P.stun <= 0 && P.load < P.cap) {
-        var cx = P.aura ? P.x : P.x + P.dir.x * P.r * 0.6, cy = P.aura ? P.y : P.y + P.dir.y * P.r * 0.6 + 2;
+      if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
+        var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
         if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) P.swing = 1;
       }
     }
@@ -555,6 +567,9 @@
     if (w.crew.length) w.crewT += dt;
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
+      if (e.off) { e.moving = false; continue; }
+      var esp = e.speed * w.mod.crew * (e.boost > 0 ? 1.5 : 1);
+      e.boost = (e.boost || 0) - dt;
       e.swing = Math.max(0, e.swing - dt * 5);
       if (e.injured > 0) { e.injured -= dt; e.moving = false; if (e.injured <= 0) w.fx.push({ t: 'up', e: e }); continue; }
       if (C.sleep) {
@@ -565,8 +580,8 @@
       if (e.state === 'haul') {
         var dd = nearestDump(w, e.x, e.y);
         if (Math.hypot(dd.x - e.x, dd.y - e.y) < dd.r * 0.8) { deposit(w, e, 'crew', dd); e.state = 'work'; e.tidx = -1; continue; }
-        var mv0 = steer(e, dd.x, dd.y, e.speed, dt, 6);
-        if (mv0 < e.speed * dt * 0.25) { e.stuck += dt; if (e.stuck > 1.2) { e.stuck = 0; e.x += (R() - 0.5) * 16; e.y += (R() - 0.5) * 16; if (blocked(e.x, e.y, 6)) { e.x = dd.x; e.y = dd.y; } } } else e.stuck = 0;
+        var mv0 = steer(e, dd.x, dd.y, esp, dt, 6);
+        if (mv0 < esp * dt * 0.25) { e.stuck += dt; if (e.stuck > 1.2) { e.stuck = 0; e.x += (R() - 0.5) * 16; e.y += (R() - 0.5) * 16; if (blocked(e.x, e.y, 6)) { e.x = dd.x; e.y = dd.y; } } } else e.stuck = 0;
         continue;
       }
       e.retarget -= dt;
@@ -574,12 +589,12 @@
       if (e.tidx < 0 && e.load > 0) { e.state = 'haul'; continue; }
       var dist = Math.hypot(e.tx - e.x, e.ty - e.y), near = e.r * 0.5;
       if (dist > near) {
-        var mv = steer(e, e.tx, e.ty, e.speed, dt, 6);
-        if (mv < e.speed * dt * 0.25) { e.stuck += dt; if (e.stuck > 0.8) { e.stuck = 0; e.tidx = -1; e.retarget = 0; } } else e.stuck = 0;
+        var mv = steer(e, e.tx, e.ty, esp, dt, 6);
+        if (mv < esp * dt * 0.25) { e.stuck += dt; if (e.stuck > 0.8) { e.stuck = 0; e.tidx = -1; e.retarget = 0; } } else e.stuck = 0;
       } else e.moving = false;
       e.hitT -= dt;
       if (e.hitT <= 0) {
-        e.hitT += e.hit; if (e.hitT < 0) e.hitT = 0;
+        e.hitT += e.hit / (e.boost > 0 ? 1.3 : 1); if (e.hitT < 0) e.hitT = 0;
         if (clearAt(w, e.x + e.dir.x * e.r * 0.6, e.y + e.dir.y * e.r * 0.6 + 2, e.r, e.p, 'crew', e)) e.swing = 1;
         if (e.load >= e.cap) e.state = 'haul';
       }
@@ -589,8 +604,11 @@
     // 행보관: 돌아다니며 감시, 조는 병장 깨우기
     var Hh = w.haeng;
     Hh.wait -= dt; Hh.shoutT -= dt;
-    if (Hh.wait <= 0 && w.cells.length) { var pt = randomOpenPoint(w); Hh.tx = pt.x; Hh.ty = pt.y; Hh.wait = 5 + R() * 4; }
-    if (Math.hypot(Hh.tx - Hh.x, Hh.ty - Hh.y) > 4) { if (steer(Hh, Hh.tx, Hh.ty, 40, dt, 6) < 0.01) Hh.wait = 0; } else Hh.moving = false;
+    if (Hh.hold > 0) { Hh.hold -= dt; Hh.moving = false; }
+    else {
+      if (Hh.wait <= 0 && w.cells.length) { var pt = randomOpenPoint(w); Hh.tx = pt.x; Hh.ty = pt.y; Hh.wait = 5 + R() * 4; }
+      if (Math.hypot(Hh.tx - Hh.x, Hh.ty - Hh.y) > 4) { if (steer(Hh, Hh.tx, Hh.ty, Hh.speed || 40, dt, 6) < 0.01) Hh.wait = 0; } else Hh.moving = false;
+    }
     if (Hh.shoutT <= 0) {
       for (var j = 0; j < w.crew.length; j++) {
         var c = w.crew[j];
@@ -622,6 +640,6 @@
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
-    cellIndex: cellIndex, clearAt: clearAt, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
+    cellIndex: cellIndex, clearAt: clearAt, pay: pay, moveEnt: moveEnt, steer: steer, say: say, randomOpenPoint: randomOpenPoint, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
   };
 })(window.JY = window.JY || {});

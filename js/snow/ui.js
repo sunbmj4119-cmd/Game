@@ -1,7 +1,7 @@
 /* 제설각 — 화면 흐름: 타이틀 → 계속 이어지는 작업(HUD) ↔ 보급·인력·공장, 진급, 전역 */
 (function (JY) {
   'use strict';
-  var S = JY.SNOW, G = JY.SnowSim, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
+  var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v1';
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
@@ -25,6 +25,8 @@
     ['title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
     $('hud').hidden = id !== 'play' && id !== 'shop';
     $('h-shop').hidden = id !== 'play';
+    ['acts', 'side'].forEach(function (k) { $(k).hidden = id !== 'play' || !A; });
+    if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; } else fpLayout();
     if (id === 'title') $('say').hidden = true;
     $('say').classList.toggle('low', id === 'shop');
     if (id !== 'play') $('hint').hidden = true;
@@ -96,7 +98,7 @@
       setTimeout(function () { say(w.weather === 'heavy' || w.weather === 'blizzard' ? 'heavy' : 'start'); }, 600);
       if (X) X.whistle(false);
     }
-    if (!save.seen.tut) $('hint').hidden = false;
+    if (!save.seen.tut) { hintText(); $('hint').hidden = false; }
     scanReady = 0; $('h-scan').disabled = !V.scan; $('h-scan').classList.remove('cool');
     var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
     if (fresh) {
@@ -110,6 +112,7 @@
   }
 
   function onEvent(f) {
+    if (onActEvent(f)) return;
     if (f.t === 'deer') { chip('고라니 출현! 부딪히면 짊어진 눈을 쏟는다', 'warn'); vibrate(80); }
     else if (f.t === 'meHit') { chip(f.spilled ? '고라니한테 받혀서 짊어진 눈 ' + fmt(f.spilled) + ' 다 쏟았다!' : '고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
     else if (f.t === 'snowball') { splat(); vibrate(50); }
@@ -134,6 +137,7 @@
   }
 
   function tick(w) {
+    updAct(w);
     var P = w.player, p = G.pct(w), pc = Math.floor(p * 100), bank = Math.floor(save.bank), ld = Math.floor(P.load), full = P.load >= P.cap;
     if (hud.pc !== pc) { hud.pc = pc; $('h-pct').textContent = pc + '%'; $('h-fill').style.width = Math.min(100, p * 100) + '%'; }
     if (hud.bank !== bank) { hud.bank = bank; $('h-bank').textContent = fmt(bank); }
@@ -312,6 +316,134 @@
     renderShop();
   }
 
+  /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
+  var curT = null, actAt = 0, subTimer = 0, hudA = {};
+  var CAM_NEXT = { fp: '3인칭', near: '위에서', far: '1인칭' };
+  function camLabel() { if (V.camMode) $('h-cam-t').textContent = CAM_NEXT[V.camMode()] || '시점'; }
+  function fp() { return !!(V.isFP && V.isFP()); }
+  function fpLayout() {
+    var on = fp() && V.mode && V.mode() !== 'demo';
+    document.body.classList.toggle('fp', on);
+    $('xhair').hidden = !on || $('hud').hidden;
+  }
+  function hintText() {
+    $('hint').innerHTML = fp()
+      ? '<b>왼쪽 끌면 걷고, 오른쪽 끌면 둘러본다</b><span>도구는 알아서 쓴다 · 가까이 가면 <em>행동</em> 버튼이 바뀐다 (경례·갈구기·탈취…)</span>'
+      : '<b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span>';
+  }
+  function look() { return V.look ? V.look() : null; }
+  function updAct(w, force) {
+    if (!A) return;
+    var now = Date.now();
+    if (!force && now - actAt < 110) return;
+    actAt = now;
+    var lk = look(), t = lk ? A.best(w, lk, lk.fp) : null, key = t ? t.k + '|' + t.verb + '|' + t.name : '';
+    curT = t; if (V.setFocus) V.setFocus(t);
+    if (hudA.key !== key) {
+      hudA.key = key;
+      var b = $('act-btn'); b.disabled = !t;
+      $('act-name').textContent = t ? t.name : '';
+      $('act-verb').textContent = t ? t.verb : '행동';
+      b.classList.toggle('pulse', !!t && (t.k === 'car' || t.k === 'exit' || t.k === 'plow'));
+      $('xh-t').innerHTML = t ? '<b>' + esc(t.verb) + '</b> · ' + esc(t.name) : '';
+      $('xhair').classList.toggle('on', !!t);
+    }
+    var can = A.canThrow(w); if (hudA.can !== can) { hudA.can = can; $('ball-btn').disabled = !can; }
+    var st = A.state(w);
+    if (hudA.heat !== st.heat) { hudA.heat = st.heat; $('h-heat').hidden = !st.heat; $('h-heat-s').textContent = '★★★'.slice(0, st.heat) + '☆☆☆'.slice(0, 3 - st.heat); }
+    var rd = st.ride ? st.ride.name + ' ' + Math.ceil(st.ride.t) + '초' : '';
+    if (hudA.rd !== rd) { hudA.rd = rd; $('h-ride').hidden = !st.ride; if (st.ride) { $('h-ride-n').textContent = rd; $('h-ride-f').style.width = Math.max(0, st.ride.t / st.ride.max * 100) + '%'; } }
+    var m = st.mission, mk = m ? m.text + Math.floor(m.prog * 100) + Math.ceil(m.t) : '';
+    if (hudA.m !== mk) {
+      hudA.m = mk; $('h-mis').hidden = !m;
+      if (m) {
+        var pr = m.kind === 'clear' ? Math.round(m.prog * 100) + '% / ' + Math.round(m.goal * 100) + '%' : m.kind === 'ball' ? '' : fmt(Math.min(m.prog, m.goal)) + ' / ' + fmt(m.goal);
+        $('h-mis-t').textContent = m.text + (pr ? ' · ' + pr : '');
+        $('h-mis-fill').style.width = Math.min(100, Math.max(0, m.prog / m.goal * 100)) + '%';
+        $('h-mis-time').innerHTML = '남은 시간 ' + Math.floor(m.t / 60) + ':' + ('0' + Math.max(0, Math.floor(m.t % 60))).slice(-2) + ' · 보상 ' + pie() + fmt(m.reward);
+        $('h-mis').classList.toggle('late', m.t < 20);
+      }
+    }
+    var bk = st.buffs.map(function (x) { return x.name + ' ' + Math.ceil(x.t) + '초'; }).join('|');
+    if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 4).map(function (x) { return '<span>' + esc(x.name) + ' ' + Math.ceil(x.t) + '초</span>'; }).join(''); }
+  }
+  function doAct() {
+    var w = V.world && V.world();
+    if (!A || !w || V.mode() !== 'play') return;
+    updAct(w, true);
+    if (!curT) { if (X) X.deny(); return; }
+    var r = A.act(w, curT, look());
+    if (r.ui === 'px') openPX();
+    else if (r.ui === 'sleep') sleepFx(r);
+    else if (!r.ok && r.why === 'stun') toast('넘어져서 아무것도 못 한다');
+    if (X && r.ok) X.pop();
+    actAt = 0; hudA.key = null;
+  }
+  function doBall() {
+    var w = V.world && V.world();
+    if (!A || !w || V.mode() !== 'play') return;
+    var lk = look(), r = A.throwBall(w, lk, lk ? lk.pitch + 0.25 : 0.2);
+    if (!r.ok && X) X.deny();
+    hudA.can = null;
+  }
+  function subtitle(text) {
+    var el = $('sub'); el.textContent = text; el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+    clearTimeout(subTimer); subTimer = setTimeout(function () { el.hidden = true; }, 2400);
+  }
+  function stars(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  function onActEvent(f) {
+    if (f.t === 'me') { subtitle(f.text); return true; }
+    if (f.t === 'heat') {
+      if (f.heat > 0) { chip('행보관 분노 ' + stars(f.heat) + ' 도망쳐! (생활관에 숨거나 경례로 무마)', 'bad'); vibrate([40, 30, 40]); }
+      else if (f.why === 'forgive') chip('행보관이 봐줬다. 휴…', 'good');
+      else if (f.why === 'hide') chip('생활관에 숨었다. 행보관이 그냥 지나간다', 'good');
+      else if (f.why === 'lost') chip('따돌렸다…', 'good');
+      return true;
+    }
+    if (f.t === 'caught') { banner('엎드려 뻗쳐!!', '행보관한테 잡혔다 · 초코파이 ' + fmt(f.fine) + '개 압수', 2600); flash(); vibrate([80, 50, 160]); return true; }
+    if (f.t === 'buff') { chip(f.name + ': ' + f.desc + ' (' + f.sec + '초)', 'good'); return true; }
+    if (f.t === 'buffEnd') return true;
+    if (f.t === 'mission') {
+      if (f.state === 'new') { chip('임무: ' + f.m.text, 'warn'); if (X) X.whistle(false); }
+      else if (f.state === 'done') { banner('임무 완수!', f.m.text + ' · +' + fmt(f.pay) + ' 초코파이', 2200); if (X) { X.stamp(); X.coin(); } }
+      else chip('임무 실패: ' + f.m.text, 'bad');
+      return true;
+    }
+    if (f.t === 'gift') { if (X) { if (f.kind === 'none') X.deny(); else X.ding(); } return true; }
+    if (f.t === 'ride') {
+      if (f.on) chip(f.name + ' 운전 중! 기름 떨어지기 전에 실컷 밀어라', 'good');
+      else chip(f.hand ? f.name + '에서 내렸다' : f.name + ' 기름이 떨어졌다', '');
+      return true;
+    }
+    if (f.t === 'sleep' || f.t === 'gong') return true;
+    return false;
+  }
+  function sleepFx(r) {
+    var f = $('fade');
+    f.innerHTML = '<b>Zzz…</b><span>' + (r.bonus ? '자는 동안 후임들이 ' + fmt(r.bonus) + ' 벌었다' : '꿀잠 잤다. 눈은 또 왔다') + '</span>';
+    f.hidden = false; f.classList.remove('in'); void f.offsetWidth; f.classList.add('in');
+    setTimeout(function () { f.hidden = true; }, 2200);
+    persist();
+  }
+  function openPX() {
+    var w = V.world(); V.pause(true);
+    function render() {
+      var items = A.pxItems(w);
+      modal('<div class="m-rank px"><p class="kicker">PX · 냉동 있음</p><h3>뭐 사 먹을래?</h3><div class="px-list">' + items.map(function (it) {
+        return '<button class="px-it' + (it.on ? ' on' : '') + '" data-px="' + it.id + '"' + (it.ok ? '' : ' disabled') + '><b>' + esc(it.name) + (it.on ? ' · 효과 중' : '') + '</b><small>' + esc(it.need || it.desc) + '</small><span>' + pie() + fmt(it.cost) + '</span></button>';
+      }).join('') + '</div><p class="px-bank">' + pie() + fmt(save.bank) + '</p><button class="btn big" data-m="close">나가기</button></div>', function () { V.pause(false); });
+      var b = $('modal-box'), base = b.onclick;
+      b.onclick = function (e) {
+        var px = e.target.closest('[data-px]');
+        if (!px) return base(e);
+        var r = A.pxBuy(w, px.getAttribute('data-px'));
+        if (r.ok) { if (X) X.buy(); toast(esc(r.item.name) + ' 샀다!'); persistRaw(); } else if (X) X.deny();
+        render();
+      };
+    }
+    render();
+  }
+
   /* ── 시작 ── */
   function boot() {
     var hooks = { say: function (k) { say(k); }, tick: tick, event: onEvent };
@@ -329,14 +461,19 @@
     $('h-pause').onclick = pause;
     $('h-scan').onclick = scan;
     $('h-cam').hidden = !V.toggleCam;
-    function camLabel() { $('h-cam-t').textContent = V.camMode && V.camMode() === 'near' ? '위에서 보기' : '가까이 보기'; }
     if (V.toggleCam) camLabel();
-    $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); if (X) X.pop(); };
+    $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); fpLayout(); hintText(); if (X) X.pop(); };
     window.addEventListener('keydown', function (e) {
-      if (V.mode() !== 'play') return;
-      if (e.key === 'Tab' || e.key === 'q') { e.preventDefault(); scan(); }
-      if (e.key === 'b' || e.key === 'e') openShop();
+      if (V.mode() !== 'play' || e.repeat) return;
+      var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === 'Tab' || k === 'q') { e.preventDefault(); scan(); }
+      if (k === 'b') openShop();
+      if (k === 'e' || k === ' ' || k === 'Enter') { e.preventDefault(); doAct(); }
+      if (k === 'f') doBall();
+      if (k === 'c') $('h-cam').onclick();
     });
+    function press(id, fn) { var b = $(id); b.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); fn(); }); b.addEventListener('click', function (e) { if (e.detail === 0) fn(); }); }
+    press('act-btn', doAct); press('ball-btn', doBall);
     document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
     window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());
@@ -361,7 +498,8 @@
     save: function () { return save; },
     setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); },
     play: play, startDay: function () { play(false); }, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
-    autopilot: function (b) { V.setAutopilot(b); }
+    autopilot: function (b) { V.setAutopilot(b); },
+    act: function () { doAct(); }, ball: function () { doBall(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

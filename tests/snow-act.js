@@ -1,0 +1,214 @@
+#!/usr/bin/env node
+/* 제설각 상호작용 테스트 (DOM 없이): 경례, 갈구기, 짐 떠넘기기, 탈 것, 눈덩이, 눈사람, 족구공, PX, 짬밥, 면회, 취침, 임무, 행보관 분노 */
+'use strict';
+global.window = {};
+require('../js/snow/data.js');
+require('../js/snow/sim.js');
+require('../js/snow/act.js');
+var S = window.JY.SNOW, G = window.JY.SnowSim, A = window.JY.SnowAct, pass = 0, fail = 0;
+function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }
+function run(w, sec, inp) { for (var t = 0; t < sec; t += 1 / 30) G.step(w, 1 / 30, inp || null); }
+function fresh(fn) { var s = G.newSave(); s.seed = 11; if (fn) fn(s); var w = G.createWorld(s); w.events = []; G.step(w, 1 / 30, null); return w; }
+function face(w, tx, ty) { var P = w.player, dx = tx - P.x, dy = ty - P.y, d = Math.hypot(dx, dy) || 1; P.dir = { x: dx / d, y: dy / d }; return P.dir; }
+function fxs(w, t) { return w.fx.filter(function (f) { return f.t === t; }); }
+function near(w, e, dx, dy) { w.player.x = e.x + (dx || 0); w.player.y = e.y + (dy === undefined ? -14 : dy); return face(w, e.x, e.y); }
+
+// ── 행보관에게 경례 → 칭찬 버프 (보상 +20%), 연달아 하면 핀잔 ──
+var w = fresh(), H = w.haeng;
+H.x = 200; H.y = 200; H.hold = 99;
+var look = near(w, H);
+var t = A.best(w, look, true);
+ok(t && t.k === 'haeng' && t.verb === '경례', '행보관 앞에서는 "경례"', t && [t.k, t.verb]);
+var m0 = w.mult; w.fx.length = 0;
+A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(fxs(w, 'me').some(function (f) { return f.text === '충성!'; }) && fxs(w, 'bubble').length > 0, '충성! 하면 행보관이 대답한다');
+ok(w.mult > m0 * 1.15 && A.state(w).buffs.some(function (b) { return b.id === 'praise'; }), '행보관 칭찬: 보상 +20%', [m0, w.mult]);
+w.fx.length = 0; A.act(w, A.best(w, look, true), look);
+ok(fxs(w, 'buff').length === 0, '또 경례하면 버프 없이 핀잔만');
+
+// ── 1인칭: 뒤에 있는 건 고르지 않는다 ──
+var back = { x: -look.x, y: -look.y };
+ok(!A.best(w, back, true) || A.best(w, back, true).k !== 'haeng', '1인칭에서 등 뒤의 행보관은 안 고른다');
+
+// ── 인력: 깨우기 / 짐 떠넘기기 / 갈구기 ──
+w = fresh(function (s) { s.crew = { hoobae: 1, malnyeon: 1 }; s.life = 30000; });
+var hb = w.crew.filter(function (e) { return e.def.id === 'hoobae'; })[0], mn = w.crew.filter(function (e) { return e.def.id === 'malnyeon'; })[0];
+mn.x = 200; mn.y = 200; mn.asleep = true; mn.sleepT = 99; w.haeng.x = 600; w.haeng.y = 600;
+look = near(w, mn);
+t = A.best(w, look, true);
+ok(t.k === 'crew' && t.verb === '깨우기', '자는 말년 병장: 깨우기', [t.k, t.verb]);
+A.act(w, t, look);
+ok(!mn.asleep && w.save.stats.wake === 1, '깨우면 일어난다');
+hb.x = 300; hb.y = 200; hb.load = 0; hb.state = 'work';
+look = near(w, hb); w.player.load = 30; w.player.val = 30;
+t = A.best(w, look, true);
+ok(t.verb === '짐 떠넘기기', '짐이 있으면 후임에게 떠넘긴다', t.verb);
+A.act(w, t, look);
+ok(w.player.load === 10 && hb.load === 20 && hb.state === 'haul', '떠넘긴 만큼 후임이 지고 집하장으로 간다', [w.player.load, hb.load, hb.state]);
+w.player.load = 0; w.player.val = 0; hb.load = 0; hb.val = 0; hb.state = 'work';
+t = A.best(w, look, true);
+ok(t.verb === '갈구기', '빈손이면 갈구기', t.verb);
+A.act(w, t, look);
+ok(hb.boost > 0, '갈구면 잠깐 빨라진다');
+var bx = hb.x, by = hb.y, crewSp = 0; hb.tx = hb.x + 200; hb.ty = hb.y; hb.tidx = -1; hb.retarget = 9;
+G.step(w, 0.1, null); crewSp = Math.hypot(hb.x - bx, hb.y - by);
+ok(crewSp > hb.speed * 0.1 * 1.2 || hb.state !== 'work', '갈군 후임은 50% 빨리 걷는다', [crewSp, hb.speed]);
+
+// ── 제설차 운전 교대 → 타는 동안 범위·적재가 커지고, 끝나면 돌아온다 ──
+w = fresh(function (s) { s.crew = { plow: 1 }; s.life = 200000; });
+var plow = w.crew[0]; plow.x = 260; plow.y = 200; w.haeng.x = 700; w.haeng.y = 700;
+look = near(w, plow, 0, -20);
+t = A.best(w, look, true);
+ok(t.k === 'plow' && t.verb === '운전 교대', '제설차: 운전 교대', t && t.k);
+var r0 = w.player.r, c0 = w.player.cap;
+A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(plow.off && w.player.r === 34 && w.player.cap === 500 && A.state(w).ride.kind === 'plow', '제설차를 몰면 범위 34·적재 500', [w.player.r, w.player.cap]);
+ok(A.best(w, look, true).k === 'exit', '타는 중엔 "내리기"');
+run(w, 31);
+ok(!plow.off && w.player.r === r0 && w.player.cap === c0 && !A.state(w).ride, '기름 떨어지면 내리고 운전병이 돌아간다', [w.player.r, w.player.cap]);
+
+// ── 중대장님 차 탈취 → 분노 ★★, 빨리 달린다, 고라니를 쫓아 버린다 ──
+w = fresh(function (s) { s.zones.E = true; s.day = 4; });
+G.spawn(w, 'car'); w.car.y = 700; w.player.x = w.car.x + 20; w.player.y = 700;
+look = face(w, w.car.x, w.car.y);
+t = A.best(w, look, true);
+ok(t && t.k === 'car', '지나가는 중대장님 차: 탈취하기', t && t.k);
+A.act(w, t, look);
+ok(!w.car && A.state(w).heat === 2 && w.player.noClear, '탈취: 차가 내 것이 되고 행보관 분노 ★★', A.state(w));
+var x0 = w.player.x, y0 = w.player.y;
+run(w, 0.5, { x: 0, y: -1 });
+ok(Math.hypot(w.player.x - x0, w.player.y - y0) > S.SPEED * 0.5 * 1.8, '차는 걸어서보다 두 배 빠르다', Math.hypot(w.player.x - x0, w.player.y - y0));
+
+// ── 정비고 트랙터: 이병은 못 몰고, 일병부터 하루 한 번 ──
+w = fresh();
+w.player.x = A.TRACTOR.x - 30; w.player.y = A.TRACTOR.y; look = face(w, A.TRACTOR.x, A.TRACTOR.y);
+t = A.best(w, look, true);
+ok(t.k === 'tractor' && /일병/.test(t.verb), '이병: 트랙터는 일병부터', t.verb);
+ok(!A.act(w, t, look).ok, '이병은 못 몬다');
+w.save.life = 3000; t = A.best(w, look, true);
+ok(A.act(w, t, look).ok && w.player.r === 46, '일병: 트랙터 몰기 (범위 46)');
+A.endRide(w, true);
+ok(!A.act(w, A.best(w, look, true), look).ok, '트랙터는 하루 한 번');
+
+// ── 눈덩이: 후임 맞히면 넘어지고 가끔 되던진다, 행보관 맞히면 쫓아온다 ──
+w = fresh(function (s) { s.crew = { hoobae: 1 }; });
+hb = w.crew[0]; hb.x = 200; hb.y = 260; hb.tidx = -1; hb.retarget = 99; hb.speed = 0; w.haeng.x = 700; w.haeng.y = 1100;
+w.player.x = 200; w.player.y = 200; look = face(w, 200, 260);
+ok(A.canThrow(w), '눈 위에 서 있으면 눈덩이를 만들 수 있다');
+A.throwBall(w, look, -0.1);
+var hitN = 0; for (var k = 0; k < 60 && !hitN; k++) { G.step(w, 1 / 30, null); hitN = w.save.stats.hit || 0; }
+ok(hitN === 1 && hb.injured > 0, '눈덩이가 후임에게 맞는다', [hitN, hb.injured]);
+ok(!A.canThrow(w) || A.state(w), '연사는 안 된다(쿨타임)');
+var w2 = fresh(); w2.haeng.x = 200; w2.haeng.y = 250; w2.haeng.hold = 99; w2.player.x = 200; w2.player.y = 200; look = face(w2, 200, 250);
+A.throwBall(w2, look, -0.1); run(w2, 0.25);
+ok(A.state(w2).heat >= 1 && w2.haeng.chasing, '행보관을 맞히면 분노 ★ — 쫓아온다', A.state(w2).heat);
+// 잡히면 얼차려 + 초코파이 압수
+w2.save.bank = 1000; w2.haeng.hold = 0; w2.haeng.x = w2.player.x + 30; w2.haeng.y = w2.player.y;
+var caught = false; for (k = 0; k < 120 && !caught; k++) { G.step(w2, 1 / 30, null); caught = w2.fx.some(function (f) { return f.t === 'caught'; }); }
+ok(caught && w2.player.stun > 2 && w2.save.bank < 1000 && A.state(w2).heat === 0, '잡히면 엎드려 뻗쳐 + 압수', [caught, w2.save.bank]);
+// 멀리 도망가면 분노가 식는다
+var w3 = fresh(); A.init(w3).heat = 1; w3.haeng.x = 700; w3.haeng.y = 1150; w3.player.x = 120; w3.player.y = 150;
+w3.haeng.speed = 0; run(w3, 16);
+ok(A.state(w3).heat === 0, '멀리 숨어 있으면 분노가 식는다', A.state(w3).heat);
+// 생활관에 숨으면 바로 풀린다
+var w4 = fresh(); A.init(w4).heat = 3; var dB = A.door('barracks'); w4.player.x = dB.x; w4.player.y = dB.y + 6; look = face(w4, dB.x, dB.y - 10); w4.haeng.x = 700; w4.haeng.y = 1100;
+t = A.best(w4, look, true);
+ok(t.k === 'barracks' && t.verb === '숨기', '쫓길 때 생활관: 숨기', t.verb);
+A.act(w4, t, look);
+ok(A.state(w4).heat === 0, '생활관에 숨으면 분노 해제');
+// 전차 만지면 혼난다
+var w5 = fresh(); var tk = S.TANKS[0]; w5.player.x = tk.x + tk.w / 2; w5.player.y = tk.y - 12; look = face(w5, tk.x + tk.w / 2, tk.y + 10); w5.haeng.x = 700; w5.haeng.y = 1100;
+t = A.best(w5, look, true); ok(t && t.k === 'tank', '전차 앞: 만지기', t && t.k);
+A.act(w5, t, look); ok(A.state(w5).heat === 1, '전차 만지면 분노 ★');
+
+// ── 눈사람: 짐 25를 써서 만들고, 저장되고, 보상 +1% ──
+w = fresh(); w.haeng.x = 700; w.haeng.y = 1100;
+w.player.x = 150; w.player.y = 190; w.player.load = 30; w.player.val = 30; look = face(w, 150, 260); w.player.idleT = 1; w.player.moving = false;
+t = A.best(w, look, true);
+ok(t && t.k === 'build', '아무것도 없고 짐이 있으면: 눈사람 만들기', t && t.k);
+m0 = G.incomeMult(w.save); A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(w.save.snowmen.length === 1 && w.player.load === 5 && Math.abs(w.mult - m0 * 1.01) < 1e-6, '눈사람 1개: 짐 -25, 보상 +1%', [w.save.snowmen.length, w.player.load, w.mult / m0]);
+G.serialize(w); var w6 = G.createWorld(w.save);
+ok(w6.save.snowmen.length === 1, '눈사람은 저장된다');
+look = face(w, w.save.snowmen[0].x, w.save.snowmen[0].y);
+t = A.best(w, look, true); ok(t.k === 'snowman' && t.verb === '부수기', '내 눈사람: 부수기');
+// 고라니가 지나가면 박살
+w.save.snowmen.push({ x: 300, y: 200, s: 1 }); G.spawn(w, 'deer'); var dr = w.deer[0]; dr.x = 300; dr.y = 200; G.step(w, 1 / 30, null);
+ok(!w.save.snowmen.some(function (m) { return m.x === 300; }), '고라니가 눈사람을 박살 낸다');
+
+// ── 고라니 쫓아내기 → 보상, 짬타이거 쓰다듬기 → 버프 ──
+w = fresh(function (s) { s.day = 3; s.zones.D = true; s.fresh.D = true; });
+G.spawn(w, 'deer'); dr = w.deer[0]; dr.x = 300; dr.y = 200; dr.turnT = 9; dr.heading = 0;
+w.player.x = 300; w.player.y = 170; look = face(w, 300, 200); var bk = w.save.bank;
+t = A.best(w, look, true); ok(t.k === 'deer' && t.verb === '쫓아내기', '고라니: 쫓아내기');
+A.act(w, t, look); ok(dr.leaving && w.save.bank > bk, '쫓아내면 도망가고 초코파이', [dr.leaving, w.save.bank - bk]);
+var cat = w.cats[0]; w.player.x = cat.x; w.player.y = cat.y - 20; look = face(w, cat.x, cat.y); w.player.moving = false;
+t = A.best(w, look, true); ok(t && t.k === 'cat', '짬타이거: 쓰다듬기', t && t.k);
+A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(cat.pet > 0 && w.mod.stun === 0.5, '쓰다듬으면 멈추고 마음이 따뜻해진다(덜 넘어짐)');
+
+// ── 취사장 짬밥(하루 한 번, 적재 +40%), 면회, PX ──
+w = fresh(); w.haeng.x = 700; w.haeng.y = 1100;
+var dM = A.door('mess'); w.player.x = dM.x; w.player.y = dM.y + 8; look = face(w, dM.x, dM.y - 10); c0 = w.player.cap;
+t = A.best(w, look, true); ok(t.k === 'mess', '취사장: 짬밥 먹기');
+A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(w.player.cap === Math.round(c0 * 1.4), '짬밥 먹으면 적재 +40%', [c0, w.player.cap]);
+ok(!A.act(w, A.best(w, look, true), look).ok, '짬밥은 하루 한 번');
+var dW = A.door('guard'); w.player.x = dW.x; w.player.y = dW.y + 8; look = face(w, dW.x, dW.y - 10);
+t = A.best(w, look, true); ok(t.k === 'guard', '위병소: 면회 확인');
+w.fx.length = 0; A.act(w, t, look); ok(fxs(w, 'gift').length === 1, '면회: 뭐라도 일어난다', fxs(w, 'gift'));
+w.save.bank = 0; var px = A.pxItems(w);
+ok(px.length >= 4 && px.every(function (p) { return !p.ok; }), 'PX: 돈 없으면 못 산다');
+w.save.bank = 1000; ok(A.pxBuy(w, 'matsta').ok, 'PX: 맛스타 구매');
+G.step(w, 1 / 30, null); ok(w.mod.speed === 1.25, '맛스타: 이동 +25%');
+ok(!A.pxBuy(w, 'choco').ok, '인력 없으면 초코파이 상자는 못 산다');
+
+// ── 생활관 취침: 오후에만, 다음 날로 넘어간다 ──
+w = fresh(); w.haeng.x = 700; w.haeng.y = 1100;
+dB = A.door('barracks'); w.player.x = dB.x; w.player.y = dB.y + 6; look = face(w, dB.x, dB.y - 10);
+ok(!A.act(w, A.best(w, look, true), look).ok, '낮에는 못 잔다');
+w.time = w.dayLen * 0.7; var d0 = w.save.day;
+var r = A.act(w, A.best(w, look, true), look);
+ok(r.ok && r.ui === 'sleep' && w.save.day === d0 + 1 && w.time === 0, '오후엔 취침 → 다음 날', [w.save.day, w.time]);
+
+// ── 행정반 임무: 받고 → 해내면 초코파이 ──
+w = fresh(); w.haeng.x = 700; w.haeng.y = 1100;
+var dO = A.door('office'); w.player.x = dO.x; w.player.y = dO.y + 8; look = face(w, dO.x, dO.y - 10);
+t = A.best(w, look, true); ok(t.k === 'office' && t.verb === '임무 받기', '행정반: 임무 받기');
+A.act(w, t, look); var ms = A.state(w).mission;
+ok(ms && ms.text && ms.reward > 0 && ms.t > 0, '임무가 생긴다', ms);
+ok(!A.act(w, A.best(w, look, true), look).ok, '임무 중엔 또 못 받는다');
+// 경례 임무를 강제로 만들어 해 본다
+var a = A.init(w); a.mission = null; a.missionCool = 0; a.lastKind = null;
+var kinds = {}; for (k = 0; k < 40; k++) { var mm = A.newMission(w); kinds[mm.kind] = 1; }
+ok(Object.keys(kinds).length >= 4, '임무 종류가 여러 가지', Object.keys(kinds));
+a.mission = { kind: 'flag', start: a.n.flag, goal: 1, t: 60, max: 60, reward: 77, text: '태극기에 경례' };
+bk = w.save.bank; w.player.x = A.FLAG.x; w.player.y = A.FLAG.y - 16; look = face(w, A.FLAG.x, A.FLAG.y);
+t = A.best(w, look, true); ok(t.k === 'flag', '태극기: 경례');
+A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(!A.state(w).mission && w.save.bank >= bk + 77, '임무 완수 → 초코파이', [w.save.bank - bk]);
+a.mission = { kind: 'haul', start: w.dumpedP, goal: 50, t: 0.05, max: 60, reward: 10, text: 'x' };
+w.fx.length = 0; run(w, 0.2);
+ok(!A.state(w).mission && fxs(w, 'mission').some(function (f) { return f.state === 'fail'; }), '시간 넘기면 임무 실패');
+
+// ── 족구공 차기 ──
+w = fresh(); w.haeng.x = 700; w.haeng.y = 1100; var ball = A.init(w).ball;
+w.player.x = ball.x - 14; w.player.y = ball.y; look = face(w, ball.x, ball.y); var bx0 = ball.x;
+t = A.best(w, look, true); ok(t.k === 'ball', '족구공: 차기');
+A.act(w, t, look); run(w, 1);
+ok(ball.x > bx0 + 60, '차면 굴러간다', ball.x - bx0);
+
+// ── 1인칭 입력: 보는 쪽이 앞, 옆걸음 ──
+w = fresh(); w.player.x = 200; w.player.y = 190;
+run(w, 0.5, { x: 1, y: 0, face: { x: 0, y: 1 } });
+ok(w.player.x > 225 && Math.abs(w.player.dir.y - 1) < 1e-6, '1인칭: 옆으로 걸어도 앞(보는 쪽)은 그대로', [w.player.x, w.player.dir]);
+w.player.load = 0; var cl0 = w.clear; w.player.reach = 0;
+run(w, 0.4, { x: 0, y: 0, face: { x: 0, y: 1 }, reach: 10 });
+ok(w.clear > cl0, '1인칭: 앞쪽 눈을 퍼 담는다');
+
+// ── 데모(타이틀)에는 상호작용이 끼어들지 않는다 ──
+var wd = G.createWorld(G.newSave(), { demo: true }); run(wd, 1);
+ok(!wd.act, '데모에선 상호작용 없음');
+
+console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
+process.exit(fail ? 1 : 0);

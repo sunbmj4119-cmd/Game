@@ -22,6 +22,9 @@
   var pts, pPos, pCol, pVel, pLife, pN = 0, MAXP = 900, flakes, fPos, NF = 1400;
   var ov, stickEl, knobEl, overlays = [], zoneLabels = [];
   var mats = {}, geos = {}, matV, blobMat, barrierArm = null, flagMesh = null;
+  var A = function () { return JY.SnowAct; }, fpYaw = 0, fpPitch = -0.2, lookPtr = null, stunK = 0, curFocus = null, markEl = null, lastCamMode = '';
+  var vmScene, vmCam, vmRoot = null, vmKind = '', vmTool = null, vmArm = null, vmGlove = null, vmBallM = null, vmBoot = null, vmAnim = { k: '', t: 0, d: 1 }, vmHemi, vmSun;
+  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null;
   var lowFx = false, slowAvg = 0.016, slowN = 0, gainAcc = 0, gainT = 0, scrapeT = 0, crewScrapeT = 0, ray = new T.Raycaster(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
 
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) ^ 0x5bf03635; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -36,6 +39,7 @@
     return t;
   }
   function fmt(n) { return Math.floor(n).toLocaleString('ko-KR'); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   /* ── 모양 합치기 (정점 색) ── */
   function P(g, o) {
@@ -228,7 +232,7 @@
   function snowAt(x, y) { var i = Math.round(x / 5), j = Math.round(y / 5); if (i < 0 || j < 0 || i >= NX || j >= NZ) return 0; return Math.max(0, hgt[j * NX + i]); }
 
   /* ── 건물·소품 ── */
-  var BH = { barracks: 3.4, office: 2.8, px: 2.6, stand: 0.9, mess: 3.0, garage: 3.3, guard: 2.4 };
+  var BH = { barracks: 5.2, office: 4.4, px: 4.0, stand: 1.1, mess: 4.6, garage: 5.0, guard: 3.8 };  // 1인칭 눈높이(2.3)에 맞춘 벽 높이
   function wallTex(b, w, h, front) {
     var ppu = 36;
     return canvasTex(Math.ceil(w * ppu), Math.ceil(h * ppu), function (c, cw, ch) {
@@ -307,12 +311,12 @@
       [cone(1.05, 0.7, { y: 2.05 }, 8), '#f4f8fc'], [cone(0.8, 0.6, { y: 2.85 }, 8), '#f4f8fc'], [cone(0.5, 0.6, { y: 3.65 }, 8), '#f8fbfe']]);
   }
   function buildTrees() {
-    var list = S.TREES.map(function (t) { return [t[0] * U, t[1] * U, 1]; });
+    var list = S.TREES.map(function (t, k) { return [t[0] * U, t[1] * U, 1.35 + hash(k, 21) * 0.35]; });
     for (var i = 0; i < 130; i++) {
       var side = i % 4, x, z;
       if (side === 0) { x = -2 - hash(i, 1) * 16; z = hash(i, 2) * 128 - 4; } else if (side === 1) { x = 82 + hash(i, 1) * 16; z = hash(i, 2) * 128 - 4; }
       else if (side === 2) { x = hash(i, 1) * 96 - 8; z = -2 - hash(i, 2) * 12; } else { x = hash(i, 1) * 96 - 8; z = 122 + hash(i, 2) * 12; }
-      list.push([x, z, 0.8 + hash(i, 3) * 0.6]);
+      list.push([x, z, 1.1 + hash(i, 3) * 0.9]);
     }
     var im = new T.InstancedMesh(treeGeo(), matV, list.length), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
     list.forEach(function (t, k) { e.set(0, hash(k, 9) * 6, 0); q.setFromEuler(e); m.compose(new T.Vector3(t[0], 0, t[1]), q, new T.Vector3(t[2], t[2], t[2])); im.setMatrixAt(k, m); });
@@ -471,7 +475,15 @@
     var P = world.player, show = mode === 'play' && P.load >= P.cap * 0.6;
     arrowEl.style.display = show ? '' : 'none';
     if (!show) return;
-    var d = G.nearestDump(world, P.x, P.y), a = project(P.x, P.y, 2.2), b = project(d.x, d.y, 0.5), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    var d = G.nearestDump(world, P.x, P.y);
+    if (isFP()) {
+      var vx = d.x - P.x, vy = d.y - P.y, fwd = vx * Math.sin(fpYaw) + vy * Math.cos(fpYaw), rt = -vx * Math.cos(fpYaw) + vy * Math.sin(fpYaw);
+      if (Math.hypot(vx, vy) < d.r + 4) { arrowEl.style.display = 'none'; return; }
+      var an = Math.atan2(-fwd, rt), rad = 78 + Math.sin(performance.now() / 160) * 5;
+      arrowEl.style.transform = 'translate(' + (vw / 2 + Math.cos(an) * rad).toFixed(1) + 'px,' + (vh / 2 + Math.sin(an) * rad).toFixed(1) + 'px) rotate(' + an.toFixed(3) + 'rad)';
+      return;
+    }
+    var a = project(P.x, P.y, 2.2), b = project(d.x, d.y, 0.5), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
     var dist = Math.hypot(b[0] - a[0], b[1] - a[1]); if (dist < 50) { arrowEl.style.display = 'none'; return; }
     var rr2 = 64 + Math.sin(performance.now() / 160) * 6;
     arrowEl.style.transform = 'translate(' + (a[0] + Math.cos(ang) * rr2).toFixed(1) + 'px,' + (a[1] + Math.sin(ang) * rr2).toFixed(1) + 'px) rotate(' + ang.toFixed(3) + 'rad)';
@@ -561,6 +573,7 @@
     if (expr === 'hurt') { o.eyes = 'spiral'; o.mouth = 'o'; }
     else if (expr === 'sleep') { o.eyes = 'sleepy'; o.mouth = 'drool'; }
     else if (expr === 'stun') { o.eyes = 'cross'; o.mouth = 'wavy'; }
+    else if (expr === 'shout') { o.brows = 'angry'; o.mouth = 'shout'; }
     return JY.art.character(s, o);
   }
   function faceGeo() {
@@ -641,17 +654,22 @@
     var sc = 0.45 + Math.min(1, k) * 0.85; o.sack.scale.setScalar(sc);
   }
 
-  function buildActors() {
-    [playerObj, haengObj, carObj, heliObj].forEach(removeObj);
-    crewObjs.forEach(removeObj); deerObjs.forEach(removeObj); catObjs.forEach(removeObj);
-    crewObjs = []; deerObjs = []; catObjs = []; carObj = null; heliObj = null;
-    var Tl = G.toolOf(world.save);
-    playerKind = Tl.id;
-    playerObj = makePerson({ coat: '#5b6a3a', face: 'me', hat: 'beanie', tool: Tl.vehicle ? null : Tl.aura ? 'salt' : Tl.id === 'broom' ? 'broom' : Tl.id === 'twin' ? 'twin' : Tl.id === 'cart' ? 'cart' : 'pusher', r: Tl.r, vehicle: Tl.vehicle ? Tl.id : null, big: Tl.vehicle, shadow: true });
+  function playerKey() { var rd = world.act && world.act.ride, Tl = G.toolOf(world.save); return rd ? 'ride:' + rd.kind : Tl.id; }
+  function buildPlayer() {
+    removeObj(playerObj);
+    var Tl = G.toolOf(world.save), rd = world.act && world.act.ride, veh = rd ? rd.kind : Tl.vehicle ? Tl.id : null;
+    playerKind = playerKey();
+    playerObj = makePerson({ coat: '#5b6a3a', face: 'me', hat: 'beanie', tool: veh ? null : Tl.aura ? 'salt' : Tl.id === 'broom' ? 'broom' : Tl.id === 'twin' ? 'twin' : Tl.id === 'cart' ? 'cart' : 'pusher', r: Tl.r, vehicle: veh, big: !!veh, shadow: true });
     var ring = new T.Mesh(new T.RingGeometry(0.75, 0.95, 24), new T.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; playerObj.g.add(ring); playerObj.ring = ring;
+  }
+  function buildActors() {
+    [haengObj, carObj, heliObj].forEach(removeObj);
+    crewObjs.forEach(removeObj); deerObjs.forEach(removeObj); catObjs.forEach(removeObj);
+    crewObjs = []; deerObjs = []; catObjs = []; carObj = null; heliObj = null;
+    buildPlayer();
     haengObj = makePerson({ coat: '#4b5733', face: 'haeng', hat: 'cap', tool: 'shovel', r: 10, shadow: true });
-    faceMat('me', 'stun');
+    faceMat('me', 'stun'); faceMat('haeng', 'shout');
     S.CREW.forEach(function (C) { if (world.save.crew[C.id]) { faceMat(C.face, 'hurt'); faceMat(C.face, 'sleep'); } });
     var many = world.crew.length > 24;
     world.crew.forEach(function (e) { var C = e.def; crewObjs.push(makePerson({ coat: C.coat, face: C.face, hat: C.hat, tool: C.vehicle ? null : C.id === 'cook' ? 'shovel' : C.id === 'hoobae' ? 'broom' : 'pusher', r: e.r, vehicle: C.vehicle ? 'plow' : null, big: C.vehicle, shadow: !many || C.vehicle })); });
@@ -726,12 +744,12 @@
       var o = overlays[i]; o.t += dt;
       if (o.t > o.life) { o.el.remove(); overlays.splice(i, 1); continue; }
       var x = o.follow ? o.follow.x : o.x, y = o.follow ? o.follow.y : o.y, p = project(x, y, o.h + o.t * (o.rise || 0));
-      var a = Math.min(1, (o.life - o.t) * 3, o.t * 8);
+      var a = p[2] > 1 ? 0 : Math.min(1, (o.life - o.t) * 3, o.t * 8);
       o.el.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px) translate(-50%,-100%)';
       o.el.style.opacity = a.toFixed(2);
     }
     zoneLabels.forEach(function (l) {
-      var p = project(l.x, l.y, 1.5), on = p[0] > 40 && p[0] < vw - 40 && p[1] > 150 && p[1] < vh - 40;
+      var p = project(l.x, l.y, 1.5), on = p[2] < 1 && (!isFP() || Math.hypot(l.x - world.player.x, l.y - world.player.y) < 230) && p[0] > 40 && p[0] < vw - 40 && p[1] > 150 && p[1] < vh - 40;
       l.el.style.display = on ? '' : 'none';
       if (on) l.el.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px) translate(-50%,-50%)';
     });
@@ -811,7 +829,30 @@
         if (hooks.event && mode === 'play') hooks.event(f);
       } else if (f.t === 'up') {
         addOv('다시 일어났다', 'ov-chat', 0, 0, 4.3, 1.2, f.e);
-      }
+      } else if (f.t === 'bubble') {
+        var e2 = f.e, hb = e2 === world.haeng || world.crew.indexOf(e2) >= 0 ? 4.3 : world.deer.indexOf(e2) >= 0 ? 4.2 : world.cats.indexOf(e2) >= 0 ? 2.4 : 3.6;
+        addOv(esc(f.text), 'ov-chat ov-talk', 0, 0, hb, 2.8, e2);
+      } else if (f.t === 'throw') {
+        if (!f.npc) vmPlay('throw', 0.45);
+        if (sfx) sfx.whoosh();
+      } else if (f.t === 'splat') {
+        for (k = 0; k < (f.hit ? 16 : 7); k++) emit(f.x * U, Math.max(0.2, f.h * U), f.y * U, rnd(-2.5, 2.5), rnd(1, 4), rnd(-2.5, 2.5), rnd(0.35, 0.6));
+        if (f.hit && sfx && !f.me) sfx.splat();
+      } else if (f.t === 'snowman') {
+        for (k = 0; k < 30; k++) emit(f.m.x * U + rnd(-0.6, 0.6), rnd(0.3, 2.4), f.m.y * U + rnd(-0.6, 0.6), rnd(-2, 2), rnd(2, 5), rnd(-2, 2), rnd(0.5, 1), [1, 0.95, 0.75]);
+        vmPlay('act', 0.7); if (sfx) sfx.ding();
+      } else if (f.t === 'smash') {
+        for (k = 0; k < 40; k++) emit(f.x * U + rnd(-0.5, 0.5), rnd(0.4, 2.6), f.y * U + rnd(-0.5, 0.5), rnd(-4, 4), rnd(2, 6), rnd(-4, 4), rnd(0.5, 1));
+        if (sfx) sfx.thud();
+        if (!f.deer && !f.old) vmPlay('act', 0.5);
+      } else if (f.t === 'kick') { vmPlay('kick', 0.5); if (sfx) sfx.kick(); }
+      else if (f.t === 'salute') { vmPlay('salute', 1.0); if (sfx) sfx.salute(); }
+      else if (f.t === 'pet') { vmPlay('pet', 1.1); if (sfx) sfx.meow(); }
+      else if (f.t === 'shoo') { var os = addOv('+' + fmt(f.pay) + '<i class="pie"></i>', 'ov-dump', f.x, f.y, 3.5, 1.2); os.rise = 1.2; vmPlay('act', 0.5); }
+      else if (f.t === 'ride') { if (sfx && f.on) sfx.vroom(); }
+      else if (f.t === 'caught') { shake = Math.max(shake, 0.8); if (sfx) sfx.thud(); }
+      else if (f.t === 'heat') { if (sfx && f.heat > 0) sfx.siren(); }
+      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong)$/.test(f.t)) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -819,16 +860,18 @@
   /* ── 갱신 ── */
   function syncActors(dt) {
     var w = world, P = w.player, t = performance.now() / 1000;
-    var Tl = G.toolOf(w.save);
-    if (Tl.id !== playerKind) buildActors();
+    if (playerKey() !== playerKind) buildPlayer();
+    playerObj.g.visible = !isFP();
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
-    placePerson(playerObj, P, { lie: P.stun > 0.6 });
+    placePerson(playerObj, P, { lie: P.stun > 0.6 && !playerObj.vehicle });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
     sack(playerObj, P.load / P.cap);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
+    setExpr(haengObj, w.haeng.chasing ? 'shout' : 'normal');
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
+      o.g.visible = !e.off;
       setExpr(o, e.injured > 0 ? 'hurt' : e.asleep ? 'sleep' : 'normal');
       placePerson(o, e, { lie: e.injured > 0 || e.asleep });
       sack(o, e.load / e.cap);
@@ -870,39 +913,67 @@
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var camMode = 'near', WIDN = [15, 16, 17.5, 19, 21, 24, 28, 33, 42], PITCHN = 0.43, FOVN = 62, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize();
-  try { camMode = localStorage.getItem('jeseol-cam') || 'near'; } catch (e) { /* 저장소 없음 */ }
-  function fitCam() { camera.aspect = vw / vh; camera.fov = camMode === 'near' ? FOVN : FOV; camera.updateProjectionMatrix(); }
+  var CAMS = ['fp', 'near', 'far'], camMode = 'fp', WIDN = [15, 16, 17.5, 19, 21, 24, 28, 33, 42], PITCHN = 0.43, FOVN = 62, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  try { var cm0 = localStorage.getItem('jeseol-cam2'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
+  // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
+  function cm() { return mode === 'demo' || mode === 'idle' ? 'near' : camMode; }
+  function isFP() { return cm() === 'fp'; }
+  function fitCam() {
+    var c = cm(); camera.aspect = vw / vh;
+    camera.fov = c === 'fp' ? (vw < vh ? 84 : 66) : c === 'near' ? FOVN : FOV;
+    camera.near = c === 'fp' ? 0.12 : 0.5;
+    camera.updateProjectionMatrix();
+    if (vmCam) { vmCam.aspect = vw / vh; vmCam.fov = vw < vh ? 66 : 54; vmCam.updateProjectionMatrix(); }
+  }
   function camDist() { var a = vw / vh, t = Math.tan(FOV * Math.PI / 360); return a < 1 ? (visW / 2) / (t * a) : (visW * 0.62 / 2) / t; }
   function camera3(dt, snap) {
     if (!world) return;
-    var P = world.player, tx = P.x * U, tz = P.y * U - 1.5;
+    var P = world.player, tx = P.x * U, tz = P.y * U - 1.5, c = cm(), now = performance.now() / 1000;
+    if (c !== lastCamMode) { lastCamMode = c; fitCam(); if (c === 'fp') { fpYaw = Math.atan2(P.dir.x, P.dir.y); fpPitch = -0.2; } }
     if (focus) { focus.t += dt; if (focus.t > focus.life) focus = null; else { var k = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tx += (focus.x - tx) * k; tz += (focus.z - tz) * k; } }
     var halfW = visW / 2;
-    if (camMode === 'near') { tz = P.y * U - 1.2; if (focus) { var kf = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tz += (focus.z - tz) * kf; tx = P.x * U + (focus.x - P.x * U) * kf; } }
-    else { if (halfW * 2 < 84) tx = Math.max(halfW - 3, Math.min(83 - halfW, tx)); else tx = 40; tz = Math.max(2, Math.min(122, tz)); }
+    if (c === 'near') { tz = P.y * U - 1.2; if (focus) { var kf = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tz += (focus.z - tz) * kf; tx = P.x * U + (focus.x - P.x * U) * kf; } }
+    else if (c === 'far') { if (halfW * 2 < 84) tx = Math.max(halfW - 3, Math.min(83 - halfW, tx)); else tx = 40; tz = Math.max(2, Math.min(122, tz)); }
     var k2 = snap ? 1 : Math.min(1, dt * 5);
-    camT.x += (tx - camT.x) * k2; camT.z += (tz - camT.z) * k2;
+    if (c === 'fp') { camT.x = P.x * U; camT.z = P.y * U; } else { camT.x += (tx - camT.x) * k2; camT.z += (tz - camT.z) * k2; }
     visT = VIS[world.save.tool] || 30;
-    if (Math.abs(visT - visW) > 0.01) { visW += (visT - visW) * (snap ? 1 : Math.min(1, dt * 2)); fitCam(); }
-    var sx = shake ? rnd(-shake, shake) : 0, sz = shake ? rnd(-shake, shake) : 0;
-    if (camMode === 'near') {
+    if (Math.abs(visT - visW) > 0.01) { visW += (visT - visW) * (snap ? 1 : Math.min(1, dt * 2)); if (c === 'far') fitCam(); }
+    var sx = shake ? rnd(-shake, shake) : 0, sz = shake ? rnd(-shake, shake) : 0, sr, fx0 = Math.sin(fpYaw), fz0 = Math.cos(fpYaw);
+    if (c === 'fp') {
+      // 1인칭: 눈높이에서 본다. 걸으면 흔들리고, 넘어지면 하늘을 본다
+      var ac = world.act, rd = ac && ac.ride, Tl = G.toolOf(world.save), veh = !!(rd || Tl.vehicle), heli = !rd && Tl.id === 'heli';
+      var eye = heli ? 5.6 : veh ? 3.3 : 2.3, sink = snowAt(P.x, P.y) * (veh ? 0.3 : 0.45), wk = P.walk || 0;
+      bobK += ((P.moving && !veh ? 1 : 0) - bobK) * Math.min(1, dt * 8);
+      stunK += ((P.stun > 0.5 ? 1 : 0) - stunK) * Math.min(1, dt * (P.stun > 0.5 ? 7 : 3));
+      var bob = Math.sin(wk * 2) * 0.075 * bobK, sway = Math.cos(wk) * 0.05 * bobK;
+      var ex = P.x * U - fz0 * sway, ez = P.y * U + fx0 * sway, ey = eye + sink + bob - stunK * (eye - 0.75) + (heli ? Math.sin(now * 2) * 0.15 : 0);
+      var pitch = fpPitch * (1 - stunK) + stunK * 0.9;
+      camera.position.set(ex, ey, ez); camera.up.set(0, 1, 0);
+      camera.lookAt(ex + fx0 * Math.cos(pitch), ey + Math.sin(pitch), ez + fz0 * Math.cos(pitch));
+      if (stunK > 0.01) camera.rotateZ(stunK * 0.45 * Math.sin(now * 2.6));
+      if (shake) { camera.rotateX(rnd(-shake, shake) * 0.04); camera.rotateY(rnd(-shake, shake) * 0.04); }
+      scene.fog.near = 26; scene.fog.far = 300;
+      sr = 30; sun.target.position.set(ex + fx0 * 13, 0, ez + fz0 * 13);
+    } else if (c === 'near') {
       var a0 = vw / vh, tn = Math.tan(FOVN * Math.PI / 360), wn = WIDN[world.save.tool] || 16, dn = a0 < 1 ? (wn / 2) / (tn * a0) : (wn * 0.6 / 2) / tn, ly = 1.3;
       camDn += (dn - camDn) * (snap ? 1 : Math.min(1, dt * 2));
       var ahead = camDn * 0.22;
+      camera.up.set(0, 1, 0);
       camera.position.set(camT.x + sx, ly + Math.sin(PITCHN) * camDn, camT.z + Math.cos(PITCHN) * camDn + sz);
       camera.lookAt(camT.x + sx, ly, camT.z - ahead + sz);
       scene.fog.near = camDn * 2.2; scene.fog.far = 420;
+      sr = 14 + (WIDN[world.save.tool] || 16) * 0.9; sun.target.position.set(camT.x, 0, camT.z - 4);
     } else {
       var dist = camDist();
+      camera.up.set(0, 1, 0);
       camera.position.set(camT.x + sx, Math.sin(PITCH) * dist, camT.z + Math.cos(PITCH) * dist + sz);
       camera.lookAt(camT.x + sx, 0, camT.z + sz);
       scene.fog.near = dist * 1.3; scene.fog.far = dist * 4 + 150;
+      sr = visW * 0.75; sun.target.position.set(camT.x, 0, camT.z);
     }
     // 그림자 상자는 플레이어를 따라간다
-    var sr = camMode === 'near' ? 14 + (WIDN[world.save.tool] || 16) * 0.9 : visW * 0.75, sc = sun.shadow.camera;
+    var sc = sun.shadow.camera;
     if (Math.abs(sc.right - sr) > 0.5) { sc.left = -sr; sc.right = sr; sc.top = sr; sc.bottom = -sr; sc.updateProjectionMatrix(); }
-    sun.target.position.set(camT.x, 0, camT.z - (camMode === 'near' ? 4 : 0));
     sun.position.copy(sun.target.position).addScaledVector(sunDir, 90);
     sky.position.copy(camera.position); sunSprite.position.copy(camera.position).addScaledVector(sunDir, 520);
   }
@@ -930,7 +1001,7 @@
     if (++fadeN % 4 || !world) return;
     var P = world.player;
     bld3.forEach(function (o) {
-      var b = o.b, block = camMode === 'near' && P.y < b.y + 4 && P.y > b.y - 170 && P.x > b.x - 30 && P.x < b.x + b.w + 30;
+      var b = o.b, block = cm() === 'near' && P.y < b.y + 4 && P.y > b.y - 170 && P.x > b.x - 30 && P.x < b.x + b.w + 30;
       var target = block ? 0.28 : 1;
       if (Math.abs(o.op - target) < 0.01) return;
       o.op += (target - o.op) * 0.5; if (Math.abs(o.op - target) < 0.03) o.op = target;
@@ -958,8 +1029,194 @@
     for (i = 0; i < 9; i++) { var cl = new T.Sprite(new T.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, fog: false, opacity: 0.75 })); cl.scale.set(140 + hash(i, 7) * 90, 55 + hash(i, 8) * 25, 1); cl.position.set(40 + (hash(i, 9) - 0.5) * 700, 110 + hash(i, 10) * 80, 60 - 120 - hash(i, 11) * 300); scene.add(cl); clouds.push(cl); }
   }
 
+  /* ── 1인칭 손과 도구 (따로 그려서 벽에 안 박힌다) ── */
+  function V3(x, y, z) { return new T.Vector3(x, y, z); }
+  function limbGeo(a, b, r) {
+    var d = new T.Vector3().subVectors(b, a), len = d.length(), g = new T.CapsuleGeometry(r, Math.max(0.01, len - r * 2), 4, 8);
+    g.applyQuaternion(new T.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.normalize()));
+    var m = a.clone().add(b).multiplyScalar(0.5); g.translate(m.x, m.y, m.z);
+    return g;
+  }
+  function orientGeo(g, dir, at) { g.applyQuaternion(new T.Quaternion().setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize())); g.translate(at.x, at.y, at.z); return g; }
+  var SLEEVE = '#55633a', GLOVE = '#2b3020', SH_R = V3(0.52, -0.82, 0.2), SH_L = V3(-0.52, -0.84, 0.15);
+  function vmHandGeo(kind, r) {
+    var parts = [], bw = 0.35 + r * 0.035;
+    function arms(hr, hl) {
+      parts.push([limbGeo(SH_R, hr, 0.088), SLEEVE], [sph(0.078, { x: hr.x, y: hr.y, z: hr.z }), GLOVE]);
+      if (hl) parts.push([limbGeo(SH_L, hl, 0.088), SLEEVE], [sph(0.078, { x: hl.x, y: hl.y, z: hl.z }), GLOVE]);
+    }
+    function pole(a, b, head) {
+      var d = b.clone().sub(a), dn = d.clone().normalize();
+      parts.push([limbGeo(a, b, 0.03), '#8a6a44']);
+      if (head === 'broom') parts.push([orientGeo(new T.ConeGeometry(0.22, 0.6, 10), dn.clone().negate(), b.clone().addScaledVector(dn, 0.22)), '#c9a66b']);
+      else parts.push([P(new T.BoxGeometry(head, 0.38, 0.06), { rx: -0.3, x: b.x, y: b.y - 0.05, z: b.z - 0.04 }), '#e7ae2f'], [P(new T.BoxGeometry(head, 0.06, 0.08), { x: b.x, y: b.y - 0.24, z: b.z }), '#555']);
+      return d;
+    }
+    if (kind === 'salt') {
+      parts.push([cyl(0.2, 0.2, 0.42, { x: -0.3, y: -0.6, z: -0.72 }, 14), '#3c6f9c'], [cyl(0.21, 0.21, 0.05, { x: -0.3, y: -0.38, z: -0.72 }, 14), '#d8dde2'],
+        [limbGeo(V3(0.12, -0.42, -0.5), V3(0.05, -0.64, -1.25), 0.026), '#555'], [sph(0.055, { x: 0.05, y: -0.64, z: -1.25 }), '#9fd0ff']);
+      arms(V3(0.12, -0.42, -0.5), V3(-0.3, -0.46, -0.64));
+    } else if (kind === 'cart') {
+      parts.push([limbGeo(V3(-0.32, -0.44, -0.46), V3(0.32, -0.44, -0.46), 0.03), '#333'], [limbGeo(V3(-0.3, -0.44, -0.46), V3(-0.34, -0.82, -1.2), 0.025), '#555'], [limbGeo(V3(0.3, -0.44, -0.46), V3(0.34, -0.82, -1.2), 0.025), '#555'],
+        [box(0.95, 0.42, 0.7, { y: -0.98, z: -1.55 }), '#5d6f86'], [box(1.6, 0.36, 0.08, { y: -1.1, z: -2.0 }), '#f0b429']);
+      arms(V3(0.22, -0.44, -0.46), V3(-0.22, -0.44, -0.46));
+    } else if (kind === 'twin') {
+      pole(V3(0.12, -0.32, -0.34), V3(0.5, -0.86, -1.75), bw * 0.62); pole(V3(-0.12, -0.32, -0.34), V3(-0.5, -0.86, -1.75), bw * 0.62);
+      arms(V3(0.14, -0.4, -0.42), V3(-0.15, -0.46, -0.6));
+    } else {
+      var a = V3(0.08, -0.3, -0.3), b = V3(0, -0.84, -1.75), d = pole(a, b, kind === 'broom' ? 'broom' : bw);
+      arms(a.clone().addScaledVector(d, 0.07), a.clone().addScaledVector(d, 0.37).add(V3(-0.03, 0, 0)));
+    }
+    return merge(parts);
+  }
+  function vmVehGeo(kind) {
+    var col = kind === 'plow' ? '#e0a526' : kind === 'truck' ? '#55603a' : kind === 'car' ? '#4f5d36' : kind === 'heli' ? '#4c5a35' : '#3f7a3c', parts = [], i;
+    var hr = V3(0.27, -0.5, -0.6), hl = V3(-0.27, -0.5, -0.6);
+    parts.push([limbGeo(SH_R, hr, 0.088), SLEEVE], [sph(0.078, { x: hr.x, y: hr.y, z: hr.z }), GLOVE], [limbGeo(SH_L, hl, 0.088), SLEEVE], [sph(0.078, { x: hl.x, y: hl.y, z: hl.z }), GLOVE]);
+    if (kind === 'heli') {
+      parts.push([box(2.6, 0.5, 0.7, { y: -0.98, z: -0.95 }), '#2a2e26'], [box(2.2, 0.06, 0.5, { y: -0.7, z: -1.0 }), '#1a1c18'],
+        [limbGeo(V3(-1.2, -0.7, -1.2), V3(-0.85, 1.3, -1.7), 0.05), col], [limbGeo(V3(1.2, -0.7, -1.2), V3(0.85, 1.3, -1.7), 0.05), col],
+        [limbGeo(V3(-0.85, 1.3, -1.7), V3(0.85, 1.3, -1.7), 0.05), col], [limbGeo(V3(0, -0.72, -1.35), V3(0, 1.2, -1.8), 0.03), col]);
+      for (i = 0; i < 4; i++) parts.push([cyl(0.075, 0.075, 0.02, { rx: Math.PI / 2 - 0.4, x: -0.6 + i * 0.4, y: -0.68, z: -0.76 }, 12), '#e8eef2']);
+      return merge(parts);
+    }
+    parts.push([box(2.7, 0.45, 0.8, { y: -0.95, z: -0.98 }), '#2b2f24'], [box(2.0, 0.3, 2.8, { y: -1.28, z: -2.6 }), col], [box(1.5, 0.08, 0.5, { y: -1.1, z: -1.45 }), '#1d1f1a'],
+      [limbGeo(V3(-1.2, -0.7, -1.3), V3(-0.98, 1.3, -1.55), 0.06), col], [limbGeo(V3(1.2, -0.7, -1.3), V3(0.98, 1.3, -1.55), 0.06), col], [box(2.2, 0.1, 0.1, { y: 1.3, z: -1.55 }), col]);
+    if (kind !== 'car') parts.push([box(3.8, 0.6, 0.16, { y: -1.35, z: -4.2, rx: -0.2 }), '#f0b429'], [box(0.3, 0.2, 1.1, { y: -1.3, z: -3.7 }), '#333']);
+    if (kind === 'car') parts.push([box(0.5, 0.12, 0.3, { x: 0.75, y: -0.69, z: -0.98 }), '#d9c27a']);
+    if (kind !== 'tractor') parts.push([box(0.42, 0.14, 0.2, { y: 1.36, z: -1.5 }), kind === 'car' ? '#2b5fd1' : '#ff8a2a']);
+    for (i = 0; i < 3; i++) parts.push([cyl(0.08, 0.08, 0.02, { rx: Math.PI / 2 - 0.5, x: -0.78 + i * 0.26, y: -0.7, z: -0.66 }, 12), '#e8eef2']);
+    return merge(parts);
+  }
+  function buildVM() {
+    vmScene = new T.Scene();
+    vmCam = new T.PerspectiveCamera(60, 1, 0.03, 30);
+    vmHemi = new T.HemisphereLight('#e6eeff', '#6d7a8c', 0.8); vmScene.add(vmHemi);
+    vmSun = new T.DirectionalLight('#fff1dd', 1.2); vmSun.position.set(0.6, 1, 0.5); vmScene.add(vmSun);
+    vmRoot = new T.Group(); vmScene.add(vmRoot);
+    vmArm = new T.Mesh(new T.CapsuleGeometry(0.088, 1, 4, 8), new T.MeshLambertMaterial({ color: SLEEVE })); vmArm.visible = false; vmRoot.add(vmArm);
+    vmGlove = new T.Mesh(new T.SphereGeometry(0.08, 12, 8), new T.MeshLambertMaterial({ color: GLOVE })); vmGlove.visible = false; vmRoot.add(vmGlove);
+    vmBallM = new T.Mesh(new T.SphereGeometry(0.11, 12, 8), new T.MeshLambertMaterial({ color: '#ffffff' })); vmBallM.visible = false; vmRoot.add(vmBallM);
+    vmBoot = new T.Mesh(merge([[box(0.32, 0.28, 0.5, { z: -0.08 }), '#26291f'], [box(0.34, 0.08, 0.56, { y: -0.16, z: -0.08 }), '#111'], [cyl(0.13, 0.15, 0.5, { y: 0.35 }), '#3d4628']]), matV); vmBoot.visible = false; vmRoot.add(vmBoot);
+  }
+  function vmWheel() { return new T.Mesh(new T.TorusGeometry(0.3, 0.035, 8, 26), new T.MeshLambertMaterial({ color: '#1d1f1a' })); }
+  function vmKey() {
+    var a = world.act, rd = a && a.ride, Tl = G.toolOf(world.save);
+    var k = rd ? rd.kind : Tl.vehicle ? Tl.id : Tl.aura ? 'salt' : Tl.id === 'broom' ? 'broom' : Tl.id === 'twin' ? 'twin' : Tl.id === 'cart' ? 'cart' : 'pusher';
+    return { kind: k, veh: !!(rd || Tl.vehicle), r: Tl.r, key: k + ':' + Tl.r };
+  }
+  var lastYaw = 0, wheelSpin = 0;
+  function syncVM(dt) {
+    var P = world.player, k = vmKey(), now = performance.now() / 1000;
+    if (k.key !== vmKind) {
+      vmKind = k.key; if (vmTool) { vmRoot.remove(vmTool); }
+      vmTool = new T.Group();
+      vmTool.add(new T.Mesh(k.veh ? vmVehGeo(k.kind) : vmHandGeo(k.kind, k.r), matV));
+      if (k.veh && k.kind !== 'heli') { var wh = vmWheel(); wh.position.set(0, -0.52, -0.62); wh.rotation.x = -0.95; vmTool.add(wh); vmTool.wheel = wh; }
+      vmRoot.add(vmTool);
+    }
+    // 핸들은 도는 만큼 돌아간다
+    var dy = fpYaw - lastYaw; lastYaw = fpYaw;
+    wheelSpin += (Math.max(-1, Math.min(1, dy * 18)) - wheelSpin) * Math.min(1, dt * 8);
+    if (vmTool.wheel) vmTool.wheel.rotation.z = wheelSpin * 1.2;
+    var sw = P.swing || 0;
+    vmRoot.position.set(Math.cos(P.walk || 0) * 0.025 * bobK, Math.sin((P.walk || 0) * 2) * 0.03 * bobK - stunK * 0.9 + (k.veh && P.moving ? Math.sin(now * 30) * 0.006 : 0), 0);
+    // 동작: 경례·던지기·쓰다듬기·차기
+    var an = vmAnim, wgt = 0;
+    if (an.k) { an.t += dt; if (an.t > an.d) an.k = ''; else wgt = Math.sin(Math.PI * Math.min(1, an.t / an.d)); }
+    vmTool.position.set(0, (k.veh ? 0.34 : 0) - wgt * 0.55, k.veh ? 0 : -sw * 0.14);
+    vmTool.rotation.x = k.veh ? 0 : sw * 0.05;
+    var hand = null, ball = false, boot = null;
+    if (an.k === 'salute') { var q = Math.min(1, an.t / 0.15, (an.d - an.t) / 0.2); hand = V3(0.45 - 0.27 * q, -0.78 + 0.96 * q, -0.2 - 0.18 * q); }
+    else if (an.k === 'throw') { var u = an.t / an.d; hand = u < 0.35 ? V3(0.42, -0.4 + u * 1.2, 0.0) : V3(0.42 - (u - 0.35) * 0.5, 0.02 - (u - 0.35) * 0.5, -(u - 0.35) * 1.5); ball = u < 0.42; }
+    else if (an.k === 'pet' || an.k === 'act') { hand = V3(0.08 + Math.sin(an.t * 18) * 0.05 * (an.k === 'pet' ? 1 : 0), -0.6 + wgt * 0.05, -0.55 - wgt * 0.3); }
+    else if (an.k === 'kick') boot = V3(0.12, -1.55 + wgt * 0.75, -0.35 - wgt * 0.55);
+    vmArm.visible = vmGlove.visible = !!hand; vmBallM.visible = ball; vmBoot.visible = !!boot;
+    if (hand) {
+      var d = hand.clone().sub(SH_R), len = d.length();
+      vmArm.position.copy(SH_R).add(hand).multiplyScalar(0.5); vmArm.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize()); vmArm.scale.set(1, len / 1.18, 1);
+      vmGlove.position.copy(hand); vmGlove.scale.set(an.k === 'salute' ? 1.5 : 1, an.k === 'salute' ? 0.45 : 1, 1.1);
+      if (ball) vmBallM.position.copy(hand).add(V3(0, 0.09, -0.04));
+    }
+    if (boot) { vmBoot.position.copy(boot); vmBoot.rotation.x = -0.4 * wgt; }
+    vmSun.color.copy(sun.color); vmSun.intensity = sun.intensity * 0.75; vmHemi.intensity = hemi.intensity * 1.4;
+  }
+  function vmPlay(k, d) { vmAnim.k = k; vmAnim.t = 0; vmAnim.d = d; }
+
+  /* ── 상호작용 물건: 눈덩이, 족구공, 눈사람, 정비고 트랙터, 지금 고른 것 표시 ── */
+  var focusRing = null;
+  function snowmanGeo(v) {
+    var k = 'sman:' + v; if (geos[k]) return geos[k];
+    var parts = [[sph(0.8, { y: 0.72 }), '#fbfdff'], [sph(0.56, { y: 1.75 }), '#fbfdff'], [sph(0.42, { y: 2.5 }), '#fbfdff'],
+      [sph(0.07, { x: -0.15, y: 2.58, z: 0.37 }), '#111'], [sph(0.07, { x: 0.15, y: 2.58, z: 0.37 }), '#111'], [cone(0.07, 0.4, { rx: Math.PI / 2, y: 2.48, z: 0.55 }, 6), '#e98a2c'],
+      [sph(0.06, { y: 1.95, z: 0.52 }), '#222'], [sph(0.06, { y: 1.68, z: 0.55 }), '#222'], [cyl(0.03, 0.03, 1.0, { rz: 1.1, x: -0.9, y: 1.85 }), '#6b4a32'], [cyl(0.03, 0.03, 1.0, { rz: v === 1 ? -0.4 : -1.2, x: 0.9, y: v === 1 ? 2.1 : 1.9 }), '#6b4a32'],
+      [box(0.24, 0.14, 0.04, { y: 2.0, x: 0.28, z: 0.48, ry: 0.4 }), '#2f3a25'], [box(0.16, 0.03, 0.05, { y: 2.0, x: 0.28, z: 0.5, ry: 0.4 }), '#e2b33c']];
+    if (v === 0) parts.push([P(new T.SphereGeometry(0.47, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1.05, 0.82, 1.05], y: 2.56 }), '#4e5a33'], [cyl(0.52, 0.52, 0.06, { y: 2.56 }, 16), '#3f4a28']);
+    else if (v === 1) parts.push([P(new T.SphereGeometry(0.45, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), { y: 2.58 }), '#39422c']);
+    else parts.push([cyl(0.34, 0.32, 0.44, { y: 3.0 }, 14), '#ffffff'], [sph(0.4, { s: [1, 0.6, 1], y: 3.25 }), '#ffffff']);
+    return (geos[k] = merge(parts));
+  }
+  function syncAct(dt) {
+    var a = world.act, t = performance.now() / 1000;
+    if (tractorObj) tractorObj.visible = !(a && a.ride && a.ride.kind === 'tractor');
+    if (!a) { if (kickBall) kickBall.visible = false; return; }
+    while (actBalls.length < a.balls.length) {
+      var bm = new T.Mesh(geos.sball || (geos.sball = new T.SphereGeometry(0.2, 10, 8)), mats.sball || (mats.sball = new T.MeshLambertMaterial({ color: '#ffffff' })));
+      bm.castShadow = true; scene.add(bm); actBalls.push(bm);
+    }
+    actBalls.forEach(function (m, i) { var b = a.balls[i]; m.visible = !!b; if (b) m.position.set(b.x * U, Math.max(0.2, b.h * U), b.y * U); });
+    if (!kickBall) {
+      kickBall = new T.Mesh(merge([[sph(0.3, {}, 14, 10), '#f4f1e6'], [cyl(0.305, 0.305, 0.1, {}, 16), '#e2b33c'], [cyl(0.305, 0.305, 0.1, { rx: Math.PI / 2 }, 16), '#2b5fd1']]), matV);
+      kickBall.castShadow = true; scene.add(kickBall);
+    }
+    var B = a.ball; kickBall.visible = true;
+    kickBall.position.set(B.x * U, 0.3 + B.h * U + snowAt(B.x, B.y) * 0.35, B.y * U);
+    if (B.vx || B.vy) { kickBall.rotation.y = Math.atan2(B.vx, B.vy); kickBall.rotation.x = B.roll || 0; }
+    var sm = world.save.snowmen, key = sm.map(function (m) { return m.x + ',' + m.y; }).join(';');
+    if (key !== manKey) {
+      manKey = key; manObjs.forEach(removeObj); manObjs = [];
+      sm.forEach(function (m) { var o = new T.Mesh(snowmanGeo(m.s % 3), matV); o.castShadow = true; o.position.set(m.x * U, snowAt(m.x, m.y) * 0.3, m.y * U); o.rotation.y = (m.s % 628) / 100; o.scale.setScalar(1.05); scene.add(o); manObjs.push(o); });
+    }
+    // 지금 고른 것 아래 노란 고리
+    if (!focusRing) { focusRing = new T.Mesh(new T.RingGeometry(0.75, 0.95, 32), new T.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.85, depthWrite: false, depthTest: false })); focusRing.rotation.x = -Math.PI / 2; focusRing.renderOrder = 5; scene.add(focusRing); }
+    var f = curFocus;
+    focusRing.visible = !!(f && f.k !== 'exit' && f.k !== 'build' && mode === 'play');
+    if (focusRing.visible) {
+      var big = f.k === 'car' || f.k === 'plow' || f.k === 'tractor' || f.k === 'stand' ? 2.4 : f.k === 'deer' ? 1.7 : f.k === 'cat' || f.k === 'ball' ? 0.8 : 1.2;
+      focusRing.position.set(f.x * U, 0.12 + snowAt(f.x, f.y) * 0.5, f.y * U); focusRing.scale.setScalar(big * (1 + Math.sin(t * 6) * 0.06));
+    }
+    if (markEl) {
+      var show = f && f.k !== 'exit' && f.k !== 'build' && !isFP() && mode === 'play';
+      markEl.style.display = show ? '' : 'none';
+      if (show) {
+        if (markEl._t !== f.verb + f.name) { markEl._t = f.verb + f.name; markEl.innerHTML = '<b>' + f.verb + '</b><small>' + f.name + '</small>'; }
+        var hh = f.k === 'cat' || f.k === 'ball' ? 1.6 : f.k === 'car' || f.k === 'plow' || f.k === 'tractor' ? 4 : 3.6, pp = project(f.x, f.y, hh);
+        markEl.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
+      }
+    }
+  }
+  function buildTractor() {
+    var TR = JY.SnowAct ? JY.SnowAct.TRACTOR : { x: 252, y: 1062 };
+    tractorObj = new T.Group();
+    var tm = new T.Mesh(vehicleGeo('tractor'), matV); tm.castShadow = true; tm.rotation.y = -Math.PI / 2; tractorObj.add(tm);
+    var tt = textTex('정비고 트랙터 · 일병부터', { size: 28 }), sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 60, tt.image.height / 60), new T.MeshLambertMaterial({ map: tt }));
+    sm.position.set(0, 3.3, 1.2); tractorObj.add(sm);
+    tractorObj.position.set(TR.x * U, 0, TR.y * U); scene.add(tractorObj);
+  }
+
   /* ── 입력 ── */
-  function readInput() {
+  function fpForward() { return { x: Math.sin(fpYaw), y: Math.cos(fpYaw) }; }
+  function readInput(dt) {
+    if (isFP()) {
+      // 1인칭: 왼쪽 조이스틱(또는 WASD)은 보는 방향 기준으로 앞·뒤·옆걸음, ←/→는 돌기
+      var mx = 0, my = 0;
+      if (keys.w || keys.ArrowUp) my += 1; if (keys.s || keys.ArrowDown) my -= 1;
+      if (keys.a) mx -= 1; if (keys.d) mx += 1;
+      if (keys.ArrowLeft) fpYaw += 2.1 * dt; if (keys.ArrowRight) fpYaw -= 2.1 * dt;
+      if (stick && (stick.vx || stick.vy)) { mx += stick.vx; my -= stick.vy; }
+      var f = fpForward();
+      return { x: f.x * my - f.y * mx, y: f.y * my + f.x * mx, face: f, reach: 10 };
+    }
     var x = 0, y = 0;
     if (keys.ArrowLeft || keys.a) x -= 1; if (keys.ArrowRight || keys.d) x += 1;
     if (keys.ArrowUp || keys.w) y -= 1; if (keys.ArrowDown || keys.s) y += 1;
@@ -992,7 +1249,7 @@
   }
   function screenToWorld(cx, cy) {
     var r = cv.getBoundingClientRect(), v = new T.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), out = new T.Vector3();
-    ray.setFromCamera(v, camera);
+    camera.updateMatrixWorld(); ray.setFromCamera(v, camera);
     if (!ray.ray.intersectPlane(groundPlane, out)) return null;
     return { x: out.x / U, y: out.z / U };
   }
@@ -1001,10 +1258,18 @@
       if (mode !== 'play') return;
       e.preventDefault();
       try { cv.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
-      stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, vx: 0, vy: 0, t: performance.now(), moved: false };
       if (JY.SnowSfx) JY.SnowSfx.unlock();
+      // 1인칭: 오른쪽(또는 마우스)으로 끌면 둘러보기, 왼쪽은 걷기 조이스틱. 두 손가락 동시에 된다
+      if (isFP() && (e.pointerType === 'mouse' || e.clientX > vw * 0.42 || stick)) { if (!lookPtr) lookPtr = { id: e.pointerId, x: e.clientX, y: e.clientY }; return; }
+      if (stick) return;
+      stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, vx: 0, vy: 0, t: performance.now(), moved: false };
     });
     cv.addEventListener('pointermove', function (e) {
+      if (lookPtr && e.pointerId === lookPtr.id) {
+        var lx = e.clientX - lookPtr.x, ly = e.clientY - lookPtr.y; lookPtr.x = e.clientX; lookPtr.y = e.clientY;
+        fpYaw -= lx * 0.0068; fpPitch = Math.max(-1.2, Math.min(0.75, fpPitch - ly * 0.0058));
+        return;
+      }
       if (!stick || e.pointerId !== stick.id) return;
       var dx = e.clientX - stick.ox, dy = e.clientY - stick.oy, d = Math.hypot(dx, dy);
       if (d > 8) stick.moved = true;
@@ -1017,14 +1282,15 @@
       knobEl.style.transform = 'translate(' + (stick.vx * 46) + 'px,' + (stick.vy * 46) + 'px)';
     });
     function up(e) {
+      if (lookPtr && e.pointerId === lookPtr.id) { lookPtr = null; return; }
       if (!stick || e.pointerId !== stick.id) return;
-      if (!stick.moved && performance.now() - stick.t < 280) moveTo = screenToWorld(e.clientX, e.clientY);
+      if (!stick.moved && performance.now() - stick.t < 280 && !isFP()) moveTo = screenToWorld(e.clientX, e.clientY);
       stick = null; stickEl.hidden = true;
     }
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
     window.addEventListener('keydown', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.indexOf('Arrow') === 0 && mode === 'play') e.preventDefault(); });
     window.addEventListener('keyup', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
-    window.addEventListener('blur', function () { keys = {}; stick = null; stickEl.hidden = true; });
+    window.addEventListener('blur', function () { keys = {}; stick = null; lookPtr = null; stickEl.hidden = true; });
     window.addEventListener('resize', resize);
   }
 
@@ -1043,7 +1309,8 @@
       }
     } else if (slowN > 0) slowN--;
     if (world && (mode === 'play' || mode === 'demo')) {
-      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), span = Math.min(0.35, raw), n = Math.ceil(span / 0.05);
+      var inp = mode === 'demo' || autopilot ? botInput() : readInput(Math.min(0.1, raw)), span = Math.min(0.35, raw), n = Math.ceil(span / 0.05);
+      if (autopilot && isFP() && mode === 'play') { inp.face = { x: inp.x || Math.sin(fpYaw), y: inp.y || Math.cos(fpYaw) }; fpYaw = Math.atan2(inp.face.x, inp.face.y); inp.reach = 10; }
       for (var sn = 0; sn < n; sn++) G.step(world, span / n, inp);
       onFx();
       if (hooks.tick && mode === 'play') hooks.tick(world);
@@ -1054,14 +1321,16 @@
       syncActors(dt); stepParticles(dt); lighting(); camera3(dt); stepOverlays(dt); fadeBuildings();
       clouds.forEach(function (cl, i) { cl.position.x += dt * (1.5 + i % 3); if (cl.position.x > 420) cl.position.x = -340; });
       scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
-      stepDumps(dt); stepArrow();
+      stepDumps(dt); stepArrow(); syncAct(dt);
     }
+    renderer.clear();
     renderer.render(scene, camera);
+    if (world && isFP() && vmScene) { syncVM(dt); renderer.clearDepth(); renderer.render(vmScene, vmCam); }
   }
 
   function begin(save, m) {
     world = G.createWorld(save, { demo: m === 'demo', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });
-    mode = m; doneSent = false; moveTo = null; stick = null; scanT = 0; focus = null;
+    mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
     carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
@@ -1074,7 +1343,7 @@
     if (T.ColorManagement) T.ColorManagement.legacyMode = false;
     renderer = new T.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: 'high-performance' });
     renderer.outputEncoding = T.sRGBEncoding;
-    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; renderer.autoClear = false;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
     scene = new T.Scene();
     scene.background = new T.Color('#dfe9f4');
@@ -1103,8 +1372,9 @@
     S.TANKS.forEach(function (t, k) { var tk = buildTank(t, k); tk.castShadow = true; tk.receiveShadow = true; scene.add(tk); });
     var trees = buildTrees(); trees.castShadow = true; scene.add(trees);
     var dec = buildDecor(); dec.traverse(function (m) { if (m.isMesh) m.castShadow = true; }); scene.add(dec);
-    buildBase(); buildParticles();
+    buildBase(); buildParticles(); buildVM(); buildTractor();
     ov = document.createElement('div'); ov.id = 'ov3d'; cv.parentNode.insertBefore(ov, cv.nextSibling);
+    markEl = document.createElement('div'); markEl.className = 'ov ov-act'; markEl.style.display = 'none'; ov.appendChild(markEl);
     stickEl = document.createElement('div'); stickEl.id = 'stick3d'; stickEl.hidden = true; knobEl = document.createElement('i'); stickEl.appendChild(knobEl); cv.parentNode.appendChild(stickEl);
     bindInput(); resize();
     ready = true;
@@ -1124,8 +1394,18 @@
     setAutopilot: function (b) { autopilot = !!b; },
     shake: function (n) { shake = Math.max(shake, n * 0.2); },
     scan: function () { if (!world) return false; scanT = 3; recolorAll(); return true; },
-    toggleCam: function () { camMode = camMode === 'near' ? 'far' : 'near'; try { localStorage.setItem('jeseol-cam', camMode); } catch (e) { /* 무시 */ } fitCam(); if (world) camera3(0, true); return camMode; },
+    toggleCam: function (to) {
+      camMode = CAMS.indexOf(to) >= 0 ? to : CAMS[(CAMS.indexOf(camMode) + 1) % CAMS.length];
+      try { localStorage.setItem('jeseol-cam2', camMode); } catch (e) { /* 무시 */ }
+      stick = null; lookPtr = null; stickEl.hidden = true; moveTo = null;
+      fitCam(); if (world) camera3(0, true); return camMode;
+    },
     camMode: function () { return camMode; },
+    isFP: function () { return isFP(); },
+    // 지금 보는 방향 (1인칭이면 고개 방향, 아니면 몸 방향)
+    look: function () { if (!world) return null; if (isFP()) return { x: Math.sin(fpYaw), y: Math.cos(fpYaw), pitch: fpPitch, fp: true }; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
+    setFocus: function (t) { curFocus = t || null; },
+    _setLook: function (yaw, pitch) { fpYaw = yaw; if (pitch !== undefined) fpPitch = pitch; },
     _screenToWorld: function (x, y) { return screenToWorld(x, y); },
     focusZone: function (id, sec) { var Z = G.zoneById(id); if (!Z) return; focus = { x: (Z.x + Z.w / 2) * U, z: (Z.y + Z.h / 2) * U - 3, t: 0, life: sec || 2.6 }; },
     _teleport: function (x, y) { if (world) { world.player.x = x; world.player.y = y; camera3(0, true); } },

@@ -18,6 +18,16 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   async function shot(name) { if (!shots) return; fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, name + '.png') }); }
   async function vis(sel) { return page.evaluate(function (s) { var e = document.querySelector(s); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; }, sel); }
   function W() { return page.evaluate(function () { var w = __SNOW.view().world(), s = __SNOW.save(); return { x: w.player.x, y: w.player.y, load: w.player.load, cap: w.player.cap, clear: w.clear, bank: s.bank, crew: w.crew.length, mode: __SNOW.view().mode() }; }); }
+  // 손가락 끌기 (pointerType: touch) — 1인칭 왼쪽 조이스틱은 터치로만 걷는다
+  async function touchDrag(x0, y0, x1, y1, hold) {
+    await page.evaluate(function (a) {
+      var cv = document.getElementById('cv'); function ev(t, x, y) { cv.dispatchEvent(new PointerEvent(t, { pointerId: 7, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, cancelable: true, isPrimary: true })); }
+      ev('pointerdown', a[0], a[1]); for (var i = 1; i <= 6; i++) ev('pointermove', a[0] + (a[2] - a[0]) * i / 6, a[1] + (a[3] - a[1]) * i / 6);
+    }, [x0, y0, x1, y1]);
+    await sleep(hold);
+    await page.evaluate(function (a) { document.getElementById('cv').dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, pointerType: 'touch', clientX: a[0], clientY: a[1], bubbles: true })); }, [x1, y1]);
+  }
+  function verbIs(re) { return waitFor(new Function('return ' + re + '.test(document.getElementById("act-verb").textContent)'), 4000); }
   async function waitFor(fn, ms) { for (var t = 0; t < (ms || 4000); t += 150) { if (await page.evaluate(fn)) return true; await sleep(150); } return false; }
   async function overflow() {
     return page.evaluate(function () {
@@ -43,17 +53,26 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await sleep(700);
   ok('작업 화면 + HUD + 보급 버튼', await vis('#hud') && await vis('#h-shop') && !(await vis('#title')));
   ok('첫 조작 안내', await vis('#hint'));
+  var is3 = await page.evaluate(function () { return !!__SNOW.view().is3D; });
+  var cam0 = await page.evaluate(function () { var V = __SNOW.view(); return V.camMode ? V.camMode() : 'none'; });
+  ok('처음 시점은 1인칭 (조준점 + 행동·눈덩이 버튼)', !is3 || (cam0 === 'fp' && !(await page.evaluate(function () { return document.getElementById('xhair').hidden; })) && await vis('#act-btn') && await vis('#ball-btn')), cam0);
   await shot('02-start');
   var p0 = await W();
-  await page.mouse.move(size[0] / 2, size[1] * 0.6);
-  await page.mouse.down();
-  await page.mouse.move(size[0] / 2 + 40, size[1] * 0.6 + 10, { steps: 6 });
-  await sleep(1500);
-  await page.mouse.up();
+  // 1인칭: 왼쪽을 위로 끌면 앞으로 걷는다 (2D는 끈 방향으로)
+  await touchDrag(size[0] * 0.2, size[1] * 0.7, size[0] * 0.2 + (is3 ? 0 : 40), size[1] * 0.7 - (is3 ? 50 : -10), 1500);
   var p1 = await W();
   ok('끌면 걷는다', Math.hypot(p1.x - p0.x, p1.y - p0.y) > 30, [p0, p1]);
   ok('치우면 돈이 아니라 짐이 된다', p1.load > 0 && p1.bank === p0.bank && p1.clear > p0.clear, [p0, p1]);
   ok('짐을 지면 안내가 사라진다', !(await vis('#hint')));
+  if (is3) {
+    // 오른쪽을 끌면 둘러본다 (몸은 그대로)
+    var lk0 = await page.evaluate(function () { return __SNOW.view().look(); }), q0 = await W();
+    await page.mouse.move(size[0] * 0.75, size[1] * 0.5); await page.mouse.down();
+    await page.mouse.move(size[0] * 0.75 + 120, size[1] * 0.5 - 30, { steps: 5 }); await page.mouse.up();
+    var lk1 = await page.evaluate(function () { return __SNOW.view().look(); }), q1 = await W();
+    ok('오른쪽을 끌면 고개만 돌아간다', Math.abs(Math.atan2(lk1.x, lk1.y) - Math.atan2(lk0.x, lk0.y)) > 0.4 && lk1.pitch > lk0.pitch && Math.hypot(q1.x - q0.x, q1.y - q0.y) < 4, [lk0, lk1]);
+    await page.evaluate(function () { __SNOW.view().toggleCam('near'); });
+  }
   var t0 = await W(), tap = await page.evaluate(function (p) { return __SNOW.view()._screenToWorld(p[0], p[1]); }, [size[0] * 0.75, size[1] * 0.6]);
   await page.mouse.click(size[0] * 0.75, size[1] * 0.6);
   await sleep(1300);
@@ -143,6 +162,50 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('남은 눈 보기', !(await page.evaluate(function () { return !!__SNOW.view().is3D; })) || hz.scan === true, hz.scan);
   await shot('09-hazard');
 
+  // ── 1인칭 상호작용 ──
+  if (is3) {
+    await page.evaluate(function () { __SNOW.view().toggleCam('fp'); var w = __SNOW.view().world(); w.events = []; w.deer = []; w.crew.forEach(function (e, i) { e.x = 400 + i * 20; e.y = 600; e.tidx = -1; e.retarget = 30; }); w.haeng.x = 200; w.haeng.y = 228; w.haeng.hold = 30; w.player.stun = 0; __SNOW.view()._teleport(200, 205); __SNOW.view()._setLook(0, -0.1); });
+    await verbIs('/경례/');
+    ok('행보관을 보면 버튼이 "경례"', /경례/.test(await page.evaluate(function () { return document.getElementById('act-verb').textContent; })) && /행보관/.test(await page.evaluate(function () { return document.getElementById('xh-t').textContent; })));
+    await page.click('#act-btn');
+    await waitFor(function () { return !document.getElementById('sub').hidden; }, 2000);
+    var sal = await page.evaluate(function () { return { sub: !document.getElementById('sub').hidden && document.getElementById('sub').textContent, buff: JY.SnowAct.state(__SNOW.view().world()).buffs.map(function (b) { return b.id; }) }; });
+    ok('경례: "충성!" 자막 + 행보관 칭찬 버프', /충성/.test(sal.sub) && sal.buff.indexOf('praise') >= 0, sal);
+    await shot('09a-fp-salute');
+    var th0 = await page.evaluate(function () { var w = __SNOW.view().world(); w.haeng.x = 200; w.haeng.y = 228; w.haeng.hold = 30; w.player.stun = 0; __SNOW.view()._teleport(200, 205); __SNOW.view()._setLook(0, -0.1); return __SNOW.save().stats.throw || 0; });
+    await page.click('#ball-btn'); await sleep(200);
+    ok('눈덩이 던지기', await page.evaluate(function (n) { return (__SNOW.save().stats.throw || 0) === n + 1; }, th0));
+    await waitFor(function () { return JY.SnowAct.state(__SNOW.view().world()).heat > 0; }, 1500);
+    await sleep(250);
+    var heat = await page.evaluate(function () { return JY.SnowAct.state(__SNOW.view().world()).heat; });
+    ok('행보관 맞히면 분노 ★ (상단 표시)', heat >= 1 && await vis('#h-heat'), heat);
+    await shot('09b-fp-heat');
+    // 생활관에 숨기
+    await page.evaluate(function () { var d = JY.SnowAct.door('barracks'), w = __SNOW.view().world(); w.act.heat = Math.max(1, w.act.heat); w.haeng.x = 700; w.haeng.y = 1100; w.player.stun = 0; __SNOW.view()._teleport(d.x, d.y + 14); __SNOW.view()._setLook(Math.PI, 0); });
+    ok('쫓길 때 생활관 문 앞: "숨기"', await verbIs('/숨기/'));
+    await page.click('#act-btn');
+    await waitFor(function () { return JY.SnowAct.state(__SNOW.view().world()).heat === 0 && document.getElementById('h-heat').hidden; }, 3000);
+    ok('숨으면 분노 해제', await page.evaluate(function () { return JY.SnowAct.state(__SNOW.view().world()).heat === 0; }) && !(await vis('#h-heat')));
+    // PX
+    await page.evaluate(function () { var d = JY.SnowAct.door('px'); __SNOW.save().bank += 500; __SNOW.view()._teleport(d.x, d.y + 16); __SNOW.view()._setLook(Math.PI, 0); });
+    await verbIs('/들어가기/'); await page.click('#act-btn'); await waitFor(function () { return !!document.querySelector('#modal .px-it'); }, 3000);
+    ok('PX 들어가면 매점 (게임 멈춤)', await vis('#modal .px-it') && (await W()).mode === 'paused');
+    await shot('09c-fp-px');
+    await page.click('#modal [data-px="matsta"]'); await sleep(150);
+    ok('맛스타 구매 → 효과 중', await page.evaluate(function () { return !!document.querySelector('#modal .px-it.on'); }));
+    await page.click('#modal [data-m="close"]'); await sleep(200);
+    // 행정반 임무
+    await page.evaluate(function () { var d = JY.SnowAct.door('office'); __SNOW.view()._teleport(d.x, d.y + 16); __SNOW.view()._setLook(Math.PI, 0); });
+    await verbIs('/임무 받기/'); await page.click('#act-btn'); await waitFor(function () { return !document.getElementById('h-mis').hidden; }, 3000);
+    ok('행정반: 임무 받기 → 임무 카드', await vis('#h-mis') && (await W()).mode === 'play');
+    await shot('09d-fp-mission');
+    var ov1 = await overflow(); ok('1인칭 화면 넘침 없음', !ov1.length, ov1);
+    // 시점 바꾸기: 1인칭 → 3인칭 → 위에서 → 1인칭
+    var cams = [];
+    for (var ci = 0; ci < 3; ci++) { await page.click('#h-cam'); await sleep(150); cams.push(await page.evaluate(function () { return __SNOW.view().camMode() + ':' + !document.getElementById('xhair').hidden; })); }
+    ok('시점 버튼: 3인칭 → 위에서 → 1인칭', cams.join(',') === 'near:false,far:false,fp:true', cams);
+  }
+
   // ── 후반 ──
   await page.evaluate(function () {
     var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1100000; s.tool = 6;
@@ -155,9 +218,21 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await shot('10-late');
   var late = await page.evaluate(function () { var w = __SNOW.view().world(); return { crew: w.crew.length, dumps: w.dumps.length }; });
   ok('후반: 인력 35명 + 집하장 5곳', late.crew === 35 && late.dumps === 5, late);
+  if (is3) {
+    var ride = await page.evaluate(function () {
+      var w = __SNOW.view().world(), pl = w.crew.filter(function (e) { return e.def.vehicle; })[0]; w.crew.forEach(function (e, i) { if (e !== pl) { e.x = 560 + (i % 8) * 20; e.y = 900 + (i >> 3) * 20; e.injured = 30; } }); pl.x = 250; pl.y = 400; pl.speed = 0; pl.tidx = -1; pl.retarget = 99; w.events = [];
+      __SNOW.view()._teleport(250, 372); __SNOW.view()._setLook(0, -0.1); var t = __SNOW.target(); return t && t.k;
+    });
+    ok('제설차 앞: 운전 교대', ride === 'plow', ride);
+    await verbIs('/운전 교대/'); await page.click('#act-btn'); await waitFor(function () { return !document.getElementById('h-ride').hidden && /내리기/.test(document.getElementById('act-verb').textContent); }, 3000);
+    ok('제설차 타면 운전 표시 + 버튼은 "내리기"', await vis('#h-ride') && /내리기/.test(await page.evaluate(function () { return document.getElementById('act-verb').textContent; })));
+    await shot('10b-fp-ride');
+    await page.click('#act-btn'); await waitFor(function () { return !JY.SnowAct.state(__SNOW.view().world()).ride; }, 3000);
+    ok('내리면 운전병이 돌아온다', await page.evaluate(function () { var w = __SNOW.view().world(); return !JY.SnowAct.state(w).ride && w.crew.every(function (e) { return !e.off; }); }));
+  }
   var fps = await page.evaluate(function () { return new Promise(function (res) { var n = 0, t0 = performance.now(); function f() { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(Math.round(n / ((performance.now() - t0) / 1000))); } requestAnimationFrame(f); }); });
   var is3d = await page.evaluate(function () { return !!__SNOW.view().is3D; });
-  ok('후반 프레임 (소프트웨어 렌더 기준 ' + (is3d ? '3D' : '2D') + ' 3fps' + ' 이상)', fps >= 3, fps);
+  ok('후반 프레임 (소프트웨어 렌더 기준 ' + (is3d ? '3D 1인칭' : '2D') + ' 3fps' + ' 이상)', fps >= 3, fps);
   var sim = await page.evaluate(function () { var w = __SNOW.view().world(), t0 = w.time; return new Promise(function (res) { setTimeout(function () { res(w.time - t0); }, 2000); }); });
   ok('느린 화면에서도 게임 시간은 제대로 흐른다', sim > (is3d ? 1.2 : 0.4), [sim, fps]);
 

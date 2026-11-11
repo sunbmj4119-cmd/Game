@@ -38,7 +38,7 @@
   var BUILDINGS = [
     { id: 'barracks', name: '생활관', x: 60, y: 16, w: 400, h: 96, wall: 30, roof: '#7d8a5a', wallc: '#e7dcc4', door: true, sign: '조용히' },
     { id: 'office', name: '행정반', x: 490, y: 24, w: 150, h: 88, wall: 26, roof: '#6f7f8f', wallc: '#dde3e6', door: true, sign: '노크 필수' },
-    { id: 'px', name: 'PX', x: 660, y: 30, w: 120, h: 82, wall: 24, roof: '#c0563f', wallc: '#f2e6c9', door: true, sign: '오늘 휴무' },
+    { id: 'px', name: 'PX', x: 660, y: 30, w: 120, h: 82, wall: 24, roof: '#c0563f', wallc: '#f2e6c9', door: true, sign: '냉동 있음' },
     { id: 'stand', name: '구령대', x: 200, y: 266, w: 110, h: 36, wall: 14, roof: '#9a8a70', wallc: '#cfc5b0' },
     { id: 'mess', name: '취사장', x: 560, y: 580, w: 210, h: 100, wall: 28, roof: '#8b6f54', wallc: '#efe3cf', door: true, sign: '오늘 짜장' },
     { id: 'garage', name: '정비고', x: 40, y: 940, w: 260, h: 90, wall: 30, roof: '#5f6f4f', wallc: '#d4d0c4', door: true, sign: '기름 냄새' },

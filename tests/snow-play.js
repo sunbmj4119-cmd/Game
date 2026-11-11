@@ -28,6 +28,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     await page.evaluate(function (a) { document.getElementById('cv').dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, pointerType: 'touch', clientX: a[0], clientY: a[1], bubbles: true })); }, [x1, y1]);
   }
   function verbIs(re) { return waitFor(new Function('return ' + re + '.test(document.getElementById("act-verb").textContent)'), 4000); }
+  async function closeModal() { for (var i = 0; i < 3; i++) { if (!(await vis('#modal'))) return; await page.click('#modal [data-m]'); await sleep(250); } }
   async function waitFor(fn, ms) { for (var t = 0; t < (ms || 4000); t += 150) { if (await page.evaluate(fn)) return true; await sleep(150); } return false; }
   async function overflow() {
     return page.evaluate(function () {
@@ -148,16 +149,21 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   if (promo) await page.click('#modal [data-m]');
 
   // ── 방해꾼·띵·검열·남은 눈 ──
-  var hz = await page.evaluate(function () {
-    var V = __SNOW.view(), w = V.world(); w.events = [];
+  await page.evaluate(function () {
+    var w = __SNOW.view().world(); w.events = []; w.treas = [];
     w.player.load = 20; w.player.val = 20; JY.SnowSim.spawn(w, 'deer'); var d = w.deer[0]; d.x = w.player.x - 8; d.y = w.player.y; d.heading = 0; d.turnT = 9;
+  });
+  await sleep(700);
+  var hz2 = await page.evaluate(function () { var w = __SNOW.view().world(); return { load: w.player.load, stun: w.player.stun > 0 || w.hits > 0, chip: !document.getElementById('chip').hidden && /고라니/.test(document.getElementById('chip').textContent) }; });
+  ok('고라니에 받히면 짊어진 눈을 쏟는다', hz2.load === 0 && hz2.stun && hz2.chip, hz2);
+  var hz = await page.evaluate(function () {
+    var V = __SNOW.view(), w = V.world(); w.treas = [];
     var p = w.parts.filter(function (x) { return !x.done; })[0], bag = { cap: 1e9, load: 0, val: 0 };
     for (var y = p.y; y < p.y + p.h; y += 10) for (var x = p.x; x < p.x + p.w; x += 10) JY.SnowSim.clearAt(w, x + 5, y + 5, 3, 9, 'player', bag);
     return { part: p.done, scan: V.scan ? V.scan() : 'none' };
   });
   await sleep(700);
-  var hz2 = await page.evaluate(function () { var w = __SNOW.view().world(); return { load: w.player.load, stun: w.player.stun > 0 || w.hits > 0, chip: !document.getElementById('chip').hidden && /고라니/.test(document.getElementById('chip').textContent), partOv: !__SNOW.view().is3D || !!document.querySelector('.ov-part') }; });
-  ok('고라니에 받히면 짊어진 눈을 쏟는다', hz2.load === 0 && hz2.stun && hz2.chip, hz2);
+  hz2.partOv = await page.evaluate(function () { return !__SNOW.view().is3D || !!document.querySelector('.ov-part, .ov-perfect'); });
   ok('조각 완료: 띵!', hz.part && hz2.partOv, [hz, hz2]);
   ok('남은 눈 보기', !(await page.evaluate(function () { return !!__SNOW.view().is3D; })) || hz.scan === true, hz.scan);
   await shot('09-hazard');
@@ -206,9 +212,73 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     ok('시점 버튼: 3인칭 → 위에서 → 1인칭', cams.join(',') === 'near:false,far:false,fp:true', cams);
   }
 
+  // ── v6: 다이아·구역 진행·출입 통제·완벽·간부 경례·보급 상자·인력 배치·훈장·조기 퇴근 ──
+  await page.evaluate(function () { var V = __SNOW.view(); if (V.toggleCam) V.toggleCam('near'); var w = V.world(); w.events = []; w.deer = []; if (w.act) w.act.heat = 0; w.player.stun = 0; });
+  ok('HUD: 다이아 + 지금 있는 구역 진행', await vis('#h-dia') && await vis('#h-area'));
+  // 잠긴 연병장 쪽으로 걸어가면 막힌다
+  await page.evaluate(function () { var s = __SNOW.save(); s.zones = { A: true, B: true }; __SNOW.persist(); __SNOW.play(true); });
+  await sleep(600);
+  await page.evaluate(function () { var w = __SNOW.view().world(); w.events = []; w.deer = []; __SNOW.view()._teleport(150, 296); });
+  await page.keyboard.down('ArrowDown'); await sleep(1200); await page.keyboard.up('ArrowDown');
+  var lk = await page.evaluate(function () { var w = __SNOW.view().world(); return { y: w.player.y, chip: document.getElementById('chip').textContent }; });
+  ok('잠긴 구역은 테이프에 막힌다 + 출입 통제 알림', lk.y < 320 && /출입 통제/.test(lk.chip), lk);
+  // 조각 하나를 마지막 칸까지 → 완벽 + 다이아
+  var pf = await page.evaluate(function () {
+    var w = __SNOW.view().world(), s = __SNOW.save(), d0 = s.dia, P = w.parts.filter(function (q) { return !q.done; })[0];
+    if (!P) return { skip: true };
+    for (var y = P.y; y < P.y + P.h; y += 10) for (var x = P.x; x < P.x + P.w; x += 10) JY.SnowSim.clearAt(w, x + 5, y + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
+    return { done: P.done, dia: s.dia - d0 };
+  });
+  await sleep(500);
+  ok('조각 100% → 완벽! + 다이아 +1', pf.skip || (pf.done && pf.dia >= 1 && (!is3 || await page.evaluate(function () { return !!document.querySelector('.ov-perfect'); }))), pf);
+  await closeModal();
+  // 콤보 표시
+  await sleep(700); await closeModal();
+  await page.evaluate(function () { var w = __SNOW.view().world(); w.combo = 42; w.comboT = 9; w.player.load = 0; });
+  for (var cw = 0; cw < 12 && !(await vis('#combo')); cw++) { await closeModal(); await sleep(250); }
+  ok('콤보 표시 (눈 값 +%)', await vis('#combo') && /42/.test(await page.evaluate(function () { return document.getElementById('combo-n').textContent; })));
+  await closeModal();
+  // 간부: 중대장이 다가오면 3초 경례 알림
+  await page.evaluate(function () { var w = __SNOW.view().world(), o = JY.SnowAct.spawnOfficer(w, 'cpt'); o.x = w.player.x + 12; o.y = w.player.y + 30; o.phase = 'stay'; o.stayT = 60; });
+  await waitFor(function () { return !document.getElementById('salute').hidden; }, 3000);
+  ok('간부가 오면 "경례!" 알림 + 버튼', await vis('#salute') && /경례/.test(await page.evaluate(function () { return document.getElementById('act-verb').textContent; })));
+  await shot('09e-officer');
+  await page.click('#act-btn');
+  await waitFor(function () { return document.getElementById('salute').hidden; }, 3000);
+  ok('경례하면 알림이 사라지고 보상', !(await vis('#salute')) && await page.evaluate(function () { return (__SNOW.save().stats.salute || 0) >= 1; }));
+  await closeModal();
+  // 보급 상자
+  await page.evaluate(function () { __SNOW.save().boxes.unshift('rare'); });
+  await waitFor(function () { return !document.getElementById('h-box').hidden; }, 2000);
+  ok('보급 상자 버튼', await vis('#h-box'));
+  var bx0 = await page.evaluate(function () { var s = __SNOW.save(); return { dia: s.dia, bank: s.bank, n: s.boxes.length }; });
+  await page.click('#h-box');
+  await waitFor(function () { var b = document.getElementById('box-ok'); return b && !b.disabled; }, 4000);
+  await shot('09f-box');
+  var bx1 = await page.evaluate(function () { var s = __SNOW.save(); return { dia: s.dia, bank: s.bank, n: s.boxes.length, loot: document.getElementById('box-loot').textContent }; });
+  ok('상자를 열면 초코파이·다이아·분실물', bx1.n === bx0.n - 1 && bx1.dia >= bx0.dia + 2 && bx1.bank > bx0.bank && bx1.loot.length > 3, [bx0, bx1]);
+  await page.click('#box-ok'); await sleep(200);
+  // 인력 배치 + 훈장 탭
+  await page.click('#h-shop'); await page.click('#s-tabs [data-tab="crew"]'); await sleep(200);
+  ok('인력 탭: 사기·배치·다이아 버튼', await vis('.crew-head .posts') && await vis('.dia-btns'));
+  await page.click('.posts [data-post="B"]');
+  ok('배치를 족구장으로', await page.evaluate(function () { return __SNOW.save().post === 'B'; }));
+  await page.click('.posts [data-post="all"]');
+  await page.click('#s-tabs [data-tab="medal"]'); await sleep(200);
+  ok('훈장 탭: 분실물 도감 + 훈장 목록', await vis('.found-grid') && (await page.$$('.ach')).length >= 15);
+  await shot('09g-medal');
+  var ov2 = await overflow(); ok('훈장 탭 넘침 없음', !ov2.length, ov2);
+  await page.click('#s-go'); await sleep(500);
+  // 전 구역 완벽 → 조기 퇴근 결산
+  await page.evaluate(function () { var w = __SNOW.view().world(); w.events = []; var bag = { cap: 1e9, load: 0, val: 0 }; w.cells.forEach(function (i) { JY.SnowSim.clearAt(w, (i % JY.SNOW.GW) * 10 + 5, ((i / JY.SNOW.GW) | 0) * 10 + 5, 2, 9, 'player', bag); }); });
+  var early = await waitFor(function () { return !document.getElementById('modal').hidden && /조기 퇴근/.test(document.getElementById('modal').textContent); }, 5000);
+  ok('전 구역 완벽 → 조기 퇴근 결산', early);
+  await shot('09h-early');
+  if (early) await page.click('#modal [data-m]');
+
   // ── 후반 ──
   await page.evaluate(function () {
-    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1100000; s.tool = 6;
+    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6;
     s.crew = { hoobae: 10, donggi: 8, cook: 6, malnyeon: 4, admin: 3, reserve: 3, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.fresh = { A: true, B: true, C: true, D: true, E: true };
     s.seen = { tut: true, dis: true }; s.made = { brick: 400, snowman: 40 }; s.px = 160; s.py = 300;

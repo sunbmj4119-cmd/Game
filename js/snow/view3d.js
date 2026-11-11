@@ -770,16 +770,18 @@
         if (mine) { if (scrapeT <= 0 && sfx) { sfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; } }
         else if (crewScrapeT <= 0 && sfx) { sfx.scrape(0.22); crewScrapeT = 0.22; }
       } else if (f.t === 'part') {
-        for (k = 0; k < 40; k++) emit(f.x * U + rnd(-3, 3), 0.6, f.y * U + rnd(-3, 3), rnd(-3, 3), rnd(5, 10), rnd(-3, 3), rnd(0.8, 1.4), Math.random() < 0.5 ? [1, 0.84, 0.3] : [1, 1, 1]);
-        var o = addOv('<b>' + f.name + ' 완료!</b><span>띵! <i class="pie"></i>+' + fmt(f.bonus) + '</span>', 'ov-part', f.x, f.y, 2, 2.2); o.rise = 0.6;
-        if (sfx) sfx.ding();
+        var big = f.mine && f.first;
+        for (k = 0; k < (big ? 90 : 40); k++) emit(f.x * U + rnd(-3, 3), 0.6, f.y * U + rnd(-3, 3), rnd(-3, 3), rnd(5, big ? 13 : 10), rnd(-3, 3), rnd(0.8, 1.6), Math.random() < 0.5 ? [1, 0.84, 0.3] : Math.random() < 0.5 ? [0.6, 0.9, 1] : [1, 1, 1]);
+        var o = big ? addOv('완벽!<span>' + esc(f.name) + ' · <i class="pie"></i>+' + fmt(f.bonus) + ' · <i class="dia"></i>+1</span>', 'ov-perfect', f.x, f.y, 2.4, 2.6)
+          : addOv('<b>' + esc(f.name) + ' 완료!</b><span>띵! <i class="pie"></i>+' + fmt(f.bonus) + '</span>', 'ov-part', f.x, f.y, 2, 2.2);
+        o.rise = 0.6; if (big) shake = Math.max(shake, 0.25);
         if (hooks.event) hooks.event(f);
       } else if (f.t === 'zzz') {
         addOv('Zzz', 'ov-zzz', 0, 0, 3.9, 2.4, f.e);
       } else if (f.t === 'wake') {
         addOv('!!', 'ov-bang', 0, 0, 4.2, 1, f.e); shake = Math.max(shake, 0.3);
       } else if (f.t === 'chat') {
-        if (overlays.filter(function (x) { return x.el.classList.contains('ov-chat'); }).length < 3) { var L = f.e.def.lines; addOv(L[(Math.random() * L.length) | 0], 'ov-chat', 0, 0, 4.3, 2.6, f.e); }
+        if (overlays.filter(function (x) { return x.el.classList.contains('ov-chat'); }).length < 3) { var L = f.tired ? ['헥헥…', '힘들어요…', '초코파이 먹고 싶다…', '손이 안 움직여요'] : f.e.def.lines; addOv(L[(Math.random() * L.length) | 0], 'ov-chat', 0, 0, 4.3, 2.6, f.e); }
       } else if (f.t === 'say') {
         if (hooks.say && mode === 'play') hooks.say(f.key);
       } else if (f.t === 'deer') {
@@ -852,7 +854,23 @@
       else if (f.t === 'ride') { if (sfx && f.on) sfx.vroom(); }
       else if (f.t === 'caught') { shake = Math.max(shake, 0.8); if (sfx) sfx.thud(); }
       else if (f.t === 'heat') { if (sfx && f.heat > 0) sfx.siren(); }
-      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong)$/.test(f.t)) hooks.event(f);
+      else if (f.t === 'zonePerfect') {
+        for (k = 0; k < 160; k++) emit(f.x * U + rnd(-10, 10), 0.6, f.y * U + rnd(-10, 10), rnd(-4, 4), rnd(7, 15), rnd(-4, 4), rnd(1, 2), [[1, 0.84, 0.3], [0.6, 0.9, 1], [1, 0.5, 0.5], [1, 1, 1]][k % 4]);
+        var oz = addOv('구역 완벽!<span>' + esc(f.name) + ' 100%</span>', 'ov-perfect', f.x, f.y, 3, 3); oz.rise = 0.5; shake = Math.max(shake, 0.4);
+      } else if (f.t === 'allClear') {
+        for (var fw = 0; fw < 6; fw++) { var ax = P.x * U + rnd(-14, 14), az = P.y * U + rnd(-14, 6) - 6; for (k = 0; k < 40; k++) { var th = Math.random() * 6.28, ph = Math.random() * 3.14, sp2 = rnd(6, 10); emit(ax, rnd(8, 12), az, Math.cos(th) * Math.sin(ph) * sp2, Math.cos(ph) * sp2 + 4, Math.sin(th) * Math.sin(ph) * sp2, rnd(1, 1.8), [[1, 0.84, 0.3], [0.6, 0.9, 1], [1, 0.5, 0.5], [0.7, 1, 0.6]][fw % 4]); } }
+        shake = Math.max(shake, 0.5);
+      } else if (f.t === 'found') {
+        var rcc = new T.Color(S.RARITY[f.item.r].color);
+        for (k = 0; k < (f.item.r === 'c' ? 24 : 70); k++) emit(f.x * U + rnd(-0.4, 0.4), 0.5, f.y * U + rnd(-0.4, 0.4), rnd(-2.5, 2.5), rnd(5, 10), rnd(-2.5, 2.5), rnd(0.8, 1.4), [rcc.r, rcc.g, rcc.b]);
+        var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 다이아 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
+        of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5;
+      } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
+      else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
+      else if (f.t === 'slack') { addOv('(짱박힘…)', 'ov-slack', 0, 0, 3.6, 3, f.e); }
+      else if (f.t === 'unslack') { addOv('…다시 일한다', 'ov-chat', 0, 0, 4.3, 1.4, f.e); }
+      else if (f.t === 'choco') { if (f.e) { for (k = 0; k < 14; k++) emit(f.e.x * U, 2.6, f.e.y * U, rnd(-1.5, 1.5), rnd(2, 4), rnd(-1.5, 1.5), 0.6, [0.45, 0.27, 0.15]); addOv('냠냠', 'ov-bang', 0, 0, 4.6, 1, f.e); } vmPlay('act', 0.6); if (sfx) sfx.coin(); }
+      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack)$/.test(f.t)) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -872,8 +890,8 @@
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
       o.g.visible = !e.off;
-      setExpr(o, e.injured > 0 ? 'hurt' : e.asleep ? 'sleep' : 'normal');
-      placePerson(o, e, { lie: e.injured > 0 || e.asleep });
+      setExpr(o, e.injured > 0 ? 'hurt' : e.asleep || e.slack ? 'sleep' : 'normal');
+      placePerson(o, e, { lie: e.injured > 0 || e.asleep || e.slack });
       sack(o, e.load / e.cap);
     });
     // 고라니
@@ -1156,9 +1174,52 @@
     else parts.push([cyl(0.34, 0.32, 0.44, { y: 3.0 }, 14), '#ffffff'], [sph(0.4, { s: [1, 0.6, 1], y: 3.25 }), '#ffffff']);
     return (geos[k] = merge(parts));
   }
+  var offObjs = [], salEl = null, spk = null, spkPos, spkCol, spkT = 0, SPK = 300;
+  var OFFACE = { lt: 'lt', cpt: 'captain', gen: 'general' };
+  function syncOfficers(a) {
+    var offs = (a && a.off) || [];
+    offObjs = offObjs.filter(function (ob) { if (offs.indexOf(ob.ref) < 0) { removeObj(ob); return false; } return true; });
+    var urgent = null;
+    offs.forEach(function (o) {
+      var ob = null; for (var i = 0; i < offObjs.length; i++) if (offObjs[i].ref === o) ob = offObjs[i];
+      if (!ob) { ob = makePerson({ coat: o.id === 'gen' ? '#2f3a22' : '#3d4a2b', face: OFFACE[o.id], hat: 'cap', tool: o.id === 'lt' ? 'shovel' : null, r: 10, shadow: true, scale: o.id === 'gen' ? 1.4 : 1.25 }); ob.ref = o; offObjs.push(ob); }
+      placePerson(ob, o); if (ob.tool) ob.tool.visible = o.helpT > 0;
+      if (!o.saluted && !o.missed && o.warned) urgent = o;
+    });
+    if (!salEl) { salEl = document.createElement('div'); salEl.className = 'ov ov-sal'; salEl.textContent = '경례!'; ov.appendChild(salEl); }
+    var pp = urgent ? project(urgent.x, urgent.y, 4.6) : null, on = pp && pp[2] < 1 && mode === 'play';
+    salEl.style.display = on ? '' : 'none';
+    if (on) salEl.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
+  }
+  // 거의 다 치운 조각: 남은 칸마다 금빛 반짝이. 가까이 묻힌 분실물은 하얗게 반짝
+  function buildSparkles() {
+    spkPos = new Float32Array(SPK * 3); spkCol = new Float32Array(SPK * 3);
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.BufferAttribute(spkPos, 3).setUsage(T.DynamicDrawUsage)); g.setAttribute('color', new T.BufferAttribute(spkCol, 3).setUsage(T.DynamicDrawUsage));
+    var tex = canvasTex(64, 64, function (c) { var gr = c.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.beginPath(); c.moveTo(32, 0); c.lineTo(38, 26); c.lineTo(64, 32); c.lineTo(38, 38); c.lineTo(32, 64); c.lineTo(26, 38); c.lineTo(0, 32); c.lineTo(26, 26); c.closePath(); c.fill(); c.fillRect(22, 22, 20, 20); });
+    spk = new T.Points(g, new T.PointsMaterial({ size: 1.1, map: tex, vertexColors: true, transparent: true, depthWrite: false, alphaTest: 0.04 }));
+    spk.frustumCulled = false; spk.renderOrder = 4; g.setDrawRange(0, 0); scene.add(spk);
+  }
+  function stepSparkles(dt) {
+    if (!spk || !world) return;
+    var t = performance.now() / 1000;
+    spk.material.size = 0.95 + Math.sin(t * 7) * 0.35;
+    spkT -= dt; if (spkT > 0) return; spkT = 0.3;
+    var P = world.player, n = 0, idx = G.cellIndex(P.x, P.y), pi = idx >= 0 ? world.partOf[idx] : -1, Pt = pi >= 0 ? world.parts[pi] : null;
+    function put(x, y, c) { if (n >= SPK) return; spkPos[n * 3] = x * U; spkPos[n * 3 + 1] = snowAt(x, y) + 0.35; spkPos[n * 3 + 2] = y * U; spkCol[n * 3] = c[0]; spkCol[n * 3 + 1] = c[1]; spkCol[n * 3 + 2] = c[2]; n++; }
+    if (mode === 'play' && Pt && !Pt.done && Pt.total && Pt.clear / Pt.total >= S.ALMOST) {
+      for (var gy = Math.floor(Pt.y / CELL); gy < Math.ceil((Pt.y + Pt.h) / CELL) && n < SPK - 20; gy++) for (var gx = Math.floor(Pt.x / CELL); gx < Math.ceil((Pt.x + Pt.w) / CELL); gx++) {
+        var k = gy * GW + gx; if (world.partOf[k] === pi && world.depth[k] > 0) put(gx * CELL + 5, gy * CELL + 5, [1, 0.62, 0.02]);
+      }
+    }
+    if (mode === 'play') (world.treas || []).forEach(function (tr) { if (Math.hypot(tr.x - P.x, tr.y - P.y) < 90 && Math.random() < 0.7) put(tr.x + rnd(-3, 3), tr.y + rnd(-3, 3), [0.2, 0.75, 1]); });
+    spk.geometry.setDrawRange(0, n);
+    spk.geometry.attributes.position.needsUpdate = true; spk.geometry.attributes.color.needsUpdate = true;
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !(a && a.ride && a.ride.kind === 'tractor');
+    syncOfficers(a); stepSparkles(dt);
     if (!a) { if (kickBall) kickBall.visible = false; return; }
     while (actBalls.length < a.balls.length) {
       var bm = new T.Mesh(geos.sball || (geos.sball = new T.SphereGeometry(0.2, 10, 8)), mats.sball || (mats.sball = new T.MeshLambertMaterial({ color: '#ffffff' })));
@@ -1333,6 +1394,7 @@
     mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
+    offObjs.forEach(removeObj); offObjs = []; spkT = 0;
     carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;
@@ -1372,7 +1434,7 @@
     S.TANKS.forEach(function (t, k) { var tk = buildTank(t, k); tk.castShadow = true; tk.receiveShadow = true; scene.add(tk); });
     var trees = buildTrees(); trees.castShadow = true; scene.add(trees);
     var dec = buildDecor(); dec.traverse(function (m) { if (m.isMesh) m.castShadow = true; }); scene.add(dec);
-    buildBase(); buildParticles(); buildVM(); buildTractor();
+    buildBase(); buildParticles(); buildVM(); buildTractor(); buildSparkles();
     ov = document.createElement('div'); ov.id = 'ov3d'; cv.parentNode.insertBefore(ov, cv.nextSibling);
     markEl = document.createElement('div'); markEl.className = 'ov ov-act'; markEl.style.display = 'none'; ov.appendChild(markEl);
     stickEl = document.createElement('div'); stickEl.id = 'stick3d'; stickEl.hidden = true; knobEl = document.createElement('i'); stickEl.appendChild(knobEl); cv.parentNode.appendChild(stickEl);

@@ -67,7 +67,7 @@ while (t < MIN * 60) {
     lastLog = t;
     console.log(('' + Math.round(t / 60) + '분').padEnd(6), ('D' + save.day).padEnd(5), ('bank ' + Math.round(save.bank)).padEnd(14), ('life ' + Math.round(save.life)).padEnd(15),
       S.RANKS[G.rankOf(save)].name, S.TOOLS[save.tool].name.padEnd(9), 'crew ' + G.crewCount(save), 'zones ' + Object.keys(save.zones).join(''),
-      'relay ' + Object.keys(save.relays).join(''), 'proc ' + JSON.stringify(save.proc), 'clean ' + Math.round(G.pct(w) * 100) + '%');
+      'relay ' + Object.keys(save.relays).join(''), 'proc ' + JSON.stringify(save.proc), 'clean ' + Math.round(G.pct(w) * 100) + '%', '다이아 ' + save.dia + '/' + save.diaLife, '상자 ' + save.boxes.length, '★' + save.toolStar, '사기 ' + Math.round(w.crew.reduce(function (a, e) { return a + e.mor; }, 0) / Math.max(1, w.crew.length)));
   }
 }
 console.log('\n처음 산 시각 (분):');

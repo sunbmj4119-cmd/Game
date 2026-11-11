@@ -123,10 +123,10 @@ ok(F.parts.reduce(function (a, p) { return a + p.total; }, 0) === F.total, '모�
 
 // ── 진급·전역·쉬는 동안 ──
 var sR = G.newSave(); sR.life = 1990; var wR = G.createWorld(sR); ok(wR.rank0 === 0, '이병 시작');
-var s9 = G.newSave(); s9.life = 1100000; s9.bank = 5000; s9.tool = 4; s9.crew = { hoobae: 3 }; s9.zones = { A: true, B: true, C: true }; s9.proc = { press: 2 }; s9.relays = { B: true };
-ok(G.canDischarge(s9), '병장 + 100만이면 전역 가능');
+var s9 = G.newSave(); s9.life = 1600000; s9.bank = 5000; s9.tool = 4; s9.crew = { hoobae: 3 }; s9.zones = { A: true, B: true, C: true }; s9.proc = { press: 2 }; s9.relays = { B: true };
+ok(G.canDischarge(s9), '병장 + 150만이면 전역 가능');
 var d9 = G.discharge(s9);
-ok(d9 && d9.medals === 4 && s9.tool === 0 && s9.bank === 0 && s9.day === 1 && !s9.zones.B && !s9.relays.B && !s9.proc.press && !s9.snow, '전역: 메달만 남고 처음부터', s9);
+ok(d9 && d9.medals === 5 && s9.tool === 0 && s9.bank === 0 && s9.day === 1 && !s9.zones.B && !s9.relays.B && !s9.proc.press && !s9.snow, '전역: 메달만 남고 처음부터', s9);
 ok(G.incomeMult(s9) > 1.39, '메달만큼 보상 증가');
 var s10 = G.newSave(); s10.crewRate = 40; s10.last = 1000;
 ok(G.offline(s10, 1000 + 60 * 1000) === 0 && G.offline(s10, 1000 + 3600 * 1000) === Math.floor(40 * 3600 * 0.1) && G.offline(s10, 1000 + 48 * 3600 * 1000) === Math.floor(40 * 8 * 3600 * 0.1), '쉬는 동안: 5분 이상, 인력 수입의 10%, 최대 8시간');
@@ -134,6 +134,65 @@ ok(G.offline(s10, 1000 + 60 * 1000) === 0 && G.offline(s10, 1000 + 3600 * 1000) 
 var old = G.migrate({ v: 2, zones: { A: true, B: true, Z: true }, tool: 99, bank: 77, day: 9 });
 ok(old.v === 3 && !old.zones.Z && old.tool === S.TOOLS.length - 1 && old.bank === 77 && old.fresh.B && old.load === 0, '옛 저장 데이터 보정', old);
 ok(G.migrate(null).day === 1, '저장 없음 → 새로');
+
+// ── v6: 잠긴 구역은 못 들어간다 ──
+var sL = G.newSave(); sL.seed = 4; var wL = G.createWorld(sL), B6 = S.ZONES[1];
+ok(G.blocked(B6.x + 50, B6.y + 50, 6), '잠긴 족구장은 출입 통제');
+wL.player.x = B6.x - 30; wL.player.y = B6.y + 40; wL.events = [];
+for (var q6 = 0; q6 < 60; q6++) G.step(wL, 1 / 30, { x: 1, y: 0 });
+ok(wL.player.x < B6.x && wL.fx.some(function (f) { return f.t === 'locked' && f.zone === 'B'; }), '테이프에 막히고 "출입 통제" 알림', wL.player.x);
+sL.zones.B = true; sL.fresh.B = true; var wL2 = G.createWorld(sL);
+ok(!G.blocked(B6.x + 50, B6.y + 50, 6), '확장하면 들어갈 수 있다');
+
+// ── v6: 조각 100% 완벽 → 띵 + 다이아 (하루 한 번), 구역 100% → 다이아 2 ──
+var sP = G.newSave(); sP.seed = 5; var wP = G.createWorld(sP); wP.events = [];
+var bagP = { cap: 1e9, load: 0, val: 0 }, P0 = wP.parts[0];
+for (var yy = P0.y; yy < P0.y + P0.h; yy += 10) for (var xx = P0.x; xx < P0.x + P0.w; xx += 10) { if (P0.clear >= P0.total - 1) break; G.clearAt(wP, xx + 5, yy + 5, 3, 9, 'player', bagP); }
+var dia0 = sP.dia;
+ok(!P0.done && P0.clear === P0.total - 1, '99%는 아직 완벽이 아니다', [P0.clear, P0.total]);
+for (yy = P0.y; yy < P0.y + P0.h; yy += 10) for (xx = P0.x; xx < P0.x + P0.w; xx += 10) G.clearAt(wP, xx + 5, yy + 5, 3, 9, 'player', bagP);
+ok(P0.done && sP.dia === dia0 + 1 && wP.fx.some(function (f) { return f.t === 'part' && f.perfect && f.first; }), '마지막 한 칸까지 → 완벽! 다이아 +1', [P0.done, sP.dia]);
+ok(wP.fx.some(function (f) { return f.t === 'almost'; }), '85% 넘으면 "거의 다" 신호(남은 칸 반짝이)');
+var P1 = wP.parts[1];
+for (yy = P1.y; yy < P1.y + P1.h; yy += 10) for (xx = P1.x; xx < P1.x + P1.w; xx += 10) G.clearAt(wP, xx + 5, yy + 5, 3, 9, 'player', bagP);
+ok(wP.fx.some(function (f) { return f.t === 'zonePerfect'; }) && sP.dia === dia0 + 2 + 2 + 2, '구역 100% → 구역 완벽 +2, 부대 전체 → 조기 퇴근 +2', sP.dia - dia0);
+ok(wP.early && wP.fx.some(function (f) { return f.t === 'allClear'; }) && sP.boxes.length === 1, '전 구역 완벽 → 조기 퇴근 + 보급 상자');
+var dP = sP.day; for (q6 = 0; q6 < 52 * 30; q6++) G.step(wP, 1 / 30, null);
+ok(sP.day === dP + 1 && !wP.parts[0].done, '조기 퇴근하면 곧 다음 날 (밤새 눈이 다시 쌓인다)', [sP.day, wP.parts[0].clear, wP.parts[0].total]);
+// 낮 눈은 80% 넘게 치운 조각엔 안 쌓인다
+var sF = G.newSave(); sF.seed = 6; var wF = G.createWorld(sF); wF.events = []; var PF = wF.parts[0];
+for (yy = PF.y; yy < PF.y + PF.h; yy += 10) for (xx = PF.x; xx < PF.x + PF.w; xx += 10) G.clearAt(wF, xx + 5, yy + 5, 3, 9, 'player', bagP);
+var cF = PF.clear; wF.player.x = 900; for (q6 = 0; q6 < 60 * 30; q6++) G.step(wF, 1 / 30, null);
+ok(PF.clear === cF, '다 치운 조각은 낮 눈에 안 덮인다', [cF, PF.clear]);
+
+// ── v6: 콤보 → 값 최대 +50% ──
+var sC = G.newSave(); sC.seed = 8; var wC = G.createWorld(sC); wC.events = []; wC.player.x = 100; wC.player.y = 140; wC.player.cap = 1e6;
+for (q6 = 0; q6 < 4 * 30; q6++) G.step(wC, 1 / 30, { x: 1, y: 0.05 });
+ok(wC.combo > 20 && G.comboMult(wC) > 1.06 && sC.bestCombo >= wC.combo, '쉬지 않고 치우면 콤보가 쌓인다', wC.combo);
+for (q6 = 0; q6 < 2 * 30; q6++) G.step(wC, 1 / 30, null);
+ok(wC.combo === 0, '멈추면 콤보가 끊긴다');
+
+// ── v6: 눈 밑 분실물 ──
+var sT = G.newSave(); sT.seed = 12; var wT = G.createWorld(sT);
+ok(wT.treas.length >= 2 && wT.treas.every(function (t) { return wT.depth[t.idx] > 0; }), '분실물이 눈 밑에 묻혀 있다', wT.treas.length);
+var t0 = wT.treas[0], bT = sT.bank; G.clearAt(wT, t0.x, t0.y, 2, 9, 'player', { cap: 1e9, load: 0, val: 0 });
+ok(wT.fx.some(function (f) { return f.t === 'found'; }) && sT.found[t0.item.id] === 1 && (sT.bank > bT || sT.dia > 0), '파내면 분실물 + 보상', t0.item);
+ok(G.createWorld(sT).treas.every(function (t) { return t.idx !== t0.idx; }), '찾은 건 다시 안 나온다');
+
+// ── v6: 인력 사기 → 바닥나면 짱박힘, 배치 ──
+var sM = G.newSave(); sM.seed = 3; sM.crew = { hoobae: 1 }; sM.mor = 2; var wM = G.createWorld(sM); wM.events = []; wM.haeng.x = 780; wM.haeng.y = 1180; wM.haeng.hold = 999;
+for (q6 = 0; q6 < 30 * 30; q6++) G.step(wM, 1 / 30, null);
+ok(wM.fx.some(function (f) { return f.t === 'slack'; }) || wM.crew[0].slack, '사기가 바닥나면 짱박힌다', wM.crew[0].mor);
+var sQ = G.newSave(); sQ.seed = 3; sQ.crew = { hoobae: 2 }; sQ.zones.B = true; sQ.fresh.B = true; sQ.post = 'B';
+var wQ = G.createWorld(sQ); wQ.events = []; wQ.crew.forEach(function (e) { G.pickTarget(wQ, e); });
+ok(wQ.crew.every(function (e) { return e.tidx >= 0 && wQ.zone[e.tidx] === 1; }), '배치: 족구장에만 간다');
+
+// ── v6: 다이아 상점 ──
+var sD = G.newSave(); sD.bank = 1e9; sD.life = 1e6; sD.dia = 0;
+ok(!G.buy(sD, 'crew', 'cook').ok, '취사병은 다이아가 있어야 뽑는다');
+sD.dia = 3; ok(G.buy(sD, 'crew', 'cook').ok && sD.dia === 2, '다이아 1 + 초코파이로 취사병');
+ok(!G.buy(sD, 'star', 'star').ok && sD.toolStar === 0, '도구 강화는 다이아 3부터 (2개로는 못 한다)');
+sD.dia = 50; G.buy(sD, 'star', 'star'); ok(G.toolR(sD) > S.TOOLS[0].r, '강화하면 범위가 넓어진다', G.toolR(sD));
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

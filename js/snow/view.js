@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -506,6 +506,13 @@
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
     if (ac) {
+      (ac.off || []).forEach(function (o) { list.push({ y: o.y, f: function () { drawPerson(c, o, { coat: '#3d4a2b', hat: 'cap', seed: 7, tool: o.helpT > 0 ? 'shovel' : null, r: 10 }); c.fillStyle = '#2b5fd1'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(o.id === 'lt' ? '소대장' : o.id === 'cpt' ? '중대장' : '사단장', o.x, o.y - 33);
+        if (!o.saluted && !o.missed && o.warned) { c.fillStyle = '#c8402e'; c.font = '700 11px ' + FONT; c.fillText('경례!', o.x, o.y - 44); } } }); });
+      var Pq = world.player, iq = G.cellIndex(Pq.x, Pq.y), pq = iq >= 0 ? world.partOf[iq] : -1, PT = pq >= 0 ? world.parts[pq] : null;
+      if (PT && !PT.done && PT.clear / PT.total >= S.ALMOST) list.push({ y: 3e5, f: function () {
+        c.fillStyle = 'rgba(255,200,60,' + (0.55 + Math.sin(performance.now() / 120) * 0.35) + ')';
+        for (var gy = Math.floor(PT.y / CELL); gy < Math.ceil((PT.y + PT.h) / CELL); gy++) for (var gx = Math.floor(PT.x / CELL); gx < Math.ceil((PT.x + PT.w) / CELL); gx++) { var kk = gy * GW + gx; if (world.partOf[kk] === pq && world.depth[kk] > 0) { circ(c, gx * CELL + 5, gy * CELL + 5, 2.2); c.fill(); } }
+      } });
       var KB = ac.ball; list.push({ y: KB.y, f: function () { c.fillStyle = '#f4f1e6'; circ(c, KB.x, KB.y - 3 - KB.h, 3.4); c.fill(); c.strokeStyle = '#e2b33c'; c.lineWidth = 1.2; c.stroke(); } });
       ac.balls.forEach(function (b) { list.push({ y: b.y + 1e5, f: function () { c.fillStyle = 'rgba(40,60,90,.25)'; circ(c, b.x, b.y, 2.2); c.fill(); c.fillStyle = '#fff'; circ(c, b.x, b.y - b.h * 0.6, 2.6); c.fill(); } }); });
     }

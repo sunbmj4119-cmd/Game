@@ -5,6 +5,8 @@ global.window = {};
 require('../js/snow/data.js');
 require('../js/snow/sim.js');
 require('../js/snow/act.js');
+require('../js/snow/meta.js');
+var M = window.JY.SnowMeta;
 var S = window.JY.SNOW, G = window.JY.SnowSim, A = window.JY.SnowAct, pass = 0, fail = 0;
 function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }
 function run(w, sec, inp) { for (var t = 0; t < sec; t += 1 / 30) G.step(w, 1 / 30, inp || null); }
@@ -193,10 +195,10 @@ ok(!A.state(w).mission && fxs(w, 'mission').some(function (f) { return f.state =
 
 // ── 족구공 차기 ──
 w = fresh(); w.haeng.x = 700; w.haeng.y = 1100; var ball = A.init(w).ball;
-w.player.x = ball.x - 14; w.player.y = ball.y; look = face(w, ball.x, ball.y); var bx0 = ball.x;
+w.player.x = ball.x + 14; w.player.y = ball.y; look = face(w, ball.x, ball.y); var bx0 = ball.x;
 t = A.best(w, look, true); ok(t.k === 'ball', '족구공: 차기');
 A.act(w, t, look); run(w, 1);
-ok(ball.x > bx0 + 60, '차면 굴러간다', ball.x - bx0);
+ok(ball.x < bx0 - 60, '차면 굴러간다', ball.x - bx0);
 
 // ── 1인칭 입력: 보는 쪽이 앞, 옆걸음 ──
 w = fresh(); w.player.x = 200; w.player.y = 190;
@@ -209,6 +211,63 @@ ok(w.clear > cl0, '1인칭: 앞쪽 눈을 퍼 담는다');
 // ── 데모(타이틀)에는 상호작용이 끼어들지 않는다 ──
 var wd = G.createWorld(G.newSave(), { demo: true }); run(wd, 1);
 ok(!wd.act, '데모에선 상호작용 없음');
+
+// ── v6: 간부 순찰 — 다가오면 3초 안에 경례, 1초 안이면 칼경례 ──
+w = fresh(function (s) { s.day = 3; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+var o = A.spawnOfficer(w, 'cpt'); o.x = w.player.x; o.y = w.player.y + 40; o.phase = 'stay'; o.stayT = 99;
+G.step(w, 1 / 30, null);
+look = face(w, o.x, o.y);
+var back2 = { x: -look.x, y: -look.y };
+t = A.best(w, back2, true);
+ok(t && t.k === 'officer' && t.verb === '경례' && t.urgent, '중대장이 오면 등 뒤에 있어도 버튼은 "경례"', t && [t.k, t.verb]);
+ok(A.state(w).salute && A.state(w).salute.title === '중대장님', '경례 알림(남은 시간)', A.state(w).salute);
+var d1 = w.save.dia; A.act(w, t, look);
+ok(o.saluted && w.save.stats.kal === 1 && w.save.dia === d1 + 1, '1초 안에 경례 → 칼경례 + 다이아', [w.save.stats.kal, w.save.dia - d1]);
+t = A.best(w, look, true); ok(t.verb === '보고하기', '경례 다음엔 "보고하기"', t.verb);
+var rr = A.act(w, t, look); ok(rr.res === 'bad', '진행률이 낮으면 혼난다', rr);
+var w7 = fresh(function (s) { s.day = 3; }); w7.haeng.x = 780; w7.haeng.y = 1180; w7.haeng.hold = 999;
+var o7 = A.spawnOfficer(w7, 'cpt'); o7.x = w7.player.x + 30; o7.y = w7.player.y; o7.phase = 'stay'; o7.stayT = 99;
+run(w7, 4);
+ok(o7.missed && A.state(w7).heat === 1, '경례 안 하면 "경례 안 하나?!" → 분노 ★', [o7.missed, A.state(w7).heat]);
+// 사단장 보고: 거의 다 치웠으면 다이아 3 + 상자
+var w8 = fresh(function (s) { s.day = 7; }); w8.haeng.x = 780; w8.haeng.y = 1180; w8.haeng.hold = 999;
+var bag8 = { cap: 1e9, load: 0, val: 0 }; w8.cells.forEach(function (idx, i) { if (i % 20) G.clearAt(w8, (idx % S.GW) * 10 + 5, ((idx / S.GW) | 0) * 10 + 5, 2, 9, 'crew', bag8); });
+var o8 = A.spawnOfficer(w8, 'gen'); o8.x = w8.player.x; o8.y = w8.player.y + 30; o8.phase = 'stay'; o8.stayT = 99; o8.saluted = true; o8.salT = 9;
+var d8 = w8.save.dia, b8 = w8.save.boxes.length; look = face(w8, o8.x, o8.y);
+rr = A.act(w8, A.best(w8, look, true), look);
+ok(rr.res === 'good' && w8.save.dia >= d8 + 3 && w8.save.boxes.length === b8 + 1, '사단장님께 좋은 보고 → 다이아 3 + 희귀 상자', [rr, w8.save.dia - d8]);
+// 소대장: 같이 치운다
+var w9 = fresh(); w9.haeng.x = 780; w9.haeng.y = 1180; w9.haeng.hold = 999;
+var o9 = A.spawnOfficer(w9, 'lt'); o9.x = w9.player.x; o9.y = w9.player.y + 30; o9.saluted = true; o9.phase = 'stay'; o9.stayT = 99;
+look = face(w9, o9.x, o9.y); t = A.best(w9, look, true);
+ok(t.verb === '같이 하시죠', '소대장: 같이 하시죠', t.verb);
+A.act(w9, t, look); var cl9 = w9.clear; run(w9, 6);
+ok(o9.helpT > 0 && w9.clear > cl9 + 5, '소대장이 같이 눈을 치운다', [w9.clear - cl9]);
+
+// ── v6: 인력 사기 — 짱박힌 인력 일으키기, 초코파이 주기, 다이아로 사기 충전·지원 요청 ──
+w = fresh(function (s) { s.crew = { hoobae: 2 }; s.bank = 500; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+var c1 = w.crew[0]; c1.x = 200; c1.y = 200; c1.slack = true; c1.mor = 5; c1.speed = 0;
+look = near(w, c1); t = A.best(w, look, true);
+ok(t.verb === '일으켜 세우기', '짱박힌 인력: 일으켜 세우기', t.verb);
+A.act(w, t, look); ok(!c1.slack && c1.mor >= 40, '일어나서 다시 일한다');
+c1.mor = 30; t = A.best(w, look, true); ok(/초코파이 주기/.test(t.verb), '사기가 낮으면: 초코파이 주기', t.verb);
+var bk2 = w.save.bank; A.act(w, t, look); ok(c1.mor >= 75 && w.save.bank < bk2, '초코파이 주면 사기 +45 (초코파이 든다)', [c1.mor, bk2 - w.save.bank]);
+w.save.dia = 0; ok(!A.useDia(w, 'morale').ok, '다이아 없으면 사기 충전 못 한다');
+w.save.dia = 5; w.crew[1].mor = 3; ok(A.useDia(w, 'morale').ok && w.crew[1].mor === 100 && w.save.dia === 4, '다이아 1: 전원 사기 100');
+ok(A.useDia(w, 'support').ok && w.save.dia === 2, '다이아 2: 대대 지원 요청'); G.step(w, 1 / 30, null); ok(w.mod.crew === 2, '대대 지원: 인력 ×2');
+
+// ── v6: 아침 점호 · 보급 상자 · 훈장 ──
+var sR = G.newSave(), day0 = Date.UTC(2026, 10, 1, 3);
+var r1 = M.rollCall(sR, day0); ok(r1 && r1.streak === 1 && sR.boxes.length === 1, '첫 점호: 출석 1일 + 상자');
+ok(M.rollCall(sR, day0 + 3600 * 1000) === null, '같은 날 두 번은 없다');
+M.rollCall(sR, day0 + 86400000); var r3 = M.rollCall(sR, day0 + 2 * 86400000);
+ok(r3.streak === 3 && r3.tier === 'rare', '3일 연속 → 희귀 상자', r3);
+var r4 = M.rollCall(sR, day0 + 5 * 86400000); ok(r4.streak === 1, '빠지면 연속이 끊긴다');
+sR.boxes = ['legend']; var bb = M.openBox(sR);
+ok(bb.tier === 'legend' && bb.dia >= 5 && bb.pie > 0 && bb.item && sR.dia >= 5, '전설 상자: 다이아 5↑ + 분실물', bb);
+var wA = fresh(); wA.save.stats.salute = 10; wA.save.life = 3000; G.step(wA, 1.1, null);
+ok(wA.save.ach.salute10 && wA.fx.some(function (f) { return f.t === 'ach'; }) && wA.save.dia >= 2 + 4, '훈장: 경례 머신 + 진급 다이아', [wA.save.dia, wA.save.ach]);
+ok(M.achList(wA.save).length === S.ACH.length, '훈장 목록');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

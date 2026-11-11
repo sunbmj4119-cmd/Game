@@ -84,6 +84,14 @@
     vroom: function () { tone(70, 0.9, 'sawtooth', 0.08, 0, 160); tone(90, 0.7, 'square', 0.03, 0.1, 140); },
     siren: function () { [0, 0.3].forEach(function (w) { tone(880, 0.25, 'square', 0.035, w, 660); }); },
     kick: function () { tone(160, 0.1, 'sine', 0.2, 0, 70); noise(0.06, 0.1, 'lowpass', 900, 0.8); },
+    // 완벽! (반짝이는 상승 아르페지오)
+    perfect: function () { [784, 988, 1175, 1568, 1976].forEach(function (f, i) { tone(f, 0.22, 'triangle', 0.09, i * 0.06); }); tone(2637, 0.6, 'sine', 0.05, 0.32); },
+    dia: function () { tone(1760, 0.12, 'sine', 0.08); tone(2349, 0.18, 'sine', 0.07, 0.07); tone(3136, 0.3, 'sine', 0.05, 0.14); },
+    combo: function (n) { tone(500 + Math.min(1200, n * 6), 0.09, 'square', 0.035); },
+    fanfare: function () { [523, 523, 523, 659, 784, 659, 784, 1046].forEach(function (f, i) { tone(f, i === 7 ? 0.6 : 0.12, 'triangle', 0.12, [0, 0.12, 0.24, 0.36, 0.5, 0.62, 0.74, 0.88][i]); }); },
+    drum: function () { for (var i = 0; i < 10; i++) noise(0.05, 0.08 + i * 0.01, 'lowpass', 500, 0.8, i * 0.07); },
+    found: function () { tone(988, 0.1, 'square', 0.05); tone(1319, 0.1, 'square', 0.05, 0.09); tone(1976, 0.3, 'triangle', 0.07, 0.18); },
+    bugle: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, 0.16, 'sawtooth', 0.04, i * 0.15); }); },
     splat: function () { noise(0.25, 0.25, 'lowpass', 900, 0.8); tone(180, 0.12, 'sine', 0.1, 0, 90); },
     wind: function (level) {
       var c = ctx(); if (!c) return;

@@ -20,7 +20,8 @@
     return { v: 3, bank: 0, life: 0, day: 1, dayT: 0, tool: 0, crew: {}, perks: {}, proc: {}, relays: {}, zones: { A: true }, fresh: { A: true },
       medals: 0, discharges: 0, last: 0, best: 0, total: 0, crewRate: 0, seed: (Math.random() * 1e9) | 0, seen: {}, deerHits: 0,
       snow: null, px: S.SPAWN.x, py: S.SPAWN.y, load: 0, loadVal: 0, today: 0, made: { brick: 0, snowman: 0 },
-      snowmen: [], daily: {}, stats: {} };
+      snowmen: [], daily: {}, stats: {}, dia: 0, diaLife: 0, found: {}, ach: {}, post: 'all', boxes: [], roll: { date: '', streak: 0 }, toolStar: 0,
+      bestCombo: 0, rankDia: 0, mor: 80, tfound: { d: 0, idx: [] } };
   }
   function migrate(s) {
     var d = newSave();
@@ -45,6 +46,14 @@
   function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
   function incomeMult(save) { return (1 + 0.15 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }
   function toolOf(save) { return S.TOOLS[save.tool]; }
+  function toolR(save) { return Math.round(toolOf(save).r * (1 + 0.1 * (save.toolStar || 0))); }
+  function gainDia(w, n, why) {
+    if (w.demo || n <= 0) return 0;
+    w.save.dia += n; w.save.diaLife += n; w.today.dia += n;
+    w.fx.push({ t: 'dia', n: n, why: why || '' });
+    return n;
+  }
+  function stat(w, k, n) { if (w.demo) return; var st = w.save.stats; st[k] = (st[k] || 0) + (n || 1); }
   function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back'))); }
   function crewCount(save) { return S.CREW.reduce(function (a, C) { return a + crewN(save, C.id); }, 0); }
   function canDischarge(save) { return rankOf(save) >= 3 && save.life >= S.DISCHARGE_LIFE; }
@@ -70,10 +79,13 @@
         stat: '범위 ' + T.r + ' · 적재 ' + T.cap + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
     });
     S.CREW.forEach(function (C) {
-      var n = crewN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank;
-      out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, n: n, max: C.max,
-        state: lock ? 'lock' : n >= C.max ? 'max' : 'buy', lockText: S.RANKS[C.rank].name + '부터', ok: !lock && n < C.max && save.bank >= cost });
+      var n = crewN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0;
+      out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max,
+        state: lock ? 'lock' : n >= C.max ? 'max' : 'buy', lockText: S.RANKS[C.rank].name + '부터', ok: !lock && n < C.max && save.bank >= cost && save.dia >= dia });
     });
+    var st = save.toolStar || 0, sd = S.DIA.star[st];
+    out.tool.push({ kind: 'star', id: 'star', name: '도구 강화 ' + '★★★★★'.slice(0, st) + '☆☆☆☆☆'.slice(0, 5 - st), desc: '정비병이 손봐 준다. 지금 도구 범위 +10% (강화는 도구를 바꿔도 남는다)',
+      cost: 0, dia: sd || 0, n: st, max: 5, state: st >= 5 ? 'max' : 'buy', stat: '범위 +' + st * 10 + '%', ok: st < 5 && save.dia >= sd });
     S.PERKS.forEach(function (P) {
       var l = lvl(save, P.id), cost = perkCost(P, l);
       out.perk.push({ kind: 'perk', id: P.id, name: P.name, desc: P.desc, cost: cost, n: l, max: P.max, state: l >= P.max ? 'max' : 'buy', ok: l < P.max && save.bank >= cost });
@@ -99,11 +111,12 @@
   }
 
   function buy(save, kind, id) {
-    var list = offers(save)[kind === 'proc' || kind === 'relay' ? 'factory' : kind] || [], o = null;
+    var list = offers(save)[kind === 'proc' || kind === 'relay' ? 'factory' : kind === 'star' ? 'tool' : kind] || [], o = null;
     list.forEach(function (x) { if (x.id === id && x.kind === kind) o = x; });
     if (!o || !o.ok) return { ok: false };
-    save.bank -= o.cost;
+    save.bank -= o.cost; if (o.dia) save.dia -= o.dia;
     if (kind === 'tool') save.tool = o.i;
+    else if (kind === 'star') save.toolStar = (save.toolStar || 0) + 1;
     else if (kind === 'crew') save.crew[id] = crewN(save, id) + 1;
     else if (kind === 'perk') save.perks[id] = lvl(save, id) + 1;
     else if (kind === 'proc') save.proc[id] = procLvl(save, id) + 1;
@@ -115,7 +128,8 @@
   function discharge(save) {
     if (!canDischarge(save)) return null;
     var gain = medalGain(save);
-    var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits };
+    var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits,
+      dia: save.dia, diaLife: save.diaLife, found: save.found, ach: save.ach, stats: save.stats, roll: save.roll, boxes: save.boxes, bestCombo: save.bestCombo };
     var fresh = newSave();
     Object.keys(fresh).forEach(function (k) { save[k] = fresh[k]; });
     Object.keys(keep).forEach(function (k) { save[k] = keep[k]; });
@@ -125,8 +139,12 @@
 
   /* ── 충돌 ── */
   function blockedRect(x, y, r, b) { return x > b.x - r && x < b.x + b.w + r && y > b.y - r && y < b.y + b.h + r; }
+  // 잠긴 구역은 출입 통제 (테이프 넘어 못 들어간다). createWorld가 지금 부대 상태로 채운다
+  var LOCKS = [];
+  function lockAt(x, y, r) { for (var i = 0; i < LOCKS.length; i++) if (blockedRect(x, y, r, LOCKS[i])) return LOCKS[i]; return null; }
   function blocked(x, y, r) {
     if (x < r || y < r || x > S.W - r || y > S.H - r) return true;
+    if (LOCKS.length && lockAt(x, y, r)) return true;
     var i;
     for (i = 0; i < S.BUILDINGS.length; i++) if (blockedRect(x, y, r, S.BUILDINGS[i])) return true;
     for (i = 0; i < S.TANKS.length; i++) if (blockedRect(x, y, r, S.TANKS[i])) return true;
@@ -205,8 +223,11 @@
       time: save.dayT || 0, dayLen: S.DAY_LEN, weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
       earned: 0, crewEarned: 0, crewT: 0, units: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
       player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save), dumps: dumpsOf(save),
-      events: [], deer: [], car: null, heli: null, cats: [], mod: { speed: 1, hit: 1, crew: 1, stun: 1 }, dumpedP: 0
+      events: [], deer: [], car: null, heli: null, cats: [], mod: { speed: 1, hit: 1, crew: 1, stun: 1 }, dumpedP: 0,
+      zoneCells: [], perfect: {}, zonePerf: {}, combo: 0, comboT: 0, early: false, earlyT: 0, lockT: 0, treas: [],
+      today: { dia: 0, perfect: 0, zonePerfect: 0, found: [], earned: 0 }
     };
+    LOCKS = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; });
     var R = w.rand, stored = save.snow && !opts.fresh ? dec(save.snow, GW * GH) : null;
     S.ZONES.forEach(function (Z, zi) {
       var open = !!save.zones[Z.id], isNew = !!save.fresh[Z.id] || !stored;
@@ -222,7 +243,7 @@
           if (!open) { w.depth[idx] = 3; continue; }
           var lo = Z.id === 'A' && !save.discharges && save.day <= 1 ? 1 : 2, hi = Z.id === 'A' && !save.discharges && save.day <= 1 ? 3 : 4;
           w.depth[idx] = isNew ? Math.min(hi, lo + Math.floor(drift(save.seed + zi * 13, gx, gy) * (hi - lo + 1))) : stored[idx];
-          w.cells.push(idx); w.zoneTotal[zi]++;
+          w.cells.push(idx); w.zoneTotal[zi]++; (w.zoneCells[zi] = w.zoneCells[zi] || []).push(idx);
           if (!w.depth[idx]) { w.clear++; w.zoneClear[zi]++; }
           for (var k = pBase; k < w.parts.length; k++) {
             var P = w.parts[k];
@@ -232,11 +253,12 @@
       }
       if (!opts.demo) delete save.fresh[Z.id];
     });
-    w.parts.forEach(function (P) { P.done = P.total > 0 && P.clear / P.total >= S.PART_DONE; });
+    w.parts.forEach(function (P, k) { P.done = P.total > 0 && P.clear >= P.total; if (P.done) w.perfect[k] = true; });
+    S.ZONES.forEach(function (Z, zi) { if (w.zoneTotal[zi] && w.zoneClear[zi] >= w.zoneTotal[zi]) w.zonePerf[zi] = true; });
     w.total = w.cells.length;
     var tool = toolOf(save), px = save.px, py = save.py;
     if (opts.demo || blocked(px, py, 6)) { px = S.SPAWN.x; py = S.SPAWN.y; }
-    w.player = { x: px, y: py, dir: { x: 0, y: 1 }, hitT: 0, walk: 0, moving: false, idleT: 0, swing: 0, stun: 0, r: tool.r, p: tool.p, aura: !!tool.aura,
+    w.player = { x: px, y: py, dir: { x: 0, y: 1 }, hitT: 0, walk: 0, moving: false, idleT: 0, swing: 0, stun: 0, r: toolR(save), p: tool.p, aura: !!tool.aura,
       cap: capOf(save), load: opts.demo ? 0 : Math.min(save.load, capOf(save)), val: opts.demo ? 0 : save.loadVal, fullSaid: false };
     var song = lvl(save, 'song'), gear = lvl(save, 'gear'), back = lvl(save, 'back');
     S.CREW.forEach(function (C) {
@@ -244,7 +266,7 @@
         w.crew.push({ def: C, n: i, x: S.DUMP.x + 40 + (R() - 0.5) * 200, y: S.DUMP.y - 20 - R() * 40, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
           hitT: R() * C.hit, retarget: 0, stuck: 0, walk: R() * 10, asleep: false, sleepT: 2 + R() * 4, swing: 0, moving: false, injured: 0,
           speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
-          cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null });
+          cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: Math.min(100, (save.mor || 80) + R() * 10 - 5), slack: false });
         var e = w.crew[w.crew.length - 1]; if (blocked(e.x, e.y, 6)) { e.x = S.DUMP.x + 30; e.y = S.DUMP.y; }
       }
     });
@@ -254,7 +276,39 @@
       for (var c = 0; c < HAZ.cats.n; c++) w.cats.push({ x: D.x + 30 + R() * (D.w - 60), y: D.y + D.h - 20 - R() * 60, dir: { x: 1, y: 0 }, tx: 0, ty: 0, wait: R() * 3, walk: 0, moving: false });
     }
     w.events = schedule(w, save, w.time);
+    if (!opts.demo) buryTreasure(w);
     return w;
+  }
+
+  /* ── 눈 밑 분실물: 하루에 몇 개, 깊은 눈 밑에 묻힌다 ── */
+  function buryTreasure(w) {
+    var save = w.save, R = mulberry(save.seed * 3 + save.day * 977), n = Math.min(8, 1 + w.zoneOpen.filter(Boolean).length);
+    if (save.tfound.d !== save.day) save.tfound = { d: save.day, idx: [] };
+    w.treas = [];
+    var tot = 0; Object.keys(S.RARITY).forEach(function (k) { tot += S.RARITY[k].w; });
+    for (var k = 0; k < n * 6 && w.treas.length < n && w.cells.length; k++) {
+      var idx = w.cells[(R() * w.cells.length) | 0];
+      if (!w.depth[idx] || save.tfound.idx.indexOf(idx) >= 0 || w.treas.some(function (t) { return Math.abs((t.idx % GW) - (idx % GW)) + Math.abs(((t.idx / GW) | 0) - ((idx / GW) | 0)) < 6; })) continue;
+      var roll = R() * tot, rar = 'c';
+      Object.keys(S.RARITY).forEach(function (q) { if (roll >= 0) { roll -= S.RARITY[q].w; if (roll < 0) rar = q; } });
+      var pool = S.TREASURE.filter(function (t) { return t.r === rar; }), item = pool[(R() * pool.length) | 0];
+      w.treas.push({ idx: idx, x: (idx % GW) * CELL + 5, y: ((idx / GW) | 0) * CELL + 5, item: item });
+    }
+  }
+  function findTreasure(w, idx, src) {
+    for (var i = 0; i < w.treas.length; i++) {
+      var t = w.treas[i]; if (t.idx !== idx) continue;
+      w.treas.splice(i, 1);
+      var save = w.save, it = t.item, zi = w.zone[idx], Z = S.ZONES[zi] || { value: 1 };
+      save.tfound.idx.push(idx);
+      var pie = Math.round((it.pie || 0) * Z.value * w.mult * (1 + save.day * 0.15));
+      if (!w.demo) { save.found[it.id] = (save.found[it.id] || 0) + 1; stat(w, 'found'); }
+      if (pie) { w.earned += pie; pay(w, pie, 'found'); }
+      if (it.dia) gainDia(w, it.dia, 'found');
+      w.today.found.push(it.name);
+      w.fx.push({ t: 'found', x: t.x, y: t.y, item: it, pie: pie, src: src, first: save.found[it.id] === 1 });
+      return;
+    }
   }
 
   // 지금 세계를 저장 데이터에 적는다 (눈, 내 위치, 짊어진 눈, 하루 시각)
@@ -263,6 +317,7 @@
     var s = w.save;
     s.snow = enc(w.depth); s.px = Math.round(w.player.x); s.py = Math.round(w.player.y);
     s.load = w.player.load; s.loadVal = w.player.val; s.dayT = w.time;
+    if (w.crew.length) s.mor = Math.round(w.crew.reduce(function (a, e) { return a + e.mor; }, 0) / w.crew.length);
     if (w.crewT > 20) s.crewRate = w.crewEarned / w.crewT;
     s.last = Date.now();
   }
@@ -278,28 +333,49 @@
     if (old === d) return;
     w.depth[idx] = d; w.dirty.push(idx);
     var p = w.partOf[idx];
-    if (!old && d) { w.clear--; w.zoneClear[w.zone[idx]]--; if (p >= 0) { var P = w.parts[p]; P.clear--; if (P.done && P.clear / P.total < S.PART_RESET) P.done = false; } }
-    else if (old && !d) { w.clear++; w.zoneClear[w.zone[idx]]++; if (p >= 0) partClear(w, p); inspectZone(w, w.zone[idx]); }
+    if (!old && d) { w.clear--; w.zoneClear[w.zone[idx]]--; if (p >= 0) { w.parts[p].clear--; w.parts[p].done = false; } }
+    else if (old && !d) {
+      w.clear++; w.zoneClear[w.zone[idx]]++; if (p >= 0) partClear(w, p); inspectZone(w, w.zone[idx]);
+      if (w.treas.length) findTreasure(w, idx, w.lastSrc);
+    }
   }
   function pay(w, amount, src) {
     if (w.demo || amount <= 0) return;
     w.save.bank += amount; w.save.life += amount; w.save.today += amount;
     if (src === 'crew') w.crewEarned += amount;
   }
+  // 조각을 한 칸도 없이 100% 치우면 띵! + 다이아 (하루에 한 번). 구역 전체 100%면 구역 완벽, 부대 전체면 조기 퇴근
   function partClear(w, p) {
     var P = w.parts[p];
     P.clear++;
-    if (!P.done && P.total && P.clear / P.total >= S.PART_DONE) {
+    if (P.total && !P.almost && P.clear / P.total >= S.ALMOST) { P.almost = true; w.fx.push({ t: 'almost', p: p, name: P.name }); }
+    if (!P.done && P.total && P.clear >= P.total) {
       P.done = true;
-      var bonus = Math.round(P.total * S.ZONES[P.zi].value * 0.25 * w.mult);
+      var mine = w.lastSrc === 'player', first = !w.perfect[p], bonus = Math.round(P.total * S.ZONES[P.zi].value * (first ? 0.3 : 0.05) * w.mult);
       w.earned += bonus; pay(w, bonus, 'part');
-      w.fx.push({ t: 'part', name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, bonus: bonus, p: p });
+      if (first) { w.perfect[p] = true; w.today.perfect++; if (mine) { stat(w, 'perfect'); gainDia(w, 1, 'perfect'); } }
+      w.fx.push({ t: 'part', name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, bonus: bonus, p: p, perfect: true, first: first, mine: mine });
+      var zi = P.zi;
+      if (!w.zonePerf[zi] && w.zoneClear[zi] >= w.zoneTotal[zi]) {
+        w.zonePerf[zi] = true; w.today.zonePerfect++; stat(w, 'zonePerfect');
+        var Z = S.ZONES[zi], zb = Math.round(w.zoneTotal[zi] * Z.value * 0.3 * w.mult);
+        w.earned += zb; pay(w, zb, 'zone'); if (mine) gainDia(w, 2, 'zone');
+        w.fx.push({ t: 'zonePerfect', zone: Z.id, name: Z.name, x: Z.x + Z.w / 2, y: Z.y + Z.h / 2, bonus: zb, mine: mine });
+        say(w, 'zonePerfect', true);
+      }
+      if (!w.early && w.clear >= w.total && !w.demo) {
+        w.early = true; w.earlyT = Math.max(7, 50 - w.time); stat(w, 'allClear');
+        var ab = Math.round(w.total * 0.25 * w.mult);
+        w.earned += ab; pay(w, ab, 'early'); gainDia(w, 2, 'early'); w.save.boxes.push(mine ? 'rare' : 'common');
+        w.fx.push({ t: 'allClear', bonus: ab, today: w.today, day: w.save.day });
+        say(w, 'allClear', true);
+      }
     }
   }
   function inspectZone(w, zi) {
     if (w.inspected[zi] || !w.zoneTotal[zi] || w.zoneClear[zi] / w.zoneTotal[zi] < S.INSPECT) return;
     w.inspected[zi] = true;
-    var Z = S.ZONES[zi], bonus = Math.round(w.zoneTotal[zi] * Z.value * 0.6 * w.mult * (w.inspect ? 2 : 1));
+    var Z = S.ZONES[zi], bonus = Math.round(w.zoneTotal[zi] * Z.value * 0.4 * w.mult * (w.inspect ? 2 : 1));
     w.earned += bonus; pay(w, bonus, 'inspect');
     w.fx.push({ t: 'inspect', zone: Z.id, name: Z.name, x: Z.x + Z.w / 2, y: Z.y + Z.h / 2, bonus: bonus });
     say(w, 'inspect', true);
@@ -322,11 +398,12 @@
         if (!d) continue;
         var take = Math.min(d, p, room);
         removed += take; val += take * S.ZONES[zi].value; room -= take;
-        setDepth(w, idx, d - take);
+        w.lastSrc = src; setDepth(w, idx, d - take);
       }
     }
     if (removed) {
       w.units += removed;
+      if (src === 'player') val *= comboMult(w);
       if (who) { who.load += removed; who.val += val; }
       else { var g = val * w.mult * 0.5; w.earned += g; pay(w, g, src); }
       w.fx.push({ t: 'clear', x: cx, y: cy, n: removed, src: src });
@@ -334,16 +411,18 @@
     return removed;
   }
 
-  // 집하장에 붓기
+  function comboMult(w) { return 1 + Math.min(0.5, w.combo / 300); }
+  // 집하장에 붓기 (가득 채워 오면 만재 보너스 +10%)
   function deposit(w, who, src, dump) {
     if (!who.load) return 0;
-    var amount = who.val * w.mult;
+    var full = src === 'player' && who.load >= who.cap * 0.97, amount = who.val * w.mult * (full ? 1.1 : 1);
+    if (src === 'player') w.comboT = Math.max(w.comboT, 4);
     w.earned += amount; pay(w, amount, src);
     var mk = w.save.made;
     if (!w.demo && procLvl(w.save, 'press')) mk.brick += who.load / 40;
     if (!w.demo && procLvl(w.save, 'sculpt')) mk.snowman += who.load / 400;
     if (src === 'player') w.dumpedP += who.load;
-    w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y });
+    w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y, full: full });
     who.load = 0; who.val = 0;
     return amount;
   }
@@ -387,11 +466,12 @@
   }
 
   function pickTarget(w, e) {
-    var R = w.rand, best = -1, bs = 1e9, n = w.cells.length;
+    var R = w.rand, best = -1, bs = 1e9, list = w.cells, post = w.save.post;
+    if (post && post !== 'all') { var pz = S.ZONES.map(function (Z) { return Z.id; }).indexOf(post); if (pz >= 0 && w.zoneOpen[pz] && w.zoneCells[pz] && w.zoneClear[pz] < w.zoneTotal[pz]) list = w.zoneCells[pz]; }
+    var n = list.length;
     if (!n) return;
-    var home = e.home;
     for (var k = 0; k < 16; k++) {
-      var idx = w.cells[(R() * n) | 0], d = w.depth[idx];
+      var idx = list[(R() * n) | 0], d = w.depth[idx];
       if (!d) continue;
       var x = (idx % GW) * CELL + 5, y = ((idx / GW) | 0) * CELL + 5;
       var dump = nearestDump(w, x, y), s = Math.hypot(x - e.x, y - e.y) * 0.7 + (dump ? Math.hypot(dump.x - x, dump.y - y) * 0.5 : 0) - d * 18;
@@ -520,15 +600,25 @@
     save.day++; save.today = 0; w.time = 0;
     var wxi = weatherFor(save); w.weather = wxi.id; w.wx = S.WEATHER[wxi.id]; w.inspect = wxi.inspect; w.inspected = {};
     w.events = schedule(w, save, 0);
-    var n = 0;
-    if (w.wx.dump) w.cells.forEach(function (idx) { if (R() < w.wx.dump && w.depth[idx] < 3) { setDepth(w, idx, w.depth[idx] + 1); n++; } });
-    w.fx.push({ t: 'day', day: save.day, weather: w.weather, earned: earned, dumped: n, inspect: w.inspect });
+    // 밤사이 눈: 날씨만큼 전 구역에 다시 쌓인다 → 아침마다 새 판
+    var n = 0, night = w.wx.night || 0, night2 = w.wx.night2 || 0;
+    w.cells.forEach(function (idx) {
+      var d = w.depth[idx], add = (R() < night ? 1 : 0) + (R() < night2 ? 1 : 0);
+      if (add && d < 3) { setDepth(w, idx, Math.min(3, d + add)); n++; }
+    });
+    w.parts.forEach(function (P) { P.done = P.clear >= P.total; P.almost = P.clear / P.total >= S.ALMOST; });
+    w.perfect = {}; w.zonePerf = {}; w.early = false; w.earlyT = 0;
+    var td = w.today; w.today = { dia: 0, perfect: 0, zonePerfect: 0, found: [], earned: 0 };
+    w.crew.forEach(function (e) { e.mor = Math.min(100, e.mor + 40); e.slack = false; });
+    buryTreasure(w);
+    w.fx.push({ t: 'day', day: save.day, weather: w.weather, earned: earned, dumped: n, inspect: w.inspect, prev: td });
   }
 
   function step(w, dt, input) {
     var save = w.save, R = w.rand, P = w.player;
-    w.time += dt; w.sayT -= dt;
+    w.time += dt; w.sayT -= dt; w.lockT -= dt;
     if (w.time >= w.dayLen) newDay(w);
+    if (w.earlyT > 0) { w.earlyT -= dt; if (w.earlyT <= 0) newDay(w); }
     if (JY.SnowAct && !w.demo) JY.SnowAct.step(w, dt, input);
     stepHazards(w, dt);
     // 나
@@ -541,6 +631,8 @@
     if (face && P.stun <= 0) { var fm = Math.hypot(face.x, face.y) || 1; P.dir.x = face.x / fm; P.dir.y = face.y / fm; }
     if (mag > 0.08) {
       var moved = moveEnt(P, ix * speed * dt, iy * speed * dt, 6);
+      // 출입 통제 테이프에 막히면 알려 준다
+      if (moved < speed * dt * mag * 0.3 && w.lockT <= 0) { var lk = lockAt(P.x + ix * 12, P.y + iy * 12, 6); if (lk) { w.lockT = 3; w.fx.push({ t: 'locked', zone: lk.id, name: lk.name, cost: lk.cost, x: P.x + ix * 14, y: P.y + iy * 14 }); } }
       if (!face) {
         P.dir.x += (ix / mag - P.dir.x) * Math.min(1, dt * 14); P.dir.y += (iy / mag - P.dir.y) * Math.min(1, dt * 14);
         var m = Math.hypot(P.dir.x, P.dir.y) || 1; P.dir.x /= m; P.dir.y /= m;
@@ -554,9 +646,15 @@
       if (P.hitT < 0) P.hitT = 0;
       if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
         var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
-        if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) P.swing = 1;
+        if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) {
+          P.swing = 1; w.combo++; w.comboT = 1.4;
+          if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
+          if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
+        }
       }
     }
+    // 콤보: 쉬지 않고 치우면 쌓인다 (짐이 가득 차 있는 동안은 안 줄어든다)
+    if (w.combo > 0 && P.load < P.cap) { w.comboT -= dt; if (w.comboT <= 0) { if (w.combo >= 25) w.fx.push({ t: 'comboEnd', n: w.combo }); w.combo = 0; } }
     if (P.load >= P.cap) { if (!P.fullSaid) { P.fullSaid = true; w.fx.push({ t: 'full' }); say(w, 'full', true); } } else P.fullSaid = false;
     var dp = nearestDump(w, P.x, P.y);
     if (P.load > 0 && dp && Math.hypot(dp.x - P.x, dp.y - P.y) < dp.r) deposit(w, P, 'player', dp);
@@ -568,7 +666,15 @@
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       if (e.off) { e.moving = false; continue; }
-      var esp = e.speed * w.mod.crew * (e.boost > 0 ? 1.5 : 1);
+      // 사기: 일하면 떨어지고(폭설엔 더), 바닥나면 짱박힌다. 갈구기·초코파이·구령·치킨·밤에 오른다
+      var tired = e.mor < 35, drain = (w.weather === 'blizzard' ? 1.6 : w.weather === 'heavy' ? 1.3 : 1) * (C.vehicle ? 0.5 : 1);
+      if (e.slack) {
+        e.mor = Math.min(100, e.mor + 0.4 * dt); e.moving = false;
+        if (e.mor >= 30) { e.slack = false; w.fx.push({ t: 'unslack', e: e }); }
+        continue;
+      }
+      if (e.mor <= 0 && !C.vehicle) { e.slack = true; e.mor = 0; w.fx.push({ t: 'slack', e: e }); continue; }
+      var esp = e.speed * w.mod.crew * (e.boost > 0 ? 1.5 : 1) * (tired ? 0.7 : 1);
       e.boost = (e.boost || 0) - dt;
       e.swing = Math.max(0, e.swing - dt * 5);
       if (e.injured > 0) { e.injured -= dt; e.moving = false; if (e.injured <= 0) w.fx.push({ t: 'up', e: e }); continue; }
@@ -578,6 +684,7 @@
         if (e.asleep) { e.moving = false; continue; }
       }
       if (e.state === 'haul') {
+        e.mor -= 0.2 * drain * dt;
         var dd = nearestDump(w, e.x, e.y);
         if (Math.hypot(dd.x - e.x, dd.y - e.y) < dd.r * 0.8) { deposit(w, e, 'crew', dd); e.state = 'work'; e.tidx = -1; continue; }
         var mv0 = steer(e, dd.x, dd.y, esp, dt, 6);
@@ -587,6 +694,7 @@
       e.retarget -= dt;
       if (e.tidx < 0 || e.retarget <= 0 || !w.depth[e.tidx]) pickTarget(w, e);
       if (e.tidx < 0 && e.load > 0) { e.state = 'haul'; continue; }
+      if (e.tidx < 0) e.mor = Math.min(100, e.mor + 0.6 * dt); else e.mor -= 0.35 * drain * dt;
       var dist = Math.hypot(e.tx - e.x, e.ty - e.y), near = e.r * 0.5;
       if (dist > near) {
         var mv = steer(e, e.tx, e.ty, esp, dt, 6);
@@ -594,11 +702,11 @@
       } else e.moving = false;
       e.hitT -= dt;
       if (e.hitT <= 0) {
-        e.hitT += e.hit / (e.boost > 0 ? 1.3 : 1); if (e.hitT < 0) e.hitT = 0;
+        e.hitT += e.hit / (e.boost > 0 ? 1.3 : 1) * (tired ? 1.35 : 1); if (e.hitT < 0) e.hitT = 0;
         if (clearAt(w, e.x + e.dir.x * e.r * 0.6, e.y + e.dir.y * e.r * 0.6 + 2, e.r, e.p, 'crew', e)) e.swing = 1;
         if (e.load >= e.cap) e.state = 'haul';
       }
-      if (R() < dt * 0.02) w.fx.push({ t: 'chat', e: e });
+      if (R() < dt * 0.02) w.fx.push({ t: 'chat', e: e, tired: tired });
     }
 
     // 행보관: 돌아다니며 감시, 조는 병장 깨우기
@@ -613,14 +721,16 @@
       for (var j = 0; j < w.crew.length; j++) {
         var c = w.crew[j];
         if (c.asleep && Math.hypot(c.x - Hh.x, c.y - Hh.y) < 70) { c.asleep = false; c.sleepT = 6; Hh.shoutT = 12; say(w, 'sleep'); w.fx.push({ t: 'wake', e: c }); break; }
+        if (c.slack && Math.hypot(c.x - Hh.x, c.y - Hh.y) < 70) { c.slack = false; c.mor = 35; Hh.shoutT = 12; say(w, 'slack'); w.fx.push({ t: 'wake', e: c }); break; }
       }
     }
 
-    // 눈은 계속 내린다
+    // 낮에도 눈은 날린다. 다 치워 가는 조각(80%↑)엔 안 쌓인다 — 한 땀 한 땀 끝낸 곳은 지켜 준다
     w.fallAcc += w.cells.length * S.FALL * w.wx.fall * dt;
     while (w.fallAcc >= 1) {
       w.fallAcc -= 1;
-      var k = w.cells[(R() * w.cells.length) | 0], d0 = w.depth[k];
+      var k = w.cells[(R() * w.cells.length) | 0], d0 = w.depth[k], pk = w.partOf[k];
+      if (pk >= 0 && w.parts[pk].clear >= w.parts[pk].total * 0.8) continue;
       if (d0 < 3) setDepth(w, k, d0 + 1);
     }
   }
@@ -640,6 +750,6 @@
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
-    cellIndex: cellIndex, clearAt: clearAt, pay: pay, moveEnt: moveEnt, steer: steer, say: say, randomOpenPoint: randomOpenPoint, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
+    cellIndex: cellIndex, clearAt: clearAt, pay: pay, gainDia: gainDia, stat: stat, toolR: toolR, lockAt: lockAt, comboMult: comboMult, moveEnt: moveEnt, steer: steer, say: say, randomOpenPoint: randomOpenPoint, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
   };
 })(window.JY = window.JY || {});

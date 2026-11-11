@@ -1,7 +1,7 @@
 /* 제설각 — 화면 흐름: 타이틀 → 계속 이어지는 작업(HUD) ↔ 보급·인력·공장, 진급, 전역 */
 (function (JY) {
   'use strict';
-  var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
+  var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v1';
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
@@ -18,6 +18,7 @@
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function pie() { return '<i class="pie" aria-hidden="true"></i>'; }
+  function dia() { return '<i class="dia" aria-hidden="true"></i>'; }
   function haengFace() { return JY.art && JY.CHARS ? JY.art.character(JY.CHARS.haeng.spec, { mouth: 'shout' }) : ''; }
   function insignia(r) { return JY.art ? JY.art.rankInsignia(r + 1) : ''; }
 
@@ -50,9 +51,13 @@
     b.innerHTML = html; m.hidden = false;
     b.onclick = function (e) { var el = e.target.closest('[data-m]'); if (!el) return; var k = el.getAttribute('data-m'); m.hidden = true; if (onClick) onClick(k); };
   }
-  var chipTimer = 0;
+  var chipTimer = 0, chipPrio = 0, chipAt = 0, PRIO = { bad: 3, warn: 2, good: 1 };
+  // 중요한 알림(위험·경고)은 1.5초 동안 덜 중요한 알림에 덮이지 않는다
   function chip(text, cls) {
-    var c = $('chip'); c.textContent = text; c.className = cls || ''; c.hidden = false;
+    var pr = PRIO[cls] || 0, now = Date.now(), c = $('chip');
+    if (!c.hidden && pr < chipPrio && now - chipAt < 1500) return;
+    chipPrio = pr; chipAt = now;
+    c.textContent = text; c.className = cls || ''; c.hidden = false;
     clearTimeout(chipTimer); chipTimer = setTimeout(function () { c.hidden = true; }, 2600);
   }
   function banner(big, small, ms) {
@@ -113,6 +118,7 @@
 
   function onEvent(f) {
     if (onActEvent(f)) return;
+    if (onV6Event(f)) return;
     if (f.t === 'deer') { chip('고라니 출현! 부딪히면 짊어진 눈을 쏟는다', 'warn'); vibrate(80); }
     else if (f.t === 'meHit') { chip(f.spilled ? '고라니한테 받혀서 짊어진 눈 ' + fmt(f.spilled) + ' 다 쏟았다!' : '고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
     else if (f.t === 'snowball') { splat(); vibrate(50); }
@@ -139,8 +145,11 @@
   function tick(w) {
     updAct(w);
     var P = w.player, p = G.pct(w), pc = Math.floor(p * 100), bank = Math.floor(save.bank), ld = Math.floor(P.load), full = P.load >= P.cap;
-    if (hud.pc !== pc) { hud.pc = pc; $('h-pct').textContent = pc + '%'; $('h-fill').style.width = Math.min(100, p * 100) + '%'; }
+
     if (hud.bank !== bank) { hud.bank = bank; $('h-bank').textContent = fmt(bank); }
+    if (hud.dia !== save.dia) { if (hud.dia !== undefined && save.dia > hud.dia) { var bp = document.querySelector('.pill.bank'); bp.classList.remove('flash-dia'); void bp.offsetWidth; bp.classList.add('flash-dia'); } hud.dia = save.dia; $('h-dia').textContent = fmt(save.dia); }
+    var nb = (save.boxes || []).length; if (hud.nb !== nb) { hud.nb = nb; $('h-box').hidden = !nb; $('h-box-n').textContent = nb; }
+    areaHud(w); comboHud(w);
     if (hud.ld !== ld || hud.cap !== P.cap) {
       hud.ld = ld; hud.cap = P.cap;
       $('h-load').textContent = full ? '가득!' : fmt(ld); $('h-cap').textContent = full ? '' : '/' + fmt(P.cap);
@@ -167,7 +176,7 @@
   }
 
   /* ── 보급·인력·공장 ── */
-  var TABS = [['tool', '도구'], ['crew', '인력'], ['factory', '공장'], ['perk', '보급'], ['zone', '구역'], ['dis', '전역']];
+  var TABS = [['tool', '도구'], ['crew', '인력'], ['factory', '공장'], ['perk', '보급'], ['zone', '구역'], ['medal', '훈장'], ['dis', '전역']];
   var PERK_ICON = {
     eisen: '<path d="M5 6h7v6l6 2a3 3 0 0 1 3 3v1H5z" fill="#3b3f33"/><path d="M6 19l1 3M10 19l1 3M14 19l1 3M18 19l1 3" stroke="#9aa3ab" stroke-width="1.6" stroke-linecap="round"/>',
     back: '<path d="M6 7c0-3 12-3 12 0l1 12c0 2-14 2-14 0z" fill="#8a7a52"/><path d="M8 7c1-2 7-2 8 0" stroke="#5a4c2c" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="6" rx="5" ry="1.6" fill="#fbfdff"/>',
@@ -241,11 +250,13 @@
     $('s-bank').textContent = fmt(save.bank);
     var showDis = G.rankOf(save) >= 3 || save.discharges > 0, all = G.offers(save);
     $('s-tabs').innerHTML = TABS.filter(function (t) { return t[0] !== 'dis' || showDis; }).map(function (t) {
-      var o = t[0] === 'dis' ? [] : all[t[0]], n = o.filter(function (x) { return x.ok; }).length;
+      var o = t[0] === 'dis' || t[0] === 'medal' ? [] : all[t[0]], n = o.filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
     if (tab === 'dis') { renderDischarge(list); return; }
+    if (tab === 'medal') { renderMedals(list); return; }
+    if (tab === 'crew') crewHead(list);
     if (tab === 'factory') {
       var mk = save.made, pm = G.procMult(save);
       var head = document.createElement('div'); head.className = 'fac-head';
@@ -257,9 +268,9 @@
     items.forEach(function (o) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
+      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.dia ? ' · 다이아 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
       var label;
-      if (o.state === 'buy') label = pie() + fmt(o.cost);
+      if (o.state === 'buy') label = (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
       else if (o.state === 'own') label = o.cur ? '사용 중' : '보유';
       else if (o.state === 'max') label = o.kind === 'relay' ? '가동 중' : '최대';
       else if (o.state === 'later') label = '다음 단계';
@@ -298,6 +309,14 @@
   function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
   function onShopClick(e) {
+    var ps = e.target.closest('[data-post]');
+    if (ps) { save.post = ps.getAttribute('data-post'); persistRaw(); if (X) X.pop(); renderShop(); return; }
+    var du = e.target.closest('[data-dia]');
+    if (du) {
+      var w0 = V.world(), r0 = w0 && A ? A.useDia(w0, du.getAttribute('data-dia')) : { ok: false };
+      if (r0.ok) { if (X) X.dia(); toast(du.getAttribute('data-dia') === 'morale' ? '전원 초코파이! 사기 100' : '대대 지원 요청! 60초 동안 인력 두 배'); persistRaw(); } else if (X) X.deny();
+      renderShop(); return;
+    }
     var t = e.target.closest('[data-tab]');
     if (t) { tab = t.getAttribute('data-tab'); renderShop(); $('s-list').scrollTop = 0; return; }
     var b = e.target.closest('.buy');
@@ -307,13 +326,141 @@
     if (!r.ok) { if (X) X.deny(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); return; }
     if (X) X.buy();
     dirty = true; persistRaw();
-    toast(esc(r.item.name) + ({ crew: ' 투입!', zone: ' 담당!', tool: ' 지급!', relay: ' 가동!', proc: ' 설치!' }[kind] || ' 보급!'));
+    toast(esc(r.item.name) + ({ crew: ' 투입!', zone: ' 담당!', tool: ' 지급!', relay: ' 가동!', proc: ' 설치!', star: ' 완료!' }[kind] || ' 보급!'));
     if (kind === 'crew' && Math.random() < 0.5) say('hire', 2000);
     if (kind === 'tool') say('tool', 2000);
     if (kind === 'zone') say('zone', 2000);
     if (kind === 'relay') say('relay', 2000);
     if (kind === 'proc') say('proc', 2000);
     renderShop();
+  }
+
+  /* ── v6: 다이아·구역 진행·콤보·경례 알림·보급 상자·훈장·하루 결산 ── */
+  function areaHud(w) {
+    var P = w.player, idx = G.cellIndex(P.x, P.y), pi = idx >= 0 ? w.partOf[idx] : -1, Pt = pi >= 0 ? w.parts[pi] : null;
+    var name, pr, txt, cls = '';
+    if (Pt && w.zoneOpen[Pt.zi]) {
+      pr = Pt.total ? Pt.clear / Pt.total : 1; var left = Pt.total - Pt.clear;
+      name = Pt.name; txt = Pt.done ? '완벽!' : pr >= S.ALMOST ? '남은 ' + left + '칸' : Math.floor(pr * 100) + '%';
+      cls = Pt.done ? 'done' : pr >= S.ALMOST ? 'almost' : '';
+    } else { pr = G.pct(w); name = '부대 전체'; txt = Math.floor(pr * 100) + '%'; }
+    var key = name + txt + cls + Math.round(pr * 200);
+    if (hud.area === key) return;
+    hud.area = key;
+    $('h-area').textContent = name; $('h-pct').textContent = txt; $('h-fill').style.width = Math.min(100, pr * 100) + '%';
+    var pg = document.querySelector('.prog'); pg.classList.toggle('almost', cls === 'almost'); pg.classList.toggle('done', cls === 'done');
+  }
+  var comboShown = 0;
+  function comboHud(w) {
+    var n = w.combo || 0, el = $('combo');
+    if (n < 10) { if (!el.hidden) el.hidden = true; comboShown = 0; return; }
+    if (n === comboShown) return;
+    comboShown = n; el.hidden = false;
+    $('combo-n').textContent = '콤보 x' + n;
+    $('combo-t').textContent = '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
+    el.classList.toggle('hot', n >= 50); el.classList.toggle('fire', n >= 150);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    if (X && n % 5 === 0) X.combo(n);
+  }
+  function saluteHud(st) {
+    var el = $('salute'), s0 = st && st.salute;
+    el.hidden = !s0;
+    if (!s0) return;
+    $('sal-t').textContent = s0.title + '이다!';
+    $('sal-f').style.width = Math.max(0, s0.left / 3.5 * 100) + '%';
+  }
+  var RAR = { c: '흔함', u: '드묾', r: '희귀', l: '전설' };
+  function onV6Event(f) {
+    if (f.t === 'dia') { if (X) X.dia(); if (f.why === 'rank') chip('진급 기념 다이아 +' + f.n, 'good'); return true; }
+    if (f.t === 'found') {
+      var rc = S.RARITY[f.item.r].color;
+      chip((f.src === 'player' ? '' : '후임이 주웠다: ') + f.item.name + ' (' + RAR[f.item.r] + ')' + (f.first ? ' · 도감 등록!' : ''), f.item.r === 'c' ? '' : 'good');
+      if (f.item.r === 'r' || f.item.r === 'l') { banner(f.item.name + '!!', f.item.line + (f.item.dia ? ' · 다이아 +' + f.item.dia : ''), 2600); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
+      else { if (f.src === 'player') subtitle(f.item.line); if (X) X.found(); }
+      return true;
+    }
+    if (f.t === 'combo') { var msg = { 25: '좋아!', 50: '훌륭해!', 100: '미쳤다!!', 200: '제설의 신!!', 300: '전설의 제설병', 500: '인간 제설차' }[f.n]; if (msg) chip('콤보 ' + f.n + ' — ' + msg, 'good'); return true; }
+    if (f.t === 'comboEnd') return true;
+    if (f.t === 'zonePerfect') { banner(f.name + ' 완벽 제설!', '구역 전체 100% · +' + fmt(f.bonus) + (f.mine ? ' · 다이아 +2' : ''), 2600); if (X) X.fanfare(); vibrate([60, 40, 60]); return true; }
+    if (f.t === 'allClear') { if (X) { X.fanfare(); X.bugle(); } setTimeout(function () { daySummary(f); }, 1200); return true; }
+    if (f.t === 'locked') { chip('출입 통제: ' + f.name + ' — 보급·인력에서 확장 (' + fmt(f.cost) + ')', 'warn'); if (X) X.deny(); vibrate(40); return true; }
+    if (f.t === 'ach') { banner('훈장: ' + f.ach.name, f.ach.desc + ' · 다이아 +' + f.ach.dia + (f.ach.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); return true; }
+    if (f.t === 'officer') {
+      if (f.state === 'arrive') { chip(f.title + ' 순찰 중! 마주치면 바로 경례!', 'warn'); if (X) X.bugle(); }
+      else if (f.state === 'near') { if (X) X.whistle(false); vibrate([30, 30, 30]); }
+      else if (f.state === 'miss') { chip(f.title + '께 경례를 안 했다! (분노)', 'bad'); vibrate([80, 40, 80]); }
+      else if (f.state === 'saluted') { chip((f.quick ? '칼경례! ' : '경례 완료 · ') + f.title + (f.pie ? ' · +' + fmt(f.pie) : '') + (f.dia ? ' · 다이아 +' + f.dia : ''), 'good'); if (f.quick && X) X.perfect(); }
+      else if (f.state === 'report') { chip(f.res === 'good' ? f.title + ' 칭찬! 보고 대성공' : f.res === 'ok' ? '보고 무난 · +' + fmt(f.pie || 0) : '보고했다가 혼났다…', f.res === 'bad' ? 'bad' : 'good'); }
+      else if (f.state === 'help') chip('소대장님이 40초 동안 같이 치운다!', 'good');
+      return true;
+    }
+    if (f.t === 'slack') { if (!hud.slackSaid) { hud.slackSaid = true; chip('인력이 짱박혔다! 가서 일으키거나 초코파이를 줘라', 'warn'); setTimeout(function () { hud.slackSaid = false; }, 15000); } return true; }
+    if (f.t === 'part' && f.perfect) {
+      if (f.mine && f.first) { if (X) X.perfect(); vibrate([30, 30, 60]); }
+      else if (X) X.ding();
+      return true;
+    }
+    return false;
+  }
+  function daySummary(f) {
+    if (V.mode() !== 'play') return;
+    V.pause(true);
+    var td = f.today || {};
+    modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">' + f.day + '일차 · 전 구역 완벽</p><h3>조기 퇴근!</h3>' +
+      '<ul class="sum"><li><span>오늘 번 초코파이</span><b>' + pie() + fmt(save.today) + '</b></li><li><span>조기 퇴근 보너스</span><b>' + pie() + '+' + fmt(f.bonus) + '</b></li>' +
+      '<li><span>완벽 제설 조각</span><b>' + (td.perfect || 0) + '곳</b></li><li><span>오늘 받은 다이아</span><b>' + dia() + (td.dia || 0) + '</b></li>' +
+      '<li><span>분실물</span><b>' + (td.found && td.found.length ? esc(td.found.join(', ')) : '없음') + '</b></li></ul>' +
+      '<p>희귀 보급 상자도 하나 받았다. 오늘은 쉬어라. …내일도 눈 온다.</p><button class="btn big" data-m="ok">충성! 내일 뵙겠습니다</button></div>', function () { V.pause(false); });
+  }
+  var BOX_SVG = '<svg viewBox="0 0 120 110"><path d="M10 40l50-25 50 25v45l-50 22-50-22z" fill="#b8913a" stroke="#5a4316" stroke-width="3" stroke-linejoin="round"/><path d="M10 40l50 22 50-22M60 62v45" stroke="#5a4316" stroke-width="3" fill="none"/><path d="M35 27l50 25" stroke="#d23a2a" stroke-width="7"/><text x="60" y="92" text-anchor="middle" font-size="14" fill="#3a2a0a" font-family="sans-serif">보급</text></svg>';
+  function openBox() {
+    if (!M || !save.boxes.length) return;
+    var w = V.world(), wasPlay = V.mode() === 'play'; if (wasPlay) V.pause(true);
+    var tier = save.boxes[0], T0 = M.TIER[tier];
+    modal('<div class="box-open"><p class="kicker">보급 상자</p><h3 class="tier-' + tier + '">' + T0.name + '</h3><div class="box-art shake" id="box-art"><div class="box-glow" style="background:conic-gradient(from 0deg,transparent,' + T0.color + ',transparent 30%,' + T0.color + ',transparent 60%)"></div>' + BOX_SVG + '</div><div id="box-loot" class="box-loot"></div><button class="btn big" data-m="ok" id="box-ok" disabled>여는 중…</button></div>', function () { if (wasPlay) V.pause(false); if (save.boxes.length) setTimeout(function () { hud.nb = -1; }, 50); });
+    if (X) X.drum();
+    setTimeout(function () {
+      var r = M.openBox(save); persistRaw();
+      var art = $('box-art'); if (!art) return;
+      art.classList.remove('shake'); art.classList.add('open');
+      var html = '<div>' + pie() + '+' + fmt(r.pie) + '</div>';
+      if (r.dia) html += '<div>' + dia() + ' 다이아 +' + r.dia + '</div>';
+      if (r.item) html += '<div style="color:' + S.RARITY[r.item.r].color + '">' + esc(r.item.name) + ' (' + RAR[r.item.r] + ')</div>';
+      $('box-loot').innerHTML = html;
+      var ok = $('box-ok'); ok.disabled = false; ok.textContent = save.boxes.length ? '좋다! (상자 ' + save.boxes.length + '개 남음)' : '좋다!';
+      if (X) { if (tier === 'legend') X.fanfare(); else X.perfect(); }
+      if (w) hud.bank = -1;
+    }, 900);
+  }
+  function crewHead(list) {
+    var w = V.world(), mor = w && w.crew.length ? Math.round(w.crew.reduce(function (a, e) { return a + e.mor; }, 0) / w.crew.length) : save.mor || 80;
+    var slack = w ? w.crew.filter(function (e) { return e.slack; }).length : 0, n = G.crewCount(save);
+    var head = document.createElement('div'); head.className = 'crew-head';
+    var posts = '<button data-post="all" aria-pressed="' + (save.post === 'all') + '">전 구역</button>' + S.ZONES.filter(function (Z) { return save.zones[Z.id]; }).map(function (Z) { return '<button data-post="' + Z.id + '" aria-pressed="' + (save.post === Z.id) + '">' + esc(Z.name) + '</button>'; }).join('');
+    head.innerHTML = '<div class="row"><b>인력 ' + n + '명 · 사기 ' + (n ? mor : '-') + '</b>' + (slack ? '<small>짱박힌 인력 ' + slack + '명</small>' : '<small>사기가 바닥나면 짱박힌다</small>') + '</div>' +
+      (n ? '<div class="row"><div class="morbar"><i style="width:' + mor + '%"></i></div></div>' : '') +
+      '<small>배치: 인력이 치울 구역</small><div class="posts">' + posts + '</div>' +
+      '<div class="dia-btns"><button data-dia="morale"' + (save.dia >= S.DIA.morale && n ? '' : ' disabled') + '>전원 초코파이 ' + dia() + S.DIA.morale + '</button><button data-dia="support"' + (save.dia >= S.DIA.support && n ? '' : ' disabled') + '>대대 지원 요청 ' + dia() + S.DIA.support + '</button></div>';
+    list.appendChild(head);
+  }
+  function renderMedals(list) {
+    if (!M) return;
+    var html = '<p class="sec-t">분실물 도감 (' + Object.keys(save.found).length + '/' + S.TREASURE.length + ')</p><div class="found-grid">' + S.TREASURE.map(function (t) {
+      var n = save.found[t.id] || 0;
+      return '<div class="' + (n ? 'got' : '') + '" style="--rc:' + S.RARITY[t.r].color + '">' + (n ? '<b>' + (n > 1 ? '×' + n : '★') + '</b>' + esc(t.name) : '<b>?</b>' + RAR[t.r]) + '</div>';
+    }).join('') + '</div><p class="sec-t">훈장 (' + Object.keys(save.ach).length + '/' + S.ACH.length + ')</p>';
+    html += M.achList(save).map(function (a) {
+      return '<div class="ach' + (a.have ? ' have' : '') + '"><div class="medal">' + (a.have ? '★' : '?') + '</div><div><b>' + esc(a.name) + '</b><small>' + esc(a.desc) + ' · ' + fmt(a.prog) + '/' + fmt(a.goal) + '</small><div class="pbar"><i style="width:' + Math.round(a.prog / a.goal * 100) + '%"></i></div></div><span class="rw">' + dia() + a.dia + (a.box ? ' +상자' : '') + '</span></div>';
+    }).join('');
+    list.insertAdjacentHTML('beforeend', html);
+  }
+  function rollCall() {
+    if (!M) return false;
+    var r = M.rollCall(save, Date.now());
+    if (!r) return false;
+    persistRaw();
+    modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">아침 점호</p><h3>출석 ' + r.streak + '일째!</h3><p>' + (r.tier === 'legend' ? '7일 연속! <b>전설 보급 상자</b>다!' : r.tier === 'rare' ? '연속 출석 보상: <b>희귀 보급 상자</b>' : '오늘의 보급 상자 하나. 3일 연속이면 희귀, 7일이면 전설!') + '</p><div class="res-btns"><button class="btn ghost" data-m="later">나중에</button><button class="btn big" data-m="open">바로 열기</button></div></div>', function (k) { if (k === 'open') openBox(); });
+    return true;
   }
 
   /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
@@ -350,6 +497,7 @@
     }
     var can = A.canThrow(w); if (hudA.can !== can) { hudA.can = can; $('ball-btn').disabled = !can; }
     var st = A.state(w);
+    saluteHud(st);
     if (hudA.heat !== st.heat) { hudA.heat = st.heat; $('h-heat').hidden = !st.heat; $('h-heat-s').textContent = '★★★'.slice(0, st.heat) + '☆☆☆'.slice(0, 3 - st.heat); }
     var rd = st.ride ? st.ride.name + ' ' + Math.ceil(st.ride.t) + '초' : '';
     if (hudA.rd !== rd) { hudA.rd = rd; $('h-ride').hidden = !st.ride; if (st.ride) { $('h-ride-n').textContent = rd; $('h-ride-f').style.width = Math.max(0, st.ride.t / st.ride.max * 100) + '%'; } }
@@ -460,6 +608,7 @@
     $('shop').addEventListener('click', onShopClick);
     $('h-pause').onclick = pause;
     $('h-scan').onclick = scan;
+    $('h-box').onclick = openBox;
     $('h-cam').hidden = !V.toggleCam;
     if (V.toggleCam) camLabel();
     $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); fpLayout(); hintText(); if (X) X.pop(); };
@@ -480,8 +629,8 @@
     title();
     if (off > 0) {
       save.bank += off; save.life += off;
-      modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>후임들이 눈을 치웠다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 인력은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>');
-    }
+      modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>후임들이 눈을 치웠다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 인력은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>', function () { rollCall(); });
+    } else rollCall();
     save.last = Date.now(); persistRaw();
   }
 
@@ -499,7 +648,7 @@
     setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); },
     play: play, startDay: function () { play(false); }, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     autopilot: function (b) { V.setAutopilot(b); },
-    act: function () { doAct(); }, ball: function () { doBall(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }
+    act: function () { doAct(); }, ball: function () { doBall(); }, openBox: function () { openBox(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

@@ -86,19 +86,19 @@
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
   var CREW = [
-    { id: 'hoobae', cap: 20, name: '후임', tag: '이병', rank: 0, cost: 150, grow: 1.32, max: 12, r: 9, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
+    { id: 'hoobae', cap: 20, name: '후임', tag: '이병', rank: 0, cost: 270, grow: 1.46, dia: 0, max: 12, r: 9, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
       desc: '초코파이 하나면 영혼까지 갈아 넣는다.', lines: ['넵!', '알겠습니다!', '이거 언제 끝납니까…', '손이 안 느껴집니다…', '초코파이 감사합니다!'] },
-    { id: 'donggi', cap: 32, name: '동기', tag: '일병', rank: 1, cost: 1500, grow: 1.34, max: 10, r: 13, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
+    { id: 'donggi', cap: 32, name: '동기', tag: '일병', rank: 1, cost: 2700, grow: 1.48, dia: 0, max: 10, r: 13, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
-    { id: 'cook', cap: 40, name: '취사병', tag: '일병', rank: 1, cost: 6000, grow: 1.35, max: 8, r: 12, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
+    { id: 'cook', cap: 40, name: '취사병', tag: '일병', rank: 1, cost: 10800, grow: 1.48, dia: 1, max: 8, r: 12, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
       desc: '아침 배식 끝나고 바로 끌려왔다. 국자 대신 삽.', lines: ['점심 준비해야 하는데…', '국자가 그립다', '오늘 점심 짜장이다'] },
-    { id: 'malnyeon', cap: 70, name: '말년 병장', tag: '병장', rank: 2, cost: 25000, grow: 1.38, max: 6, r: 22, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
+    { id: 'malnyeon', cap: 70, name: '말년 병장', tag: '병장', rank: 2, cost: 45000, grow: 1.5, dia: 1, max: 6, r: 22, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
       desc: '작업 시간의 40%는 잔다. 깨어 있으면 제일 잘 민다.', lines: ['나 전역 며칠 남았지?', '후임아 여기도', '라떼는 눈이 허리까지 왔어'] },
-    { id: 'admin', cap: 45, name: '행정병', tag: '상병', rank: 2, cost: 70000, grow: 1.38, max: 6, r: 16, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
+    { id: 'admin', cap: 45, name: '행정병', tag: '상병', rank: 2, cost: 126000, grow: 1.5, dia: 2, max: 6, r: 16, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
       desc: '키보드만 치던 손이 넉가래를 잡았다. 의외로 빠르다.', lines: ['엑셀로 치우면 안 되나', '결재 올려야 하는데', '이것도 보고서 써야 합니까?'] },
-    { id: 'reserve', cap: 60, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 250000, grow: 1.4, max: 8, r: 18, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
+    { id: 'reserve', cap: 60, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 450000, grow: 1.52, dia: 2, max: 8, r: 18, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
       desc: '동원훈련 왔다가 끌려왔다. 느리지만 요령이 있다.', lines: ['내가 이걸 또 하네', '요즘 애들은 말이야~', '집에 가고 싶다', '우리 땐 삽 하나로 다 했어'] },
-    { id: 'plow', cap: 500, name: '제설차', tag: '운전병', rank: 3, cost: 1200000, grow: 1.6, max: 3, r: 34, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
+    { id: 'plow', cap: 500, name: '제설차', tag: '운전병', rank: 3, cost: 2160000, grow: 1.75, dia: 5, max: 3, r: 34, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
       desc: '운전병과 함께 지원 나온 제설차. 빵빵거리며 다 민다.', lines: ['빵빵!', '비켜, 비켜!', '후진합니다~ 후진합니다~'] }
   ];
 
@@ -135,14 +135,14 @@
     { name: '상병', life: 25000 },
     { name: '병장', life: 150000 }
   ];
-  var DISCHARGE_LIFE = 1000000; // 전역 신고 가능
+  var DISCHARGE_LIFE = 1500000; // 전역 신고 가능
 
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
   var WEATHER = {
-    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, flakes: 25 },
-    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, flakes: 70 },
-    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, flakes: 150 },
-    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, flakes: 260 }
+    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, night: 0.3, night2: 0, flakes: 25 },
+    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, night: 0.5, night2: 0.08, flakes: 70 },
+    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, night: 0.7, night2: 0.25, flakes: 150 },
+    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, night: 0.85, night2: 0.45, flakes: 260 }
   };
 
   // 방해꾼과 사건
@@ -157,7 +157,6 @@
 
   var LINES = {
     start: ['자, 제설 작전 개시!', '눈은 하늘에서 내리는 쓰레기다. 치워!', '점호 전까지 싹 다 치운다.', '제설도 전투다. 전투!', '오늘도 하늘이 우리를 시험한다.'],
-    inspect: ['오늘 대대장님 순시다. 90% 못 넘기면 다 죽는다!'],
     heavy: ['함박눈이다… 오늘 다 죽었다.', '하늘이 우리 중대를 미워한다.', '폭설이다. 정신 차려!'],
     idle: ['어이, 거기 서서 뭐 하나?', '쉬는 거 아니지?', '넉가래가 혼자 움직이나?'],
     half: ['반 했다. 이제 시작이다.', '오, 좀 하는데?'],
@@ -185,15 +184,62 @@
       C: ['재작업이다! 점심 먹고 다시 나온다.', '이걸 치웠다고 하는 건가?']
     },
     hire: ['새 인력 투입! 초코파이 값은 해라.', '한 명 더 끌고 왔다.'],
+    perfect: ['완벽하다! 이게 군대 제설이다!', '한 톨도 없군. 칭찬한다.', '이 정도면 사단장님도 울고 가신다.'],
+    zonePerfect: ['구역 완벽 제설! 오늘 너 포상이다!', '반짝반짝하군. 다이아 줘라!'],
+    allClear: ['전 구역 완벽! 오늘은 조기 퇴근이다!!', '부대 전체가 반짝인다. 일찍 쉬어라!'],
+    slack: ['농땡이냐?! 일어나!', '거기 짱박힌 놈 누구야!'],
+    locked: ['거긴 출입 통제 구역이다! 확장부터 해!'],
     tool: ['장비가 좋아졌으니 핑계는 없다.', '이제 좀 군대 같군.'],
     zone: ['구역 확장! 치울 곳이 늘었다. 기쁘지?', '여기도 이제 우리 중대 담당이다.']
+  };
+
+  // 눈 밑에 묻힌 분실물 (매일 새로 묻힌다). r: c 흔함, u 드묾, r 희귀, l 전설
+  var TREASURE = [
+    { id: 'tag', name: '누군가의 군번줄', r: 'c', pie: 20, line: '이거 누구 거야… 주인 찾아 줘야겠다' },
+    { id: 'coupon', name: 'PX 상품권', r: 'c', pie: 40, line: 'PX 상품권 5천 원! (유효기간 지남)' },
+    { id: 'boot', name: '선임 전투화 한 짝', r: 'c', pie: 15, line: '왜 한 짝만 여기에…' },
+    { id: 'letter', name: '부치지 못한 편지', r: 'u', pie: 60, line: '"엄마 보고 싶어요" …눈물 난다' },
+    { id: 'toy', name: '짬타이거 장난감', r: 'u', pie: 50, line: '짬타이거가 좋아하겠다' },
+    { id: 'shell', name: '잃어버린 탄피', r: 'r', pie: 100, dia: 1, line: '탄피 찾았다!!! 전 부대 수색 종료!!!' },
+    { id: 'rankdia', name: '소위 계급장 (다이아)', r: 'r', pie: 0, dia: 2, line: '소대장님이 잃어버린 다이아다!' },
+    { id: 'watch', name: '사단장님 손목시계', r: 'l', pie: 300, dia: 5, line: '…이건 큰일이다. 아니 큰 상이다!' }
+  ];
+  var RARITY = { c: { name: '흔함', w: 55, color: '#c9d6e6' }, u: { name: '드묾', w: 28, color: '#7cd38a' }, r: { name: '희귀', w: 14, color: '#6fb7ff' }, l: { name: '전설', w: 3, color: '#ffbf3a' } };
+
+  // 훈장 (업적): 달면 다이아와 보급 상자
+  var ACH = [
+    { id: 'salute10', name: '경례 머신', desc: '경례 10번', stat: 'salute', goal: 10, dia: 2 },
+    { id: 'kal5', name: '칼경례', desc: '간부에게 1초 안에 경례 5번', stat: 'kal', goal: 5, dia: 3 },
+    { id: 'perfect10', name: '완벽주의자', desc: '조각 100% 완벽 제설 10번', stat: 'perfect', goal: 10, dia: 3, box: 'rare' },
+    { id: 'perfect50', name: '한 땀 한 땀', desc: '조각 100% 완벽 제설 50번', stat: 'perfect', goal: 50, dia: 6, box: 'legend' },
+    { id: 'zone5', name: '구역 깔끔이', desc: '구역 하나를 통째로 100% 5번', stat: 'zonePerfect', goal: 5, dia: 4 },
+    { id: 'early3', name: '조기 퇴근러', desc: '전 구역 완벽으로 조기 퇴근 3번', stat: 'allClear', goal: 3, dia: 5, box: 'rare' },
+    { id: 'combo100', name: '콤보 100', desc: '쉬지 않고 100번 연속 제설', stat: 'bestCombo', goal: 100, dia: 3 },
+    { id: 'combo300', name: '제설의 신', desc: '쉬지 않고 300번 연속 제설', stat: 'bestCombo', goal: 300, dia: 6, box: 'rare' },
+    { id: 'found5', name: '보물 사냥꾼', desc: '눈 밑 분실물 5개', stat: 'found', goal: 5, dia: 2 },
+    { id: 'foundAll', name: '분실물 도감 완성', desc: '분실물 8종 모두', stat: 'foundKinds', goal: 8, dia: 10, box: 'legend' },
+    { id: 'shoo10', name: '고라니 사냥꾼', desc: '고라니 10마리 쫓아내기', stat: 'shoo', goal: 10, dia: 3 },
+    { id: 'pet10', name: '짬타이거 집사', desc: '짬타이거 10번 쓰다듬기', stat: 'pet', goal: 10, dia: 2 },
+    { id: 'snowman5', name: '눈사람 작가', desc: '눈사람 5개', stat: 'snowman', goal: 5, dia: 2 },
+    { id: 'missions10', name: '행정반 에이스', desc: '임무 10개 완수', stat: 'missions', goal: 10, dia: 4, box: 'rare' },
+    { id: 'report5', name: '보고의 달인', desc: '간부 보고 칭찬 5번', stat: 'goodReport', goal: 5, dia: 4 },
+    { id: 'crew20', name: '인력 사무소', desc: '인력 20명', stat: 'crew', goal: 20, dia: 3 },
+    { id: 'hijack', name: '탈주범', desc: '중대장님 차 탈취', stat: 'hijack', goal: 1, dia: 1 },
+    { id: 'caught3', name: '얼차려 장인', desc: '행보관한테 3번 잡히기', stat: 'caught', goal: 3, dia: 1 }
+  ];
+
+  // 다이아 쓰는 곳 (군대 간부 계급장 다이아)
+  var DIA = {
+    star: [3, 5, 8, 12, 18],     // 도구 강화 ★ (범위 +10%씩)
+    support: 2,                  // 대대 지원 요청: 인력 전원 두 배 60초
+    morale: 1                    // 전원 초코파이: 사기 100
   };
 
   JY.SNOW = {
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
-    DAY_LEN: 150, FALL: 0.01, HIT: 0.12, SPEED: 78, PART_DONE: 0.97, PART_RESET: 0.7, INSPECT: 0.95
+    DAY_LEN: 180, FALL: 0.004, HIT: 0.12, SPEED: 78, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };
 })(window.JY = window.JY || {});

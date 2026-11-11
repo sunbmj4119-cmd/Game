@@ -32,7 +32,15 @@
     choco: { name: '초코파이 상자', desc: '인력 +40%' },
     chicken: { name: '면회 치킨', desc: '인력 +50%' },
     rally: { name: '구령', desc: '인력 +25%' },
-    cat: { name: '고양이 힐링', desc: '덜 넘어진다' }
+    cat: { name: '고양이 힐링', desc: '덜 넘어진다' },
+    support: { name: '대대 지원', desc: '인력 ×2' }
+  };
+
+  // 간부: 하루에 한 번씩 순찰 온다. 다가오면 3초 안에 경례! (1초 안이면 칼경례)
+  var OFF = {
+    lt: { name: '소대장', title: '소대장님', face: 'lt', speed: 44, stay: 24 },
+    cpt: { name: '중대장', title: '중대장님', face: 'captain', speed: 38, stay: 20 },
+    gen: { name: '사단장', title: '사단장님', face: 'general', speed: 32, stay: 30 }
   };
 
   var PX = [
@@ -50,6 +58,12 @@
     noForgive: ['경례로 넘어가려고?! 거기 서!', '어딜 웃으면서 경례야!'],
     chase: ['거기 서!!', '야 이 녀석아!', '안 서?!', '너 이름 뭐야!!'],
     nag: ['똑바로 안 해?', '그게 미는 거냐?', '빠릿빠릿하게!', '눈 오는 속도보다 느리잖아!'],
+    choco: ['초코파이 감사합니다!! (눈물)', '형이 최고입니다!', '이 은혜 잊지 않겠습니다!'],
+    unslack: ['…네, 일어납니다.', '아 들켰다', '5분만 쉬려고 했는데…'],
+    tiredNag: ['더는 못 해요…', '손가락이 안 움직여요…'],
+    offNear: { lt: ['어, 수고가 많네!', '나도 소대장이다!'], cpt: ['다들 고생 많다!', '어디 보자…'], gen: ['…….', '이 부대는 어떤가 보자.'] },
+    offMiss: { lt: ['어… 경례는…?', '(서운한 표정)'], cpt: ['경례 안 하나?!', '군기가 빠졌구만!'], gen: ['이 부대 군기가 왜 이래!!', '행보관 어디 있나!'] },
+    offKal: ['오, 칼경례! 좋아!', '그래, 바로 그거다!'],
     nagReply: ['넵!! 알겠습니다!', '…넵.', '아 네네네', '(속으로 욕하는 중)'],
     nagAgain: ['아 지금 하고 있잖아요!', '방금 갈궜잖아요…'],
     wake: ['아 알았어 알았어…', '5분만…', '나 전역 며칠 남았는지 알아?'],
@@ -96,13 +110,17 @@
     var a = init(w), P = w.player, save = w.save, out = [];
     function add(k, ref, x, y, r, name, verb, extra) { var o = { k: k, ref: ref, x: x, y: y, r: r, name: name, verb: verb }; if (extra) Object.keys(extra).forEach(function (q) { o[q] = extra[q]; }); out.push(o); }
     if (a.ride) { add('exit', null, P.x, P.y, 999, RIDE[a.ride.kind].name, '내리기'); return out; }
+    (a.off || []).forEach(function (o) {
+      var verb = !o.saluted ? '경례' : !o.done.report && o.id !== 'lt' ? '보고하기' : o.id === 'lt' && !o.done.help ? '같이 하시죠' : '경례';
+      add('officer', o, o.x, o.y, o.saluted ? 40 : 60, OFF[o.id].title, verb, { urgent: !o.saluted && !o.missed });
+    });
     var H = w.haeng;
     add('haeng', H, H.x, H.y, 36, '행보관', a.heat > 0 ? '경례로 무마' : '경례');
     w.crew.forEach(function (e) {
       if (e.off) return;
       var C = e.def;
       if (C.vehicle) { add('plow', e, e.x, e.y, 40, '제설차 (운전병)', '운전 교대'); return; }
-      var verb = e.asleep ? '깨우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : '갈구기';
+      var verb = e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : e.mor < 50 ? '초코파이 주기 (' + chocoCost(w) + ')' : '갈구기';
       add('crew', e, e.x, e.y, 36, C.name, verb);
     });
     if (w.car) add('car', w.car, w.car.x, w.car.y, 42, '중대장님 차', '탈취하기');
@@ -136,8 +154,9 @@
       var dx = c.x - P.x, dy = c.y - P.y, d = Math.hypot(dx, dy);
       if (d > c.r) return;
       var cos = d > 0.01 ? (dx * look.x + dy * look.y) / d : 1;
-      if (fp && cos < 0.25 && d > 9 && c.k !== 'exit') return;
-      var s = c.k === 'exit' ? -1 : d * (1.6 - cos);
+      if (fp && cos < 0.25 && d > 9 && c.k !== 'exit' && !c.urgent) return;
+      var s = c.k === 'exit' ? -1 : c.urgent ? -0.5 + d * 0.001 : d * (1.6 - cos);
+      if (c.urgent) { if (s < bs) { bs = s; b = c; } return; }
       if (s < bs) { bs = s; b = c; }
     });
     if (!b && canBuild(w, look)) b = { k: 'build', ref: null, x: P.x + look.x * 18, y: P.y + look.y * 18, r: 0, name: '눈사람', verb: '만들기 (눈 ' + SNOWMAN_COST + ')' };
@@ -176,6 +195,7 @@
       case 'crew':
         e = t.ref;
         if (e.asleep) { e.asleep = false; e.sleepT = 10; bubble(w, e, pick(L.wake)); me(w, '병장님! 일어나십시오!'); fx(w, { t: 'wake', e: e }); stat(w, 'wake'); return { ok: true }; }
+        if (e.slack) { e.slack = false; e.mor = 40; bubble(w, e, pick(L.unslack)); me(w, '야! 거기서 뭐 해!'); fx(w, { t: 'wake', e: e }); stat(w, 'unslack'); return { ok: true }; }
         if (e.injured > 0.8) { e.injured *= 0.35; bubble(w, e, pick(L.help)); me(w, '괜찮으십니까?'); return { ok: true }; }
         if (P.load >= 10 && e.cap - e.load >= 5) {
           var n = Math.min(P.load, e.cap - e.load), v = P.val * n / P.load;
@@ -183,9 +203,16 @@
           me(w, '이것 좀 갖다 놔.'); bubble(w, e, pick(L.hand)); stat(w, 'hand');
           return { ok: true, moved: n };
         }
+        if (e.mor < 50) {
+          var cc = chocoCost(w);
+          if (save.bank < cc) { bubble(w, e, '…초코파이도 없으면서'); return { ok: false, why: 'money' }; }
+          save.bank -= cc; e.mor = Math.min(100, e.mor + 45); fx(w, { t: 'choco', e: e }); me(w, '이거 먹고 힘내라.'); bubble(w, e, pick(L.choco)); stat(w, 'choco');
+          return { ok: true };
+        }
         if (e.naggedT > 0) { bubble(w, e, pick(L.nagAgain)); return { ok: true }; }
-        e.boost = 20; e.naggedT = 25; me(w, pick(L.nag)); bubble(w, e, pick(L.nagReply)); stat(w, 'nag');
+        e.boost = 20; e.naggedT = 25; e.mor = Math.min(100, e.mor + 10); me(w, pick(L.nag)); bubble(w, e, pick(L.nagReply)); stat(w, 'nag');
         return { ok: true };
+      case 'officer': return actOfficer(w, t.ref);
       case 'plow':
         e = t.ref;
         if (e.rideCd > 0) { bubble(w, e, '방금 탔잖아요. 좀 쉬었다 타요.'); return { ok: false }; }
@@ -232,7 +259,7 @@
         if (save.daily.gate === save.day) { bubble(w, door('guard'), '위병: 오늘 면회는 끝났다.'); return { ok: false }; }
         save.daily.gate = save.day;
         r = R();
-        if (r < 0.4) { buff(w, 'chicken', 90); say(w, '면회: 어머니가 치킨을 보내셨다! 후임들 눈이 반짝인다.'); fx(w, { t: 'gift', kind: 'chicken' }); }
+        if (r < 0.4) { buff(w, 'chicken', 90); w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + 60); c.slack = false; }); say(w, '면회: 어머니가 치킨을 보내셨다! 후임들 눈이 반짝인다.'); fx(w, { t: 'gift', kind: 'chicken' }); }
         else if (r < 0.7) { var g = give(w, (50 + save.day * 15) * (1 + rank(w)) * w.mult, 'gift'); say(w, '편지가 왔다. "보고 싶어" …초코파이도 같이 왔다! +' + g); fx(w, { t: 'gift', kind: 'letter', pay: g }); }
         else { me(w, '…아무도 안 왔다.'); bubble(w, door('guard'), '위병: 눈이나 치워라.'); fx(w, { t: 'gift', kind: 'none' }); }
         return { ok: true };
@@ -240,7 +267,7 @@
         me(w, '제설 작전 개시!!');
         if (!w.crew.length) { bubble(w, t, '(아무도 없다. 메아리만 돌아온다)'); return { ok: true }; }
         if (a.cool.stand > 0) { bubble(w, w.crew[0], '아까 했잖아요…'); return { ok: true }; }
-        a.cool.stand = 90; buff(w, 'rally', 30);
+        a.cool.stand = 90; buff(w, 'rally', 30); w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + 25); c.slack = false; });
         w.crew.slice(0, 5).forEach(function (c) { bubble(w, c, '충성!'); });
         return { ok: true };
       case 'flag': me(w, '충성!'); fx(w, { t: 'salute' }); bubble(w, FLAG, pick(L.gag.flag)); stat(w, 'flag'); return { ok: true };
@@ -309,7 +336,8 @@
   function applyStats(w) {
     var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? RIDE[a.ride.kind] : null;
     var base = Math.round(G.capOf(save) * (b.meal > 0 ? 1.4 : 1));
-    P.r = rd ? (rd.noClear ? T.r : Math.max(T.r, rd.r)) : T.r;
+    var tr = G.toolR(save);
+    P.r = rd ? (rd.noClear ? tr : Math.max(tr, rd.r)) : tr;
     P.p = rd && !rd.noClear ? Math.max(T.p, rd.p) : T.p;
     P.aura = rd ? false : !!T.aura;
     P.noClear = !!(rd && rd.noClear);
@@ -317,7 +345,7 @@
     var m = w.mod;
     m.speed = (b.matsta > 0 ? 1.25 : 1) * (rd ? rd.speed : 1);
     m.hit = b.hotbar > 0 ? 0.7 : 1;
-    m.crew = (b.choco > 0 ? 1.4 : 1) * (b.chicken > 0 ? 1.5 : 1) * (b.rally > 0 ? 1.25 : 1);
+    m.crew = (b.choco > 0 ? 1.4 : 1) * (b.chicken > 0 ? 1.5 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1);
     m.stun = b.cat > 0 || b.hotpack > 0 ? 0.5 : 1;
     w.mult = G.incomeMult(save) * (1 + 0.01 * Math.min(SNOWMAN_MAX, save.snowmen.length)) * (b.praise > 0 ? 1.2 : 1);
   }
@@ -326,13 +354,7 @@
   function canThrow(w) {
     var a = init(w), P = w.player;
     if (a.ride || a.ballCd > 0 || P.stun > 0) return false;
-    if (P.load >= 1) return true;
-    // 발밑이나 바로 옆(두 칸 안)에 눈이 있으면 뭉칠 수 있다. 구역 밖은 늘 눈밭
-    for (var dy = -20; dy <= 20; dy += S.CELL) for (var dx = -20; dx <= 20; dx += S.CELL) {
-      var idx = G.cellIndex(P.x + dx, P.y + dy);
-      if (idx < 0 || w.zone[idx] < 0 || w.depth[idx] > 0 || !w.zoneOpen[w.zone[idx]]) return true;
-    }
-    return false;
+    return true;   // 눈은 어디든 있다 (군화에 묻은 것까지)
   }
   function throwBall(w, look, pitch) {
     var a = init(w), P = w.player;
@@ -456,6 +478,7 @@
     if (m.prog >= m.goal) {
       a.mission = null; a.missionCool = 12;
       var g = give(w, m.reward, 'mission');
+      if (m.fac >= 1.1) G.gainDia(w, 1, 'mission');
       fx(w, { t: 'mission', state: 'done', m: m, pay: g }); say(w, pick(['임무 완수! 쓸 만하군.', '잘했다. 초코파이 받아라.', '오, 빠른데?']) + ' +' + g);
       w.save.stats.missions = (w.save.stats.missions || 0) + 1;
     } else if (m.t <= 0) {
@@ -510,8 +533,120 @@
         fx(w, { t: 'smash', x: sm[i].x, y: sm[i].y, deer: true }); sm.splice(i, 1); say(w, '고라니가 눈사람을 박살 냈다!!'); break;
       }
     }
-    stepBalls(w, dt); stepBall(w, dt); stepMission(w, dt); stepHeat(w, dt);
+    stepBalls(w, dt); stepBall(w, dt); stepMission(w, dt); stepHeat(w, dt); stepOfficers(w, dt);
+    a.metaT = (a.metaT || 0) - dt;
+    if (a.metaT <= 0 && JY.SnowMeta) { a.metaT = 1; JY.SnowMeta.check(w); }
     applyStats(w);
+  }
+
+  function chocoCost(w) { return Math.round(8 * (1 + rank(w)) * (1 + w.save.day * 0.1)); }
+
+  /* ── 간부 순찰 ── */
+  function planOfficers(w) {
+    var a = w.act, save = w.save, R = G.mulberry(save.seed * 7 + save.day * 131), plan = [];
+    a.offDay = save.day; a.off = [];
+    plan.push({ t: 20 + R() * 40, id: 'lt' });
+    if (save.day >= 2) plan.push({ t: 70 + R() * 60, id: 'cpt' });
+    if (w.inspect) plan.push({ t: 35 + R() * 20, id: 'gen' });
+    a.offPlan = plan.filter(function (p) { return p.t > w.time; });
+  }
+  function spawnOfficer(w, id) {
+    var a = w.act, P = w.player, home = id === 'gen' ? { x: 400, y: 1190 } : (function () { var d = door('office'); return { x: d.x, y: d.y + 8 }; })();
+    var o = { id: id, x: home.x, y: home.y, home: home, dir: { x: 0, y: 1 }, walk: 0, moving: false, phase: 'come', t: 0, stayT: OFF[id].stay, tx: P.x, ty: P.y,
+      saluted: false, salT: 0, missed: false, warned: false, done: {}, helpT: 0, hitT: 0, tidx: -1, retarget: 0 };
+    a.off.push(o);
+    fx(w, { t: 'officer', state: 'arrive', id: id, title: OFF[id].title });
+    return o;
+  }
+  function stepOfficers(w, dt) {
+    var a = w.act, P = w.player;
+    if (a.offDay !== w.save.day) planOfficers(w);
+    while (a.offPlan.length && a.offPlan[0].t <= w.time) { var pl = a.offPlan.shift(); if (!a.off.some(function (o) { return o.id === pl.id; })) spawnOfficer(w, pl.id); }
+    for (var i = a.off.length - 1; i >= 0; i--) {
+      var o = a.off[i], def = OFF[o.id], d = dist(o, P);
+      o.t += dt;
+      if (o.helpT > 0) {
+        // 소대장이 같이 치운다
+        o.helpT -= dt; o.retarget -= dt;
+        if (o.tidx < 0 || o.retarget <= 0 || !w.depth[o.tidx]) { G.pickTarget(w, o); }
+        if (Math.hypot(o.tx - o.x, o.ty - o.y) > 6) G.steer(o, o.tx, o.ty, 60, dt, 6); else o.moving = false;
+        o.hitT -= dt; if (o.hitT <= 0) { o.hitT = 0.18; G.clearAt(w, o.x + o.dir.x * 9, o.y + o.dir.y * 9, 16, 1, 'crew', null); }
+        if (o.helpT <= 0) { bubble(w, o, '손 시려… 난 들어간다!'); o.phase = 'go'; }
+        continue;
+      }
+      if (o.phase === 'come') {
+        if (o.t % 1 < dt) { o.tx = P.x; o.ty = P.y; }
+        G.steer(o, o.tx, o.ty, def.speed, dt, 6);
+        if (d < 28 || o.t > 45) { o.phase = 'stay'; o.moving = false; }
+      } else if (o.phase === 'stay') {
+        o.stayT -= dt; o.moving = false;
+        var fx0 = P.x - o.x, fy0 = P.y - o.y, fm = Math.hypot(fx0, fy0) || 1; o.dir.x = fx0 / fm; o.dir.y = fy0 / fm;
+        if (d > 60) G.steer(o, P.x, P.y, def.speed, dt, 6);
+        if (o.stayT <= 0) o.phase = 'go';
+      } else {
+        G.steer(o, o.home.x, o.home.y, def.speed * 1.2, dt, 6);
+        if (Math.hypot(o.home.x - o.x, o.home.y - o.y) < 10 || o.t > 150) { a.off.splice(i, 1); fx(w, { t: 'officer', state: 'leave', id: o.id }); continue; }
+      }
+      // 다가오면 3초 안에 경례
+      if (!o.saluted && !o.missed && o.phase !== 'go' && d < 55) {
+        if (!o.warned) { o.warned = true; bubble(w, o, pick(L.offNear[o.id])); fx(w, { t: 'officer', state: 'near', id: o.id, title: def.title, o: o }); }
+        o.salT += dt;
+        if (o.salT > 3.5) {
+          o.missed = true; bubble(w, o, pick(L.offMiss[o.id])); fx(w, { t: 'officer', state: 'miss', id: o.id, title: def.title });
+          if (o.id === 'cpt') heat(w, 1, 'nosalute'); else if (o.id === 'gen') heat(w, 2, 'nosalute');
+        }
+      }
+    }
+  }
+  function actOfficer(w, o) {
+    var save = w.save, def = OFF[o.id], r = rank(w), base = (40 + 20 * save.day) * (1 + r) * w.mult;
+    if (!o.saluted) {
+      o.saluted = true; var quick = o.salT < 1.2 && !o.missed;
+      me(w, '충성!!'); fx(w, { t: 'salute' }); stat(w, 'salute'); if (quick) stat(w, 'kal');
+      bubble(w, o, quick ? pick(L.offKal) : o.missed ? '…늦었다. 다음엔 빨리.' : '그래, 수고한다.');
+      var pie = o.missed ? 0 : give(w, base * (o.id === 'lt' ? 0.5 : o.id === 'cpt' ? 1 : 2) * (quick ? 1.5 : 1), 'salute');
+      var dia = o.missed ? 0 : (o.id === 'gen' ? 2 : 0) + (quick && o.id !== 'lt' ? 1 : 0);
+      if (dia) G.gainDia(w, dia, 'salute');
+      if (o.id === 'lt') w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + 10); });
+      fx(w, { t: 'officer', state: 'saluted', id: o.id, title: def.title, quick: quick, pie: pie, dia: dia });
+      return { ok: true, quick: quick };
+    }
+    if (o.id === 'lt' && !o.done.help) {
+      o.done.help = true; o.helpT = 40; o.tidx = -1; me(w, '소대장님, 같이 하시죠!'); bubble(w, o, '그래! 나도 해 볼까? …이거 재밌네?');
+      fx(w, { t: 'officer', state: 'help', id: o.id, title: def.title }); stat(w, 'ltHelp');
+      return { ok: true };
+    }
+    if (!o.done.report && o.id !== 'lt') {
+      o.done.report = true; var pc = G.pct(w), res;
+      me(w, def.title + '! 제설 작업 ' + Math.round(pc * 100) + '% 진행 중입니다!');
+      if (pc >= 0.9) {
+        res = 'good'; var g = give(w, base * (o.id === 'gen' ? 4 : 2), 'report'); G.gainDia(w, o.id === 'gen' ? 3 : 1, 'report'); stat(w, 'goodReport');
+        if (o.id === 'gen') save.boxes.push('rare');
+        bubble(w, o, o.id === 'gen' ? '훌륭하다! 이 부대 포상이다!!' : '아주 좋아! 다들 고생했다!'); fx(w, { t: 'officer', state: 'report', res: res, id: o.id, title: def.title, pie: g });
+      } else if (pc >= 0.6) {
+        res = 'ok'; var g2 = give(w, base * 0.6, 'report');
+        bubble(w, o, '수고한다. 조금만 더 하자.'); fx(w, { t: 'officer', state: 'report', res: res, id: o.id, title: def.title, pie: g2 });
+      } else {
+        res = 'bad'; w.crew.forEach(function (c) { c.mor = Math.max(0, c.mor - 10); });
+        bubble(w, o, '이게 다 한 거야?! 정신 안 차려?!'); if (o.id === 'gen') heat(w, 1, 'report');
+        fx(w, { t: 'officer', state: 'report', res: res, id: o.id, title: def.title });
+      }
+      return { ok: true, res: res };
+    }
+    me(w, '충성!'); fx(w, { t: 'salute' }); bubble(w, o, '그래 그래, 일 봐라.');
+    return { ok: true };
+  }
+
+  /* ── 다이아 쓰기 ── */
+  function useDia(w, what) {
+    init(w);
+    var save = w.save, cost = S.DIA[what];
+    if (typeof cost !== 'number' || save.dia < cost) return { ok: false };
+    if (what === 'morale' && !w.crew.length) return { ok: false, why: 'crew' };
+    save.dia -= cost;
+    if (what === 'support') { buff(w, 'support', 60); say(w, '대대에서 지원 왔다! 인력 전원 두 배로 움직여!'); }
+    else if (what === 'morale') { w.crew.forEach(function (c) { c.mor = 100; c.slack = false; }); say(w, '전원 초코파이 지급! 사기 충전 완료!'); fx(w, { t: 'choco', all: true }); }
+    return { ok: true, cost: cost };
   }
 
   /* ── PX ── */
@@ -530,18 +665,21 @@
     w.save.bank -= it.cost; stat(w, 'px');
     if (id === 'gong') { w.deer.forEach(function (d) { if (!d.leaving) shoo(w, d, false); }); fx(w, { t: 'gong' }); say(w, '꽹과리 소리에 고라니가 줄행랑친다!'); }
     else buff(w, id, def.sec);
+    if (id === 'choco') w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + 50); c.slack = false; });
     return { ok: true, cost: it.cost, item: it };
   }
 
   function state(w) {
     var a = init(w), list = [];
     Object.keys(a.buffs).forEach(function (k) { list.push({ id: k, name: BUFF[k].name, desc: BUFF[k].desc, t: a.buffs[k] }); });
-    return { heat: a.heat, buffs: list, mission: a.mission, ride: a.ride ? { kind: a.ride.kind, name: RIDE[a.ride.kind].name, t: a.ride.t, max: a.ride.max } : null };
+    var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
+    var mor = w.crew.length ? w.crew.reduce(function (q, e) { return q + e.mor; }, 0) / w.crew.length : 0, slack = w.crew.filter(function (e) { return e.slack; }).length;
+    return { heat: a.heat, buffs: list, mission: a.mission, salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack, ride: a.ride ? { kind: a.ride.kind, name: RIDE[a.ride.kind].name, t: a.ride.t, max: a.ride.max } : null };
   }
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, throwBall: throwBall, canThrow: canThrow, canBuild: canBuild,
-    pxItems: pxItems, pxBuy: pxBuy, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide,
+    pxItems: pxItems, pxBuy: pxBuy, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide, useDia: useDia, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost,
     RIDE: RIDE, BUFF: BUFF, PX: PX, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
   };
 })(window.JY = window.JY || {});

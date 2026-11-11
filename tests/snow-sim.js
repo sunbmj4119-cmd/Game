@@ -55,6 +55,7 @@ function shop(log) {
 var firsts = {}, t = 0, lastShop = 0, lastLog = 0, rank0 = 0, hits = 0;
 while (t < MIN * 60) {
   G.step(w, DT, botInput()); t += DT;
+  if (w.recruits.length) G.autoPost(w);   // 가상 플레이어는 신병을 바로 배치
   w.fx.forEach(function (f) { if (f.t === 'meHit' || f.t === 'deerHit') hits++; }); w.fx.length = 0; w.dirty.length = 0;
   var r = G.rankOf(save);
   if (r > rank0) { rank0 = r; firsts['rank:' + S.RANKS[r].name] = t; }

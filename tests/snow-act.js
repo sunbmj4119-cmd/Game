@@ -46,7 +46,7 @@ look = near(w, hb); w.player.load = 30; w.player.val = 30;
 t = A.best(w, look, true);
 ok(t.verb === '짐 떠넘기기', '짐이 있으면 후임에게 떠넘긴다', t.verb);
 A.act(w, t, look);
-ok(w.player.load === 10 && hb.load === 20 && hb.state === 'haul', '떠넘긴 만큼 후임이 지고 집하장으로 간다', [w.player.load, hb.load, hb.state]);
+ok(w.player.load === 30 - hb.load && hb.load > 0 && hb.state === 'haul', '떠넘긴 만큼 후임이 지고 집하장으로 간다', [w.player.load, hb.load, hb.state]);
 w.player.load = 0; w.player.val = 0; hb.load = 0; hb.val = 0; hb.state = 'work';
 t = A.best(w, look, true);
 ok(t.verb === '갈구기', '빈손이면 갈구기', t.verb);
@@ -155,7 +155,7 @@ var dM = A.door('mess'); w.player.x = dM.x; w.player.y = dM.y + 8; look = face(w
 t = A.best(w, look, true); ok(t.k === 'mess', '취사장: 짬밥 먹기');
 A.act(w, t, look); G.step(w, 1 / 30, null);
 ok(w.player.cap === Math.round(c0 * 1.4), '짬밥 먹으면 적재 +40%', [c0, w.player.cap]);
-ok(!A.act(w, A.best(w, look, true), look).ok, '짬밥은 하루 한 번');
+t = A.best(w, look, true); ok(t.verb === '식판 받아 가기', '짬밥은 하루 한 번 (그다음엔 식판만 받아 간다)', t.verb);
 var dW = A.door('guard'); w.player.x = dW.x; w.player.y = dW.y + 8; look = face(w, dW.x, dW.y - 10);
 t = A.best(w, look, true); ok(t.k === 'guard', '위병소: 면회 확인');
 w.fx.length = 0; A.act(w, t, look); ok(fxs(w, 'gift').length === 1, '면회: 뭐라도 일어난다', fxs(w, 'gift'));
@@ -268,6 +268,59 @@ ok(bb.tier === 'legend' && bb.dia >= 5 && bb.pie > 0 && bb.item && sR.dia >= 5, 
 var wA = fresh(); wA.save.stats.salute = 10; wA.save.life = 3000; G.step(wA, 1.1, null);
 ok(wA.save.ach.salute10 && wA.fx.some(function (f) { return f.t === 'ach'; }) && wA.save.dia >= 2 + 4, '훈장: 경례 머신 + 진급 다이아', [wA.save.dia, wA.save.ach]);
 ok(M.achList(wA.save).length === S.ACH.length, '훈장 목록');
+
+// ── v7: 신병 인솔 → 배치, 따라와 → 다른 구역 ──
+w = fresh(function (s) { s.zones.B = true; s.fresh.B = true; s.bank = 9999; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+G.buy(w.save, 'crew', 'hoobae'); G.newDay(w); w.events = []; A.init(w).reqT = 999; A.init(w).fuelT = 999;
+var rc = w.recruits[0]; look = near(w, rc, 0, -16); t = A.best(w, look, true);
+ok(t && t.k === 'recruit' && t.verb === '인솔하기', '생활관 앞 신병: 인솔하기', t && [t.k, t.verb]);
+A.act(w, t, look); ok(rc.state === 'follow', '인솔하면 따라온다');
+w.player.x = 30; w.player.y = 270; rc.x = 40; rc.y = 250; G.step(w, 1 / 30, null);
+t = A.best(w, { x: 0, y: 1 }, true); ok(t.k === 'recruit' && /따라오는 중/.test(t.verb), '구역 밖에선 배치 못 한다', t.verb);
+w.player.x = 600; w.player.y = 200; rc.x = 590; rc.y = 190; G.step(w, 1 / 30, null);
+t = A.best(w, { x: 0, y: 1 }, true);
+ok(t.k === 'recruit' && /여기 배치 \(족구장\)/.test(t.verb), '구역 안에선 등 뒤 신병도: 여기 배치 (족구장)', t.verb);
+A.act(w, t, { x: 0, y: 1 });
+ok(w.crew.length === 1 && w.crew[0].post === 'B' && w.save.crew.hoobae === 1, '족구장 담당 후임이 됐다');
+var ce = w.crew[0]; ce.x = 600; ce.y = 230; look = near(w, ce); t = A.best(w, look, true);
+ok(/따라와/.test(t.verb2), '인력의 두 번째 행동: 따라와', t.verb2);
+A.act(w, t, look, true); ok(ce.state === 'follow', '따라와 → 따라온다');
+w.player.x = 200; w.player.y = 200; ce.x = 210; ce.y = 190; G.step(w, 1 / 30, null);
+t = A.best(w, { x: 0, y: 1 }, true); A.act(w, t, { x: 0, y: 1 });
+ok(ce.post === 'A' && ce.state === 'work' && w.save.cpost.hoobae[0] === 'A', '생활관 앞 길로 옮겼다');
+
+// ── v7: 심부름 — 부탁 → 가져오기 → 전달 ──
+w = fresh(function (s) { s.crew = { hoobae: 1 }; s.day = 3; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+var a7 = A.init(w); a7.reqT = 0; a7.fuelT = 999; var cr = w.crew[0]; cr.speed = 0; cr.x = 400; cr.y = 200;
+var tries = 0; while (!a7.reqs.length && tries++ < 30) { a7.reqT = 0; G.step(w, 1 / 30, null); }
+var rq = a7.reqs[0];
+ok(rq && ['meal', 'snack', 'letter'].indexOf(rq.item) >= 0 && w.fx.some(function (f) { return f.t === 'req' && f.state === 'new'; }), '인력이 심부름을 부탁한다', rq && rq.item);
+if (rq.who !== cr) { a7.reqs = [{ who: cr, item: 'meal', t: 100, max: 100 }]; rq = a7.reqs[0]; }
+var src = { meal: 'mess', snack: 'px', letter: 'guard' }[rq.item], dS = A.door(src); w.player.x = dS.x; w.player.y = dS.y + 10; look = face(w, dS.x, dS.y - 10);
+w.save.bank = 500; w.save.daily.mess = w.save.day; w.save.daily.gate = w.save.day;
+t = A.best(w, look, true); var rr2 = rq.item === 'snack' ? A.act(w, t, look, true) : A.act(w, t, look);
+ok(rr2.ok && A.state(w).hand && A.state(w).hand.id === rq.item, '가서 물건을 받아 든다: ' + rq.item, [t.verb, t.verb2, A.state(w).hand]);
+cr.mor = 30; look = near(w, cr); t = A.best(w, look, true);
+ok(/전달/.test(t.verb), '들고 가면 "전달"', t.verb);
+var bk7 = w.save.bank; A.act(w, t, look);
+ok(!A.state(w).hand && !a7.reqs.length && cr.mor >= 80 && w.save.bank > bk7 && w.save.stats.favor === 1, '전달하면 보상 + 사기', [cr.mor, w.save.bank - bk7]);
+// 시간 넘기면 실망
+a7.reqs.push({ who: cr, item: 'meal', t: 0.05, max: 100 }); cr.mor = 60; G.step(w, 0.1, null);
+ok(!a7.reqs.length && cr.mor < 50, '부탁을 안 들어주면 사기가 떨어진다', cr.mor);
+// 제설차 기름
+w = fresh(function (s) { s.crew = { plow: 1 }; s.life = 300000; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+a7 = A.init(w); a7.reqT = 999; a7.fuelT = 0; G.step(w, 1 / 30, null);
+var pl7 = w.crew[0];
+ok(pl7.noFuel && a7.reqs.some(function (q) { return q.item === 'fuel'; }), '제설차 기름이 떨어지면 멈춘다');
+var dG7 = A.door('garage'); w.player.x = dG7.x; w.player.y = dG7.y + 10; look = face(w, dG7.x, dG7.y - 10);
+t = A.best(w, look, true); ok(t.k === 'garage' && t.verb === '기름통 받기', '정비고: 기름통 받기', t.verb);
+A.act(w, t, look); pl7.x = 300; pl7.y = 300; look = near(w, pl7, 0, -24); t = A.best(w, look, true);
+ok(t.verb === '기름 넣기', '기름통 들고 제설차: 기름 넣기', t.verb);
+A.act(w, t, look); ok(!pl7.noFuel && pl7.boost > 0 && !A.state(w).hand, '기름 넣으면 다시 달린다');
+// 행보관 간식 → 칭찬 + 분노 해제
+w = fresh(); w.haeng.x = 200; w.haeng.y = 230; w.haeng.hold = 999; A.init(w).hand = 'snack'; A.init(w).heat = 2;
+look = near(w, w.haeng); t = A.best(w, look, true); ok(t.verb === '간식 드리기', '간식 들고 행보관: 간식 드리기', t.verb);
+A.act(w, t, look); ok(A.state(w).heat === 0 && A.state(w).buffs.some(function (b) { return b.id === 'praise'; }), '간식 드리면 분노 해제 + 칭찬');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

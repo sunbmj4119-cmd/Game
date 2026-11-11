@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -505,7 +505,9 @@
     (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    (world.recruits || []).forEach(function (r) { list.push({ y: r.y, f: function () { drawPerson(c, r, { coat: r.def.coat, hat: 'helmet', seed: 3, tool: null, r: 10 }); c.fillStyle = '#2f8f4e'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(r.state === 'follow' ? '따라오는 중' : '신병', r.x, r.y - 33); } }); });
     if (ac) {
+      (ac.reqs || []).forEach(function (q) { var wo = q.who; list.push({ y: 4e5, f: function () { c.fillStyle = '#ff9f43'; c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillText((JY.SnowAct.ITEM[q.item] || {}).want + '?', wo.x, wo.y - 44); } }); });
       (ac.off || []).forEach(function (o) { list.push({ y: o.y, f: function () { drawPerson(c, o, { coat: '#3d4a2b', hat: 'cap', seed: 7, tool: o.helpT > 0 ? 'shovel' : null, r: 10 }); c.fillStyle = '#2b5fd1'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(o.id === 'lt' ? '소대장' : o.id === 'cpt' ? '중대장' : '사단장', o.x, o.y - 33);
         if (!o.saluted && !o.missed && o.warned) { c.fillStyle = '#c8402e'; c.font = '700 11px ' + FONT; c.fillText('경례!', o.x, o.y - 44); } } }); });
       var Pq = world.player, iq = G.cellIndex(Pq.x, Pq.y), pq = iq >= 0 ? world.partOf[iq] : -1, PT = pq >= 0 ? world.parts[pq] : null;

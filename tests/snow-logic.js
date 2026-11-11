@@ -61,7 +61,8 @@ var s6 = G.newSave(); s6.bank = 1000;
 ok(G.buy(s6, 'tool', 'pusher').ok && s6.tool === 1 && G.capOf(s6) === 80, '넉가래: 적재 80');
 ok(!G.buy(s6, 'tool', 'twin').ok, '도구는 순서대로');
 ok(!G.buy(s6, 'crew', 'donggi').ok, '동기는 일병부터');
-ok(G.buy(s6, 'crew', 'hoobae').ok && s6.crew.hoobae === 1, '후임 채용');
+ok(G.buy(s6, 'crew', 'hoobae').ok && !s6.crew.hoobae && s6.pend.length === 1, '후임 전입 요청 (바로 오지 않는다)');
+ok(!G.offers(s6).crew[0].ok, '이병 정원은 1명');
 s6.bank = 1e6; s6.perks.back = 2; ok(G.capOf(s6) === Math.round(80 * 1.6), '튼튼한 등짝: 적재 +30%씩', G.capOf(s6));
 ok(!G.buy(s6, 'zone', 'C').ok && G.buy(s6, 'zone', 'B').ok && G.buy(s6, 'zone', 'C').ok, '구역은 순서대로 연다');
 var o6 = G.offers(s6).factory;
@@ -70,7 +71,7 @@ ok(G.buy(s6, 'relay', 'B').ok && G.dumpsOf(s6).length === 2, '양동이 릴레�
 ok(!G.buy(s6, 'proc', 'sculpt').ok, '조각 작업장은 압축기 Lv3부터');
 var m0 = G.incomeMult(s6); G.buy(s6, 'proc', 'press'); ok(Math.abs(G.incomeMult(s6) / m0 - 1.3) < 1e-9, '압축기: 보상 +30%', G.incomeMult(s6) / m0);
 var w6 = G.createWorld(s6);
-ok(w6.total === 456 + 450 + 46 * 28 && w6.crew.length === 1 && w6.player.cap === 128, '열린 구역·인력·도구·적재가 반영', [w6.total, w6.crew.length, w6.player.cap]);
+ok(w6.total === 456 + 450 + 46 * 28 && w6.crew.length === 0 && w6.recruits.length === 0 && w6.player.cap === 128, '열린 구역·도구·적재가 반영 (신병은 아직)', [w6.total, w6.crew.length, w6.player.cap]);
 var fresh = 0; w6.cells.forEach(function (idx) { if (w6.zone[idx] === 2 && w6.depth[idx] >= 2) fresh++; });
 ok(fresh === w6.zoneTotal[2], '새로 연 구역은 묵은 눈(깊이 2~4)으로 가득', [fresh, w6.zoneTotal[2]]);
 
@@ -132,7 +133,7 @@ var s10 = G.newSave(); s10.crewRate = 40; s10.last = 1000;
 ok(G.offline(s10, 1000 + 60 * 1000) === 0 && G.offline(s10, 1000 + 3600 * 1000) === Math.floor(40 * 3600 * 0.1) && G.offline(s10, 1000 + 48 * 3600 * 1000) === Math.floor(40 * 8 * 3600 * 0.1), '쉬는 동안: 5분 이상, 인력 수입의 10%, 최대 8시간');
 // 옛 저장(하루 60초판) 보정
 var old = G.migrate({ v: 2, zones: { A: true, B: true, Z: true }, tool: 99, bank: 77, day: 9 });
-ok(old.v === 3 && !old.zones.Z && old.tool === S.TOOLS.length - 1 && old.bank === 77 && old.fresh.B && old.load === 0, '옛 저장 데이터 보정', old);
+ok(old.v === 4 && !old.zones.Z && old.tool === S.TOOLS.length - 1 && old.bank === 77 && old.fresh.B && old.load === 0, '옛 저장 데이터 보정', old);
 ok(G.migrate(null).day === 1, '저장 없음 → 새로');
 
 // ── v6: 잠긴 구역은 못 들어간다 ──
@@ -183,9 +184,30 @@ ok(G.createWorld(sT).treas.every(function (t) { return t.idx !== t0.idx; }), '�
 var sM = G.newSave(); sM.seed = 3; sM.crew = { hoobae: 1 }; sM.mor = 2; var wM = G.createWorld(sM); wM.events = []; wM.haeng.x = 780; wM.haeng.y = 1180; wM.haeng.hold = 999;
 for (q6 = 0; q6 < 30 * 30; q6++) G.step(wM, 1 / 30, null);
 ok(wM.fx.some(function (f) { return f.t === 'slack'; }) || wM.crew[0].slack, '사기가 바닥나면 짱박힌다', wM.crew[0].mor);
-var sQ = G.newSave(); sQ.seed = 3; sQ.crew = { hoobae: 2 }; sQ.zones.B = true; sQ.fresh.B = true; sQ.post = 'B';
+var sQ = G.newSave(); sQ.seed = 3; sQ.crew = { hoobae: 2 }; sQ.zones.B = true; sQ.fresh.B = true; sQ.cpost = { hoobae: ['B', 'A'] };
 var wQ = G.createWorld(sQ); wQ.events = []; wQ.crew.forEach(function (e) { G.pickTarget(wQ, e); });
-ok(wQ.crew.every(function (e) { return e.tidx >= 0 && wQ.zone[e.tidx] === 1; }), '배치: 족구장에만 간다');
+ok(wQ.zone[wQ.crew[0].tidx] === 1 && wQ.zone[wQ.crew[1].tidx] === 0, '인력마다 담당 구역만 치운다', wQ.crew.map(function (e) { return e.post; }));
+
+// ── v7: 전입 요청 → 다음 날 아침 생활관 앞 신병 → 인솔 → 구역 배치 ──
+var sN = G.newSave(); sN.seed = 21; sN.bank = 5000; sN.zones.B = true; sN.fresh.B = true;
+ok(G.buy(sN, 'crew', 'hoobae').ok, '전입 요청');
+var wN = G.createWorld(sN); wN.events = [];
+ok(wN.recruits.length === 0, '오늘은 아직 안 온다');
+G.newDay(wN);
+ok(wN.recruits.length === 1 && wN.fx.some(function (f) { return f.t === 'recruit'; }), '다음 날 아침 신병 도착', wN.recruits.length);
+var rN = wN.recruits[0]; ok(Math.hypot(rN.x - S.DOOR.x, rN.y - S.DOOR.y) < 60, '생활관 문 앞에 서 있다');
+rN.state = 'follow'; wN.player.x = 600; wN.player.y = 200; for (q6 = 0; q6 < 10 * 30; q6++) G.step(wN, 1 / 30, null);
+ok(Math.hypot(rN.x - 600, rN.y - 200) < 40, '인솔하면 따라온다', [rN.x, rN.y]);
+var eN = G.assignRecruit(wN, rN, 'B');
+ok(eN && sN.crew.hoobae === 1 && !sN.pend.length && wN.crew.length === 1 && eN.post === 'B' && sN.cpost.hoobae[0] === 'B', '족구장에 배치 → 인력이 된다');
+G.serialize(wN); var wN2 = G.createWorld(sN);
+ok(wN2.crew.length === 1 && wN2.crew[0].post === 'B', '담당 구역은 저장된다');
+// 정원
+var sK = G.newSave(); sK.bank = 1e9; sK.life = 3000; G.buy(sK, 'crew', 'hoobae'); G.buy(sK, 'crew', 'hoobae'); G.buy(sK, 'crew', 'donggi');
+ok(sK.pend.length === 3 && !G.buy(sK, 'crew', 'hoobae').ok, '일병 정원 3명 (대기 중인 신병 포함)');
+// 옛 저장: 인력이 넘치면 전출 + 환불
+var oldC = G.migrate({ v: 3, zones: { A: true }, crew: { hoobae: 10, plow: 2 }, bank: 0 });
+ok(oldC.crew.hoobae === 4 && oldC.crew.plow === 1 && oldC.bank > 0 && oldC.v === 4, '넘치는 인력은 전출, 절반 환불', [oldC.crew, oldC.bank]);
 
 // ── v6: 다이아 상점 ──
 var sD = G.newSave(); sD.bank = 1e9; sD.life = 1e6; sD.dia = 0;

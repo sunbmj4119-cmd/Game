@@ -268,9 +268,9 @@
     items.forEach(function (o) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.dia ? ' · 다이아 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
+      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 다이아 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
       var label;
-      if (o.state === 'buy') label = (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
+      if (o.state === 'buy') label = (o.kind === 'crew' ? '전입 ' : '') + (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
       else if (o.state === 'own') label = o.cur ? '사용 중' : '보유';
       else if (o.state === 'max') label = o.kind === 'relay' ? '가동 중' : '최대';
       else if (o.state === 'later') label = '다음 단계';
@@ -309,8 +309,6 @@
   function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
   function onShopClick(e) {
-    var ps = e.target.closest('[data-post]');
-    if (ps) { save.post = ps.getAttribute('data-post'); persistRaw(); if (X) X.pop(); renderShop(); return; }
     var du = e.target.closest('[data-dia]');
     if (du) {
       var w0 = V.world(), r0 = w0 && A ? A.useDia(w0, du.getAttribute('data-dia')) : { ok: false };
@@ -326,7 +324,7 @@
     if (!r.ok) { if (X) X.deny(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); return; }
     if (X) X.buy();
     dirty = true; persistRaw();
-    toast(esc(r.item.name) + ({ crew: ' 투입!', zone: ' 담당!', tool: ' 지급!', relay: ' 가동!', proc: ' 설치!', star: ' 완료!' }[kind] || ' 보급!'));
+    if (kind === 'crew') toast('전입 요청! ' + esc(r.item.name) + '은(는) 내일 아침 생활관 앞에 온다'); else toast(esc(r.item.name) + ({ crew: ' 투입!', zone: ' 담당!', tool: ' 지급!', relay: ' 가동!', proc: ' 설치!', star: ' 완료!' }[kind] || ' 보급!'));
     if (kind === 'crew' && Math.random() < 0.5) say('hire', 2000);
     if (kind === 'tool') say('tool', 2000);
     if (kind === 'zone') say('zone', 2000);
@@ -394,6 +392,15 @@
       else if (f.state === 'help') chip('소대장님이 40초 동안 같이 치운다!', 'good');
       return true;
     }
+    if (f.t === 'recruit') { banner('신병 전입!', '생활관 앞에 신병 ' + f.n + '명 · 가서 인솔해서 구역에 배치해라', 2600); if (X) X.bugle(); return true; }
+    if (f.t === 'assigned') { chip(f.e.def.name + ' → ' + (G.zoneById(f.zone) || {}).name + ' 담당' + (f.moved ? ' (이동)' : '!'), 'good'); return true; }
+    if (f.t === 'req') {
+      if (f.state === 'new') chip(f.who + ': ' + (A.ITEM[f.item] || {}).want + ' 부탁 (' + f.where + ')', 'warn');
+      else if (f.state === 'done') { chip('심부름 완료! ' + f.who + ' · +' + fmt(f.pay), 'good'); if (X) X.coin(); }
+      else chip(f.who + '의 부탁을 못 들어줬다…', 'bad');
+      return true;
+    }
+    if (f.t === 'hand') { if (f.item) toast(f.name + '을(를) 들었다'); return true; }
     if (f.t === 'slack') { if (!hud.slackSaid) { hud.slackSaid = true; chip('인력이 짱박혔다! 가서 일으키거나 초코파이를 줘라', 'warn'); setTimeout(function () { hud.slackSaid = false; }, 15000); } return true; }
     if (f.t === 'part' && f.perfect) {
       if (f.mine && f.first) { if (X) X.perfect(); vibrate([30, 30, 60]); }
@@ -436,10 +443,10 @@
     var w = V.world(), mor = w && w.crew.length ? Math.round(w.crew.reduce(function (a, e) { return a + e.mor; }, 0) / w.crew.length) : save.mor || 80;
     var slack = w ? w.crew.filter(function (e) { return e.slack; }).length : 0, n = G.crewCount(save);
     var head = document.createElement('div'); head.className = 'crew-head';
-    var posts = '<button data-post="all" aria-pressed="' + (save.post === 'all') + '">전 구역</button>' + S.ZONES.filter(function (Z) { return save.zones[Z.id]; }).map(function (Z) { return '<button data-post="' + Z.id + '" aria-pressed="' + (save.post === Z.id) + '">' + esc(Z.name) + '</button>'; }).join('');
     head.innerHTML = '<div class="row"><b>인력 ' + n + '명 · 사기 ' + (n ? mor : '-') + '</b>' + (slack ? '<small>짱박힌 인력 ' + slack + '명</small>' : '<small>사기가 바닥나면 짱박힌다</small>') + '</div>' +
       (n ? '<div class="row"><div class="morbar"><i style="width:' + mor + '%"></i></div></div>' : '') +
-      '<small>배치: 인력이 치울 구역</small><div class="posts">' + posts + '</div>' +
+      '<p class="info">정원 <b>' + (n + G.pendN(save)) + '/' + G.crewCap(save) + '명</b> (진급하면 늘어난다)' + (G.pendN(save) ? ' · 전입 대기 <b>' + G.pendN(save) + '명</b>: 다음 날 아침 생활관 앞' : '') +
+      '<br>인력은 <b>담당 구역</b>만 치운다. 옮기려면 가서 "따라와" → 새 구역에서 "여기 배치"</p>' +
       '<div class="dia-btns"><button data-dia="morale"' + (save.dia >= S.DIA.morale && n ? '' : ' disabled') + '>전원 초코파이 ' + dia() + S.DIA.morale + '</button><button data-dia="support"' + (save.dia >= S.DIA.support && n ? '' : ' disabled') + '>대대 지원 요청 ' + dia() + S.DIA.support + '</button></div>';
     list.appendChild(head);
   }
@@ -484,11 +491,12 @@
     var now = Date.now();
     if (!force && now - actAt < 110) return;
     actAt = now;
-    var lk = look(), t = lk ? A.best(w, lk, lk.fp) : null, key = t ? t.k + '|' + t.verb + '|' + t.name : '';
+    var lk = look(), t = lk ? A.best(w, lk, lk.fp) : null, key = t ? t.k + '|' + t.verb + '|' + t.name + '|' + (t.verb2 || '') : '';
     curT = t; if (V.setFocus) V.setFocus(t);
     if (hudA.key !== key) {
       hudA.key = key;
-      var b = $('act-btn'); b.disabled = !t;
+      var b = $('act-btn'), b2 = $('act2-btn'); b.disabled = !t;
+      b2.hidden = !(t && t.verb2); if (t && t.verb2) b2.textContent = t.verb2;
       $('act-name').textContent = t ? t.name : '';
       $('act-verb').textContent = t ? t.verb : '행동';
       b.classList.toggle('pulse', !!t && (t.k === 'car' || t.k === 'exit' || t.k === 'plow'));
@@ -512,15 +520,27 @@
         $('h-mis').classList.toggle('late', m.t < 20);
       }
     }
+    var hk = st.hand ? st.hand.name : '';
+    if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand; $('h-hand-n').textContent = hk; }
+    var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
+    if (hudA.rk !== rk) {
+      hudA.rk = rk;
+      $('h-reqs').innerHTML = st.reqs.slice(0, 3).map(function (q) {
+        var have = st.hand && st.hand.id === q.item;
+        return '<div class="' + (have ? 'have' : '') + '"><span><b>' + esc(q.who) + '</b>: ' + esc(q.want) + ' 부탁</span><small>' + (have ? '들고 있다 → 가서 건네줘라' : esc(q.from) + '에서 가져오기') + '</small><i><em style="width:' + Math.max(0, q.t / q.max * 100) + '%"></em></i></div>';
+      }).join('');
+    }
     var bk = st.buffs.map(function (x) { return x.name + ' ' + Math.ceil(x.t) + '초'; }).join('|');
     if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 4).map(function (x) { return '<span>' + esc(x.name) + ' ' + Math.ceil(x.t) + '초</span>'; }).join(''); }
   }
-  function doAct() {
+  function doAct(alt) {
     var w = V.world && V.world();
     if (!A || !w || V.mode() !== 'play') return;
     updAct(w, true);
-    if (!curT) { if (X) X.deny(); return; }
-    var r = A.act(w, curT, look());
+    if (!curT || (alt === true && !curT.verb2)) { if (X) X.deny(); return; }
+    var r = A.act(w, curT, look(), alt === true);
+    if (!r.ok && r.why === 'money') toast('초코파이가 모자라다');
+    if (!r.ok && r.why === 'zone') toast('구역 안으로 데려가서 배치해라');
     if (r.ui === 'px') openPX();
     else if (r.ui === 'sleep') sleepFx(r);
     else if (!r.ok && r.why === 'stun') toast('넘어져서 아무것도 못 한다');
@@ -617,12 +637,14 @@
       var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === 'Tab' || k === 'q') { e.preventDefault(); scan(); }
       if (k === 'b') openShop();
-      if (k === 'e' || k === ' ' || k === 'Enter') { e.preventDefault(); doAct(); }
+      if (k === 'e' || k === ' ' || k === 'Enter') { e.preventDefault(); doAct(false); }
       if (k === 'f') doBall();
+      if (k === 'r') doAct(true);
       if (k === 'c') $('h-cam').onclick();
     });
     function press(id, fn) { var b = $(id); b.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); fn(); }); b.addEventListener('click', function (e) { if (e.detail === 0) fn(); }); }
-    press('act-btn', doAct); press('ball-btn', doBall);
+    press('act-btn', function () { doAct(false); }); press('ball-btn', doBall); press('act2-btn', function () { doAct(true); });
+    press('h-hand', function () { var w = V.world(); if (A && w && V.mode() === 'play' && A.drop(w)) { if (X) X.pop(); hudA.hand = null; } });
     document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
     window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());

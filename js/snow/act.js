@@ -43,6 +43,20 @@
     gen: { name: '사단장', title: '사단장님', face: 'general', speed: 32, stay: 30 }
   };
 
+  // 손에 드는 물건 (한 번에 하나): 가져와서 → 건네준다
+  var ITEM = {
+    meal: { name: '짬밥 식판', from: '취사장', want: '짬밥' },
+    snack: { name: '맛스타·냉동 봉지', from: 'PX', want: '간식' },
+    letter: { name: '편지', from: '위병소', want: '편지' },
+    fuel: { name: '기름통', from: '정비고', want: '기름' }
+  };
+  // 부탁(심부름): 인력·행보관이 가끔 뭘 갖다 달라고 한다
+  var REQ = {
+    meal: { ask: ['배고파요… 짬밥 좀 갖다 주시면 안 됩니까', '취사장 가서 식판 하나만…', '밥 먹고 하면 안 됩니까…'], thanks: ['살았다!! 짬밥 최고!', '오늘 짜장이다!!'] },
+    snack: { ask: ['PX에서 맛스타 하나만 사다 주십쇼…', '냉동 먹고 싶다…', '초코파이… 아니 냉동…'], thanks: ['이 은혜 잊지 않겠습니다!', '형이 최고입니다!'] },
+    letter: { ask: ['혹시 저 편지 왔는지 위병소에 좀…', '여자친구 편지 기다리는데…'], thanks: ['편지다!!! (눈물)', '…헤어지자는 거 아니지? 휴!'] },
+    fuel: { ask: ['기름 떨어졌습니다! 정비고에서 기름통 좀!'], thanks: ['부릉부릉! 다시 갑니다!'] }
+  };
   var PX = [
     { id: 'matsta', name: '맛스타', base: 30, sec: 60, desc: '탄산이 아니다. 근데 빨라진다. 이동 +25% (60초)' },
     { id: 'hotbar', name: '냉동 핫바', base: 50, sec: 60, desc: '전자레인지 30초. 손이 빨라진다 +30% (60초)' },
@@ -83,7 +97,7 @@
     var save = w.save;
     save.snowmen = save.snowmen || []; save.daily = save.daily || {}; save.stats = save.stats || {};
     var a = w.act = { buffs: {}, heat: 0, heatT: 0, shoutT: 0, balls: [], ride: null, mission: null, missionCool: 0, cool: {}, ballCd: 0,
-      ball: null, scrap: false, deerT: 0, n: { shoo: 0, pet: 0, hit: 0, wake: 0, flag: 0, snowman: 0 } };
+      ball: null, scrap: false, deerT: 0, n: { shoo: 0, pet: 0, hit: 0, wake: 0, flag: 0, snowman: 0 }, hand: null, reqs: [], reqT: 25, fuelT: 80, pickCd: 0 };
     a.ball = ballHome(w);
     return a;
   }
@@ -114,26 +128,39 @@
       var verb = !o.saluted ? '경례' : !o.done.report && o.id !== 'lt' ? '보고하기' : o.id === 'lt' && !o.done.help ? '같이 하시죠' : '경례';
       add('officer', o, o.x, o.y, o.saluted ? 40 : 60, OFF[o.id].title, verb, { urgent: !o.saluted && !o.missed });
     });
-    var H = w.haeng;
-    add('haeng', H, H.x, H.y, 36, '행보관', a.heat > 0 ? '경례로 무마' : '경례');
+    var H = w.haeng, hand = a.hand, here = G.zoneAt(w, P.x, P.y), hereV = here ? '여기 배치 (' + here.name + ')' : '따라오는 중';
+    var hReq = reqOf(a, H);
+    add('haeng', H, H.x, H.y, 36, '행보관' + (hReq ? ' · ' + ITEM[hReq.item].want + ' 부탁' : ''), hand === 'snack' ? '간식 드리기' : a.heat > 0 ? '경례로 무마' : '경례');
+    // 신병: 인솔 → 따라와서 → 구역에서 배치
+    (w.recruits || []).forEach(function (r) {
+      if (r.state === 'wait') add('recruit', r, r.x, r.y, 36, '신병 ' + r.def.name, '인솔하기');
+      else add('recruit', r, r.x, r.y, 70, '신병 ' + r.def.name, hereV, { behind: true, soft: !here });
+    });
     w.crew.forEach(function (e) {
       if (e.off) return;
-      var C = e.def;
-      if (C.vehicle) { add('plow', e, e.x, e.y, 40, '제설차 (운전병)', '운전 교대'); return; }
-      var verb = e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : e.mor < 50 ? '초코파이 주기 (' + chocoCost(w) + ')' : '갈구기';
-      add('crew', e, e.x, e.y, 36, C.name, verb);
+      var C = e.def, rq = reqOf(a, e), nm = C.vehicle ? '제설차 (운전병)' : C.name;
+      if (rq) nm += ' · ' + ITEM[rq.item].want + ' 부탁';
+      if (e.state === 'follow') { add(C.vehicle ? 'plow' : 'crew', e, e.x, e.y, 70, nm, hereV, { behind: true, soft: !here, follow: true }); return; }
+      var v2 = '따라와 (담당: ' + (G.zoneById(e.post) || { name: '?' }).name + ')';
+      if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음 (정비고)' : '운전 교대', { verb2: v2 }); return; }
+      var verb = hand && (rq && rq.item === hand) ? ITEM[hand].want + ' 전달' : hand === 'meal' || hand === 'snack' ? '나눠 주기' : hand === 'letter' ? '편지 주기' :
+        e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : e.mor < 50 ? '초코파이 주기 (' + chocoCost(w) + ')' : '갈구기';
+      add('crew', e, e.x, e.y, 36, nm, verb, { verb2: v2 });
     });
     if (w.car) add('car', w.car, w.car.x, w.car.y, 42, '중대장님 차', '탈취하기');
-    add('tractor', TRACTOR, TRACTOR.x, TRACTOR.y, 40, '정비고 트랙터', rank(w) < 1 ? '몰기 (일병부터)' : save.daily.tractor === save.day ? '몰기 (기름 없음)' : '몰기');
+    add('tractor', TRACTOR, TRACTOR.x, TRACTOR.y, 40, '정비고 트랙터', hand === 'fuel' && save.daily.tractor === save.day ? '기름 넣기' : rank(w) < 1 ? '몰기 (일병부터)' : save.daily.tractor === save.day ? '몰기 (기름 없음)' : '몰기');
     w.deer.forEach(function (d) { if (!d.leaving) add('deer', d, d.x, d.y, 42, '고라니', '쫓아내기'); });
-    w.cats.forEach(function (c) { add('cat', c, c.x, c.y, 30, '짬타이거', a.scrap ? '짬 주기' : '쓰다듬기'); });
+    w.cats.forEach(function (c) { add('cat', c, c.x, c.y, 30, '짬타이거', a.scrap || hand === 'meal' ? '짬 주기' : '쓰다듬기'); });
     var dB = door('barracks'), late = w.time >= w.dayLen * 0.45;
     add('barracks', null, dB.x, dB.y, 34, '생활관', a.heat > 0 ? '숨기' : late ? '취침 (다음 날로)' : '들어가기');
     var dO = door('office'); add('office', null, dO.x, dO.y, 34, '행정반', a.mission ? '임무 확인' : '임무 받기');
-    var dP = door('px'); add('px', null, dP.x, dP.y, 34, 'PX', '들어가기');
-    var dM = door('mess'); add('mess', null, dM.x, dM.y, 34, '취사장', save.daily.mess === save.day ? '배식 끝' : '짬밥 먹기');
-    var dG = door('garage'); add('garage', null, dG.x, dG.y, 30, '정비고', '기웃거리기');
-    var dW = door('guard'); add('guard', null, dW.x, dW.y, 34, '위병소', save.daily.gate === save.day ? '면회 (내일)' : '면회 확인');
+    var dP = door('px'); add('px', null, dP.x, dP.y, 34, 'PX', hand ? '들어가기' : '들어가기', { verb2: null });
+    var dM = door('mess'), ate = save.daily.mess === save.day;
+    add('mess', null, dM.x, dM.y, 34, '취사장', ate ? (hand ? '배식 끝' : '식판 받아 가기') : '짬밥 먹기', { verb2: !ate && !hand ? '식판 받아 가기' : null });
+    var dG = door('garage'); add('garage', null, dG.x, dG.y, 34, '정비고', hand ? '기웃거리기' : '기름통 받기');
+    var dW = door('guard'), letter = a.reqs.some(function (q) { return q.item === 'letter'; });
+    add('guard', null, dW.x, dW.y, 34, '위병소', save.daily.gate === save.day ? (letter && !hand ? '우편 받기' : '면회 (내일)') : '면회 확인', { verb2: letter && !hand && save.daily.gate !== save.day ? '우편 받기' : null });
+    if (!hand) out.forEach(function (c) { if (c.k === 'px') c.verb2 = '간식 사 가기 (' + snackCost(w) + ')'; });
     var st = bld('stand'); add('stand', null, st.x + st.w / 2, st.y + st.h + 6, 40, '구령대', '구령하기');
     add('flag', FLAG, FLAG.x, FLAG.y, 30, '태극기', '경례');
     S.TANKS.forEach(function (t) {
@@ -154,8 +181,8 @@
       var dx = c.x - P.x, dy = c.y - P.y, d = Math.hypot(dx, dy);
       if (d > c.r) return;
       var cos = d > 0.01 ? (dx * look.x + dy * look.y) / d : 1;
-      if (fp && cos < 0.25 && d > 9 && c.k !== 'exit' && !c.urgent) return;
-      var s = c.k === 'exit' ? -1 : c.urgent ? -0.5 + d * 0.001 : d * (1.6 - cos);
+      if (fp && cos < 0.25 && d > 9 && c.k !== 'exit' && !c.urgent && !c.behind) return;
+      var s = c.k === 'exit' ? -1 : c.urgent ? -0.5 + d * 0.001 : c.behind ? (c.soft ? 60 : 0.2) + d * 0.001 : d * (1.6 - cos);
       if (c.urgent) { if (s < bs) { bs = s; b = c; } return; }
       if (s < bs) { bs = s; b = c; }
     });
@@ -174,11 +201,13 @@
   }
 
   /* ── 행동 ── */
-  function act(w, t, look) {
+  function act(w, t, look, alt) {
     var a = init(w), P = w.player, save = w.save, H = w.haeng, R = w.rand, e, r;
     if (!t) return { ok: false };
     look = look || P.dir;
     if (P.stun > 0.3 && t.k !== 'exit') return { ok: false, why: 'stun' };
+    var v7 = actV7(w, t, alt);
+    if (v7) return v7;
     switch (t.k) {
       case 'exit': endRide(w, true); return { ok: true };
       case 'haeng':
@@ -254,7 +283,7 @@
         save.daily.mess = save.day; a.scrap = w.cats.length > 0; me(w, '잘 먹겠습니다!');
         bubble(w, door('mess'), '취사병: ' + pick(L.mess)); buff(w, 'meal', 120);
         return { ok: true };
-      case 'garage': me(w, pick(L.gag.garage)); return { ok: true };
+      case 'garage': me(w, pick(L.gag.garage)); return { ok: true };   // (빈손이면 actV7이 기름통을 준다)
       case 'guard':
         if (save.daily.gate === save.day) { bubble(w, door('guard'), '위병: 오늘 면회는 끝났다.'); return { ok: false }; }
         save.daily.gate = save.day;
@@ -533,10 +562,117 @@
         fx(w, { t: 'smash', x: sm[i].x, y: sm[i].y, deer: true }); sm.splice(i, 1); say(w, '고라니가 눈사람을 박살 냈다!!'); break;
       }
     }
-    stepBalls(w, dt); stepBall(w, dt); stepMission(w, dt); stepHeat(w, dt); stepOfficers(w, dt);
+    stepBalls(w, dt); stepBall(w, dt); stepMission(w, dt); stepHeat(w, dt); stepOfficers(w, dt); stepReqs(w, dt);
     a.metaT = (a.metaT || 0) - dt;
     if (a.metaT <= 0 && JY.SnowMeta) { a.metaT = 1; JY.SnowMeta.check(w); }
     applyStats(w);
+  }
+
+  /* ── v7: 손에 든 물건 · 심부름 · 신병 인솔 · 따라와/여기 배치 ── */
+  function reqOf(a, who) { for (var i = 0; i < a.reqs.length; i++) if (a.reqs[i].who === who) return a.reqs[i]; return null; }
+  function snackCost(w) { return Math.round(15 * (1 + rank(w)) * (1 + w.save.day * 0.08)); }
+  function hold(w, item) { var a = w.act; a.hand = item; a.pickCd = 1; fx(w, { t: 'hand', item: item, name: item ? ITEM[item].name : '' }); }
+  function favorDone(w, q, e) {
+    var a = w.act, save = w.save; a.reqs.splice(a.reqs.indexOf(q), 1);
+    var g = give(w, (30 + 15 * save.day) * (1 + rank(w)) * w.mult, 'favor'); stat(w, 'favor');
+    if (w.rand() < 0.25) G.gainDia(w, 1, 'favor');
+    fx(w, { t: 'req', state: 'done', item: q.item, who: e === w.haeng ? '행보관' : e.def.name, pay: g });
+    return g;
+  }
+  function actV7(w, t, alt) {
+    var a = w.act, P = w.player, save = w.save, hand = a.hand, e = t.ref, q, zid;
+    // 두 번째 행동
+    if (alt) {
+      if ((t.k === 'crew' || t.k === 'plow') && e && e.state !== 'follow') { e.state = 'follow'; e.tidx = -1; me(w, '야, 따라와.'); bubble(w, e, e.def.vehicle ? '어디로 모실까요?' : pick(['넵! 어디로 갑니까?', '또 어디 가요…', '넵!'])); return { ok: true }; }
+      if (t.k === 'mess' && !hand) { hold(w, 'meal'); bubble(w, door('mess'), '취사병: 흘리지 마라.'); return { ok: true }; }
+      if (t.k === 'px' && !hand) { var sc = snackCost(w); if (save.bank < sc) return { ok: false, why: 'money' }; save.bank -= sc; hold(w, 'snack'); me(w, '맛스타랑 냉동 하나요.'); return { ok: true }; }
+      if (t.k === 'guard' && !hand) { hold(w, 'letter'); bubble(w, door('guard'), '위병: 이거 너네 후임 거다.'); return { ok: true }; }
+      return { ok: false };
+    }
+    // 신병 인솔 · 배치
+    if (t.k === 'recruit') {
+      if (e.state === 'wait') { e.state = 'follow'; stat(w, 'escort'); me(w, '신병! 따라와라.'); bubble(w, e, pick(['이병 ' + e.def.name + '! 잘 부탁드립니다!', '넵!! (얼어 있다)', '여, 여기가 제설장입니까?'])); return { ok: true }; }
+      zid = G.zoneAt(w, P.x, P.y);
+      if (!zid) { bubble(w, e, '어디로 갑니까…?'); return { ok: false, why: 'zone' }; }
+      var ne = G.assignRecruit(w, e, zid.id);
+      if (ne) { me(w, zid.name + ' 여기 맡아라. 초코파이 값은 해라.'); bubble(w, ne, pick(['넵! 열심히 하겠습니다!', '여기를 제가요?! …넵!'])); stat(w, 'assign'); }
+      return { ok: !!ne };
+    }
+    if ((t.k === 'crew' || t.k === 'plow') && e && e.state === 'follow') {
+      zid = G.zoneAt(w, P.x, P.y);
+      if (!zid) { bubble(w, e, '여기는 구역 밖인데요?'); return { ok: false, why: 'zone' }; }
+      G.setPost(w, e, zid.id); me(w, '여기 치워라.'); bubble(w, e, zid.name + ', 알겠습니다!'); fx(w, { t: 'assigned', e: e, zone: zid.id, moved: true });
+      return { ok: true };
+    }
+    // 물건 받기
+    if (t.k === 'garage' && !hand) { hold(w, 'fuel'); bubble(w, door('garage'), '정비병: 쏟지 마라. 비싸다.'); return { ok: true }; }
+    if (t.k === 'mess' && !hand && save.daily.mess === save.day) { hold(w, 'meal'); bubble(w, door('mess'), '취사병: 흘리지 마라.'); return { ok: true }; }
+    if (t.k === 'guard' && !hand && save.daily.gate === save.day && a.reqs.some(function (x) { return x.item === 'letter'; })) { hold(w, 'letter'); return { ok: true }; }
+    if (!hand) return null;
+    // 건네주기
+    if (t.k === 'crew') {
+      q = reqOf(a, e);
+      if (q && q.item === hand) {
+        hold(w, null); e.mor = Math.min(100, e.mor + 50); e.slack = false; bubble(w, e, pick(REQ[q.item].thanks)); me(w, '옛다, 부탁한 거.');
+        return { ok: true, pay: favorDone(w, q, e) };
+      }
+      if (hand === 'meal' || hand === 'snack' || hand === 'letter') {
+        hold(w, null); e.mor = Math.min(100, e.mor + (hand === 'letter' ? 50 : 35)); e.slack = false;
+        bubble(w, e, hand === 'letter' ? '저한테요?! …감사합니다!!' : pick(L.choco)); me(w, '먹고 해라.'); stat(w, 'share');
+        return { ok: true };
+      }
+      return null;
+    }
+    if (t.k === 'plow' && hand === 'fuel') {
+      hold(w, null); e.noFuel = false; e.boost = 60; e.mor = Math.min(100, e.mor + 40); bubble(w, e, pick(REQ.fuel.thanks)); me(w, '기름 가득!');
+      q = reqOf(a, e); if (q) favorDone(w, q, e); else stat(w, 'favor');
+      return { ok: true };
+    }
+    if (t.k === 'tractor' && hand === 'fuel' && save.daily.tractor === save.day) { hold(w, null); save.daily.tractor = 0; bubble(w, TRACTOR, '정비병: 기름 넣었으면 또 타도 된다.'); return { ok: true }; }
+    if (t.k === 'cat' && hand === 'meal') { hold(w, null); a.scrap = true; return null; }   // 짬 주기 → 아래 고양이 처리
+    if (t.k === 'haeng' && hand === 'snack') {
+      hold(w, null); var H = w.haeng; H.hold = 2; q = reqOf(a, H);
+      me(w, '행보관님, 이거 드십시오!'); bubble(w, H, q ? '오, 기억했구나. 기특하네.' : '…뇌물이냐? 고맙다.');
+      buff(w, 'praise', 90); if (a.heat) { a.heat = 0; fx(w, { t: 'heat', heat: 0, why: 'forgive' }); }
+      if (q) { favorDone(w, q, H); G.gainDia(w, 1, 'favor'); }
+      return { ok: true };
+    }
+    return null;
+  }
+  function stepReqs(w, dt) {
+    var a = w.act, R = w.rand;
+    a.pickCd -= dt;
+    // 제설차는 가끔 기름이 떨어진다 → 기름통 가져다줘야 다시 움직인다
+    a.fuelT -= dt;
+    if (a.fuelT <= 0) {
+      a.fuelT = 90 + R() * 60;
+      var pl = w.crew.filter(function (e) { return e.def.vehicle && !e.off && !e.noFuel && !reqOf(a, e); })[0];
+      if (pl) { pl.noFuel = true; a.reqs.push({ who: pl, item: 'fuel', t: 120, max: 120 }); bubble(w, pl, pick(REQ.fuel.ask)); fx(w, { t: 'req', state: 'new', item: 'fuel', who: '제설차', where: ITEM.fuel.from }); }
+    }
+    a.reqT -= dt;
+    if (a.reqT <= 0) {
+      a.reqT = 35 + R() * 30;
+      if (a.reqs.length < 2) {
+        var pool = w.crew.filter(function (e) { return !e.def.vehicle && !e.off && !e.slack && e.state !== 'follow' && !reqOf(a, e); });
+        var who = !reqOf(a, w.haeng) && (R() < 0.18 || !pool.length) && w.save.day >= 2 ? w.haeng : pool[(R() * pool.length) | 0];
+        if (who) {
+          var item = who === w.haeng ? 'snack' : ['meal', 'snack', 'letter'][(R() * 3) | 0];
+          a.reqs.push({ who: who, item: item, t: 100, max: 100 });
+          bubble(w, who, who === w.haeng ? '야, PX 가서 냉동 하나 사 와라.' : pick(REQ[item].ask));
+          fx(w, { t: 'req', state: 'new', item: item, who: who === w.haeng ? '행보관' : who.def.name, where: ITEM[item].from });
+        }
+      }
+    }
+    for (var i = a.reqs.length - 1; i >= 0; i--) {
+      var q = a.reqs[i]; q.t -= dt;
+      if (q.who !== w.haeng && w.crew.indexOf(q.who) < 0) { a.reqs.splice(i, 1); continue; }
+      if (q.t > 0) continue;
+      a.reqs.splice(i, 1);
+      if (q.item === 'fuel') { q.who.noFuel = false; bubble(w, q.who, '…결국 제가 다녀왔습니다.'); }
+      else if (q.who === w.haeng) bubble(w, q.who, '됐다. 내가 갔다 왔다.');
+      else { q.who.mor = Math.max(0, q.who.mor - 15); bubble(w, q.who, '됐어요… 기대도 안 했어요'); }
+      fx(w, { t: 'req', state: 'fail', item: q.item, who: q.who === w.haeng ? '행보관' : q.who.def.name });
+    }
   }
 
   function chocoCost(w) { return Math.round(8 * (1 + rank(w)) * (1 + w.save.day * 0.1)); }
@@ -674,12 +810,13 @@
     Object.keys(a.buffs).forEach(function (k) { list.push({ id: k, name: BUFF[k].name, desc: BUFF[k].desc, t: a.buffs[k] }); });
     var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
     var mor = w.crew.length ? w.crew.reduce(function (q, e) { return q + e.mor; }, 0) / w.crew.length : 0, slack = w.crew.filter(function (e) { return e.slack; }).length;
-    return { heat: a.heat, buffs: list, mission: a.mission, salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack, ride: a.ride ? { kind: a.ride.kind, name: RIDE[a.ride.kind].name, t: a.ride.t, max: a.ride.max } : null };
+    var reqs = a.reqs.map(function (q) { return { who: q.who === w.haeng ? '행보관' : q.who.def.name, item: q.item, want: ITEM[q.item].want, from: ITEM[q.item].from, t: q.t, max: q.max, ref: q.who }; });
+    return { hand: a.hand ? { id: a.hand, name: ITEM[a.hand].name } : null, reqs: reqs, recruits: (w.recruits || []).length, heat: a.heat, buffs: list, mission: a.mission, salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack, ride: a.ride ? { kind: a.ride.kind, name: RIDE[a.ride.kind].name, t: a.ride.t, max: a.ride.max } : null };
   }
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, throwBall: throwBall, canThrow: canThrow, canBuild: canBuild,
-    pxItems: pxItems, pxBuy: pxBuy, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide, useDia: useDia, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost,
+    pxItems: pxItems, pxBuy: pxBuy, drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; }, ITEM: ITEM, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide, useDia: useDia, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost,
     RIDE: RIDE, BUFF: BUFF, PX: PX, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
   };
 })(window.JY = window.JY || {});

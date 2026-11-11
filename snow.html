@@ -39,12 +39,14 @@
   <div id="xhair" hidden><i></i><span id="xh-t"></span></div>
   <div id="sub" hidden></div>
   <div id="side" hidden>
+    <div id="h-reqs" class="reqs"></div>
+    <button id="h-hand" class="hand" hidden aria-label="들고 있는 물건 내려놓기"><span>손에 든 것</span><b id="h-hand-n"></b><i>✕</i></button>
     <div id="h-buffs" class="buffs"></div>
     <div id="h-mis" class="mis" hidden><b>행정반 임무</b><span id="h-mis-t"></span><div class="mis-bar"><i id="h-mis-fill"></i></div><em id="h-mis-time"></em></div>
   </div>
   <div id="acts" hidden>
     <button id="ball-btn" class="actb small" aria-label="눈덩이 던지기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.6"/><path d="M8 11c1-1.6 3-2.4 5-2" stroke="#c9d8e6" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M17 4l3-2M19 7l3-1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg><span>눈덩이</span></button>
-    <button id="act-btn" class="actb" aria-label="행동"><small id="act-name"></small><b id="act-verb">행동</b></button>
+    <div class="act-col"><button id="act2-btn" class="act2" hidden></button><button id="act-btn" class="actb" aria-label="행동"><small id="act-name"></small><b id="act-verb">행동</b></button></div>
   </div>
   <div id="fade" hidden></div>
 

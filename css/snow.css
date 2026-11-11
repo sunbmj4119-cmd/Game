@@ -400,3 +400,24 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .ov-lock { background: #2b2b2b; color: #f2c230; font-family: var(--f-title); font-size: 15px; padding: 4px 10px; border-radius: 8px; box-shadow: 0 0 0 2px #f2c230; }
 .ov-slack { background: #6b7064; color: #fff; font-size: 12.5px; padding: 3px 8px; border-radius: 9px; }
 .ov-sal { background: #c8402e; color: #fff; font-family: var(--f-title); font-size: 16px; padding: 4px 10px; border-radius: 10px; box-shadow: 0 3px 0 #7c2318; animation: shout .25s ease-in-out infinite alternate; }
+
+/* ── v7: 두 번째 행동, 손에 든 것, 심부름 ── */
+.act-col { display: grid; justify-items: center; gap: 6px; }
+.act2 { border: 0; border-radius: 99px; padding: 7px 12px; background: rgba(14,24,42,.82); color: #fff; font-size: 13px; box-shadow: inset 0 0 0 2px var(--gold); cursor: pointer; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; touch-action: manipulation; }
+.act2:active { transform: scale(.95); }
+#side { pointer-events: none; }
+.hand { pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; justify-self: start; border: 0; border-radius: 12px; padding: 6px 10px; background: #fff6c9; color: #3a3018; box-shadow: 0 0 0 2px #8a7a3a, 0 4px 10px rgba(0,0,0,.2); font-size: 13px; cursor: pointer; }
+.hand span { color: #8a7a3a; font-size: 11.5px; }
+.hand b { font-weight: 400; }
+.hand i { font-style: normal; color: #a33; margin-left: 2px; }
+.reqs { display: grid; gap: 5px; }
+.reqs div { background: rgba(14,24,42,.86); color: #fff; border-radius: 10px; padding: 5px 9px 6px; font-size: 12.5px; display: grid; gap: 3px; box-shadow: inset 3px 0 0 #ff9f43; }
+.reqs div b { font-weight: 400; color: #ffd8a8; }
+.reqs div small { color: #c9d6e6; font-size: 11.5px; }
+.reqs div i { display: block; height: 4px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
+.reqs div i em { display: block; height: 100%; background: #ff9f43; }
+.reqs div.have { box-shadow: inset 3px 0 0 #4fcf74, 0 0 0 2px #4fcf74; }
+.ov-req { background: #ff9f43; color: #2a1a00; font-family: var(--f-title); font-size: 13px; padding: 3px 8px; border-radius: 9px; box-shadow: 0 2px 0 #a85c12; }
+.ov-new { background: #2f8f4e; color: #fff; font-size: 12.5px; padding: 3px 8px; border-radius: 9px; font-family: var(--f-title); }
+.crew-head .info { color: #c9d6e6; font-size: 12.5px; line-height: 1.4; }
+.crew-head .info b { color: var(--gold); font-weight: 400; }

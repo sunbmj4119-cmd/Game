@@ -17,17 +17,23 @@
 
   /* ── 저장 데이터 ── */
   function newSave() {
-    return { v: 3, bank: 0, life: 0, day: 1, dayT: 0, tool: 0, crew: {}, perks: {}, proc: {}, relays: {}, zones: { A: true }, fresh: { A: true },
+    return { v: 4, bank: 0, life: 0, day: 1, dayT: 0, tool: 0, crew: {}, perks: {}, proc: {}, relays: {}, zones: { A: true }, fresh: { A: true },
       medals: 0, discharges: 0, last: 0, best: 0, total: 0, crewRate: 0, seed: (Math.random() * 1e9) | 0, seen: {}, deerHits: 0,
       snow: null, px: S.SPAWN.x, py: S.SPAWN.y, load: 0, loadVal: 0, today: 0, made: { brick: 0, snowman: 0 },
       snowmen: [], daily: {}, stats: {}, dia: 0, diaLife: 0, found: {}, ach: {}, post: 'all', boxes: [], roll: { date: '', streak: 0 }, toolStar: 0,
-      bestCombo: 0, rankDia: 0, mor: 80, tfound: { d: 0, idx: [] } };
+      bestCombo: 0, rankDia: 0, mor: 80, tfound: { d: 0, idx: [] }, pend: [], cpost: {} };
   }
   function migrate(s) {
     var d = newSave();
     if (!s || typeof s !== 'object') return d;
     if ((s.v || 1) < 3) { s.snow = null; s.dayT = 0; s.px = d.px; s.py = d.py; s.load = 0; s.loadVal = 0; s.fresh = {}; Object.keys(s.zones || {}).forEach(function (k) { s.fresh[k] = true; }); s.v = 3; }
     Object.keys(d).forEach(function (k) { if (s[k] === undefined) s[k] = d[k]; });
+    // v4: 인력 정원이 확 줄었다. 넘치는 인력은 전출 — 산 값의 절반을 돌려준다
+    if ((s.v || 1) < 4) {
+      var refund = 0;
+      S.CREW.forEach(function (C) { var n = s.crew[C.id] || 0; for (var i = C.max; i < n; i++) refund += Math.round(C.cost * Math.pow(C.grow, i) * 0.5); if (n > C.max) s.crew[C.id] = C.max; });
+      s.bank += refund; s.refund = refund; s.v = 4;
+    }
     Object.keys(s.zones).forEach(function (k) { if (!S.ZONES.some(function (Z) { return Z.id === k; })) delete s.zones[k]; });
     s.zones.A = true;
     if (s.tool >= S.TOOLS.length) s.tool = S.TOOLS.length - 1;
@@ -55,6 +61,8 @@
   }
   function stat(w, k, n) { if (w.demo) return; var st = w.save.stats; st[k] = (st[k] || 0) + (n || 1); }
   function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back'))); }
+  function crewCap(save) { return S.CREW_CAP[rankOf(save)] || 0; }
+  function pendN(save, id) { return (save.pend || []).filter(function (p) { return !id || p.id === id; }).length; }
   function crewCount(save) { return S.CREW.reduce(function (a, C) { return a + crewN(save, C.id); }, 0); }
   function canDischarge(save) { return rankOf(save) >= 3 && save.life >= S.DISCHARGE_LIFE; }
   function medalGain(save) { return Math.floor(Math.sqrt(save.life / 50000)); }
@@ -78,10 +86,11 @@
       out.tool.push({ kind: 'tool', id: T.id, i: i, name: T.name, desc: T.desc, cost: T.cost, state: st, cur: i === save.tool,
         stat: '범위 ' + T.r + ' · 적재 ' + T.cap + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
     });
+    var cap = crewCap(save), total = crewCount(save) + pendN(save);
     S.CREW.forEach(function (C) {
-      var n = crewN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0;
-      out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max,
-        state: lock ? 'lock' : n >= C.max ? 'max' : 'buy', lockText: S.RANKS[C.rank].name + '부터', ok: !lock && n < C.max && save.bank >= cost && save.dia >= dia });
+      var n = crewN(save, C.id) + pendN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0, full = total >= cap;
+      out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max, pend: pendN(save, C.id),
+        state: lock ? 'lock' : n >= C.max ? 'max' : full ? 'lock' : 'buy', lockText: lock ? S.RANKS[C.rank].name + '부터' : '정원 ' + cap + '명 (진급하면 늘어남)', ok: !lock && !full && n < C.max && save.bank >= cost && save.dia >= dia });
     });
     var st = save.toolStar || 0, sd = S.DIA.star[st];
     out.tool.push({ kind: 'star', id: 'star', name: '도구 강화 ' + '★★★★★'.slice(0, st) + '☆☆☆☆☆'.slice(0, 5 - st), desc: '정비병이 손봐 준다. 지금 도구 범위 +10% (강화는 도구를 바꿔도 남는다)',
@@ -117,7 +126,7 @@
     save.bank -= o.cost; if (o.dia) save.dia -= o.dia;
     if (kind === 'tool') save.tool = o.i;
     else if (kind === 'star') save.toolStar = (save.toolStar || 0) + 1;
-    else if (kind === 'crew') save.crew[id] = crewN(save, id) + 1;
+    else if (kind === 'crew') save.pend.push({ id: id, d: save.day });   // 전입 요청: 내일 아침 생활관 앞에 신병이 온다
     else if (kind === 'perk') save.perks[id] = lvl(save, id) + 1;
     else if (kind === 'proc') save.proc[id] = procLvl(save, id) + 1;
     else if (kind === 'relay') save.relays[id] = true;
@@ -262,14 +271,18 @@
       cap: capOf(save), load: opts.demo ? 0 : Math.min(save.load, capOf(save)), val: opts.demo ? 0 : save.loadVal, fullSaid: false };
     var song = lvl(save, 'song'), gear = lvl(save, 'gear'), back = lvl(save, 'back');
     S.CREW.forEach(function (C) {
+      var posts = save.cpost[C.id] || (save.cpost[C.id] = []);
       for (var i = 0; i < crewN(save, C.id); i++) {
-        w.crew.push({ def: C, n: i, x: S.DUMP.x + 40 + (R() - 0.5) * 200, y: S.DUMP.y - 20 - R() * 40, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
+        var post = posts[i] && save.zones[posts[i]] ? posts[i] : 'A'; posts[i] = post;
+        var sp = spotIn(w, post, R);
+        w.crew.push({ def: C, n: i, post: post, x: sp.x, y: sp.y, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
           hitT: R() * C.hit, retarget: 0, stuck: 0, walk: R() * 10, asleep: false, sleepT: 2 + R() * 4, swing: 0, moving: false, injured: 0,
           speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
           cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: Math.min(100, (save.mor || 80) + R() * 10 - 5), slack: false });
         var e = w.crew[w.crew.length - 1]; if (blocked(e.x, e.y, 6)) { e.x = S.DUMP.x + 30; e.y = S.DUMP.y; }
       }
     });
+    w.recruits = []; arriveRecruits(w);
     w.haeng = { x: 330, y: 290, dir: { x: 0, y: 1 }, tx: 330, ty: 290, wait: 2, walk: 0, moving: false, shoutT: 0 };
     if (save.zones[HAZ.cats.zone]) {
       var D = zoneById(HAZ.cats.zone);
@@ -279,6 +292,58 @@
     if (!opts.demo) buryTreasure(w);
     return w;
   }
+
+  /* ── 인력 담당 구역 · 신병 ── */
+  function zoneIndex(id) { for (var i = 0; i < S.ZONES.length; i++) if (S.ZONES[i].id === id) return i; return -1; }
+  function spotIn(w, zid, R) {
+    var zi = zoneIndex(zid), cells = w.zoneCells[zi];
+    if (!cells || !cells.length) return { x: S.DUMP.x + 30, y: S.DUMP.y };
+    var idx = cells[((R || Math.random)() * cells.length) | 0];
+    return { x: (idx % GW) * CELL + 5, y: ((idx / GW) | 0) * CELL + 5 };
+  }
+  // 전입 요청한 다음 날 아침, 생활관 문 앞에 신병이 서 있다
+  function arriveRecruits(w) {
+    var save = w.save, n = 0;
+    (save.pend || []).forEach(function (p, i) {
+      if (p.d >= save.day || w.recruits.some(function (r) { return r.p === p; })) return;
+      var C = S.CREW.filter(function (c) { return c.id === p.id; })[0]; if (!C) return;
+      var k = w.recruits.length;
+      w.recruits.push({ p: p, def: C, x: S.DOOR.x - 30 + (k % 5) * 15, y: S.DOOR.y + 16 + Math.floor(k / 5) * 12, dir: { x: 0, y: 1 }, walk: 0, moving: false, state: 'wait', seed: i * 97 + 13 });
+      n++;
+    });
+    if (n && !w.demo) w.fx.push({ t: 'recruit', n: n });
+    return n;
+  }
+  // 따라온 신병을 지금 서 있는 구역에 배치 → 인력이 된다
+  function assignRecruit(w, r, zid) {
+    var save = w.save, C = r.def, i = save.pend.indexOf(r.p);
+    if (i < 0 || !save.zones[zid]) return null;
+    save.pend.splice(i, 1); w.recruits.splice(w.recruits.indexOf(r), 1);
+    var n = crewN(save, C.id); save.crew[C.id] = n + 1;
+    (save.cpost[C.id] = save.cpost[C.id] || [])[n] = zid;
+    var song = lvl(save, 'song'), gear = lvl(save, 'gear'), back = lvl(save, 'back'), R = w.rand;
+    var e = { def: C, n: n, post: zid, x: r.x, y: r.y, dir: { x: r.dir.x, y: r.dir.y }, tidx: -1, tx: 0, ty: 0, hitT: 0, retarget: 0, stuck: 0, walk: 0, asleep: false, sleepT: 4, swing: 0, moving: false, injured: 0,
+      speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
+      cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: 100, slack: false };
+    w.crew.push(e);
+    w.fx.push({ t: 'assigned', e: e, zone: zid });
+    return e;
+  }
+  function setPost(w, e, zid) {
+    if (!w.save.zones[zid]) return false;
+    e.post = zid; e.state = 'work'; e.tidx = -1; e.retarget = 0;
+    (w.save.cpost[e.def.id] = w.save.cpost[e.def.id] || [])[e.n] = zid;
+    return true;
+  }
+  // 가상 플레이어용: 온 신병을 눈이 제일 많은 구역에 바로 배치
+  function autoPost(w) {
+    w.recruits.slice().forEach(function (r) {
+      var best = 'A', bs = -1;
+      S.ZONES.forEach(function (Z, zi) { if (w.zoneOpen[zi] && w.zoneTotal[zi] - w.zoneClear[zi] > bs) { bs = w.zoneTotal[zi] - w.zoneClear[zi]; best = Z.id; } });
+      assignRecruit(w, r, best);
+    });
+  }
+  function zoneAt(w, x, y) { var i = cellIndex(x, y); if (i < 0) return null; var zi = w.zone[i]; return zi >= 0 && w.zoneOpen[zi] ? S.ZONES[zi] : null; }
 
   /* ── 눈 밑 분실물: 하루에 몇 개, 깊은 눈 밑에 묻힌다 ── */
   function buryTreasure(w) {
@@ -466,8 +531,9 @@
   }
 
   function pickTarget(w, e) {
-    var R = w.rand, best = -1, bs = 1e9, list = w.cells, post = w.save.post;
-    if (post && post !== 'all') { var pz = S.ZONES.map(function (Z) { return Z.id; }).indexOf(post); if (pz >= 0 && w.zoneOpen[pz] && w.zoneCells[pz] && w.zoneClear[pz] < w.zoneTotal[pz]) list = w.zoneCells[pz]; }
+    var R = w.rand, best = -1, bs = 1e9, list = w.cells, post = e.post;
+    // 인력은 자기 담당 구역만 치운다 (다 치우면 거기서 쉰다). 담당이 없으면(소대장 등) 전체
+    if (post) { var pz = zoneIndex(post); if (pz >= 0 && w.zoneOpen[pz] && w.zoneCells[pz]) list = w.zoneCells[pz]; }
     var n = list.length;
     if (!n) return;
     for (var k = 0; k < 16; k++) {
@@ -477,7 +543,11 @@
       var dump = nearestDump(w, x, y), s = Math.hypot(x - e.x, y - e.y) * 0.7 + (dump ? Math.hypot(dump.x - x, dump.y - y) * 0.5 : 0) - d * 18;
       if (s < bs) { bs = s; best = idx; }
     }
-    if (best < 0) { e.tidx = -1; e.tx = w.player.x + (R() - 0.5) * 120; e.ty = w.player.y + (R() - 0.5) * 120; e.retarget = 2; return; }
+    if (best < 0) {
+      e.tidx = -1; e.retarget = 3;
+      if (post) { var sp = spotIn(w, post, R); e.tx = sp.x; e.ty = sp.y; } else { e.tx = w.player.x + (R() - 0.5) * 120; e.ty = w.player.y + (R() - 0.5) * 120; }
+      return;
+    }
     e.tidx = best; e.tx = (best % GW) * CELL + 5; e.ty = ((best / GW) | 0) * CELL + 5; e.retarget = 6;
   }
 
@@ -610,7 +680,7 @@
     w.perfect = {}; w.zonePerf = {}; w.early = false; w.earlyT = 0;
     var td = w.today; w.today = { dia: 0, perfect: 0, zonePerfect: 0, found: [], earned: 0 };
     w.crew.forEach(function (e) { e.mor = Math.min(100, e.mor + 40); e.slack = false; });
-    buryTreasure(w);
+    buryTreasure(w); arriveRecruits(w);
     w.fx.push({ t: 'day', day: save.day, weather: w.weather, earned: earned, dumped: n, inspect: w.inspect, prev: td });
   }
 
@@ -661,11 +731,28 @@
     if (P.idleT > 6 && !w.flags.idleSaid) { say(w, 'idle'); w.flags.idleSaid = true; }
     if (P.idleT === 0) w.flags.idleSaid = false;
 
+    // 신병: 생활관 앞에서 기다리다가, 인솔하면 따라온다
+    for (var ri = 0; ri < w.recruits.length; ri++) {
+      var rc = w.recruits[ri], rd = Math.hypot(P.x - rc.x, P.y - rc.y);
+      rc.walk = rc.walk || 0;
+      if (rc.state === 'follow') {
+        if (rd > 18) steer(rc, P.x - P.dir.x * 12, P.y - P.dir.y * 12, S.SPEED * 1.05, dt, 6); else rc.moving = false;
+        if (rd > 260) { rc.x = P.x - P.dir.x * 12; rc.y = P.y - P.dir.y * 12; if (blocked(rc.x, rc.y, 6)) { rc.x = P.x; rc.y = P.y; } }
+      } else { rc.moving = false; if (rd < 80) { rc.dir.x = (P.x - rc.x) / (rd || 1); rc.dir.y = (P.y - rc.y) / (rd || 1); } }
+    }
+
     // 인력: 담고 → 꽉 차면 가까운 집하장(릴레이)으로 → 붓고 → 다시
     if (w.crew.length) w.crewT += dt;
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       if (e.off) { e.moving = false; continue; }
+      if (e.state === 'follow') {   // 따라와 → 새 구역으로 데려간다
+        var fd = Math.hypot(P.x - e.x, P.y - e.y);
+        if (fd > 20) steer(e, P.x - P.dir.x * 14, P.y - P.dir.y * 14, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
+        if (fd > 260) { e.x = P.x - P.dir.x * 14; e.y = P.y - P.dir.y * 14; if (blocked(e.x, e.y, 6)) { e.x = P.x; e.y = P.y; } }
+        continue;
+      }
+      if (e.noFuel) { e.moving = false; continue; }
       // 사기: 일하면 떨어지고(폭설엔 더), 바닥나면 짱박힌다. 갈구기·초코파이·구령·치킨·밤에 오른다
       var tired = e.mor < 35, drain = (w.weather === 'blizzard' ? 1.6 : w.weather === 'heavy' ? 1.3 : 1) * (C.vehicle ? 0.5 : 1);
       if (e.slack) {
@@ -750,6 +837,7 @@
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
+    crewCap: crewCap, pendN: pendN, assignRecruit: assignRecruit, setPost: setPost, autoPost: autoPost, zoneAt: zoneAt, arriveRecruits: arriveRecruits, zoneIndex: zoneIndex,
     cellIndex: cellIndex, clearAt: clearAt, pay: pay, gainDia: gainDia, stat: stat, toolR: toolR, lockAt: lockAt, comboMult: comboMult, moveEnt: moveEnt, steer: steer, say: say, randomOpenPoint: randomOpenPoint, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay
   };
 })(window.JY = window.JY || {});

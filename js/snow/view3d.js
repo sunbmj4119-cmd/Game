@@ -867,10 +867,12 @@
         of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5;
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
+      else if (f.t === 'hand') { vmPlay('act', 0.5); if (sfx) sfx.pop(); }
+      else if (f.t === 'assigned') { addOv('담당: ' + esc((G.zoneById(f.zone) || {}).name || ''), 'ov-new', 0, 0, 4.4, 2, f.e); if (sfx) sfx.salute(); }
       else if (f.t === 'slack') { addOv('(짱박힘…)', 'ov-slack', 0, 0, 3.6, 3, f.e); }
       else if (f.t === 'unslack') { addOv('…다시 일한다', 'ov-chat', 0, 0, 4.3, 1.4, f.e); }
       else if (f.t === 'choco') { if (f.e) { for (k = 0; k < 14; k++) emit(f.e.x * U, 2.6, f.e.y * U, rnd(-1.5, 1.5), rnd(2, 4), rnd(-1.5, 1.5), 0.6, [0.45, 0.27, 0.15]); addOv('냠냠', 'ov-bang', 0, 0, 4.6, 1, f.e); } vmPlay('act', 0.6); if (sfx) sfx.coin(); }
-      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack)$/.test(f.t)) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand)$/.test(f.t)) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -1157,9 +1159,29 @@
       if (ball) vmBallM.position.copy(hand).add(V3(0, 0.09, -0.04));
     }
     if (boot) { vmBoot.position.copy(boot); vmBoot.rotation.x = -0.4 * wgt; }
+    syncVMItem(); if (vmItem) vmItem.position.set(0, Math.sin((P.walk || 0) * 2) * 0.012 * bobK - wgt * 0.2, 0);
     vmSun.color.copy(sun.color); vmSun.intensity = sun.intensity * 0.75; vmHemi.intensity = hemi.intensity * 1.4;
   }
   function vmPlay(k, d) { vmAnim.k = k; vmAnim.t = 0; vmAnim.d = d; }
+  // 손에 든 물건 (식판·간식 봉지·편지·기름통)
+  var vmItem = null, vmItemK = '';
+  function vmItemGeo(k) {
+    var gk = 'vmi:' + k; if (geos[gk]) return geos[gk];
+    var parts, hl = V3(-0.26, -0.5, -0.62);
+    var arm = [[limbGeo(SH_L, hl, 0.088), SLEEVE], [sph(0.078, { x: hl.x, y: hl.y, z: hl.z }), GLOVE]];
+    if (k === 'meal') parts = [[box(0.5, 0.04, 0.36, { x: -0.18, y: -0.46, z: -0.72, rx: 0.25 }), '#b8c0c6'], [cyl(0.07, 0.06, 0.06, { x: -0.3, y: -0.42, z: -0.72 }, 10), '#f4f1e6'], [cyl(0.06, 0.05, 0.05, { x: -0.1, y: -0.42, z: -0.66 }, 10), '#3b2a1c'], [box(0.14, 0.05, 0.12, { x: -0.12, y: -0.42, z: -0.8 }), '#c8402e'], [sph(0.05, { x: -0.3, y: -0.38, z: -0.72 }), '#fff']];
+    else if (k === 'snack') parts = [[box(0.26, 0.34, 0.14, { x: -0.22, y: -0.36, z: -0.66, ry: 0.3 }), '#f2e6c9'], [box(0.27, 0.1, 0.15, { x: -0.22, y: -0.3, z: -0.66, ry: 0.3 }), '#c0563f'], [cyl(0.05, 0.05, 0.18, { x: -0.1, y: -0.18, z: -0.68 }, 8), '#2f8f5b']];
+    else if (k === 'letter') parts = [[box(0.3, 0.2, 0.02, { x: -0.2, y: -0.38, z: -0.62, rx: -0.5, rz: 0.2 }), '#fdfbf2'], [box(0.08, 0.08, 0.025, { x: -0.12, y: -0.33, z: -0.6, rx: -0.5 }), '#d23a2a']];
+    else parts = [[box(0.26, 0.34, 0.16, { x: -0.22, y: -0.5, z: -0.66 }), '#c8402e'], [cyl(0.03, 0.03, 0.12, { x: -0.14, y: -0.3, z: -0.66, rz: -0.6 }, 8), '#333'], [box(0.12, 0.04, 0.05, { x: -0.25, y: -0.31, z: -0.66 }), '#222']];
+    return (geos[gk] = merge(parts.concat(arm)));
+  }
+  function syncVMItem() {
+    var h = world.act && world.act.hand;
+    if ((h || '') === vmItemK) return;
+    vmItemK = h || '';
+    if (vmItem) { vmRoot.remove(vmItem); vmItem = null; }
+    if (h) { vmItem = new T.Mesh(vmItemGeo(h), matV); vmRoot.add(vmItem); }
+  }
 
   /* ── 상호작용 물건: 눈덩이, 족구공, 눈사람, 정비고 트랙터, 지금 고른 것 표시 ── */
   var focusRing = null;
@@ -1216,10 +1238,38 @@
     spk.geometry.setDrawRange(0, n);
     spk.geometry.attributes.position.needsUpdate = true; spk.geometry.attributes.color.needsUpdate = true;
   }
+  var recObjs = [], reqEls = [];
+  function syncRecruits() {
+    var rs = world.recruits || [];
+    recObjs = recObjs.filter(function (ob) { if (rs.indexOf(ob.ref) < 0) { removeObj(ob); if (ob.tag) ob.tag.remove(); return false; } return true; });
+    rs.forEach(function (r) {
+      var ob = null; for (var i = 0; i < recObjs.length; i++) if (recObjs[i].ref === r) ob = recObjs[i];
+      if (!ob) {
+        var C = r.def; ob = makePerson({ coat: C.coat, face: C.face, hat: 'helmet', tool: null, vehicle: C.vehicle ? 'plow' : null, big: C.vehicle, shadow: true }); ob.ref = r;
+        ob.tag = document.createElement('div'); ob.tag.className = 'ov ov-new'; ob.tag.textContent = '신병'; ov.appendChild(ob.tag); recObjs.push(ob);
+      }
+      placePerson(ob, r);
+      var pp = project(r.x, r.y, 4.2), on = pp[2] < 1 && mode === 'play';
+      ob.tag.style.display = on ? '' : 'none'; ob.tag.textContent = r.state === 'follow' ? '따라오는 중' : '신병 · 인솔 대기';
+      if (on) ob.tag.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
+    });
+  }
+  function syncReqs(a) {
+    var qs = (a && a.reqs) || [];
+    while (reqEls.length < qs.length) { var el = document.createElement('div'); el.className = 'ov ov-req'; ov.appendChild(el); reqEls.push(el); }
+    reqEls.forEach(function (el, i) {
+      var q = qs[i]; if (!q || mode !== 'play') { el.style.display = 'none'; return; }
+      var who = q.who, pp = project(who.x, who.y, who === world.haeng ? 4.9 : 4.7);
+      if (pp[2] > 1) { el.style.display = 'none'; return; }
+      el.style.display = ''; var txt = (JY.SnowAct.ITEM[q.item] || {}).want + '?';
+      if (el._t !== txt) { el._t = txt; el.textContent = txt; }
+      el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
+    });
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !(a && a.ride && a.ride.kind === 'tractor');
-    syncOfficers(a); stepSparkles(dt);
+    syncOfficers(a); stepSparkles(dt); syncRecruits(); syncReqs(a);
     if (!a) { if (kickBall) kickBall.visible = false; return; }
     while (actBalls.length < a.balls.length) {
       var bm = new T.Mesh(geos.sball || (geos.sball = new T.SphereGeometry(0.2, 10, 8)), mats.sball || (mats.sball = new T.MeshLambertMaterial({ color: '#ffffff' })));
@@ -1395,6 +1445,7 @@
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
     offObjs.forEach(removeObj); offObjs = []; spkT = 0;
+    recObjs.forEach(function (ob) { removeObj(ob); if (ob.tag) ob.tag.remove(); }); recObjs = [];
     carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;

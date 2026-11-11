@@ -107,8 +107,9 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#s-list .item.can .buy');
   ok('넉가래 지급', await page.evaluate(function () { return __SNOW.save().tool === 1; }));
   await page.click('#s-tabs [data-tab="crew"]');
-  await page.click('#s-list .item.can .buy'); await sleep(150); await page.click('#s-list .item.can .buy');
-  ok('후임 2명 채용', await page.evaluate(function () { return __SNOW.save().crew.hoobae === 2; }));
+  await page.click('#s-list .item.can .buy'); await sleep(150);
+  var hire = await page.evaluate(function () { var s = __SNOW.save(); return { pend: s.pend.length, crew: s.crew.hoobae || 0, more: !!document.querySelector('#s-list .item.can .buy[data-kind="crew"]') }; });
+  ok('후임 전입 요청 (바로 오지 않음, 이병 정원 1명)', hire.pend === 1 && hire.crew === 0 && !hire.more, hire);
   await page.click('#s-tabs [data-tab="zone"]');
   await page.click('#s-list .item.can .buy');
   await page.click('#s-tabs [data-tab="factory"]');
@@ -124,9 +125,21 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#s-go');
   await sleep(600);
   var after = await W();
-  ok('작업 계속: 넉가래 적재 80 + 후임 2명', after.mode === 'play' && after.cap === 80 && after.crew === 2, after);
+  ok('작업 계속: 넉가래 적재 80 (후임은 아직)', after.mode === 'play' && after.cap === 80 && after.crew === 0, after);
   ok('릴레이로 붓는 곳 2곳', await page.evaluate(function () { return __SNOW.view().world().dumps.length === 2; }));
-  var crewPaid = await waitFor(function () { return __SNOW.view().world().crewEarned > 0; }, 25000);
+  // 다음 날 아침: 생활관 앞 신병 → 인솔 → 구역에서 배치
+  await page.evaluate(function () { var w = __SNOW.view().world(); w.events = []; JY.SnowSim.newDay(w); w.events = []; w.deer = []; });
+  var rec = await waitFor(function () { return __SNOW.view().world().recruits.length === 1; }, 3000);
+  ok('다음 날 아침 생활관 앞에 신병', rec);
+  await page.evaluate(function () { var w = __SNOW.view().world(), r = w.recruits[0], V = __SNOW.view(); w.haeng.x = 700; w.haeng.y = 1100; w.haeng.hold = 60; V._teleport(r.x, r.y - 18); w.player.dir = { x: 0, y: 1 }; if (V._setLook) V._setLook(0, -0.2); });
+  await verbIs('/인솔하기/');
+  await page.click('#act-btn');
+  ok('인솔하면 따라온다', await waitFor(function () { return __SNOW.view().world().recruits[0].state === 'follow'; }, 3000));
+  await page.evaluate(function () { var w = __SNOW.view().world(), r = w.recruits[0]; __SNOW.view()._teleport(150, 200); r.x = 160; r.y = 190; });
+  await verbIs('/여기 배치/');
+  await page.click('#act-btn');
+  ok('생활관 앞 길에 배치 → 후임이 된다', await waitFor(function () { var w = __SNOW.view().world(); return w.crew.length === 1 && w.crew[0].post === 'A' && __SNOW.save().crew.hoobae === 1; }, 3000));
+  var crewPaid = await waitFor(function () { return __SNOW.view().world().crewEarned > 0; }, 30000);
   ok('후임이 담아서 집하장에 붓는다', crewPaid);
   await shot('07-crew');
 
@@ -258,12 +271,32 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   var bx1 = await page.evaluate(function () { var s = __SNOW.save(); return { dia: s.dia, bank: s.bank, n: s.boxes.length, loot: document.getElementById('box-loot').textContent }; });
   ok('상자를 열면 초코파이·다이아·분실물', bx1.n === bx0.n - 1 && bx1.dia >= bx0.dia + 2 && bx1.bank > bx0.bank && bx1.loot.length > 3, [bx0, bx1]);
   await page.click('#box-ok'); await sleep(200);
+  // v7 심부름: 후임이 짬밥을 부탁 → 취사장에서 식판 받아 → 건네주기
+  await closeModal();
+  await page.evaluate(function () {
+    var w = __SNOW.view().world(), a = JY.SnowAct.init(w), c = w.crew[0]; w.events = []; w.deer = []; a.off = []; a.reqT = 999; a.fuelT = 999;
+    c.x = 300; c.y = 200; c.speed = 0; c.tidx = -1; c.retarget = 99; c.mor = 40; a.reqs = [{ who: c, item: 'meal', t: 100, max: 100 }]; a.hand = null;
+    __SNOW.save().daily.mess = __SNOW.save().day; w.haeng.x = 700; w.haeng.y = 1100; w.haeng.hold = 60;
+    var d = JY.SnowAct.door('mess'); __SNOW.view()._teleport(d.x, d.y + 14); w.player.dir = { x: 0, y: -1 }; if (__SNOW.view()._setLook) __SNOW.view()._setLook(Math.PI, 0);
+  });
+  ok('심부름 카드 (누가·무엇·어디서)', await waitFor(function () { return /짬밥 부탁/.test(document.getElementById('h-reqs').textContent); }, 3000));
+  await verbIs('/식판 받아 가기/');
+  await page.click('#act-btn');
+  ok('식판을 손에 든다 (손에 든 것 표시)', await waitFor(function () { return !document.getElementById('h-hand').hidden && /식판/.test(document.getElementById('h-hand').textContent); }, 3000));
+  await shot('09i-hand');
+  await page.evaluate(function () { var w = __SNOW.view().world(), c = w.crew[0]; __SNOW.view()._teleport(c.x, c.y - 18); w.player.dir = { x: 0, y: 1 }; if (__SNOW.view()._setLook) __SNOW.view()._setLook(0, -0.15); });
+  await verbIs('/짬밥 전달/');
+  await page.click('#act-btn');
+  ok('건네주면 심부름 완료 + 사기', await waitFor(function () { var w = __SNOW.view().world(); return !JY.SnowAct.state(w).reqs.length && !JY.SnowAct.state(w).hand && w.crew[0].mor >= 80; }, 3000));
+  // 두 번째 버튼: 따라와
+  ok('인력 앞: 두 번째 버튼 "따라와"', await waitFor(function () { var b = document.getElementById('act2-btn'); return !b.hidden && /따라와/.test(b.textContent); }, 3000));
+  await page.click('#act2-btn');
+  ok('따라와 → 따라온다', await waitFor(function () { return __SNOW.view().world().crew[0].state === 'follow'; }, 3000));
+  await page.evaluate(function () { var w = __SNOW.view().world(), c = w.crew[0]; c.state = 'work'; c.speed = 46; });
+
   // 인력 배치 + 훈장 탭
   await page.click('#h-shop'); await page.click('#s-tabs [data-tab="crew"]'); await sleep(200);
-  ok('인력 탭: 사기·배치·다이아 버튼', await vis('.crew-head .posts') && await vis('.dia-btns'));
-  await page.click('.posts [data-post="B"]');
-  ok('배치를 족구장으로', await page.evaluate(function () { return __SNOW.save().post === 'B'; }));
-  await page.click('.posts [data-post="all"]');
+  ok('인력 탭: 정원·사기·다이아 버튼', /정원/.test(await page.evaluate(function () { return document.querySelector('.crew-head').textContent; })) && await vis('.dia-btns'));
   await page.click('#s-tabs [data-tab="medal"]'); await sleep(200);
   ok('훈장 탭: 분실물 도감 + 훈장 목록', await vis('.found-grid') && (await page.$$('.ach')).length >= 15);
   await shot('09g-medal');
@@ -279,7 +312,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   // ── 후반 ──
   await page.evaluate(function () {
     var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6;
-    s.crew = { hoobae: 10, donggi: 8, cook: 6, malnyeon: 4, admin: 3, reserve: 3, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
+    s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.fresh = { A: true, B: true, C: true, D: true, E: true };
     s.seen = { tut: true, dis: true }; s.made = { brick: 400, snowman: 40 }; s.px = 160; s.py = 300;
     __SNOW.setSave(s); __SNOW.play(true);
@@ -287,7 +320,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await sleep(4000);
   await shot('10-late');
   var late = await page.evaluate(function () { var w = __SNOW.view().world(); return { crew: w.crew.length, dumps: w.dumps.length }; });
-  ok('후반: 인력 35명 + 집하장 5곳', late.crew === 35 && late.dumps === 5, late);
+  ok('후반: 인력 16명(정원) + 집하장 5곳', late.crew === 16 && late.dumps === 5, late);
   if (is3) {
     var ride = await page.evaluate(function () {
       var w = __SNOW.view().world(), pl = w.crew.filter(function (e) { return e.def.vehicle; })[0]; w.crew.forEach(function (e, i) { if (e !== pl) { e.x = 560 + (i % 8) * 20; e.y = 900 + (i >> 3) * 20; e.injured = 30; } }); pl.x = 250; pl.y = 400; pl.speed = 0; pl.tidx = -1; pl.retarget = 99; w.events = [];

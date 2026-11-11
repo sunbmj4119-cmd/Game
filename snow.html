@@ -19,19 +19,20 @@
   <header id="hud" hidden>
     <div class="hud-top">
       <div class="pill rank"><span id="h-ins" class="ins"></span><span class="rank-txt"><b id="h-day">1일차</b><small id="h-wx">눈</small></span></div>
-      <div class="timer"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-bg" cx="22" cy="22" r="19"/><circle id="h-ring" class="tr-fg" cx="22" cy="22" r="19"/></svg><b id="h-time">60</b></div>
+      <div class="carry" id="h-carry" aria-label="짊어진 눈"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-bg" cx="22" cy="22" r="19"/><circle id="h-cring" class="tr-fg" cx="22" cy="22" r="19"/></svg><span class="carry-t"><b id="h-load">0</b><small id="h-cap">/40</small></span><em>짊어진 눈</em></div>
       <div class="pill bank"><i class="pie" aria-hidden="true"></i><b id="h-bank">0</b></div>
     </div>
-    <div class="prog"><div class="bar"><i id="h-fill"></i><em id="h-goal"></em></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
+    <div class="prog"><div class="bar"><i id="h-fill"></i></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
     <button id="h-scan" class="scan" aria-label="남은 눈 표시"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>남은 눈</button>
   </header>
+  <button id="h-shop" class="shopbtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16l-1.5 11h-13z" fill="currentColor"/><path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>보급·인력<i id="h-shop-n" hidden></i></button>
   <div id="chip" hidden></div>
   <div id="flash" hidden></div>
   <div id="splat" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 18c14 0 18 26 30 30s34-14 42 0-18 26-12 40 30 22 22 36-34 4-42 16 2 40-14 44-22-26-36-26-30 26-42 14 6-34-6-44-36-6-36-22 30-16 30-32-22-30-10-40 30 8 40 0 10-56 18-56z" fill="#fbfdff" stroke="#c9d8e6" stroke-width="4"/><circle cx="160" cy="40" r="10" fill="#fbfdff"/><circle cx="40" cy="168" r="8" fill="#fbfdff"/><circle cx="178" cy="150" r="6" fill="#fbfdff"/></svg><b>누가 던졌어!!</b></div>
 
   <div id="say" hidden><div class="say-face" id="say-face"></div><p id="say-text"></p></div>
   <div id="banner" hidden></div>
-  <div id="hint" hidden><b>화면을 누른 채 끌면 걷는다</b><span>넉가래는 알아서 민다. 톡 누르면 그쪽으로 간다.</span></div>
+  <div id="hint" hidden><b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span></div>
 
   <section id="title" class="screen">
     <div class="title-box">
@@ -47,7 +48,6 @@
     </div>
   </section>
 
-  <section id="result" class="screen dim" hidden></section>
 
   <section id="shop" class="screen dim" hidden>
     <div class="shop">
@@ -58,7 +58,7 @@
       </header>
       <nav id="s-tabs" class="tabs" role="tablist"></nav>
       <div id="s-list" class="list"></div>
-      <footer class="shop-foot"><button id="s-go" class="btn big">작업 개시</button></footer>
+      <footer class="shop-foot"><button id="s-go" class="btn big">작업 계속</button></footer>
     </div>
   </section>
 

@@ -402,6 +402,80 @@
     scene.add(lockGroup);
   }
 
+  /* ── 눈 집하장·공장·릴레이 ── */
+  var dumpGroup = null, piles = {}, pileLevel = { main: 0.6, relay: 0.4 }, relayCrew = [], arrowEl = null, dumpRings = [];
+  // 집하장 자리는 눈을 치워 둔 마당
+  function carveDumps() {
+    world.dumps.forEach(function (d) {
+      for (var gy = Math.floor((d.y - d.r - 10) / CELL); gy <= Math.ceil((d.y + d.r + 10) / CELL); gy++) for (var gx = Math.floor((d.x - d.r - 10) / CELL); gx <= Math.ceil((d.x + d.r + 10) / CELL); gx++) {
+        if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+        var cx = gx * CELL + 5, cy = gy * CELL + 5, k = Math.hypot(cx - d.x, cy - d.y);
+        if (k < d.r + 6 && world.zone[gy * GW + gx] < 0) baseH[gy * GW + gx] = k < d.r ? -0.1 : 0.15;
+      }
+    });
+  }
+  function buildDumps() {
+    if (dumpGroup) scene.remove(dumpGroup);
+    dumpGroup = new T.Group(); piles = {}; relayCrew = []; dumpRings = [];
+    var save = world.save;
+    world.dumps.forEach(function (d) {
+      var x = d.x * U, z = d.y * U, r = d.r * U, parts = [];
+      // 바닥 테두리(나무 판자)와 표지판
+      for (var a = 0; a < 16; a++) { var an = a / 16 * Math.PI * 2; parts.push([box(0.7, 0.35, 0.18, { ry: -an, x: x + Math.cos(an) * r, y: 0.17, z: z + Math.sin(an) * r }), a % 2 ? '#8a6a44' : '#a07c50']); }
+      parts.push([cyl(0.07, 0.07, 2.2, { x: x - r - 0.3, y: 1.1, z: z + r * 0.4 }), '#6b4a32']);
+      dumpGroup.add(mesh(merge(parts)));
+      var ring = new T.Mesh(new T.RingGeometry(r * 0.92, r * 1.05, 40), new T.MeshBasicMaterial({ color: d.main ? '#ffd24a' : '#9fd3ff', transparent: true, opacity: 0.7, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.05, z); dumpGroup.add(ring); dumpRings.push(ring);
+      var tt = textTex(d.main ? '눈 집하장' : '양동이 릴레이', { size: 40, bg: d.main ? '#2f3a25' : '#fff6c9', color: d.main ? '#f2ecd8' : '#3a3018', border: d.main ? '#1a2214' : '#6b5a2a' });
+      var sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 52, tt.image.height / 52), new T.MeshLambertMaterial({ map: tt })); sm.position.set(x - r - 0.3, 2.3, z + r * 0.4 + 0.06); dumpGroup.add(sm);
+      var pile = new T.Mesh(geos.pile || (geos.pile = merge([[sph(1, { s: [1, 0.55, 1] }), '#f7fafd'], [sph(0.6, { s: [1, 0.6, 1], x: 0.5, y: 0.2, z: -0.3 }), '#ffffff'], [sph(0.5, { s: [1, 0.6, 1], x: -0.5, y: 0.15, z: 0.35 }), '#eef3f8']])), matV);
+      pile.position.set(x, 0, z); dumpGroup.add(pile); piles[d.main ? 'main' : d.zone] = { m: pile, r: r, main: d.main };
+      if (!d.main) {
+        for (var c = 0; c < 3; c++) {
+          var o = makePerson({ coat: '#5b6a3a', face: 'hoobae', tool: null, scale: 1.1 });
+          o.g.position.set(x + r + 0.6 + c * 1.1, 0, z - 0.4 + c * 0.6); o.body.rotation.y = -0.6; scene.remove(o.g); dumpGroup.add(o.g); relayCrew.push(o);
+        }
+      }
+    });
+    // 공장: 압축기와 눈조각 작업장 (집하장 옆)
+    var mx = S.DUMP.x * U, mz = S.DUMP.y * U, press = G.procLvl(save, 'press'), sculpt = G.procLvl(save, 'sculpt'), fp = [];
+    if (press) {
+      fp.push([box(2.2, 1.4, 1.6, { x: mx + 4, y: 0.7, z: mz - 1 }), '#6b7a8a'], [box(0.9, 1.6, 0.9, { x: mx + 4, y: 2.1, z: mz - 1 }), '#8a98a6'], [box(2.6, 0.12, 1.9, { x: mx + 4, y: 1.45, z: mz - 1 }), '#e2b33c']);
+      var bricks = Math.min(14, 2 + press * 2 + Math.floor((save.made.brick || 0) / 50));
+      for (var b = 0; b < bricks; b++) fp.push([box(0.7, 0.35, 0.4, { x: mx + 3 + (b % 4) * 0.75, y: 0.18 + Math.floor(b / 8) * 0.36, z: mz + 1.0 + (Math.floor(b / 4) % 2) * 0.45 }), '#f2f6fa']);
+    }
+    if (sculpt) {
+      var men = Math.min(5, sculpt + Math.floor((save.made.snowman || 0) / 20));
+      for (var sIdx = 0; sIdx < men; sIdx++) {
+        var sx = mx - 3.5 - sIdx * 1.6, sz = mz + 2.6;
+        fp.push([sph(0.75, { x: sx, y: 0.7, z: sz }), '#fbfdff'], [sph(0.5, { x: sx, y: 1.6, z: sz }), '#fbfdff']);
+        var gen = new T.Sprite(faceMat('general', 'normal')); gen.center.set(0.5, 0.05); gen.scale.set(1.25, 1.25, 1); gen.position.set(sx, 1.25, sz + 0.1); dumpGroup.add(gen);
+      }
+      var st = textTex('사단장님 환영', { size: 34 }); var sp2 = new T.Mesh(new T.PlaneGeometry(st.image.width / 60, st.image.height / 60), new T.MeshLambertMaterial({ map: st })); sp2.position.set(mx - 4.5, 2.7, mz + 2.2); dumpGroup.add(sp2);
+    }
+    if (fp.length) dumpGroup.add(mesh(merge(fp)));
+    scene.add(dumpGroup);
+  }
+  function stepDumps(dt) {
+    var t = performance.now() / 1000;
+    pileLevel.main = Math.max(0.6, Math.min(2.4, pileLevel.main - dt * 0.03)); pileLevel.relay = Math.max(0.4, Math.min(1.5, pileLevel.relay - dt * 0.05));
+    Object.keys(piles).forEach(function (k) { var p = piles[k], lv = p.main ? pileLevel.main : pileLevel.relay, s = p.r * 0.55 * (0.7 + lv * 0.35); p.m.scale.set(s, s * (0.6 + lv * 0.25), s); });
+    relayCrew.forEach(function (o, i) { o.body.rotation.z = Math.sin(t * 6 + i * 2) * 0.35; o.body.position.y = Math.abs(Math.sin(t * 6 + i * 2)) * 0.15; });
+    var hot = world && world.player.load > 0;
+    dumpRings.forEach(function (r) { r.material.opacity = hot ? 0.55 + Math.sin(t * 6) * 0.35 : 0.35; r.scale.setScalar(hot ? 1 + Math.sin(t * 6) * 0.04 : 1); });
+  }
+  // 짐이 많으면 가장 가까운 집하장 쪽 화살표
+  function stepArrow() {
+    if (!arrowEl) { arrowEl = document.createElement('div'); arrowEl.id = 'arrow3d'; arrowEl.innerHTML = '<svg viewBox="0 0 40 40"><path d="M6 20h20M20 10l10 10-10 10" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20h20M20 10l10 10-10 10" stroke="#ff6a55" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'; ov.appendChild(arrowEl); }
+    var P = world.player, show = mode === 'play' && P.load >= P.cap * 0.6;
+    arrowEl.style.display = show ? '' : 'none';
+    if (!show) return;
+    var d = G.nearestDump(world, P.x, P.y), a = project(P.x, P.y, 2.2), b = project(d.x, d.y, 0.5), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    var dist = Math.hypot(b[0] - a[0], b[1] - a[1]); if (dist < 50) { arrowEl.style.display = 'none'; return; }
+    var rr2 = 64 + Math.sin(performance.now() / 160) * 6;
+    arrowEl.style.transform = 'translate(' + (a[0] + Math.cos(ang) * rr2).toFixed(1) + 'px,' + (a[1] + Math.sin(ang) * rr2).toFixed(1) + 'px) rotate(' + ang.toFixed(3) + 'rad)';
+  }
+
   /* ── 사람·차·고라니 ── */
   var SKIN = '#f1c7a1';
   function bodyGeo(coat) {
@@ -518,6 +592,13 @@
     obj.shadow.position.y = 0.04;
   }
   function removeObj(o) { if (o) scene.remove(o.g || o); }
+  // 등에 진 마대: 짊어진 만큼 커진다
+  function sack(o, k) {
+    if (o.vehicle) { if (o.hopper) o.hopper.scale.set(1, Math.max(0.05, k), 1); return; }
+    if (!o.sack) { o.sack = new T.Mesh(geos.sack || (geos.sack = merge([[sph(0.42, { s: [1, 1.1, 0.8], y: 0 }), '#9a8a5c'], [sph(0.36, { s: [1, 0.5, 0.75], y: 0.34 }), '#fbfdff'], [cyl(0.08, 0.12, 0.15, { y: 0.5 }), '#6b5a34']])), matV); o.sack.position.set(0, 1.0, -0.5); o.body.add(o.sack); }
+    o.sack.visible = k > 0.02;
+    var sc = 0.45 + Math.min(1, k) * 0.85; o.sack.scale.setScalar(sc);
+  }
 
   function buildActors() {
     [playerObj, haengObj, carObj, heliObj].forEach(removeObj);
@@ -628,7 +709,7 @@
           var side = Math.random() < 0.5 ? -1 : 1, dx = mine ? P.dir.x : 0, dz = mine ? P.dir.y : 0;
           emit(f.x * U + rnd(-0.6, 0.6), 0.4, f.y * U + rnd(-0.6, 0.6), (dx * 3 + -dz * side * 4 + rnd(-1.5, 1.5)) * (heli ? 2 : 1), rnd(3, 6.5), (dz * 3 + dx * side * 4 + rnd(-1.5, 1.5)) * (heli ? 2 : 1), rnd(0.5, 0.9), mine && P.aura ? [0.75, 0.9, 1] : null);
         }
-        if (mine) { gainAcc += f.gain; if (scrapeT <= 0 && sfx) { sfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; } }
+        if (mine) { if (scrapeT <= 0 && sfx) { sfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; } }
         else if (crewScrapeT <= 0 && sfx) { sfx.scrape(0.22); crewScrapeT = 0.22; }
       } else if (f.t === 'part') {
         for (k = 0; k < 40; k++) emit(f.x * U + rnd(-3, 3), 0.6, f.y * U + rnd(-3, 3), rnd(-3, 3), rnd(5, 10), rnd(-3, 3), rnd(0.8, 1.4), Math.random() < 0.5 ? [1, 0.84, 0.3] : [1, 1, 1]);
@@ -671,6 +752,23 @@
       } else if (f.t === 'snowball') {
         if (hooks.event && mode === 'play') hooks.event(f);
         if (sfx && mode === 'play') sfx.splat();
+      } else if (f.t === 'dump') {
+        var dm = f.src === 'player', fromX = f.fromX * U, fromZ = f.fromY * U, tx = f.x * U, tz = f.y * U, nn = Math.min(dm ? 40 : 8, 4 + (f.units / 4 | 0));
+        for (k = 0; k < nn; k++) { var tt = rnd(0.45, 0.75); emit(fromX + rnd(-0.4, 0.4), 2.2, fromZ + rnd(-0.4, 0.4), (tx - fromX) / tt + rnd(-1, 1), 7 * tt + rnd(0, 2), (tz - fromZ) / tt + rnd(-1, 1), tt + 0.05); }
+        pileLevel[f.main ? 'main' : 'relay'] += f.units / 300;
+        if (dm || Math.random() < 0.35) { var od = addOv('+' + fmt(f.pay) + '<i class="pie"></i>', 'ov-dump', f.x, f.y, 4, dm ? 1.4 : 0.9); od.rise = 1.6; }
+        if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
+        if (dm && hooks.event) hooks.event(f);
+      } else if (f.t === 'full') {
+        addOv('가득!', 'ov-full', 0, 0, 4.4, 1.6, world.player);
+        if (sfx) sfx.deny();
+        if (hooks.event) hooks.event(f);
+      } else if (f.t === 'inspect') {
+        var oi = addOv('검열 통과!<span>' + f.name + ' · +' + fmt(f.bonus) + '</span>', 'ov-inspect', f.x, f.y, 2, 2.6); oi.rise = 0.4;
+        for (k = 0; k < 60; k++) emit(f.x * U + rnd(-6, 6), 0.6, f.y * U + rnd(-6, 6), rnd(-3, 3), rnd(6, 11), rnd(-3, 3), rnd(0.9, 1.5), [1, 0.84, 0.3]);
+        if (hooks.event && mode === 'play') hooks.event(f);
+      } else if (f.t === 'day') {
+        if (hooks.event && mode === 'play') hooks.event(f);
       } else if (f.t === 'up') {
         addOv('다시 일어났다', 'ov-chat', 0, 0, 4.3, 1.2, f.e);
       }
@@ -686,12 +784,14 @@
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
     placePerson(playerObj, P, { lie: P.stun > 0.6 });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
+    sack(playerObj, P.load / P.cap);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
       setExpr(o, e.injured > 0 ? 'hurt' : e.asleep ? 'sleep' : 'normal');
       placePerson(o, e, { lie: e.injured > 0 || e.asleep });
+      sack(o, e.load / e.cap);
     });
     // 고라니
     while (deerObjs.length < w.deer.length) deerObjs.push(makeDeer());
@@ -750,7 +850,7 @@
     scene.fog.near = dist * 1.05; scene.fog.far = dist * 2.4;
   }
   function lighting() {
-    var k = world && world.dayLen ? Math.min(1, world.time / world.dayLen) : 0.3;
+    var k = world && world.dayLen ? 0.25 + 0.75 * Math.sin(Math.min(1, world.time / world.dayLen) * Math.PI) : 0.6;
     hemi.color.setRGB(0.84 + k * 0.12, 0.89 + k * 0.07, 1); hemi.intensity = 0.6 + k * 0.06;
     sun.color.setRGB(1, 0.86 + k * 0.1, 0.78 + k * 0.12); sun.intensity = 0.66 + k * 0.12;
     if (scene.fog) scene.fog.color.setRGB(0.78 + k * 0.06, 0.84 + k * 0.04, 0.9);
@@ -772,6 +872,7 @@
   }
   function botInput() {
     var P = world.player;
+    if (P.load >= P.cap * 0.95 || (P.load > 0 && bot.idx < 0)) { var dp = G.nearestDump(world, P.x, P.y), ddx = dp.x - P.x, ddy = dp.y - P.y, dl = Math.hypot(ddx, ddy) || 1; return { x: ddx / dl, y: ddy / dl }; }
     bot.t -= 1 / 60;
     if (bot.t <= 0 || bot.idx < 0 || !world.depth[bot.idx]) {
       var best = -1, bs = 1e9;
@@ -833,32 +934,27 @@
     slowAvg = slowAvg * 0.97 + raw * 0.03;
     if (slowAvg > 0.026 && pr > 1 && mode === 'play' && ++slowN > 120) { pr = Math.max(1, pr - 0.5); renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false); slowN = 0; slowAvg = 0.016; }
     if (world && (mode === 'play' || mode === 'demo')) {
-      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), n = Math.ceil(Math.min(0.15, raw) / 0.05);
-      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, Math.min(0.15, raw) / n, inp);
+      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), span = Math.min(0.25, raw), n = Math.ceil(span / 0.05);
+      for (var sn = 0; sn < n; sn++) G.step(world, span / n, inp);
       onFx();
-      if (mode === 'demo' && world.done) { begin(world.save, 'demo'); return; }
-      if (mode === 'play' && world.done && !doneSent) { doneSent = true; mode = 'end'; if (hooks.done) hooks.done(world); }
       if (hooks.tick && mode === 'play') hooks.tick(world);
     }
     if (world) {
       flushSnow();
       if (scanT > 0) { scanT -= dt; if (scanT <= 0) recolorAll(); }
       syncActors(dt); stepParticles(dt); camera3(dt); stepOverlays(dt); lighting();
-      gainT -= dt; scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
-      if (gainAcc >= 1 && gainT <= 0 && mode === 'play') {
-        var P = world.player, o = addOv('+' + Math.floor(gainAcc) + '<i class="pie"></i>', 'ov-gain', P.x + rnd(-6, 6), P.y, 4.2, 0.9); o.rise = 1.4;
-        gainAcc -= Math.floor(gainAcc); gainT = 0.32; if (JY.SnowSfx) JY.SnowSfx.tick();
-      }
+      scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
+      stepDumps(dt); stepArrow();
     }
     renderer.render(scene, camera);
   }
 
   function begin(save, m) {
     world = G.createWorld(save, { demo: m === 'demo', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });
-    mode = m; doneSent = false; gainAcc = 0; moveTo = null; stick = null; scanT = 0; focus = null;
+    mode = m; doneSent = false; moveTo = null; stick = null; scanT = 0; focus = null;
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
-    buildSnow(); buildLocks(); buildActors();
+    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;
   }

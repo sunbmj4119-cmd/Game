@@ -356,7 +356,6 @@
           parts.push({ x: f.x + Math.cos(ang) * r * 0.6, y: f.y + Math.sin(ang) * r * 0.6, z: rnd(2, 6), vx: Math.cos(ang) * sp + (mine ? P.dir.x * 25 : 0), vy: Math.sin(ang) * sp * 0.6 + (mine ? P.dir.y * 25 : 0), vz: rnd(30, 70), life: rnd(0.45, 0.8), t: 0, s: rnd(1.2, 2.6), salt: mine && P.aura });
         }
         if (mine) {
-          gainAcc += f.gain;
           if (scrapeT <= 0 && JY.SnowSfx) { JY.SnowSfx.scrape(Math.min(1, f.n / 6)); scrapeT = 0.085; }
         } else if (crewScrapeT <= 0 && JY.SnowSfx) { JY.SnowSfx.scrape(0.25); crewScrapeT = 0.22; }
       } else if (f.t === 'zzz') {
@@ -380,7 +379,10 @@
         if (f.lose) floats.push({ x: f.x, y: f.y - 36, text: '-' + f.lose, t: 0, life: 1.4, color: '#ff6a55', size: 12, pie: true });
         shake = Math.max(shake, 4);
       }
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part)$/.test(f.t)) hooks.event(f);
+      if (f.t === 'dump' && (f.src === 'player' || Math.random() < 0.3)) { floats.push({ x: f.x, y: f.y - 30, text: '+' + Math.floor(f.pay), t: 0, life: 1.2, color: '#ffd84a', size: 13, pie: true }); if (JY.SnowSfx && f.src === 'player' && mode === 'play') { JY.SnowSfx.pour(1); JY.SnowSfx.coin(); } }
+      if (f.t === 'full') floats.push({ x: 0, y: 0, text: '가득!', t: 0, life: 1.4, color: '#ff6a55', size: 12, follow: world.player });
+      if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -488,7 +490,14 @@
     world.cats.forEach(function (k) { list.push({ y: k.y, f: function () { c.fillStyle = '#e8913a'; c.beginPath(); c.arc(k.x, k.y - 5, 5, 0, 7); c.fill(); c.beginPath(); c.arc(k.x + 4, k.y - 10, 3.5, 0, 7); c.fill(); } }); });
     if (world.car) { var cr = world.car; list.push({ y: cr.y + 12, f: function () { c.fillStyle = '#4f5d36'; rr(c, cr.x - 9, cr.y - 16, 18, 30, 4); c.fill(); c.fillStyle = '#9cc3dc'; c.fillRect(cr.x - 7, cr.y - (cr.dir.y < 0 ? 12 : -4), 14, 6); } }); }
     if (world.heli) { var hl = world.heli; list.push({ y: hl.y + 20, f: function () { c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(hl.x, hl.y, 60, 0, 7); c.fill(); c.fillStyle = '#4c5a35'; c.beginPath(); c.ellipse(hl.x, hl.y - 10, 16, 10, 0, 0, 7); c.fill(); c.fillRect(hl.x - 36, hl.y - 12, 22, 4); } }); }
-    list.push({ y: world.player.y + 0.1, f: function () { drawPlayer(c, world.player); } });
+    list.push({ y: world.player.y + 0.1, f: function () { drawPlayer(c, world.player); var P = world.player; if (P.load > 0) { var k = Math.min(1, P.load / P.cap); c.fillStyle = '#9a8a5c'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 14, 3 + k * 5, 0, 7); c.fill(); c.fillStyle = '#fbfdff'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 17 - k * 3, 2 + k * 3, 0, 7); c.fill(); } } });
+    world.dumps.forEach(function (d) { list.push({ y: d.y - d.r, f: function () {
+      c.fillStyle = 'rgba(138,106,68,.35)'; c.beginPath(); c.arc(d.x, d.y, d.r, 0, 7); c.fill();
+      c.strokeStyle = '#8a6a44'; c.lineWidth = 3; c.stroke();
+      c.fillStyle = '#f7fafd'; c.beginPath(); c.ellipse(d.x, d.y - 4, d.r * 0.55, d.r * 0.38, 0, 0, 7); c.fill();
+      c.fillStyle = '#2f3a25'; c.font = '700 9px ' + FONT; c.textAlign = 'center'; c.fillText(d.main ? '눈 집하장' : '릴레이', d.x, d.y - d.r - 4); } }); });
+    if (world.player.load >= world.player.cap * 0.6) { var Pp = world.player, nd = G.nearestDump(world, Pp.x, Pp.y), an = Math.atan2(nd.y - Pp.y, nd.x - Pp.x);
+      if (Math.hypot(nd.x - Pp.x, nd.y - Pp.y) > 40) list.push({ y: 1e9, f: function () { c.save(); c.translate(Pp.x + Math.cos(an) * 30, Pp.y - 10 + Math.sin(an) * 30); c.rotate(an); c.fillStyle = '#ff6a55'; c.beginPath(); c.moveTo(10, 0); c.lineTo(-6, -7); c.lineTo(-6, 7); c.closePath(); c.fill(); c.restore(); } }); }
     list.sort(function (a, b) { return a.y - b.y; });
     list.forEach(function (o) { o.f(); });
     // 날리는 눈 조각
@@ -578,6 +587,7 @@
   }
   function botInput() {
     var P = world.player;
+    if (P.load >= P.cap * 0.95 || (P.load > 0 && bot.idx < 0)) { var dp = G.nearestDump(world, P.x, P.y), ddx = dp.x - P.x, ddy = dp.y - P.y, dl = Math.hypot(ddx, ddy) || 1; return { x: ddx / dl, y: ddy / dl }; }
     bot.t -= 1 / 60;
     if (bot.t <= 0 || bot.idx < 0 || !world.depth[bot.idx]) {
       var best = -1, bs = 1e9;
@@ -629,7 +639,7 @@
   /* ── 루프 ── */
   function frame(t) {
     raf = requestAnimationFrame(frame);
-    var raw = last ? Math.min(0.15, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
+    var raw = last ? Math.min(0.25, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
     if (world && (mode === 'play' || mode === 'demo')) {
       var inp = mode === 'demo' || autopilot ? botInput() : readInput(), n = Math.ceil(raw / 0.05);
       for (var sn = 0; sn < n && !world.done; sn++) G.step(world, raw / n, inp);
@@ -639,7 +649,7 @@
       if (hooks.tick && mode === 'play') hooks.tick(world);
     }
     if (world) { stepFx(dt); camera(dt); for (var i = 0; i < flakes.length; i++) { var f = flakes[i]; f.y += (16 + f.z * 46) * dt; if (f.y > vh + 4) { f.y = -4; f.x = Math.random() * vw; } } }
-    if (world) flushDirty(mode === 'demo' ? 8 : 16);
+    if (world) flushDirty(mode === 'demo' ? 4 : 6);
     render();
   }
 

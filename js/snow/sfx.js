@@ -61,6 +61,8 @@
     rank: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, i === 3 ? 0.5 : 0.14, 'triangle', 0.13, i * 0.13); }); },
     stamp: function () { noise(0.14, 0.25, 'lowpass', 260, 0.7); tone(90, 0.18, 'sine', 0.22, 0, 50); },
     pop: function () { tone(520, 0.08, 'sine', 0.08, 0, 880); },
+    pour: function (k) { noise(0.35 * (0.5 + k * 0.5), 0.1 + k * 0.12, 'lowpass', 700, 0.6); noise(0.2, 0.05 * k, 'bandpass', 2500, 1); },
+    coin: function () { tone(1046, 0.08, 'triangle', 0.08, 0.05); tone(1568, 0.14, 'triangle', 0.08, 0.12); },
     ding: function () { tone(1568, 0.5, 'sine', 0.12); tone(2093, 0.6, 'sine', 0.08, 0.06); tone(3136, 0.3, 'sine', 0.04, 0.1); },
     deer: function () {
       // 고라니 비명: 높고 거친 소리가 꺾인다

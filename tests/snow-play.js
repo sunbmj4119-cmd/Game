@@ -8,7 +8,7 @@ var shots = process.argv[2] || null, size = (process.argv[3] || '390x844').split
 var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.html');
 
 (async function () {
-  var browser = await chromium.launch();
+  var browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   var page = await browser.newPage({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: shots ? 2 : 1, hasTouch: false });
   var errors = [], checks = [];
   page.on('pageerror', function (e) { errors.push(String(e)); });
@@ -43,7 +43,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('작업 화면 + HUD', await vis('#hud') && !(await vis('#title')));
   ok('첫날 조작 안내', await vis('#hint'));
   await shot('02-day1-start');
-  var p0 = await page.evaluate(function () { var w = JY.SnowView.world(); return { x: w.player.x, y: w.player.y, clear: w.clear, bank: __SNOW.save().bank }; });
+  var p0 = await page.evaluate(function () { var w = __SNOW.view().world(); return { x: w.player.x, y: w.player.y, clear: w.clear, bank: __SNOW.save().bank }; });
   await page.mouse.move(size[0] / 2, size[1] * 0.6);
   await page.mouse.down();
   await page.mouse.move(size[0] / 2 + 40, size[1] * 0.6 + 10, { steps: 6 });
@@ -51,20 +51,20 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.mouse.move(size[0] / 2 - 30, size[1] * 0.6 + 30, { steps: 6 });
   await sleep(1200);
   await page.mouse.up();
-  var p1 = await page.evaluate(function () { var w = JY.SnowView.world(); return { x: w.player.x, y: w.player.y, clear: w.clear, bank: __SNOW.save().bank, tut: __SNOW.save().seen.tut }; });
+  var p1 = await page.evaluate(function () { var w = __SNOW.view().world(); return { x: w.player.x, y: w.player.y, clear: w.clear, bank: __SNOW.save().bank, tut: __SNOW.save().seen.tut }; });
   ok('끌면 걷는다', Math.hypot(p1.x - p0.x, p1.y - p0.y) > 40, [p0, p1]);
   ok('걸으면 눈이 치워지고 초코파이가 생긴다', p1.clear > p0.clear && p1.bank > p0.bank, [p0, p1]);
   ok('조작하면 안내가 사라진다', p1.tut === true && !(await vis('#hint')));
   // 톡 해서 이동
-  var t0 = await page.evaluate(function () { var w = JY.SnowView.world(); return { x: w.player.x, y: w.player.y }; });
+  var t0 = await page.evaluate(function () { var w = __SNOW.view().world(); return { x: w.player.x, y: w.player.y }; });
   await page.mouse.click(size[0] * 0.8, size[1] * 0.45);
   await sleep(1300);
-  var t1 = await page.evaluate(function () { var w = JY.SnowView.world(); return { x: w.player.x, y: w.player.y }; });
+  var t1 = await page.evaluate(function () { var w = __SNOW.view().world(); return { x: w.player.x, y: w.player.y }; });
   ok('톡 하면 그쪽으로 간다', t1.x > t0.x + 20, [t0, t1]);
   // 키보드
-  var k0 = await page.evaluate(function () { JY.SnowView._teleport(190, 160); return JY.SnowView.world().player.y; });
+  var k0 = await page.evaluate(function () { __SNOW.view()._teleport(190, 160); return __SNOW.view().world().player.y; });
   await page.keyboard.down('ArrowDown'); await sleep(700); await page.keyboard.up('ArrowDown');
-  var k1 = await page.evaluate(function () { return JY.SnowView.world().player.y; });
+  var k1 = await page.evaluate(function () { return __SNOW.view().world().player.y; });
   ok('방향키로도 걷는다', k1 > k0 + 20, [k0, k1]);
   await page.evaluate(function () { __SNOW.autopilot(true); });
   await sleep(4000);
@@ -107,13 +107,13 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   // 2일차: 인력이 일한다
   await page.click('#s-go');
   await sleep(4500);
-  var crew = await page.evaluate(function () { var w = JY.SnowView.world(); return { n: w.crew.length, moved: w.crew.filter(function (e) { return Math.hypot(e.x - 320, e.y - 126) > 30; }).length, crewEarned: w.crewEarned }; });
+  var crew = await page.evaluate(function () { var w = __SNOW.view().world(); return { n: w.crew.length, moved: w.crew.filter(function (e) { return Math.hypot(e.x - 320, e.y - 126) > 30; }).length, crewEarned: w.crewEarned }; });
   ok('채용한 후임이 나와서 일한다', crew.n === 2 && crew.moved >= 1 && crew.crewEarned > 0, crew);
   await shot('08-day2-crew');
 
   // 진급
   await page.evaluate(function () { var s = __SNOW.save(); s.life = 3200; __SNOW.endNow(); });
-  await sleep(1800);
+  for (var rw = 0; rw < 20 && !(await page.evaluate(function () { return !document.getElementById('modal').hidden; })); rw++) await sleep(200);
   var r2 = await page.evaluate(function () { return { rank: JY.SnowSim.rankOf(__SNOW.save()), modal: !document.getElementById('modal').hidden }; });
   ok('일병 진급 축하', r2.rank === 1 && r2.modal, r2);
   await shot('09-rankup');
@@ -121,20 +121,35 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
 
   // 후반: 많은 인력과 제설차
   await page.evaluate(function () {
-    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 123456; s.life = 900000; s.tool = 6;
+    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 123456; s.life = 1100000; s.tool = 6;
     s.crew = { hoobae: 10, donggi: 8, cook: 6, malnyeon: 4, admin: 3, reserve: 3, plow: 1 };
     s.perks = { eisen: 3, hotpack: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.seen = { tut: true, dis: true };
     __SNOW.setSave(s); __SNOW.startDay();
   });
   await sleep(5000);
   await shot('10-late-game');
-  var late = await page.evaluate(function () { var w = JY.SnowView.world(); return { crew: w.crew.length, pct: JY.SnowSim.pct(w) }; });
+  var late = await page.evaluate(function () { var w = __SNOW.view().world(); return { crew: w.crew.length, pct: JY.SnowSim.pct(w) }; });
   ok('후반: 인력 35명 + 트랙터', late.crew === 35 && late.pct > 0, late);
   // 성능: 프레임 측정
   var fps = await page.evaluate(function () {
     return new Promise(function (res) { var n = 0, t0 = performance.now(); function f() { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(Math.round(n / ((performance.now() - t0) / 1000))); } requestAnimationFrame(f); });
   });
-  ok('후반 프레임 (헤드리스 기준 30fps 이상)', fps >= 30, fps);
+  var is3d = await page.evaluate(function () { return !!__SNOW.view().is3D; });
+  ok('후반 프레임 (' + (is3d ? '3D, 소프트웨어 렌더 기준 5fps' : '2D, 소프트웨어 렌더 기준 15fps') + ' 이상)', fps >= (is3d ? 5 : 15), fps);
+  // 3D판 방해꾼과 띵
+  var hz = await page.evaluate(function () {
+    var V = __SNOW.view(), w = V.world(); w.events = [];
+    JY.SnowSim.spawn(w, 'deer');
+    var p = w.parts.filter(function (x) { return !x.done; })[0];
+    for (var y = p.y; y < p.y + p.h; y += 10) for (var x = p.x; x < p.x + p.w; x += 10) JY.SnowSim.clearAt(w, x + 5, y + 5, 3, 9, 'player');
+    return { deer: w.deer.length, part: p.done, scan: V.scan ? V.scan() : 'none' };
+  });
+  await sleep(600);
+  var hz2 = await page.evaluate(function () { return { deerOv: !!document.querySelector('.ov-deer'), partOv: !!document.querySelector('.ov-part'), chip: !document.getElementById('chip').hidden }; });
+  ok('고라니 출현: 경고와 "꾸에에엑"', hz.deer === 1 && (!is3d || hz2.deerOv) && hz2.chip, [hz, hz2]);
+  ok('조각 완료: 띵! 표시', hz.part && (!is3d || hz2.partOv), [hz, hz2]);
+  ok('남은 눈 보기 (3D)', !is3d || hz.scan === true, hz.scan);
+  await shot('10b-late-hazard');
   await page.evaluate(function () { __SNOW.endNow(); });
   await sleep(1800);
   await page.click('#result [data-r="shop"]');

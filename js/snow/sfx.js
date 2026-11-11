@@ -61,6 +61,22 @@
     rank: function () { [392, 523, 659, 784].forEach(function (f, i) { tone(f, i === 3 ? 0.5 : 0.14, 'triangle', 0.13, i * 0.13); }); },
     stamp: function () { noise(0.14, 0.25, 'lowpass', 260, 0.7); tone(90, 0.18, 'sine', 0.22, 0, 50); },
     pop: function () { tone(520, 0.08, 'sine', 0.08, 0, 880); },
+    ding: function () { tone(1568, 0.5, 'sine', 0.12); tone(2093, 0.6, 'sine', 0.08, 0.06); tone(3136, 0.3, 'sine', 0.04, 0.1); },
+    deer: function () {
+      // 고라니 비명: 높고 거친 소리가 꺾인다
+      var c = ctx(); if (!c) return;
+      var t = c.currentTime, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+      o.type = 'sawtooth'; o2.type = 'square'; f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 2;
+      o.frequency.setValueAtTime(900, t); o.frequency.linearRampToValueAtTime(1500, t + 0.12); o.frequency.linearRampToValueAtTime(700, t + 0.5);
+      o2.frequency.setValueAtTime(905, t); o2.frequency.linearRampToValueAtTime(1490, t + 0.12); o2.frequency.linearRampToValueAtTime(690, t + 0.5);
+      env(g, t, 0.02, 0.12, 0.55);
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(master); o.start(t); o2.start(t); o.stop(t + 0.6); o2.stop(t + 0.6);
+      noise(0.4, 0.05, 'highpass', 2500, 0.7);
+    },
+    thud: function () { tone(110, 0.2, 'sine', 0.25, 0, 55); noise(0.12, 0.15, 'lowpass', 400, 0.8); },
+    rumble: function () { noise(0.9, 0.18, 'lowpass', 180, 0.7); tone(60, 0.8, 'sine', 0.12, 0, 40); },
+    honk: function () { tone(392, 0.18, 'square', 0.06); tone(466, 0.18, 'square', 0.05); tone(392, 0.25, 'square', 0.06, 0.24); tone(466, 0.25, 'square', 0.05, 0.24); },
+    splat: function () { noise(0.25, 0.25, 'lowpass', 900, 0.8); tone(180, 0.12, 'sine', 0.1, 0, 90); },
     wind: function (level) {
       var c = ctx(); if (!c) return;
       if (!windSrc) {

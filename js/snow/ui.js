@@ -1,7 +1,8 @@
 /* 제설각 — 화면 흐름: 타이틀, 작업(HUD), 검열 결과, 보급·인력, 진급, 전역 */
 (function (JY) {
   'use strict';
-  var S = JY.SNOW, G = JY.SnowSim, V = JY.SnowView, X = JY.SnowSfx;
+  var S = JY.SNOW, G = JY.SnowSim, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
+  var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v1';
   var save = load(), tab = 'crew', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, tutT = 0;
   var GRADE = { S: '특급', A: '양호', B: '미흡', C: '재작업' };
@@ -74,6 +75,38 @@
     setTimeout(function () { say(w.inspect ? 'inspect' : w.weather === 'heavy' || w.weather === 'blizzard' ? 'heavy' : 'start'); }, 500);
     if (X) { X.whistle(false); X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2); }
     if (!save.seen.tut) { $('hint').hidden = false; tutT = 0; }
+    scanReady = 0; $('h-scan').disabled = !V.scan; $('h-scan').classList.remove('cool');
+    var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
+    if (fresh) {
+      delete save.seen['new' + fresh.id]; persist();
+      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」 — ' + fresh.reveal, 4200); }, 2300);
+    }
+  }
+
+  /* ── 방해꾼 알림 ── */
+  var chipTimer = 0;
+  function chip(text, cls) {
+    var c = $('chip'); c.textContent = text; c.className = cls || ''; c.hidden = false;
+    clearTimeout(chipTimer); chipTimer = setTimeout(function () { c.hidden = true; }, 2600);
+  }
+  function onEvent(f) {
+    if (f.t === 'deer') { chip('고라니 출현! 부딪히면 다친다', 'warn'); vibrate(80); }
+    else if (f.t === 'meHit') { chip(f.lose ? '고라니한테 받혀서 초코파이 ' + fmt(f.lose) + '개 떨어뜨림!' : '고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
+    else if (f.t === 'snowball') { splat(); vibrate(50); }
+    else if (f.t === 'car') chip('간부 차량 통과 중… 진입로가 더러워진다', 'warn');
+    else if (f.t === 'heli') chip('헬기 착륙! 하강풍이 헬기장 눈을 날린다', 'good');
+  }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* 무시 */ } }
+  function flash() { var f = $('flash'); f.hidden = false; f.classList.remove('in'); void f.offsetWidth; f.classList.add('in'); setTimeout(function () { f.hidden = true; }, 500); }
+  function splat() {
+    var sp = $('splat'), x = 15 + Math.random() * 50, y = 25 + Math.random() * 35;
+    sp.style.left = x + '%'; sp.style.top = y + '%'; sp.hidden = false; sp.classList.remove('in'); void sp.offsetWidth; sp.classList.add('in');
+    setTimeout(function () { sp.hidden = true; }, 2600);
+  }
+  var scanReady = 0;
+  function scan() {
+    if (!V.scan || Date.now() < scanReady) return;
+    if (V.scan()) { scanReady = Date.now() + 9000; var b = $('h-scan'); b.classList.add('cool'); setTimeout(function () { b.classList.remove('cool'); }, 9000); if (X) X.pop(); }
   }
 
   function tick(w) {
@@ -83,7 +116,7 @@
     if (hud.ring !== ring) { hud.ring = ring; $('h-ring').style.strokeDashoffset = String(119.4 * (1 - ring)); }
     if (hud.pc !== pc) { hud.pc = pc; $('h-pct').textContent = pc + '%'; $('h-fill').style.width = Math.min(100, p * 100) + '%'; $('hud').classList.toggle('goal-ok', p >= w.goal); }
     if (hud.bank !== bank) { hud.bank = bank; $('h-bank').textContent = fmt(bank); }
-    if (!save.seen.tut) { tutT += 1 / 60; if (w.player.moving && tutT > 1.2) { save.seen.tut = true; $('hint').hidden = true; } }
+    if (!save.seen.tut && w.player.moving && w.time > 1.2) { save.seen.tut = true; $('hint').hidden = true; }
     if (Date.now() - lastSave > 5000) persist();
   }
 
@@ -101,7 +134,9 @@
     var lines = '<li><span>치운 눈</span><b>' + fmt(r.units) + '칸</b></li>' +
       '<li><span>작업 보상</span><b>' + pie() + fmt(r.earned) + '</b></li>' +
       '<li><span>검열 보너스' + (r.inspect ? ' (순시 ×2)' : '') + '</span><b>' + (base ? '+' + fmt(base) : '없음') + '</b></li>' +
-      (r.early ? '<li class="early"><span>조기 퇴근 (' + Math.floor(r.left) + '초 남김)</span><b>+' + fmt(r.timeBonus) + '</b></li>' : '');
+      (r.early ? '<li class="early"><span>조기 퇴근 (' + Math.floor(r.left) + '초 남김)</span><b>+' + fmt(r.timeBonus) + '</b></li>' : '') +
+      (r.partsTotal ? '<li class="early"><span>구역 완료 ' + r.parts + '/' + r.partsTotal + ' (띵!)</span><b>' + (r.partBonus ? '+' + fmt(r.partBonus) : '없음') + '</b></li>' : '') +
+      (r.hits ? '<li class="bad"><span>고라니·지붕 피해 ' + r.hits + '번</span><b>' + (r.lost ? '-' + fmt(r.lost) : '부상만') + '</b></li>' : '');
     $('result').innerHTML = '<div class="card res">' +
       '<div class="res-head"><div class="face">' + haengFace() + '</div><div><p class="kicker">행보관 검열 · ' + r.day + '일차</p><h2>' + esc(S.WEATHER[r.weather].name) + (r.inspect ? ' · 대대장 순시' : '') + '</h2></div></div>' +
       '<div class="res-pct"><div><b>' + Math.floor(r.pct * 100) + '<small>%</small></b><span>제설률 · 목표 ' + Math.round(r.goal * 100) + '%</span></div><div class="stamp g-' + r.grade + '">' + GRADE[r.grade] + '</div></div>' +
@@ -145,13 +180,13 @@
   function person(opts, scale) {
     return iconCanvas(function (x) {
       x.translate(28, 49); x.scale(scale || 1.55, scale || 1.55);
-      V._drawPerson(x, { x: 0, y: 0, dir: { x: 0.45, y: 0.89 }, walk: 0, moving: false, swing: 0 }, opts);
+      V2._drawPerson(x, { x: 0, y: 0, dir: { x: 0.45, y: 0.89 }, walk: 0, moving: false, swing: 0 }, opts);
     });
   }
   function vehicle(kind, r) {
     return iconCanvas(function (x) {
       x.translate(24, 38); x.scale(0.82, 0.82);
-      V._drawVehicle(x, { x: 0, y: 0, dir: { x: 0.85, y: -0.5 } }, { kind: kind, r: Math.min(r, 40) });
+      V2._drawVehicle(x, { x: 0, y: 0, dir: { x: 0.85, y: -0.5 } }, { kind: kind, r: Math.min(r, 40) });
     });
   }
   function itemIcon(o) {
@@ -164,7 +199,7 @@
       var T = S.TOOLS[o.i];
       if (T.vehicle) return vehicle(T.id, T.r);
       if (T.id === 'salt') return person({ coat: '#5b6a3a', hat: 'beanie', seed: 3, salt: true });
-      return person({ coat: '#5b6a3a', hat: 'beanie', seed: 3, tool: V._toolKind(T), r: T.r, band: true });
+      return person({ coat: '#5b6a3a', hat: 'beanie', seed: 3, tool: V2._toolKind(T), r: T.r, band: true });
     }
     if (o.kind === 'zone') {
       var Z = S.ZONES.filter(function (z) { return z.id === o.id; })[0];
@@ -201,7 +236,7 @@
     items.forEach(function (o) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' : o.kind === 'perk' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' ? o.stat : '';
+      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' : o.kind === 'perk' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개' : '';
       var label;
       if (o.state === 'buy') label = pie() + fmt(o.cost);
       else if (o.state === 'own') label = o.cur ? '사용 중' : '보유';
@@ -259,7 +294,9 @@
 
   /* ── 시작 ── */
   function boot() {
-    V.init($('cv'), { say: function (k) { say(k); }, tick: tick, done: dayDone });
+    var hooks = { say: function (k) { say(k); }, tick: tick, done: dayDone, event: onEvent };
+    try { V.init($('cv'), hooks); } catch (e) { V = V2; V.init($('cv'), hooks); }
+    document.body.classList.toggle('is3d', !!V.is3D);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { V.rebuildArt(); });
     $('say-face').innerHTML = haengFace();
     $('t-start').onclick = startDay;
@@ -269,6 +306,8 @@
     $('s-back').onclick = title;
     $('shop').addEventListener('click', onShopClick);
     $('h-pause').onclick = pause;
+    $('h-scan').onclick = scan;
+    window.addEventListener('keydown', function (e) { if ((e.key === 'Tab' || e.key === 'q') && V.mode() === 'play') { e.preventDefault(); scan(); } });
     document.addEventListener('visibilitychange', function () { if (document.hidden && V.mode() === 'play') pause(); });
     var off = G.offline(save, Date.now());
     title();
@@ -289,6 +328,7 @@
   }
 
   window.__SNOW = {
+    view: function () { return V; },
     save: function () { return save; },
     setSave: function (s) { save = G.migrate(s); persist(); },
     startDay: startDay, shop: shop, title: title, endNow: function () { var w = V.world(); if (w) w.time = w.dayLen; },

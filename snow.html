@@ -23,7 +23,11 @@
       <div class="pill bank"><i class="pie" aria-hidden="true"></i><b id="h-bank">0</b></div>
     </div>
     <div class="prog"><div class="bar"><i id="h-fill"></i><em id="h-goal"></em></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
+    <button id="h-scan" class="scan" aria-label="남은 눈 표시"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>남은 눈</button>
   </header>
+  <div id="chip" hidden></div>
+  <div id="flash" hidden></div>
+  <div id="splat" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 18c14 0 18 26 30 30s34-14 42 0-18 26-12 40 30 22 22 36-34 4-42 16 2 40-14 44-22-26-36-26-30 26-42 14 6-34-6-44-36-6-36-22 30-16 30-32-22-30-10-40 30 8 40 0 10-56 18-56z" fill="#fbfdff" stroke="#c9d8e6" stroke-width="4"/><circle cx="160" cy="40" r="10" fill="#fbfdff"/><circle cx="40" cy="168" r="8" fill="#fbfdff"/><circle cx="178" cy="150" r="6" fill="#fbfdff"/></svg><b>누가 던졌어!!</b></div>
 
   <div id="say" hidden><div class="say-face" id="say-face"></div><p id="say-text"></p></div>
   <div id="banner" hidden></div>
@@ -67,7 +71,9 @@
 <script src="js/snow/data.js"></script>
 <script src="js/snow/sim.js"></script>
 <script src="js/snow/sfx.js"></script>
+<script src="js/vendor/three.min.js"></script>
 <script src="js/snow/view.js"></script>
+<script src="js/snow/view3d.js"></script>
 <script src="js/snow/ui.js"></script>
 </body>
 </html>

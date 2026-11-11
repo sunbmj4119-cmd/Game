@@ -181,3 +181,42 @@ button { font: inherit; color: inherit; }
 @keyframes toast { from { transform: translateX(-50%) translateY(10px); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; } }
+
+/* ── 3D: 화면 위 글자·조이스틱·방해꾼 알림 ── */
+#ov3d { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.ov { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; font-family: var(--f-body); }
+.ov .pie { width: 12px; height: 12px; margin-left: 3px; }
+.ov-gain { color: #ffd84a; font-size: 17px; text-shadow: 0 2px 0 #3a2a10, 0 0 6px rgba(0,0,0,.5); font-family: var(--f-title); }
+.ov-chat { background: #fff; color: var(--ink); font-size: 12.5px; padding: 4px 9px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.ov-chat::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.ov-zzz { color: #4a64a8; font-size: 15px; font-family: var(--f-title); text-shadow: 0 0 4px #fff; }
+.ov-bang { color: #e0352b; font-size: 22px; font-family: var(--f-title); text-shadow: 0 2px 0 #fff; }
+.ov-deer { background: #c8402e; color: #fff; font-size: 14px; padding: 4px 10px; border-radius: 12px; font-family: var(--f-title); box-shadow: 0 3px 0 #7c2318; animation: shout .25s ease-in-out infinite alternate; }
+@keyframes shout { to { margin-top: -3px; } }
+.ov-hurt { background: #fff; color: #c8402e; font-size: 13.5px; padding: 3px 9px; border-radius: 10px; box-shadow: 0 0 0 2px #c8402e; }
+.ov-lose { color: #ff6a55; font-size: 18px; font-family: var(--f-title); text-shadow: 0 2px 0 #3a1010; }
+.ov-part { display: grid; justify-items: center; gap: 2px; background: rgba(22,35,58,.88); color: #fff; padding: 7px 13px; border-radius: 14px; box-shadow: 0 0 0 2px var(--gold), 0 6px 18px rgba(0,0,0,.3); }
+.ov-part b { font-family: var(--f-title); font-weight: 400; font-size: 16px; color: var(--gold); }
+.ov-part span { font-size: 13px; display: inline-flex; align-items: center; }
+.ov-zone { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 2px; pointer-events: none; }
+.ov-zone b { background: rgba(30,40,30,.84); color: #fff; font-weight: 400; font-size: 14px; padding: 5px 12px 4px; border-radius: 12px 12px 0 0; }
+.ov-zone span { background: rgba(30,40,30,.84); color: #ffd84a; font-family: var(--f-title); font-size: 15px; padding: 2px 12px 5px; border-radius: 0 0 12px 12px; margin-top: -2px; display: inline-flex; align-items: center; gap: 4px; }
+.ov-zone small { color: #2b3427; font-size: 11px; text-shadow: 0 0 4px #fff, 0 0 2px #fff; }
+#stick3d { position: absolute; left: -46px; top: -46px; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,.18); box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); pointer-events: none; z-index: 3; }
+#stick3d i { position: absolute; left: 26px; top: 26px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.75); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.scan { pointer-events: auto; justify-self: end; display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 99px; padding: 6px 12px 6px 9px; background: rgba(14,24,42,.74); color: #fff; font-size: 13.5px; cursor: pointer; }
+.scan svg { width: 16px; height: 16px; }
+.scan.cool { opacity: .45; }
+.scan:disabled { display: none; }
+#chip { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 168px); transform: translateX(-50%); background: rgba(14,24,42,.88); color: #fff; padding: 8px 14px; border-radius: 99px; font-size: 14.5px; z-index: 7; pointer-events: none; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; animation: say-in .25s; }
+#chip.warn { background: #b8611a; } #chip.bad { background: #c8402e; } #chip.good { background: #2f8f4e; }
+#flash { position: absolute; inset: 0; background: rgba(220,40,30,.28); pointer-events: none; z-index: 8; }
+#flash.in { animation: flash .5s ease-out forwards; }
+@keyframes flash { to { opacity: 0; } }
+#splat { position: absolute; width: min(70vw, 300px); transform: translate(-50%, -50%); pointer-events: none; z-index: 8; display: grid; justify-items: center; }
+#splat svg { width: 100%; height: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
+#splat b { margin-top: -30%; font-family: var(--f-title); font-weight: 400; font-size: 24px; color: #2b4466; }
+#splat.in { animation: splat 2.6s ease-in forwards; }
+@keyframes splat { 0% { transform: translate(-50%, -50%) scale(.3); } 8% { transform: translate(-50%, -50%) scale(1.08); } 14% { transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -38%) scale(1); } }
+.res-lines li.bad b { color: var(--red); }
+body.is3d #cv { background: #c9d5e1; }

@@ -40,7 +40,42 @@
 - `snow.html`, `css/snow.css`
 - `js/snow/data.js` 지도·도구·인력·보급·계급·날씨·대사
 - `js/snow/sim.js` 규칙 (DOM 없음, Node 테스트 가능)
-- `js/snow/view.js` 캔버스: 땅·눈 층(바뀐 칸만 다시 그림)·사람·차량·입자·카메라·입력
+- `js/snow/view3d.js` 3D 화면 (three.js): 눈 높이장, 건물·전차·소품, 전역각 얼굴 군인, 고라니·차·헬기, 입자, 화면 위 글자
+- `js/snow/view.js` 2D 화면 (WebGL이 없을 때) + 상점 아이콘 그림
+- `js/vendor/three.min.js` three.js r149 (MIT, `three.LICENSE`)
 - `js/snow/ui.js` 타이틀·HUD·검열·상점·진급·전역·쉬는 동안 보상
 - `js/snow/sfx.js` 효과음 합성 (넉가래 긁는 소리, 호루라기, 도장, 나팔)
 - 행보관 얼굴은 본편 `js/art.js` + `js/data/chars.js`의 강삽질을 그대로 쓴다
+
+## v2: 3D 부대 + 열받게 하는 방해꾼 (2026-11)
+
+> "청소 노가다시키는 스팀게임 찾아보고 학습해봐. 좀 더 3D 형태로… 구역이 확장될 때 나오는 군 요소들로 흥미를 느끼며, 고라니가 뛰어다니다 사람이랑 부딪혀서 부상… 사용자 열받게 하는 요소들도. 디자인과 맵 구성은 전역각처럼 띨빵하게."
+
+### 청소 노가다 게임에서 배운 것
+| 게임 | 사람을 붙잡는 것 | 제설각에 넣은 것 |
+|---|---|---|
+| **PowerWash Simulator** (FuturLab) | 물을 뿌리는 순간 바로, 눈에 띄게 깨끗해진다. 부분이 끝날 때마다 "띵". 놓친 때를 하이라이트하는 버튼. 핵심 모드에는 타이머·적이 없다 | 눈을 파면 3D로 패이고 바닥 그림이 드러난다. 구역을 작은 조각(1소대 자리, 배식구 가는 길…)으로 나눠 다 치우면 **띵! + 보너스**. **남은 눈** 버튼(주황색 하이라이트, Tab/Q) |
+| **Leaf Blower Revolution** (Humble North) | 도구·업그레이드로 범위가 커지고, 새 구역이 열릴 때마다 새 것이 나온다. 구역마다 방해꾼이 있다 | 구역을 열면 카메라가 날아가서 **군대 요소**를 보여 준다(족구장, 충성, 짬통, 전차, 위병소, 헬기장). 방해꾼은 구역·날짜에 따라 늘어난다 |
+
+### 3D
+- three.js r149를 `js/vendor/`에 넣어 오프라인·아티팩트에서도 돈다. WebGL이 없으면 2D로 (`snow.html?2d`로 강제 가능)
+- 눈은 높이장(칸당 2×2 꼭짓점). 파면 그만큼 패이고 둑이 생긴다. 밤사이 눈은 바람 언덕 모양(값 노이즈)
+- 군인: 작은 3D 몸(군복 얼룩·손·발) + **전역각 얼굴을 그대로 쓴 큰 머리 판때기**. 후임=오순둥, 동기=박덤벙, 말년 병장, 취사병, 행정병, 운전병, 행보관 강삽질, 간부 차량엔 중대장
+- 다치면 소용돌이 눈, 졸면 졸린 눈, 내가 받히면 X눈으로 바뀌고 벌러덩 눕는다
+- 띨빵한 부대: 눈 덮인 박공지붕 + 고드름, 간판 밑 한마디("조용히", "노크 필수", "오늘 휴무", "오늘 짜장"), 생활관 창문에 얼굴, 짝짝이 눈 달린 K-전차, 방한모 쓴 눈사람, 펄럭이는 태극기, 족구 네트, 짬통, 차단기, "고라니 출몰 주의" 팻말
+- 느린 기기에서는 해상도를 스스로 낮추고, 프레임이 늦어도 게임 시간은 제대로 흐른다
+
+### 열받게 하는 것들
+| 방해꾼 | 언제 | 무슨 일 | 막는 법 |
+|---|---|---|---|
+| 고라니 | 2일차부터 하루 1~4마리 | "꾸에에엑!!" 하며 지그재그로 뛰어다님. 인력과 부딪히면 7초간 쓰러짐(의무병!!), 나를 받으면 1.6초 기절 + 그날 번 초코파이의 3% 떨어뜨림. 지나간 자리에 눈을 다시 헤집어 놓음 | 꽹과리(하루 고라니 -25%씩), 의무병 대기(회복 빠르게). 다가가면 60% 확률로 도망 (띨빵해서 40%는 그냥 달려듦) |
+| 선임 눈덩이 | 4일차부터 60% | 화면에 눈덩이 철퍽 + "누가 던졌어!!" | 없음 (선임이다) |
+| 간부 차량 | 진입로를 연 뒤 하루 1~2번 | 치워 놓은 진입로에 진흙눈을 뿌리며 지나감, 길 막으면 치일 뻔 | 차 지나간 뒤에 치우기 |
+| 지붕 눈 | 3일차부터 | 생활관·행정반·PX 지붕 눈이 앞마당에 우르르. 밑에 있으면 기절·부상 | 처마 밑 피하기 |
+| 헬기 (좋은 쪽) | 헬기장을 연 뒤 45% | 내려앉아 하강풍으로 헬기장 눈을 날려 줌 | — |
+| 짬타이거 | 취사장 앞을 연 뒤 | 구경만 한다. 다가가면 도망 | — |
+
+### 지도 (8구역)
+생활관 앞 길 → 족구장 → 연병장 → 취사장 앞 → 부대 진입로 → 전차 주차장 → 위병소 앞 → 헬기장. 페이싱(가상 플레이어): 연병장 5일차, 취사장 6일차, 진입로 14일차, 전차 21일차, 전역 가능 27일차 전후.
+
+참고: [Kotaku — PowerWash Sim devs on making cleaning fun](https://kotaku.com/powerwash-sim-devs-on-making-cleaning-fun-advanced-cro-1847319502), [EGM — PowerWash Simulator](https://egmnow.com/powerwash-simulator-feels-perfectly-numbingly-mindless/), [Leaf Blower Revolution (Steam)](https://store.steampowered.com/app/1468260), [LBR 리뷰](https://libertywingspan.com/70895/ae/videogame-volumes-leaf-blower-revolution/), [LBR 시작 가이드](https://www.yekbot.com/leaf-blower-revolution-starting-guide/), [PC Gamer — Crime Scene Cleaner](https://pcgamer.com/games/sim/powerwash-simulator-meets-pulp-fiction-in-this-first-person-scrubber-where-you-clean-up-after-horrific-murders).

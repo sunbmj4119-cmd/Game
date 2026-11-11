@@ -23,6 +23,9 @@
 - 날씨(잔설·눈·함박눈·폭설 경보), 7일마다 대대장 순시, 다 치우면 조기 퇴근 보너스
 - 진급(이병 → 병장) 때마다 새 인력, **전역 신고**로 처음부터 다시 + 전역 메달(모든 보상 +10%씩)
 - 앱을 꺼 둔 동안에도 인력이 일한다(최대 8시간)
+- **3D**: 눈을 파면 3D로 패이고 바닥의 '충성'·'족구장'·'H'가 드러난다. 군인 머리는 전역각 얼굴 그대로
+- **열받는 것들**: 고라니(꾸에에엑! 부딪히면 부상·초코파이 떨어뜨림), 선임 눈덩이, 진흙눈 뿌리는 간부 차량, 지붕 눈 낙하
+- **띵!**: 구역 조각을 다 치우면 띵 + 보너스, '남은 눈' 버튼으로 놓친 곳 하이라이트 (PowerWash Simulator에서 배움)
 - 설계와 숫자: [`docs/SNOW.md`](docs/SNOW.md)
 
 ### v2: 할 때마다 다른 판 + 경쟁
@@ -153,6 +156,7 @@ tests/smoke.js        Playwright 자동 플레이 테스트 (입대 → 엔딩)
 node tests/snow-logic.js            # 규칙 테스트
 node tests/snow-sim.js 40           # 가상 플레이어 40일: 언제 무엇을 사고 진급하는지
 node tests/snow-play.js [사진폴더]   # 브라우저에서 걷고·치우고·사고·진급·전역까지 (+ 화면 사진)
+SNOW_URL="file://$PWD/snow.html?2d" node tests/snow-play.js  # WebGL 없는 2D 화면도
 node tools/build.js --page snow.html # dist/jeseol.html 한 파일로
 ```
 

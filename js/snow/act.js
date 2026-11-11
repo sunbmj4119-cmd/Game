@@ -33,7 +33,10 @@
     chicken: { name: '면회 치킨', desc: '인력 +50%' },
     rally: { name: '구령', desc: '인력 +25%' },
     cat: { name: '고양이 힐링', desc: '덜 넘어진다' },
-    support: { name: '대대 지원', desc: '인력 ×2' }
+    support: { name: '대대 지원', desc: '인력 ×2' },
+    power: { name: '턱걸이 힘', desc: '적재 +25%' },
+    warm: { name: '난로 온기', desc: '손 +20% · 이동 +10%' },
+    love: { name: '여자친구 응원', desc: '이동 +15% · 덜 넘어짐' }
   };
 
   // 간부: 하루에 한 번씩 순찰 온다. 다가오면 3초 안에 경례! (1초 안이면 칼경례)
@@ -128,39 +131,38 @@
       var verb = !o.saluted ? '경례' : !o.done.report && o.id !== 'lt' ? '보고하기' : o.id === 'lt' && !o.done.help ? '같이 하시죠' : '경례';
       add('officer', o, o.x, o.y, o.saluted ? 40 : 60, OFF[o.id].title, verb, { urgent: !o.saluted && !o.missed });
     });
-    var H = w.haeng, hand = a.hand, here = G.zoneAt(w, P.x, P.y), hereV = here ? '여기 배치 (' + here.name + ')' : '따라오는 중';
+    var H = w.haeng, hand = a.hand, here = G.zoneAt(w, P.x, P.y), hereV = here ? '여기 배치' : '따라오는 중';
     var hReq = reqOf(a, H);
-    add('haeng', H, H.x, H.y, 36, '행보관' + (hReq ? ' · ' + ITEM[hReq.item].want + ' 부탁' : ''), hand === 'snack' ? '간식 드리기' : a.heat > 0 ? '경례로 무마' : '경례');
+    add('haeng', H, H.x, H.y, 36, '행보관', hand === 'snack' ? '간식 드리기' : a.heat > 0 ? '경례로 무마' : '경례', { ask: hReq ? ITEM[hReq.item].want + ' 부탁' : '' });
     // 신병: 인솔 → 따라와서 → 구역에서 배치
     (w.recruits || []).forEach(function (r) {
-      if (r.state === 'wait') add('recruit', r, r.x, r.y, 36, '신병 ' + r.def.name, '인솔하기');
-      else add('recruit', r, r.x, r.y, 70, '신병 ' + r.def.name, hereV, { behind: true, soft: !here });
+      if (r.state === 'wait') add('recruit', r, r.x, r.y, 36, '신병', '인솔하기', { ask: r.def.name });
+      else add('recruit', r, r.x, r.y, 70, '신병', hereV, { behind: true, soft: !here, ask: here ? here.name : '구역 안으로' });
     });
     w.crew.forEach(function (e) {
       if (e.off) return;
-      var C = e.def, rq = reqOf(a, e), nm = C.vehicle ? '제설차 (운전병)' : C.name;
-      if (rq) nm += ' · ' + ITEM[rq.item].want + ' 부탁';
-      if (e.state === 'follow') { add(C.vehicle ? 'plow' : 'crew', e, e.x, e.y, 70, nm, hereV, { behind: true, soft: !here, follow: true }); return; }
-      var v2 = '따라와 (담당: ' + (G.zoneById(e.post) || { name: '?' }).name + ')';
-      if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음 (정비고)' : '운전 교대', { verb2: v2 }); return; }
+      var C = e.def, rq = reqOf(a, e), nm = C.vehicle ? '제설차' : C.name, ask = rq ? ITEM[rq.item].want + ' 부탁' : '담당 ' + (G.zoneById(e.post) || { name: '?' }).name;
+      if (e.state === 'follow') { add(C.vehicle ? 'plow' : 'crew', e, e.x, e.y, 70, nm, hereV, { behind: true, soft: !here, follow: true, ask: here ? here.name : '구역 안으로' }); return; }
+      if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음' : '운전 교대', { verb2: '따라와', ask: e.noFuel ? '정비고 기름통' : ask }); return; }
+      var choco = e.mor < 50 && !(hand || e.asleep || e.slack || e.injured > 0.8 || (P.load >= 10 && e.cap - e.load >= 5));
       var verb = hand && (rq && rq.item === hand) ? ITEM[hand].want + ' 전달' : hand === 'meal' || hand === 'snack' ? '나눠 주기' : hand === 'letter' ? '편지 주기' :
-        e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : e.mor < 50 ? '초코파이 주기 (' + chocoCost(w) + ')' : '갈구기';
-      add('crew', e, e.x, e.y, 36, nm, verb, { verb2: v2 });
+        e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 떠넘기기' : choco ? '초코파이 주기' : '갈구기';
+      add('crew', e, e.x, e.y, 36, nm, verb, { verb2: '따라와', ask: choco ? '초코파이 ' + chocoCost(w) + '개' : ask });
     });
     if (w.car) add('car', w.car, w.car.x, w.car.y, 42, '중대장님 차', '탈취하기');
-    add('tractor', TRACTOR, TRACTOR.x, TRACTOR.y, 40, '정비고 트랙터', hand === 'fuel' && save.daily.tractor === save.day ? '기름 넣기' : rank(w) < 1 ? '몰기 (일병부터)' : save.daily.tractor === save.day ? '몰기 (기름 없음)' : '몰기');
+    add('tractor', TRACTOR, TRACTOR.x, TRACTOR.y, 40, '정비고 트랙터', hand === 'fuel' && save.daily.tractor === save.day ? '기름 넣기' : rank(w) < 1 ? '일병부터' : save.daily.tractor === save.day ? '기름 없음' : '몰기');
     w.deer.forEach(function (d) { if (!d.leaving) add('deer', d, d.x, d.y, 42, '고라니', '쫓아내기'); });
     w.cats.forEach(function (c) { add('cat', c, c.x, c.y, 30, '짬타이거', a.scrap || hand === 'meal' ? '짬 주기' : '쓰다듬기'); });
     var dB = door('barracks'), late = w.time >= w.dayLen * 0.45;
-    add('barracks', null, dB.x, dB.y, 34, '생활관', a.heat > 0 ? '숨기' : late ? '취침 (다음 날로)' : '들어가기');
+    add('barracks', null, dB.x, dB.y, 34, '생활관', a.heat > 0 ? '숨기' : late ? '취침' : '들어가기', { ask: late && !a.heat ? '다음 날로' : '' });
     var dO = door('office'); add('office', null, dO.x, dO.y, 34, '행정반', a.mission ? '임무 확인' : '임무 받기');
     var dP = door('px'); add('px', null, dP.x, dP.y, 34, 'PX', hand ? '들어가기' : '들어가기', { verb2: null });
     var dM = door('mess'), ate = save.daily.mess === save.day;
-    add('mess', null, dM.x, dM.y, 34, '취사장', ate ? (hand ? '배식 끝' : '식판 받아 가기') : '짬밥 먹기', { verb2: !ate && !hand ? '식판 받아 가기' : null });
+    add('mess', null, dM.x, dM.y, 34, '취사장', ate ? (hand ? '배식 끝' : '식판 챙기기') : '짬밥 먹기', { verb2: !ate && !hand ? '식판 챙기기' : null });
     var dG = door('garage'); add('garage', null, dG.x, dG.y, 34, '정비고', hand ? '기웃거리기' : '기름통 받기');
     var dW = door('guard'), letter = a.reqs.some(function (q) { return q.item === 'letter'; });
-    add('guard', null, dW.x, dW.y, 34, '위병소', save.daily.gate === save.day ? (letter && !hand ? '우편 받기' : '면회 (내일)') : '면회 확인', { verb2: letter && !hand && save.daily.gate !== save.day ? '우편 받기' : null });
-    if (!hand) out.forEach(function (c) { if (c.k === 'px') c.verb2 = '간식 사 가기 (' + snackCost(w) + ')'; });
+    add('guard', null, dW.x, dW.y, 34, '위병소', save.daily.gate === save.day ? (letter && !hand ? '우편 받기' : '내일 다시') : '면회 확인', { verb2: letter && !hand && save.daily.gate !== save.day ? '우편 받기' : null });
+    if (!hand) out.forEach(function (c) { if (c.k === 'px') { c.verb2 = '간식 사기'; c.ask = '간식 ' + snackCost(w) + '개'; } });
     var st = bld('stand'); add('stand', null, st.x + st.w / 2, st.y + st.h + 6, 40, '구령대', '구령하기');
     add('flag', FLAG, FLAG.x, FLAG.y, 30, '태극기', '경례');
     S.TANKS.forEach(function (t) {
@@ -170,6 +172,10 @@
     add('decorman', DECOR_MAN, DECOR_MAN.x, DECOR_MAN.y, 28, '눈사람', '경례');
     save.snowmen.forEach(function (m) { add('snowman', m, m.x, m.y, 24, '내 눈사람', '부수기'); });
     add('ball', a.ball, a.ball.x, a.ball.y, 24, '족구공', '차기');
+    S.PROPS.forEach(function (pr) {
+      var v = pr.id === 'phone' ? (save.daily.call === save.day ? '내일 다시' : '전화 걸기') : pr.id === 'bar' ? '턱걸이' : pr.id === 'vend' ? '뽑기' : (a.cool.stove > 0 ? '아직 따뜻' : '몸 녹이기');
+      add(pr.id, pr, pr.ux, pr.uy, 30, pr.name, v, { ask: pr.id === 'vend' ? vendCost(w) + '개' : '' });
+    });
     return out;
   }
 
@@ -186,7 +192,7 @@
       if (c.urgent) { if (s < bs) { bs = s; b = c; } return; }
       if (s < bs) { bs = s; b = c; }
     });
-    if (!b && canBuild(w, look)) b = { k: 'build', ref: null, x: P.x + look.x * 18, y: P.y + look.y * 18, r: 0, name: '눈사람', verb: '만들기 (눈 ' + SNOWMAN_COST + ')' };
+    if (!b && canBuild(w, look)) b = { k: 'build', ref: null, x: P.x + look.x * 18, y: P.y + look.y * 18, r: 0, name: '짐 ' + SNOWMAN_COST, verb: '눈사람 만들기' };
     return b;
   }
   function canBuild(w, look) {
@@ -275,7 +281,7 @@
       case 'office':
         if (a.mission) { say(w, '아직 임무 중이다: ' + a.mission.text); return { ok: false }; }
         if (a.missionCool > 0) { say(w, '임무는 조금 있다가. 숨 좀 돌려라.'); return { ok: false }; }
-        a.mission = newMission(w); say(w, a.mission.text + '!'); fx(w, { t: 'mission', state: 'new', m: a.mission });
+        a.mission = newMission(w); say(w, a.mission.talk + '!'); fx(w, { t: 'mission', state: 'new', m: a.mission });
         return { ok: true };
       case 'px': return { ok: true, ui: 'px' };
       case 'mess':
@@ -308,10 +314,36 @@
         P.load = Math.min(P.cap, P.load + 10);
         return { ok: true };
       case 'ball':
-        var B = a.ball; B.vx = look.x * 260; B.vy = look.y * 260; B.h = 6;
+        var B = a.ball; B.vx = look.x * 300; B.vy = look.y * 300; B.h = 6; B.scored = false; B.side = B.x < 630 ? -1 : 1;
         fx(w, { t: 'kick', x: B.x, y: B.y }); stat(w, 'kick');
         return { ok: true };
       case 'build': return buildSnowman(w, look);
+      case 'phone':
+        if (save.daily.call === save.day) { me(w, '(오늘은 벌써 통화했다. 줄이 길다…)'); return { ok: false }; }
+        save.daily.call = save.day; stat(w, 'call');
+        var call = S.CALLS[(R() * S.CALLS.length) | 0], rw = call.reward || {};
+        if (rw.pie) give(w, rw.pie * (1 + rank(w)) * w.mult, 'call');
+        if (rw.mor) w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + rw.mor); });
+        if (rw.buff) buff(w, rw.buff, rw.sec || 60);
+        fx(w, { t: 'call', call: call });
+        return { ok: true, ui: 'call', call: call };
+      case 'bar': return { ok: true, ui: 'pullup' };
+      case 'vend':
+        var vc = vendCost(w); if (save.bank < vc) { me(w, '(동전이 없다…)'); return { ok: false, why: 'money' }; }
+        save.bank -= vc; stat(w, 'vend');
+        var tot = 0; S.VEND.forEach(function (v) { tot += v.w; });
+        var rr = R() * tot, got = S.VEND[S.VEND.length - 1];
+        for (var vi = 0; vi < S.VEND.length; vi++) { rr -= S.VEND[vi].w; if (rr < 0) { got = S.VEND[vi]; break; } }
+        if (got.buff) buff(w, got.buff, got.sec);
+        if (got.dia) G.gainDia(w, got.dia, 'vend');
+        fx(w, { t: 'vend', item: got });
+        me(w, got.id === 'none' ? '…자판기가 동전을 먹었다.' : got.name + '!');
+        return { ok: true, ui: 'vend', item: got };
+      case 'stove':
+        if (a.cool.stove > 0) { me(w, '(아직 손이 따뜻하다)'); return { ok: false }; }
+        a.cool.stove = 45; buff(w, 'warm', 60); stat(w, 'warm'); fx(w, { t: 'warm', x: t.ref.x, y: t.ref.y });
+        me(w, pick(['아… 살 것 같다.', '손가락이 돌아왔다!', '이 맛에 군대 온다.']));
+        return { ok: true };
     }
     return { ok: false };
   }
@@ -364,7 +396,7 @@
   // 도구·탈 것·버프로 지금 능력치를 다시 계산
   function applyStats(w) {
     var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? RIDE[a.ride.kind] : null;
-    var base = Math.round(G.capOf(save) * (b.meal > 0 ? 1.4 : 1));
+    var base = Math.round(G.capOf(save) * (b.meal > 0 ? 1.4 : 1) * (b.power > 0 ? 1.25 : 1));
     var tr = G.toolR(save);
     P.r = rd ? (rd.noClear ? tr : Math.max(tr, rd.r)) : tr;
     P.p = rd && !rd.noClear ? Math.max(T.p, rd.p) : T.p;
@@ -372,10 +404,10 @@
     P.noClear = !!(rd && rd.noClear);
     P.cap = rd && rd.cap ? Math.max(base, rd.cap) : base;
     var m = w.mod;
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (rd ? rd.speed : 1);
-    m.hit = b.hotbar > 0 ? 0.7 : 1;
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (b.love > 0 ? 1.15 : 1) * (rd ? rd.speed : 1);
+    m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.chicken > 0 ? 1.5 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1);
-    m.stun = b.cat > 0 || b.hotpack > 0 ? 0.5 : 1;
+    m.stun = b.cat > 0 || b.hotpack > 0 || b.love > 0 ? 0.5 : 1;
     w.mult = G.incomeMult(save) * (1 + 0.01 * Math.min(SNOWMAN_MAX, save.snowmen.length)) * (b.praise > 0 ? 1.2 : 1);
   }
 
@@ -453,6 +485,12 @@
     B.x = nx; B.y = ny;
     var k = Math.exp(-1.5 * dt); B.vx *= k; B.vy *= k; B.h = Math.max(0, B.h - dt * 20);
     B.roll = (B.roll || 0) + sp * dt * 0.12;
+    // 족구: 공이 네트를 넘으면 득점
+    if (w.save.zones.B && sp > 110 && B.y > 132 && B.y < 278) {
+      var side = B.x < 630 ? -1 : 1;
+      if (B.side && side !== B.side && !B.scored) { B.scored = true; stat(w, 'goal'); var gp = give(w, 25 * (1 + rank(w)) * w.mult, 'goal'); fx(w, { t: 'goal', x: B.x, y: B.y, pay: gp }); bubble(w, B, '득점!!'); w.crew.slice(0, 3).forEach(function (c) { bubble(w, c, pick(['나이스!!', '오!! 족구 좀 하네?', '한 판 더!'])); }); }
+      B.side = side;
+    }
     if (sp > 90) {
       var H = w.haeng;
       if (Math.hypot(H.x - B.x, H.y - B.y) < 10) { B.vx = -B.vx * 0.4; B.vy = -B.vy * 0.4; bubble(w, H, '누가 공을 차!!'); heat(w, 1, 'ball'); }
@@ -473,19 +511,19 @@
     pool = pool.filter(function (k) { return k !== a.lastKind; });
     var kind = pool[(R() * pool.length) | 0], m = { kind: kind, t: 150, prog: 0, goal: 1, fac: 1 };
     var base = (60 + 25 * save.day) * (1 + rank(w)) * G.incomeMult(save) + (save.crewRate || 0) * 15;
-    if (kind === 'haul') { m.goal = Math.max(40, Math.round(P.cap * 1.5)); m.start = w.dumpedP; m.text = '집하장에 눈 ' + m.goal + ' 갖다 부어라'; m.t = 150; }
-    else if (kind === 'snowman') { m.start = a.n.snowman; m.text = '사단장님 오신다. 눈사람 하나 만들어 놔'; m.fac = 0.9; }
-    else if (kind === 'flag') { m.start = a.n.flag; m.text = '태극기에 경례하고 와라 (연병장 옆)'; m.fac = 0.4; m.t = 90; }
-    else if (kind === 'ball') { a.ball = ballHome(w); m.text = '족구공을 행정반 앞까지 차서 가져와'; m.fac = 1.1; }
-    else if (kind === 'shoo') { m.goal = 2; m.start = a.n.shoo; m.text = '고라니 2마리 쫓아내라'; m.fac = 1.2; if (!w.deer.some(function (d) { return !d.leaving; })) G.spawn(w, 'deer'); a.deerT = 25; }
-    else if (kind === 'pet') { m.goal = 2; m.start = a.n.pet; m.text = '짬타이거 2번 쓰다듬어 줘라 (취사장 앞)'; m.fac = 0.7; }
+    if (kind === 'haul') { m.goal = Math.max(40, Math.round(P.cap * 1.5)); m.start = w.dumpedP; m.text = '집하장에 눈 붓기'; m.talk = '집하장에 눈 ' + m.goal + ' 갖다 부어라'; m.t = 150; }
+    else if (kind === 'snowman') { m.start = a.n.snowman; m.text = '눈사람 만들기'; m.talk = '사단장님 오신다. 눈사람 하나 만들어 놔'; m.fac = 0.9; }
+    else if (kind === 'flag') { m.start = a.n.flag; m.text = '태극기에 경례'; m.talk = '연병장 옆 태극기에 경례하고 와라'; m.fac = 0.4; m.t = 90; }
+    else if (kind === 'ball') { a.ball = ballHome(w); m.text = '족구공 → 행정반 앞'; m.talk = '족구공을 행정반 앞까지 차서 가져와'; m.fac = 1.1; }
+    else if (kind === 'shoo') { m.goal = 2; m.start = a.n.shoo; m.text = '고라니 쫓기'; m.talk = '고라니 2마리 쫓아내라'; m.fac = 1.2; if (!w.deer.some(function (d) { return !d.leaving; })) G.spawn(w, 'deer'); a.deerT = 25; }
+    else if (kind === 'pet') { m.goal = 2; m.start = a.n.pet; m.text = '짬타이거 쓰다듬기'; m.talk = '취사장 앞 짬타이거 2번 쓰다듬어 줘라'; m.fac = 0.7; }
     else if (kind === 'wake') {
-      m.start = a.n.wake; m.text = '자는 말년 병장 깨워 와!'; m.fac = 0.8;
+      m.start = a.n.wake; m.text = '말년 병장 깨우기'; m.talk = '자는 말년 병장 깨워 와!'; m.fac = 0.8;
       var mn = w.crew.filter(function (e) { return e.def.id === 'malnyeon'; })[0]; if (mn) { mn.asleep = true; mn.sleepT = 40; fx(w, { t: 'zzz', e: mn }); }
-    } else if (kind === 'hitcrew') { m.goal = 3; m.start = a.n.hit; m.text = '눈싸움 한 판! 인력한테 눈덩이 3번 맞혀라'; m.fac = 1; }
+    } else if (kind === 'hitcrew') { m.goal = 3; m.start = a.n.hit; m.text = '인력에게 눈덩이'; m.talk = '눈싸움 한 판! 인력한테 눈덩이 3번 맞혀라'; m.fac = 1; }
     else if (kind === 'clear') {
       var zi = zs[(R() * zs.length) | 0], Z = S.ZONES[zi], now = w.zoneClear[zi] / w.zoneTotal[zi];
-      m.zi = zi; m.goal = Math.min(0.95, Math.round((now + 0.2) * 20) / 20); m.text = Z.name + ' ' + Math.round(m.goal * 100) + '%까지 치워라'; m.fac = 1.5; m.t = 180;
+      m.zi = zi; m.goal = Math.min(0.95, Math.round((now + 0.2) * 20) / 20); m.text = Z.name + ' ' + Math.round(m.goal * 100) + '%'; m.talk = Z.name + ' ' + Math.round(m.goal * 100) + '%까지 치워라'; m.fac = 1.5; m.t = 180;
     }
     m.max = m.t; m.reward = Math.round(base * m.fac);
     a.lastKind = kind;
@@ -524,11 +562,11 @@
     var d = dist(H, P);
     a.shoutT -= dt;
     if (a.shoutT <= 0) { a.shoutT = 4; bubble(w, H, pick(L.chase)); }
-    if (d < 13 && !(H.hold > 0) && !a.ride) {
+    if (d < 27 && !(H.hold > 0) && !a.ride) {
       var fine = Math.round(Math.min(save.bank * 0.08, (40 + 20 * save.day) * a.heat * (1 + rank(w))));
       if (!w.demo) save.bank = Math.max(0, save.bank - fine);
       P.stun = 3.2; H.hold = 3.4; a.heat = 0; a.heatT = 0;
-      var ux = (H.x - P.x) / (d || 1), uy = (H.y - P.y) / (d || 1); if (!G.blocked(P.x + ux * 20, P.y + uy * 20, 6)) { H.x = P.x + ux * 20; H.y = P.y + uy * 20; }
+      var ux = (H.x - P.x) / (d || 1), uy = (H.y - P.y) / (d || 1); if (!G.blocked(P.x + ux * 26, P.y + uy * 26, 6)) { H.x = P.x + ux * 26; H.y = P.y + uy * 26; }
       if (a.ride) endRide(w, true);
       fx(w, { t: 'caught', fine: fine }); fx(w, { t: 'heat', heat: 0, why: 'caught' }); say(w, '엎드려 뻗쳐!!! …초코파이 ' + fine + '개 압수다.');
       stat(w, 'caught');
@@ -675,6 +713,20 @@
     }
   }
 
+  function vendCost(w) { return Math.round(10 * (1 + rank(w))); }
+  // 턱걸이 결과 (화면 미니게임이 개수를 넘겨준다)
+  function pullDone(w, n) {
+    init(w); var save = w.save, best = save.stats.pullBest || 0;
+    n = Math.max(0, Math.min(40, n | 0));
+    if (n > best) save.stats.pullBest = n;
+    stat(w, 'pull');
+    if (n >= 3) buff(w, 'power', 40 + n * 4);
+    var extra = 0;
+    if (n >= 15 && save.daily.pullDia !== save.day) { save.daily.pullDia = save.day; G.gainDia(w, 1, 'pull'); extra = 1; }
+    me(w, n >= 20 ? '특급 전사다!!' : n >= 10 ? '턱걸이 ' + n + '개! 팔이 터질 것 같다' : n >= 3 ? '턱걸이 ' + n + '개…' : '…한 개도 힘들다.');
+    fx(w, { t: 'pullup', n: n, best: n > best, dia: extra });
+    return { n: n, best: n > best, dia: extra };
+  }
   function chocoCost(w) { return Math.round(8 * (1 + rank(w)) * (1 + w.save.day * 0.1)); }
 
   /* ── 간부 순찰 ── */
@@ -816,7 +868,7 @@
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, throwBall: throwBall, canThrow: canThrow, canBuild: canBuild,
-    pxItems: pxItems, pxBuy: pxBuy, drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; }, ITEM: ITEM, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide, useDia: useDia, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost,
+    pxItems: pxItems, pxBuy: pxBuy, pullDone: pullDone, vendCost: vendCost, drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; }, ITEM: ITEM, state: state, newMission: newMission, applyStats: applyStats, endRide: endRide, useDia: useDia, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost,
     RIDE: RIDE, BUFF: BUFF, PX: PX, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
   };
 })(window.JY = window.JY || {});

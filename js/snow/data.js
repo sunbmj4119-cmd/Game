@@ -10,10 +10,10 @@
     { id: 'A', name: '생활관 앞 길', x: 80, y: 130, w: 380, h: 120, value: 1, cost: 0, ground: 'walk',
       parts: [['생활관 앞 왼쪽', 0, 0, 0.5, 1], ['생활관 앞 오른쪽', 0.5, 0, 1, 1]],
       reveal: '이병의 첫 전장. 생활관 창문으로 선임들이 구경한다.' },
-    { id: 'B', name: '족구장', x: 480, y: 130, w: 300, h: 150, value: 1, cost: 400, relay: [630, 300], ground: 'court',
+    { id: 'B', name: '족구장', x: 480, y: 130, w: 300, h: 150, value: 1, cost: 300, relay: [630, 300], ground: 'court',
       parts: [['족구장 왼쪽 코트', 0, 0, 0.5, 1], ['족구장 오른쪽 코트', 0.5, 0, 1, 1]],
       reveal: '눈 치우자마자 족구가 시작된다. 지는 쪽이 내일 제설이다.' },
-    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1500, relay: [200, 618], ground: 'parade',
+    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1200, relay: [200, 618], ground: 'parade',
       parts: [['1소대 자리', 0, 0, 0.5, 0.5], ['2소대 자리', 0.5, 0, 1, 0.5], ['3소대 자리', 0, 0.5, 0.5, 1], ['4소대 자리', 0.5, 0.5, 1, 1]],
       reveal: '구령대 앞 바닥에 "충성". 사열 때 얼어 죽을 뻔한 그곳.' },
     { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, relay: [520, 440], ground: 'yard',
@@ -73,10 +73,10 @@
 
   // 플레이어 도구. r = 미는 범위(px), p = 한 번에 치우는 깊이, aura = 몸 주변 전체
   var TOOLS = [
-    { id: 'broom', name: '싸리비', r: 10, p: 1, cost: 0, cap: 40, desc: '훈련소에서 받은 그 빗자루. 한 번에 한 뼘.' },
-    { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 250, cap: 80, desc: '군대 제설의 상징. 밀면 밀린다.' },
-    { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 1200, cap: 150, desc: '보급창고 구석에서 찾은 왕넉가래.' },
-    { id: 'twin', name: '쌍넉가래', r: 25, p: 2, cost: 8000, cap: 300, desc: '양손에 하나씩. 팔은 내 것이 아니다.' },
+    { id: 'broom', name: '싸리비', r: 11, p: 1, cost: 0, cap: 60, desc: '훈련소에서 받은 그 빗자루. 한 번에 한 뼘.' },
+    { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 150, cap: 110, desc: '군대 제설의 상징. 밀면 밀린다.' },
+    { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 800, cap: 200, desc: '보급창고 구석에서 찾은 왕넉가래.' },
+    { id: 'twin', name: '쌍넉가래', r: 25, p: 2, cost: 5000, cap: 380, desc: '양손에 하나씩. 팔은 내 것이 아니다.' },
     { id: 'cart', name: '손수레 제설기', r: 32, p: 2, cost: 50000, cap: 700, desc: '바퀴 달린 넉가래. 문명의 시작.' },
     { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 150000, cap: 1200, aura: true, desc: '내 주변이 전부 녹는다. 군화는 녹슨다.' },
     { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 500000, cap: 3000, vehicle: true, desc: '옆 부대에서 빌려 왔다. 반납은 안 했다.' },
@@ -86,7 +86,7 @@
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
   var CREW = [
-    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 400, grow: 1.6, dia: 0, max: 4, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
+    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 250, grow: 1.6, dia: 0, max: 4, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
       desc: '초코파이 하나면 영혼까지 갈아 넣는다.', lines: ['넵!', '알겠습니다!', '이거 언제 끝납니까…', '손이 안 느껴집니다…', '초코파이 감사합니다!'] },
     { id: 'donggi', cap: 48, name: '동기', tag: '일병', rank: 1, cost: 3500, grow: 1.65, dia: 0, max: 3, r: 15, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
@@ -141,10 +141,10 @@
 
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
   var WEATHER = {
-    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, night: 0.3, night2: 0, flakes: 25 },
-    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, night: 0.5, night2: 0.08, flakes: 70 },
-    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, night: 0.7, night2: 0.25, flakes: 150 },
-    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, night: 0.85, night2: 0.45, flakes: 260 }
+    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, night: 0.2, night2: 0, flakes: 25 },
+    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, night: 0.35, night2: 0.04, flakes: 70 },
+    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, night: 0.5, night2: 0.15, flakes: 150 },
+    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, night: 0.65, night2: 0.3, flakes: 260 }
   };
 
   // 방해꾼과 사건
@@ -315,11 +315,52 @@
   };
   var LOOK_NAMES = { eyes: '눈', mouth: '입', brows: '눈썹', head: '얼굴형', skin: '피부', extras: '얼굴 소품', hat: '모자', coat: '군복', glove: '장갑', tool: '넉가래 색' };
 
+  // ── 할 일: 처음 30분을 이끄는 안내. 하나씩 하면 바로 보상 ──
+  // stat: 저장의 기록 / life / tool / rank / zone / crew / pend / load
+  var QUESTS = [
+    { id: 'scoop', text: '눈 퍼 담기', how: '걸으면 빗자루가 알아서 퍼 담는다', stat: 'load', goal: 20, pie: 20 },
+    { id: 'dump', text: '집하장에 붓기', how: '노란 동그라미(눈 집하장)로 가져가라', stat: 'dumps', goal: 1, pie: 40 },
+    { id: 'pusher', text: '넉가래 사기', how: '오른쪽 아래 보급·인력 → 도구', stat: 'tool', goal: 1, dia: 1 },
+    { id: 'salute', text: '행보관에게 경례', how: '행보관 앞에서 노란 버튼', stat: 'salute', goal: 1, pie: 50 },
+    { id: 'perfect', text: '조각 하나 완벽!', how: '위 막대가 금색이면 남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
+    { id: 'zoneB', text: '족구장 열기', how: '보급·인력 → 구역', stat: 'zone', key: 'B', goal: 1, pie: 80 },
+    { id: 'call', text: '공중전화로 집에 전화', how: '생활관 오른쪽 끝 빨간 전화 부스', stat: 'call', goal: 1, dia: 1 },
+    { id: 'hire', text: '후임 전입 요청', how: '보급·인력 → 인력', stat: 'pend', goal: 1, pie: 80 },
+    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 날 아침 생활관 앞 신병', stat: 'crew', goal: 1, dia: 2 },
+    { id: 'pull', text: '철봉 턱걸이 10개', how: '집하장 옆 철봉 — 버튼 연타!', stat: 'pullBest', goal: 10, pie: 150 },
+    { id: 'mission', text: '행정반 임무 완수', how: '행정반 문 앞에서 임무 받기', stat: 'missions', goal: 1, pie: 200 },
+    { id: 'vend', text: '자판기 뽑기', how: 'PX 옆 자판기', stat: 'vend', goal: 1, pie: 60 },
+    { id: 'goal', text: '족구공 넘기기', how: '족구장 공을 네트 너머로 차라', stat: 'goal', goal: 1, dia: 1 },
+    { id: 'rank1', text: '일병 진급', how: '초코파이를 모으면 진급한다', stat: 'rank', goal: 1, dia: 3 }
+  ];
+  // 새 소품 (지나갈 수 있다, 앞에 서면 상호작용)
+  var PROPS = [
+    { id: 'phone', name: '공중전화', x: 474, y: 104, ux: 474, uy: 120 },
+    { id: 'bar', name: '철봉', x: 56, y: 272, ux: 70, uy: 280 },
+    { id: 'vend', name: '자판기', x: 650, y: 96, ux: 650, uy: 118 },
+    { id: 'stove', name: '드럼통 난로', x: 92, y: 296, ux: 104, uy: 290 }
+  ];
+  // 공중전화: 누가 받느냐 (who는 전역각 얼굴)
+  var CALLS = [
+    { who: 'mom', lines: ['아이고 우리 아들! 밥은 잘 먹고 다니니?', '눈 치운다고? 장갑 꼭 끼고! 엄마가 택배 보냈다.'], reward: { pie: 60, mor: 30 } },
+    { who: 'gf', lines: ['오빠! 보고 싶었어…', '휴가 언제 나와? 나 기다리고 있을게. 화이팅!'], reward: { buff: 'love', sec: 90 } },
+    { who: 'malnyeon', lines: ['(통화 연결음)', '…여보세요? 나 전역한 김말년인데. 거기 아직도 눈 와? 크크크크'], reward: { pie: 20 } },
+    { who: 'mom', lines: ['할머니가 너 주라고 용돈 보내셨다.', '초코파이 사 먹어라, 응?'], reward: { pie: 120 } },
+    { who: 'gf', lines: ['…', '(통화 중 신호만 간다)'], reward: {} }
+  ];
+  var VEND = [
+    { id: 'matsta', name: '맛스타', w: 30, buff: 'matsta', sec: 45 },
+    { id: 'hot6', name: '핫식스', w: 25, buff: 'hotbar', sec: 45 },
+    { id: 'coffee', name: '따뜻한 캔커피', w: 20, buff: 'hotpack', sec: 90 },
+    { id: 'none', name: '꽝 — 동전만 먹었다', w: 20 },
+    { id: 'dia', name: '자판기 밑에서 다이아 발견!', w: 5, dia: 1 }
+  ];
+
   JY.SNOW = {
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, CREW_CAP: CREW_CAP, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, CREW_CAP: CREW_CAP, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
-    DAY_LEN: 180, FALL: 0.004, HIT: 0.12, SPEED: 78, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
+    DAY_LEN: 180, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };
 })(window.JY = window.JY || {});

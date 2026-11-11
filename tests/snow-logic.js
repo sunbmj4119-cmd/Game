@@ -21,17 +21,17 @@ for (var i = 1; i < S.TOOLS.length; i++) ok(S.TOOLS[i].cost > S.TOOLS[i - 1].cos
 var s = G.newSave(); s.seed = 3;
 var w = G.createWorld(s);
 ok(w.total === 38 * 12 && w.weather === 'light' && w.dumps.length === 1, '처음: 생활관 앞 길 + 집하장 하나', [w.total, w.dumps.length]);
-ok(w.player.cap === 40 && w.player.load === 0 && w.player.r === 10, '싸리비: 40만 담긴다');
+ok(w.player.cap === 60 && w.player.load === 0 && w.player.r === 11, '싸리비: 60만 담긴다');
 ok(w.events.filter(function (e) { return e.k === 'deer'; }).length === 0, '1일차엔 고라니 없음');
 // 퍼 담기: 돈이 아니라 짐이 된다
 var b0 = s.bank, got = G.clearAt(w, w.player.x, w.player.y + 6, 10, 1, 'player', w.player);
 ok(got > 0 && w.player.load === got && s.bank === b0, '치우면 초코파이가 아니라 짐이 된다', [got, w.player.load, s.bank]);
 // 가득 차면 더 못 담는다
-w.player.load = 40; ok(G.clearAt(w, w.player.x + 30, w.player.y + 30, 10, 1, 'player', w.player) === 0, '가득 차면 더 못 담는다');
+w.player.load = 60; ok(G.clearAt(w, w.player.x + 30, w.player.y + 30, 10, 1, 'player', w.player) === 0, '가득 차면 더 못 담는다');
 run(w, 0.3, null);
 ok(w.fx.some(function (f) { return f.t === 'full'; }), '가득 참 알림');
 // 집하장에 가면 붓고 초코파이
-w.player.val = 40; w.player.x = S.DUMP.x; w.player.y = S.DUMP.y + 10; var b1 = s.bank;
+w.player.val = 60; w.player.x = S.DUMP.x; w.player.y = S.DUMP.y + 10; var b1 = s.bank;
 G.step(w, 1 / 30, null);
 ok(w.player.load === 0 && s.bank > b1 && w.fx.some(function (f) { return f.t === 'dump'; }), '집하장에 부으면 초코파이', [s.bank - b1]);
 // 잠긴 구역은 안 치워진다
@@ -58,12 +58,12 @@ ok(w5.clear < c5, '치운 곳에 눈이 다시 쌓인다', [w5.clear, c5]);
 
 // ── 상점 ──
 var s6 = G.newSave(); s6.bank = 1000;
-ok(G.buy(s6, 'tool', 'pusher').ok && s6.tool === 1 && G.capOf(s6) === 80, '넉가래: 적재 80');
+ok(G.buy(s6, 'tool', 'pusher').ok && s6.tool === 1 && G.capOf(s6) === 110, '넉가래: 적재 110');
 ok(!G.buy(s6, 'tool', 'twin').ok, '도구는 순서대로');
 ok(!G.buy(s6, 'crew', 'donggi').ok, '동기는 일병부터');
 ok(G.buy(s6, 'crew', 'hoobae').ok && !s6.crew.hoobae && s6.pend.length === 1, '후임 전입 요청 (바로 오지 않는다)');
 ok(!G.offers(s6).crew[0].ok, '이병 정원은 1명');
-s6.bank = 1e6; s6.perks.back = 2; ok(G.capOf(s6) === Math.round(80 * 1.6), '튼튼한 등짝: 적재 +30%씩', G.capOf(s6));
+s6.bank = 1e6; s6.perks.back = 2; ok(G.capOf(s6) === Math.round(110 * 1.6), '튼튼한 등짝: 적재 +30%씩', G.capOf(s6));
 ok(!G.buy(s6, 'zone', 'C').ok && G.buy(s6, 'zone', 'B').ok && G.buy(s6, 'zone', 'C').ok, '구역은 순서대로 연다');
 var o6 = G.offers(s6).factory;
 ok(o6.some(function (x) { return x.kind === 'relay' && x.id === 'B'; }) && !o6.some(function (x) { return x.kind === 'relay' && x.id === 'D'; }), '릴레이는 연 구역에만');
@@ -71,7 +71,7 @@ ok(G.buy(s6, 'relay', 'B').ok && G.dumpsOf(s6).length === 2, '양동이 릴레�
 ok(!G.buy(s6, 'proc', 'sculpt').ok, '조각 작업장은 압축기 Lv3부터');
 var m0 = G.incomeMult(s6); G.buy(s6, 'proc', 'press'); ok(Math.abs(G.incomeMult(s6) / m0 - 1.3) < 1e-9, '압축기: 보상 +30%', G.incomeMult(s6) / m0);
 var w6 = G.createWorld(s6);
-ok(w6.total === 456 + 450 + 46 * 28 && w6.crew.length === 0 && w6.recruits.length === 0 && w6.player.cap === 128, '열린 구역·도구·적재가 반영 (신병은 아직)', [w6.total, w6.crew.length, w6.player.cap]);
+ok(w6.total === 456 + 450 + 46 * 28 && w6.crew.length === 0 && w6.recruits.length === 0 && w6.player.cap === 176, '열린 구역·도구·적재가 반영 (신병은 아직)', [w6.total, w6.crew.length, w6.player.cap]);
 var fresh = 0; w6.cells.forEach(function (idx) { if (w6.zone[idx] === 2 && w6.depth[idx] >= 2) fresh++; });
 ok(fresh === w6.zoneTotal[2], '새로 연 구역은 묵은 눈(깊이 2~4)으로 가득', [fresh, w6.zoneTotal[2]]);
 

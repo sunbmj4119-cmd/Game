@@ -498,3 +498,73 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .lcard em.cost { color: #1f6fa8; }
 .lcard em.cost .dia { width: 8px; height: 8px; margin: 0 2px 0 0; }
 .lcard em.lock { color: #9a9384; }
+
+/* ── v9: 폰 화면 정리 — 알림은 한 줄기로 쌓고, 왼쪽 아래 카드는 작게, 좁은 폰은 아이콘만 ── */
+#stack { position: absolute; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 160px); width: min(calc(100% - 20px), 420px); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 7; }
+#stack.low { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 140px); }
+#stack > #say, #stack > #chip, #stack > #banner, #stack > #hint, #stack > #salute { position: relative; left: auto; right: auto; top: auto; bottom: auto; transform: none; margin: 0; }
+#stack > #say { width: 100%; }
+#stack > #say.in { animation: pop-in .28s cubic-bezier(.2,1.4,.5,1); }
+#stack > #chip { animation: pop-in .22s ease-out; white-space: normal; text-align: center; max-width: 100%; line-height: 1.35; padding: 7px 14px; border-radius: 16px; }
+#stack > #banner { width: 100%; order: -2; }
+#stack > #banner.in { animation: banner2 2.2s ease forwards; }
+#stack > #salute { order: -1; animation: pop-in .2s ease-out, shout .25s .2s ease-in-out infinite alternate; }
+#stack > #hint { width: 100%; animation: hint2 1.4s ease-in-out infinite alternate; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-8px) scale(.96); } }
+@keyframes banner2 { 0% { opacity: 0; transform: scale(.9); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes hint2 { to { transform: translateY(-4px); } }
+#banner b { font-size: clamp(24px, 8vw, 34px); line-height: 1.15; word-break: keep-all; }
+#banner span { font-size: 14.5px; line-height: 1.35; border-radius: 14px; word-break: keep-all; }
+#say p { font-size: 15px; word-break: keep-all; }
+#hint b { font-size: 15.5px; } #hint span { font-size: 13px; word-break: keep-all; }
+#sub { bottom: calc(env(safe-area-inset-bottom, 0px) + 232px); word-break: keep-all; font-size: 15px; }
+#side { max-width: min(calc(100% - 200px), 250px); gap: 5px; }
+.mis { padding: 6px 9px; gap: 2px; }
+.mis span { font-size: 12.5px; word-break: keep-all; }
+.mis em { font-size: 11px; }
+.reqs div { font-size: 12px; padding: 4px 8px 5px; }
+.reqs div span, .reqs div small { word-break: keep-all; }
+.buffs span { font-size: 11px; padding: 2px 7px; }
+.hand { font-size: 12px; padding: 5px 9px; }
+.act2 { max-width: 128px; font-size: 13px; }
+#act-btn b { font-size: 16px; max-width: 80px; }
+#act-btn small { font-size: 11px; max-width: 76px; }
+#xhair span { max-width: calc(100vw - 40px); overflow: hidden; text-overflow: ellipsis; }
+.hud-btns { flex-wrap: nowrap; }
+@media (max-width: 400px) {
+  .hud-btns .lbl { display: none; }
+  .hud-btns .scan { padding: 6px 9px; }
+  .hud-btns .scan svg { width: 18px; height: 18px; }
+  .heat span { display: none; }
+  .ridep i { width: 40px; }
+  .pill.bank { padding: 6px 10px 6px 8px; gap: 5px; }
+  .pill.bank b { font-size: 15px; }
+  .area { max-width: 30vw; font-size: 12px; }
+}
+@media (max-height: 700px) { #sub { bottom: calc(env(safe-area-inset-bottom, 0px) + 212px); font-size: 14px; } #stack { top: calc(env(safe-area-inset-top, 0px) + 152px); } }
+@media (max-height: 700px) { .buffs { display: none; } .mis em { display: none; } }
+.mis b { display: none; }
+
+/* ── v9: 할 일 카드, 턱걸이 ── */
+.quest { display: grid; gap: 2px; background: rgba(255,246,201,.96); color: #3a3018; border-radius: 12px; padding: 6px 9px 7px; box-shadow: 0 0 0 2px #e2b33c, 0 4px 12px rgba(0,0,0,.25); }
+.quest b { font-family: var(--f-title); font-weight: 400; font-size: 12px; color: #8a6200; display: flex; justify-content: space-between; }
+.quest b i { font-style: normal; color: #a88a3a; }
+.quest span { font-size: 14px; line-height: 1.25; word-break: keep-all; }
+.quest small { font-size: 11.5px; color: #7a6a3a; line-height: 1.3; word-break: keep-all; }
+.quest .qbar { display: block; height: 4px; border-radius: 2px; background: rgba(0,0,0,.1); overflow: hidden; }
+.quest .qbar em { display: block; height: 100%; width: 0; background: #e2b33c; }
+.quest.pop { animation: qpop .5s ease-out; }
+@keyframes qpop { 30% { transform: scale(1.06); box-shadow: 0 0 0 4px #ffd24a, 0 4px 16px rgba(255,210,74,.6); } }
+@media (max-height: 700px) { .quest small { display: none; } }
+.pull { display: grid; gap: 8px; justify-items: center; text-align: center; }
+.pull-art { width: 150px; height: 150px; }
+.pull-art svg { width: 100%; height: 100%; }
+.pull-n { font-family: var(--f-title); font-size: 52px; line-height: 1; color: var(--olive-d); }
+.pull-t { width: 100%; height: 10px; border-radius: 5px; background: #e6e0d0; overflow: hidden; }
+.pull-t i { display: block; height: 100%; background: linear-gradient(90deg, #ff6a55, #ffd24a); width: 100%; }
+.pull-go { width: 100%; padding: 22px 10px !important; font-size: 26px !important; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.pull-go:active { transform: scale(.97); }
+/* 큰 배너가 떠 있는 동안엔 작은 알림·안내는 잠깐 숨긴다 (쌓여서 화면 가운데까지 내려오지 않게) */
+#stack > #banner:not([hidden]) ~ #chip, #stack > #banner:not([hidden]) ~ #hint { display: none; }
+#stack { top: calc(env(safe-area-inset-top, 0px) + 164px); }
+@media (max-height: 700px) { #stack { top: calc(env(safe-area-inset-top, 0px) + 160px); } #stack > #banner:not([hidden]) ~ #say { display: none; } #stack > #say p { font-size: 14px; padding: 8px 12px; } .say-face { width: 46px; height: 46px; } }

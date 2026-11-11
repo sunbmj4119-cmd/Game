@@ -59,15 +59,43 @@
       if (A.box) save.boxes.push(A.box);
       w.fx.push({ t: 'ach', ach: A });
     });
+    questCheck(w);
     var r = G.rankOf(save);
     if (r > (save.rankDia || 0)) { var n = 3 * (r - (save.rankDia || 0)) + r; save.rankDia = r; G.gainDia(w, n, 'rank'); }
     return got;
   }
 
+  /* ── 할 일 (안내) ── */
+  function questNow(save) { return S.QUESTS[save.quest || 0] || null; }
+  function questProg(save, w, q) {
+    if (!q) return 0;
+    switch (q.stat) {
+      case 'load': return w ? Math.floor(w.player.load) + ((save.stats.dumps || 0) > 0 ? q.goal : 0) : 0;
+      case 'life': return save.life > 0 ? 1 : 0;
+      case 'tool': return save.tool;
+      case 'rank': return G.rankOf(save);
+      case 'zone': return save.zones[q.key] ? 1 : 0;
+      case 'crew': return G.crewCount(save);
+      case 'pend': return G.crewCount(save) + (save.pend || []).length;
+      default: return (save.stats || {})[q.stat] || 0;
+    }
+  }
+  function questCheck(w) {
+    var save = w.save, q = questNow(save), guard = 0;
+    while (q && questProg(save, w, q) >= q.goal && guard++ < 3) {
+      save.quest = (save.quest || 0) + 1;
+      var pie = q.pie ? Math.round(q.pie * G.incomeMult(save)) : 0;
+      if (pie) { save.bank += pie; save.life += pie; }
+      if (q.dia) G.gainDia(w, q.dia, 'quest');
+      w.fx.push({ t: 'quest', q: q, pie: pie, dia: q.dia || 0, next: questNow(save), n: save.quest, total: S.QUESTS.length });
+      q = questNow(save);
+    }
+  }
+
   /* ── 스토리 ── */
   function storyMet(save, w, when) {
     if (when === 'start') return true;
-    if (when === 'dump1') return save.life > 0;
+    if (when === 'dump1') return (save.stats.dumps || 0) >= 1;
     if (when === 'perfect1') return (save.stats.perfect || 0) >= 1;
     if (when === 'crew1') return G.crewCount(save) >= 1;
     if (when === 'inspect') return !!(w && w.inspect);
@@ -136,6 +164,6 @@
   function lookColor(save, cat) { var e = lookEntry(cat, (save.look || {})[cat]); return e && e[4] ? e[4] : (lookEntry(cat, S.LOOK[cat][0][0]) || [])[4]; }
   function lookKey(save) { var L = save.look || {}; return [L.eyes, L.mouth, L.brows, L.head, L.skin, (L.extras || []).join('+'), L.hat, L.coat, L.glove, L.tool].join('|'); }
 
-  JY.SnowMeta = { storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
+  JY.SnowMeta = { questNow: questNow, questProg: questProg, questCheck: questCheck, storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
     TIER: TIER, rollCall: rollCall, openBox: openBox, achList: achList, check: check, statOf: statOf, dateStr: dateStr };
 })(window.JY = window.JY || {});

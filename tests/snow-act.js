@@ -155,7 +155,7 @@ var dM = A.door('mess'); w.player.x = dM.x; w.player.y = dM.y + 8; look = face(w
 t = A.best(w, look, true); ok(t.k === 'mess', '취사장: 짬밥 먹기');
 A.act(w, t, look); G.step(w, 1 / 30, null);
 ok(w.player.cap === Math.round(c0 * 1.4), '짬밥 먹으면 적재 +40%', [c0, w.player.cap]);
-t = A.best(w, look, true); ok(t.verb === '식판 받아 가기', '짬밥은 하루 한 번 (그다음엔 식판만 받아 간다)', t.verb);
+t = A.best(w, look, true); ok(t.verb === '식판 챙기기', '짬밥은 하루 한 번 (그다음엔 식판만 받아 간다)', t.verb);
 var dW = A.door('guard'); w.player.x = dW.x; w.player.y = dW.y + 8; look = face(w, dW.x, dW.y - 10);
 t = A.best(w, look, true); ok(t.k === 'guard', '위병소: 면회 확인');
 w.fx.length = 0; A.act(w, t, look); ok(fxs(w, 'gift').length === 1, '면회: 뭐라도 일어난다', fxs(w, 'gift'));
@@ -279,7 +279,7 @@ w.player.x = 30; w.player.y = 270; rc.x = 40; rc.y = 250; G.step(w, 1 / 30, null
 t = A.best(w, { x: 0, y: 1 }, true); ok(t.k === 'recruit' && /따라오는 중/.test(t.verb), '구역 밖에선 배치 못 한다', t.verb);
 w.player.x = 600; w.player.y = 200; rc.x = 590; rc.y = 190; G.step(w, 1 / 30, null);
 t = A.best(w, { x: 0, y: 1 }, true);
-ok(t.k === 'recruit' && /여기 배치 \(족구장\)/.test(t.verb), '구역 안에선 등 뒤 신병도: 여기 배치 (족구장)', t.verb);
+ok(t.k === 'recruit' && t.verb === '여기 배치' && t.ask === '족구장', '구역 안에선 등 뒤 신병도: 여기 배치 (족구장)', [t.verb, t.ask]);
 A.act(w, t, { x: 0, y: 1 });
 ok(w.crew.length === 1 && w.crew[0].post === 'B' && w.save.crew.hoobae === 1, '족구장 담당 후임이 됐다');
 var ce = w.crew[0]; ce.x = 600; ce.y = 230; look = near(w, ce); t = A.best(w, look, true);
@@ -327,7 +327,7 @@ var sS = G.newSave();
 ok(M.storyNext(sS).id === 'prologue', '처음엔 전입 첫날');
 M.storyDone(sS, M.storyNext(sS));
 ok(M.storyNext(sS) === null, '아무것도 안 했으면 다음 장면 없음');
-sS.life = 10; ok(M.storyNext(sS).id === 'firstDump', '첫 초코파이 → 장면');
+sS.life = 10; sS.stats.dumps = 1; ok(M.storyNext(sS).id === 'firstDump', '첫 초코파이 → 장면');
 var rS = M.storyDone(sS, M.storyNext(sS)); ok(rS.dia === 1 && sS.dia === 1, '장면 보상: 다이아');
 ok(M.storyDone(sS, S.STORY[1]) === null, '같은 장면 보상은 한 번');
 sS.life = 2e6; sS.zones.B = true;
@@ -344,6 +344,38 @@ ok(sL.look.extras.length === 3 && sL.look.extras.indexOf('snot') < 0, '얼굴 �
 ok(M.lookSpec(sL).hat === 'crown' && M.lookColor(sL, 'tool') === '#e7ae2f', '모습 → 그림 스펙·색');
 var dS = G.newSave(); dS.life = 2e6; dS.look.name = '전역자'; dS.unlocked['hat:beret'] = true; dS.story.prologue = true; G.discharge(dS);
 ok(dS.look.name === '전역자' && dS.unlocked['hat:beret'] && dS.story.prologue, '전역해도 꾸미기·스토리는 남는다');
+
+// ── v9: 새 소품 · 족구 득점 · 할 일 · 사람 몸 밀어내기 ──
+function propAt(w, id) { var pr = S.PROPS.filter(function (q) { return q.id === id; })[0]; w.player.x = pr.ux; w.player.y = pr.uy + 12; return face(w, pr.ux, pr.uy - 10); }
+w = fresh(function (s) { s.bank = 500; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999; A.init(w).reqT = 999;
+look = propAt(w, 'phone'); t = A.best(w, look, true);
+ok(t && t.k === 'phone' && t.verb === '전화 걸기', '공중전화: 전화 걸기', t && [t.k, t.verb]);
+var rc9 = A.act(w, t, look); ok(rc9.ok && rc9.ui === 'call' && rc9.call.lines.length >= 2 && w.save.stats.call === 1, '전화 → 누가 받는다');
+ok(!A.act(w, A.best(w, look, true), look).ok, '전화는 하루 한 번');
+look = propAt(w, 'vend'); t = A.best(w, look, true); var bk9 = w.save.bank;
+ok(t.k === 'vend', '자판기: 뽑기'); var rv = A.act(w, t, look);
+ok(rv.ok && rv.item && w.save.bank === bk9 - A.vendCost(w), '뽑기: 동전을 넣고 뭔가 나온다(꽝 포함)', rv.item);
+look = propAt(w, 'stove'); t = A.best(w, look, true); A.act(w, t, look); G.step(w, 1 / 30, null);
+ok(t.k === 'stove' && A.state(w).buffs.some(function (b) { return b.id === 'warm'; }) && w.mod.hit < 1, '드럼통 난로: 몸 녹이기 → 손이 빨라진다');
+look = propAt(w, 'bar'); t = A.best(w, look, true);
+ok(t.k === 'bar' && A.act(w, t, look).ui === 'pullup', '철봉: 턱걸이 미니게임');
+var pd = A.pullDone(w, 17); G.step(w, 1 / 30, null);
+ok(pd.n === 17 && pd.best && pd.dia === 1 && w.save.stats.pullBest === 17 && w.player.cap > G.capOf(w.save), '턱걸이 17개: 최고 기록 + 다이아 + 적재 버프', pd);
+// 족구 득점
+w = fresh(function (s) { s.zones.B = true; s.fresh.B = true; }); w.haeng.x = 780; w.haeng.y = 1180; w.haeng.hold = 999;
+var bl = A.init(w).ball; bl.x = 600; bl.y = 200; w.player.x = 585; w.player.y = 200; look = face(w, 600, 200);
+t = A.best(w, look, true); A.act(w, t, look); run(w, 1);
+ok(w.save.stats.goal === 1 && w.fx.some(function (f) { return f.t === 'goal'; }), '족구공이 네트를 넘으면 득점', [bl.x, w.save.stats.goal]);
+// 할 일
+w = fresh(); var q0 = M.questNow(w.save);
+ok(q0 && q0.id === 'scoop', '할 일 1: 눈 퍼 담기');
+w.player.load = 25; G.step(w, 1.1, null);
+ok(M.questNow(w.save).id === 'dump' && w.fx.some(function (f) { return f.t === 'quest'; }), '퍼 담으면 다음 할 일로', M.questNow(w.save).id);
+w.save.stats.dumps = 1; w.save.tool = 1; G.step(w, 1.1, null);
+ok(M.questNow(w.save).id === 'salute', '부었고 넉가래 샀으면 → 경례');
+// 사람 몸에 파고들지 않는다
+w = fresh(); w.haeng.x = 200; w.haeng.y = 200; w.haeng.hold = 999; w.player.x = 203; w.player.y = 200;
+run(w, 0.4); ok(Math.hypot(w.player.x - 200, w.player.y - 200) >= 21, '사람에게 바짝 붙으면 살살 밀려난다', Math.hypot(w.player.x - 200, w.player.y - 200));
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

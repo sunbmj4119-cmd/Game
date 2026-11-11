@@ -909,11 +909,13 @@
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
       else if (f.t === 'hand') { vmPlay('act', 0.5); if (sfx) sfx.pop(); }
+      else if (f.t === 'goal') { for (k = 0; k < 50; k++) emit(f.x * U, 1, f.y * U, rnd(-4, 4), rnd(4, 9), rnd(-4, 4), rnd(0.8, 1.4), [[1, 0.84, 0.3], [0.6, 0.9, 1], [1, 0.5, 0.5]][k % 3]); }
+      else if (f.t === 'warm') { for (k = 0; k < 20; k++) emit(f.x * U + rnd(-0.4, 0.4), 1.2, f.y * U + rnd(-0.4, 0.4), rnd(-0.6, 0.6), rnd(1, 3), rnd(-0.6, 0.6), rnd(0.5, 0.9), [1, 0.6, 0.2]); vmPlay('act', 0.6); }
       else if (f.t === 'assigned') { addOv('담당: ' + esc((G.zoneById(f.zone) || {}).name || ''), 'ov-new', 0, 0, 4.4, 2, f.e); if (sfx) sfx.salute(); }
       else if (f.t === 'slack') { addOv('(짱박힘…)', 'ov-slack', 0, 0, 3.6, 3, f.e); }
       else if (f.t === 'unslack') { addOv('…다시 일한다', 'ov-chat', 0, 0, 4.3, 1.4, f.e); }
       else if (f.t === 'choco') { if (f.e) { for (k = 0; k < 14; k++) emit(f.e.x * U, 2.6, f.e.y * U, rnd(-1.5, 1.5), rnd(2, 4), rnd(-1.5, 1.5), 0.6, [0.45, 0.27, 0.15]); addOv('냠냠', 'ov-bang', 0, 0, 4.6, 1, f.e); } vmPlay('act', 0.6); if (sfx) sfx.coin(); }
-      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand)$/.test(f.t)) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm)$/.test(f.t)) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -1328,7 +1330,7 @@
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !(a && a.ride && a.ride.kind === 'tractor');
-    syncOfficers(a); stepSparkles(dt); syncRecruits(); syncReqs(a);
+    syncOfficers(a); stepSparkles(dt); syncRecruits(); syncReqs(a); stepProps(dt);
     if (!a) { if (kickBall) kickBall.visible = false; return; }
     while (actBalls.length < a.balls.length) {
       var bm = new T.Mesh(geos.sball || (geos.sball = new T.SphereGeometry(0.2, 10, 8)), mats.sball || (mats.sball = new T.MeshLambertMaterial({ color: '#ffffff' })));
@@ -1364,6 +1366,43 @@
         markEl.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
       }
     }
+  }
+  // 새 소품: 공중전화 · 철봉 · 자판기 · 드럼통 난로
+  var stoveFire = null, stoveAt = null;
+  function propSign(text, x, y, z) { var tt = textTex(text, { size: 26 }), m = new T.Mesh(new T.PlaneGeometry(tt.image.width / 64, tt.image.height / 64), new T.MeshLambertMaterial({ map: tt })); m.position.set(x, y, z); return m; }
+  function buildProps2() {
+    var g = new T.Group(), parts = [];
+    S.PROPS.forEach(function (pr) {
+      var x = pr.x * U, z = pr.y * U;
+      if (pr.id === 'phone') {
+        parts.push([box(0.9, 2.5, 0.8, { x: x, y: 1.25, z: z }), '#c8402e'], [box(0.95, 0.15, 0.85, { x: x, y: 2.55, z: z }), '#f2f6fa'], [box(0.62, 1.4, 0.05, { x: x, y: 1.45, z: z + 0.41 }), '#9cc3dc'],
+          [box(0.3, 0.42, 0.12, { x: x + 0.18, y: 1.5, z: z + 0.3 }), '#2b2f24'], [box(0.08, 0.3, 0.06, { x: x + 0.02, y: 1.55, z: z + 0.36 }), '#111']);
+        g.add(propSign('공중전화', x, 3.0, z + 0.45));
+      } else if (pr.id === 'bar') {
+        parts.push([cyl(0.08, 0.1, 2.8, { x: x - 0.8, y: 1.4, z: z }), '#6b4a32'], [cyl(0.08, 0.1, 2.8, { x: x + 0.8, y: 1.4, z: z }), '#6b4a32'], [cyl(0.04, 0.04, 1.7, { rz: Math.PI / 2, x: x, y: 2.7, z: z }), '#9aa0a5'],
+          [box(1.7, 0.08, 0.2, { x: x, y: 2.82, z: z }), '#f4f8fc']);
+        g.add(propSign('철봉', x, 3.3, z + 0.12));
+      } else if (pr.id === 'vend') {
+        parts.push([box(1.0, 2.3, 0.75, { x: x, y: 1.15, z: z }), '#2b5fd1'], [box(0.8, 1.2, 0.05, { x: x, y: 1.5, z: z + 0.38 }), '#e9f2ff'], [box(0.8, 0.25, 0.06, { x: x, y: 0.55, z: z + 0.38 }), '#1d1f1a'],
+          [sph(0.4, { s: [1.3, 0.3, 1], x: x, y: 2.35, z: z }), '#f7fafd']);
+        for (var c = 0; c < 6; c++) parts.push([cyl(0.07, 0.07, 0.22, { x: x - 0.28 + (c % 3) * 0.28, y: 1.85 - Math.floor(c / 3) * 0.42, z: z + 0.42 }, 8), ['#d23a2a', '#2f8f5b', '#f0b429', '#e57aa3', '#5d6f86', '#ff8a2a'][c]]);
+        g.add(propSign('자판기', x, 2.75, z + 0.42));
+      } else if (pr.id === 'stove') {
+        parts.push([cyl(0.42, 0.42, 1.0, { x: x, y: 0.5, z: z }, 14), '#4a4d52'], [cyl(0.44, 0.44, 0.06, { x: x, y: 0.75, z: z }, 14), '#2b2d30'], [cyl(0.44, 0.44, 0.06, { x: x, y: 0.3, z: z }, 14), '#2b2d30'],
+          [cyl(0.08, 0.08, 1.4, { x: x + 0.25, y: 1.6, z: z - 0.1 }, 8), '#3a3d42'], [box(0.4, 0.12, 0.08, { x: x, y: 0.55, z: z + 0.42 }), '#ff8a2a']);
+        var fm = new T.SpriteMaterial({ map: canvasTex(64, 64, function (c2) { var gr = c2.createRadialGradient(32, 40, 2, 32, 36, 30); gr.addColorStop(0, 'rgba(255,240,170,1)'); gr.addColorStop(0.4, 'rgba(255,150,40,.9)'); gr.addColorStop(1, 'rgba(255,80,20,0)'); c2.fillStyle = gr; c2.beginPath(); c2.moveTo(32, 2); c2.quadraticCurveTo(58, 40, 32, 62); c2.quadraticCurveTo(6, 40, 32, 2); c2.fill(); }), transparent: true, depthWrite: false, blending: T.AdditiveBlending });
+        stoveFire = new T.Sprite(fm); stoveFire.scale.set(0.7, 0.9, 1); stoveFire.position.set(x, 1.3, z); g.add(stoveFire); stoveAt = { x: x, z: z };
+        var glow = new T.Mesh(new T.CircleGeometry(1.6, 24), new T.MeshBasicMaterial({ color: '#ffb060', transparent: true, opacity: 0.28, depthWrite: false })); glow.rotation.x = -Math.PI / 2; glow.position.set(x, 0.06, z); g.add(glow); stoveFire.glow = glow;
+        g.add(propSign('난로', x, 2.6, z + 0.45));
+      }
+    });
+    var m = mesh(merge(parts)); m.castShadow = true; g.add(m); scene.add(g);
+  }
+  function stepProps(dt) {
+    if (!stoveFire) return;
+    var t = performance.now() / 1000, f = 0.85 + Math.sin(t * 17) * 0.08 + Math.sin(t * 7.3) * 0.07;
+    stoveFire.scale.set(0.6 * f + 0.1, 0.85 * f + 0.1, 1); if (stoveFire.glow) stoveFire.glow.material.opacity = 0.2 + f * 0.12;
+    if (Math.random() < dt * 6) emit(stoveAt.x + rnd(-0.1, 0.1), 1.6, stoveAt.z + rnd(-0.1, 0.1), rnd(-0.2, 0.2), rnd(1.2, 2), rnd(-0.2, 0.2), rnd(1, 1.6), [0.55, 0.57, 0.6]);
   }
   function buildTractor() {
     var TR = JY.SnowAct ? JY.SnowAct.TRACTOR : { x: 252, y: 1062 };
@@ -1496,7 +1535,7 @@
       stick = null; stickEl.hidden = true;
     }
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    window.addEventListener('keydown', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.indexOf('Arrow') === 0 && mode === 'play') e.preventDefault(); });
+    window.addEventListener('keydown', function (e) { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.indexOf('Arrow') === 0 && mode === 'play') e.preventDefault(); });
     window.addEventListener('keyup', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
     window.addEventListener('blur', function () { keys = {}; stick = null; lookPtr = null; stickEl.hidden = true; });
     window.addEventListener('resize', resize);
@@ -1517,9 +1556,13 @@
       }
     } else if (slowN > 0) slowN--;
     if (world && (mode === 'play' || mode === 'demo')) {
-      var inp = mode === 'demo' || autopilot ? botInput() : readInput(Math.min(0.1, raw)), span = Math.min(0.35, raw), n = Math.ceil(span / 0.05);
-      if (autopilot && isFP() && mode === 'play') { inp.face = { x: inp.x || Math.sin(fpYaw), y: inp.y || Math.cos(fpYaw) }; fpYaw = Math.atan2(inp.face.x, inp.face.y); inp.reach = 10; }
-      for (var sn = 0; sn < n; sn++) G.step(world, span / n, inp);
+      // 입력은 잘게 나눈 걸음마다 다시 읽는다 (느린 프레임에서 목표를 지나치지 않게)
+      var span = Math.min(0.35, raw), n = Math.ceil(span / 0.05);
+      for (var sn = 0; sn < n; sn++) {
+        var inp = mode === 'demo' || autopilot ? botInput() : readInput(span / n);
+        if (autopilot && isFP() && mode === 'play') { inp.face = { x: inp.x || Math.sin(fpYaw), y: inp.y || Math.cos(fpYaw) }; fpYaw = Math.atan2(inp.face.x, inp.face.y); inp.reach = 10; }
+        G.step(world, span / n, inp);
+      }
       onFx();
       if (hooks.tick && mode === 'play') hooks.tick(world);
     }
@@ -1583,7 +1626,7 @@
     S.TANKS.forEach(function (t, k) { var tk = buildTank(t, k); tk.castShadow = true; tk.receiveShadow = true; scene.add(tk); });
     var trees = buildTrees(); trees.castShadow = true; scene.add(trees);
     var dec = buildDecor(); dec.traverse(function (m) { if (m.isMesh) m.castShadow = true; }); scene.add(dec);
-    buildBase(); buildParticles(); buildChunks(); buildVM(); buildTractor(); buildSparkles();
+    buildBase(); buildParticles(); buildChunks(); buildVM(); buildTractor(); buildSparkles(); buildProps2();
     ov = document.createElement('div'); ov.id = 'ov3d'; cv.parentNode.insertBefore(ov, cv.nextSibling);
     markEl = document.createElement('div'); markEl.className = 'ov ov-act'; markEl.style.display = 'none'; ov.appendChild(markEl);
     stickEl = document.createElement('div'); stickEl.id = 'stick3d'; stickEl.hidden = true; knobEl = document.createElement('i'); stickEl.appendChild(knobEl); cv.parentNode.appendChild(stickEl);

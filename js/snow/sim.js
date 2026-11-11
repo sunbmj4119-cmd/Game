@@ -23,7 +23,7 @@
       snowmen: [], daily: {}, stats: {}, dia: 0, diaLife: 0, found: {}, ach: {}, post: 'all', boxes: [], roll: { date: '', streak: 0 }, toolStar: 0,
       bestCombo: 0, rankDia: 0, mor: 80, tfound: { d: 0, idx: [] }, pend: [], cpost: {},
       look: { name: '', eyes: 'derp', mouth: 'wavy', brows: 'worried', head: 'round', skin: '#f6c79c', extras: ['snot', 'blush'], hat: 'beanie', coat: 'olive', glove: 'olive', tool: 'yellow' },
-      story: {}, unlocked: {} };
+      story: {}, unlocked: {}, quest: 0 };
   }
   function migrate(s) {
     var d = newSave();
@@ -141,7 +141,7 @@
     var gain = medalGain(save);
     var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits,
       dia: save.dia, diaLife: save.diaLife, found: save.found, ach: save.ach, stats: save.stats, roll: save.roll, boxes: save.boxes, bestCombo: save.bestCombo,
-      look: save.look, story: save.story, unlocked: save.unlocked };
+      look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest };
     var fresh = newSave();
     Object.keys(fresh).forEach(function (k) { save[k] = fresh[k]; });
     Object.keys(keep).forEach(function (k) { save[k] = keep[k]; });
@@ -294,6 +294,22 @@
     w.events = schedule(w, save, w.time);
     if (!opts.demo) buryTreasure(w);
     return w;
+  }
+
+  // 사람 몸에 파고들지 않는다 (1인칭에서 얼굴이 화면을 다 덮지 않게): 가까우면 살살 밀려난다
+  function pushOff(w, P, dt) {
+    function away(e, R) {
+      if (!e) return;
+      var dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy);
+      if (d >= R) return;
+      if (d < 0.01) { dx = 1; dy = 0; d = 1; }
+      var k = Math.min(R - d, 160 * dt), nx = P.x + dx / d * k, ny = P.y + dy / d * k;
+      if (!blocked(nx, ny, 6)) { P.x = nx; P.y = ny; }
+    }
+    for (var i = 0; i < w.crew.length; i++) if (!w.crew[i].off) away(w.crew[i], w.crew[i].def.vehicle ? 30 : 22);
+    away(w.haeng, 22);
+    for (i = 0; i < (w.recruits || []).length; i++) away(w.recruits[i], 22);
+    if (w.act && w.act.off) for (i = 0; i < w.act.off.length; i++) away(w.act.off[i], 22);
   }
 
   /* ── 인력 담당 구역 · 신병 ── */
@@ -489,7 +505,7 @@
     var mk = w.save.made;
     if (!w.demo && procLvl(w.save, 'press')) mk.brick += who.load / 40;
     if (!w.demo && procLvl(w.save, 'sculpt')) mk.snowman += who.load / 400;
-    if (src === 'player') w.dumpedP += who.load;
+    if (src === 'player') { w.dumpedP += who.load; stat(w, 'dumps'); }
     w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y, full: full });
     who.load = 0; who.val = 0;
     return amount;
@@ -712,6 +728,7 @@
       }
       P.moving = moved > 0.01; P.walk += moved * 0.18; P.idleT = 0;
     } else { P.moving = false; if (P.stun <= 0) P.idleT += dt; }
+    pushOff(w, P, dt);
     P.swing = Math.max(0, P.swing - dt * 6);
     P.hitT -= dt;
     if (P.hitT <= 0) {
@@ -739,7 +756,7 @@
       var rc = w.recruits[ri], rd = Math.hypot(P.x - rc.x, P.y - rc.y);
       rc.walk = rc.walk || 0;
       if (rc.state === 'follow') {
-        if (rd > 18) steer(rc, P.x - P.dir.x * 12, P.y - P.dir.y * 12, S.SPEED * 1.05, dt, 6); else rc.moving = false;
+        if (rd > 32) steer(rc, P.x - P.dir.x * 28, P.y - P.dir.y * 28, S.SPEED * 1.05, dt, 6); else rc.moving = false;
         if (rd > 260) { rc.x = P.x - P.dir.x * 12; rc.y = P.y - P.dir.y * 12; if (blocked(rc.x, rc.y, 6)) { rc.x = P.x; rc.y = P.y; } }
       } else { rc.moving = false; if (rd < 80) { rc.dir.x = (P.x - rc.x) / (rd || 1); rc.dir.y = (P.y - rc.y) / (rd || 1); } }
     }
@@ -751,7 +768,7 @@
       if (e.off) { e.moving = false; continue; }
       if (e.state === 'follow') {   // 따라와 → 새 구역으로 데려간다
         var fd = Math.hypot(P.x - e.x, P.y - e.y);
-        if (fd > 20) steer(e, P.x - P.dir.x * 14, P.y - P.dir.y * 14, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
+        if (fd > 32) steer(e, P.x - P.dir.x * 28, P.y - P.dir.y * 28, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
         if (fd > 260) { e.x = P.x - P.dir.x * 14; e.y = P.y - P.dir.y * 14; if (blocked(e.x, e.y, 6)) { e.x = P.x; e.y = P.y; } }
         continue;
       }

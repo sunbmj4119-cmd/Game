@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -505,6 +505,11 @@
     (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    (S.PROPS || []).forEach(function (pr) { list.push({ y: pr.y, f: function () {
+      var col = pr.id === 'phone' ? '#c8402e' : pr.id === 'vend' ? '#2b5fd1' : pr.id === 'stove' ? '#4a4d52' : '#6b4a32';
+      c.fillStyle = col; if (pr.id === 'bar') { c.fillRect(pr.x - 9, pr.y - 22, 2, 22); c.fillRect(pr.x + 7, pr.y - 22, 2, 22); c.fillRect(pr.x - 9, pr.y - 23, 18, 2); } else rr(c, pr.x - 5, pr.y - 16, 10, 16, 2), c.fill();
+      if (pr.id === 'stove') { c.fillStyle = 'rgba(255,140,40,' + (0.6 + Math.sin(performance.now() / 90) * 0.3) + ')'; circ(c, pr.x, pr.y - 19, 3.5); c.fill(); }
+      c.fillStyle = '#2f3a25'; c.font = '700 7px ' + FONT; c.textAlign = 'center'; c.fillText(pr.name, pr.x, pr.y - 26); } }); });
     (world.recruits || []).forEach(function (r) { list.push({ y: r.y, f: function () { drawPerson(c, r, { coat: r.def.coat, hat: 'helmet', seed: 3, tool: null, r: 10 }); c.fillStyle = '#2f8f4e'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(r.state === 'follow' ? '따라오는 중' : '신병', r.x, r.y - 33); } }); });
     if (ac) {
       (ac.reqs || []).forEach(function (q) { var wo = q.who; list.push({ y: 4e5, f: function () { c.fillStyle = '#ff9f43'; c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillText((JY.SnowAct.ITEM[q.item] || {}).want + '?', wo.x, wo.y - 44); } }); });
@@ -654,7 +659,7 @@
       stick = null;
     }
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    window.addEventListener('keydown', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.indexOf('Arrow') === 0 && mode === 'play') e.preventDefault(); });
+    window.addEventListener('keydown', function (e) { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (e.key.indexOf('Arrow') === 0 && mode === 'play') e.preventDefault(); });
     window.addEventListener('keyup', function (e) { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
     window.addEventListener('blur', function () { keys = {}; stick = null; });
     window.addEventListener('resize', resize);
@@ -665,8 +670,8 @@
     raf = requestAnimationFrame(frame);
     var raw = last ? Math.min(0.25, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
     if (world && (mode === 'play' || mode === 'demo')) {
-      var inp = mode === 'demo' || autopilot ? botInput() : readInput(), n = Math.ceil(raw / 0.05);
-      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, raw / n, inp);
+      var n = Math.ceil(raw / 0.05);
+      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, raw / n, mode === 'demo' || autopilot ? botInput() : readInput());
       onFx(); markDirty();
       if (mode === 'demo' && world.done) { world = G.createWorld(world.save, { demo: true, salt: (Math.random() * 1e6) | 0 }); buildSnow(); }
       if (mode === 'play' && world.done && !doneSent) { doneSent = true; mode = 'end'; if (hooks.done) hooks.done(world); }

@@ -77,7 +77,10 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await touchDrag(size[0] * 0.2, size[1] * 0.7, size[0] * 0.2 + (is3 ? 0 : 40), size[1] * 0.7 - (is3 ? 50 : -10), 1500);
   var p1 = await W();
   ok('끌면 걷는다', Math.hypot(p1.x - p0.x, p1.y - p0.y) > 30, [p0, p1]);
-  ok('치우면 돈이 아니라 짐이 된다', p1.load > 0 && p1.bank === p0.bank && p1.clear > p0.clear, [p0, p1]);
+  await waitFor(function () { return (__SNOW.save().quest || 0) >= 1; }, 3000);
+  var qd = await page.evaluate(function () { return __SNOW.save().quest || 0; });
+  ok('치우면 돈이 아니라 짐이 된다 (할 일 보상만)', p1.load > 0 && (p1.bank === p0.bank || qd >= 1) && p1.clear > p0.clear, [p0, p1, qd]);
+  ok('할 일 카드: 다음 할 일 안내', qd >= 1 && await waitFor(function () { return /집하장/.test(document.getElementById('q-t').textContent); }, 3000));
   ok('짐을 지면 안내가 사라진다', !(await vis('#hint')));
   if (is3) {
     // 오른쪽을 끌면 둘러본다 (몸은 그대로)
@@ -145,7 +148,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#s-go');
   await sleep(600);
   var after = await W();
-  ok('작업 계속: 넉가래 적재 80 (후임은 아직)', after.mode === 'play' && after.cap === 80 && after.crew === 0, after);
+  ok('작업 계속: 넉가래 적재 110 (후임은 아직)', after.mode === 'play' && after.cap === 110 && after.crew === 0, after);
   ok('릴레이로 붓는 곳 2곳', await page.evaluate(function () { return __SNOW.view().world().dumps.length === 2; }));
   // 다음 날 아침: 생활관 앞 신병 → 인솔 → 구역에서 배치
   await page.evaluate(function () { var w = __SNOW.view().world(); w.events = []; JY.SnowSim.newDay(w); w.events = []; w.deer = []; });
@@ -217,7 +220,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     await waitFor(function () { return JY.SnowAct.state(__SNOW.view().world()).heat > 0; }, 1500);
     await sleep(250);
     var heat = await page.evaluate(function () { return JY.SnowAct.state(__SNOW.view().world()).heat; });
-    ok('행보관 맞히면 분노 ★ (상단 표시)', heat >= 1 && await vis('#h-heat'), heat);
+    ok('행보관 맞히면 분노 ★ (상단 표시)', heat >= 1 && await waitFor(function () { return !document.getElementById('h-heat').hidden; }, 2000), heat);
     await shot('09b-fp-heat');
     // 생활관에 숨기
     await page.evaluate(function () { var d = JY.SnowAct.door('barracks'), w = __SNOW.view().world(); w.act.heat = Math.max(1, w.act.heat); w.haeng.x = 700; w.haeng.y = 1100; w.player.stun = 0; __SNOW.view()._teleport(d.x, d.y + 14); __SNOW.view()._setLook(Math.PI, 0); });
@@ -262,8 +265,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     for (var y = P.y; y < P.y + P.h; y += 10) for (var x = P.x; x < P.x + P.w; x += 10) JY.SnowSim.clearAt(w, x + 5, y + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
     return { done: P.done, dia: s.dia - d0 };
   });
-  await sleep(500);
-  ok('조각 100% → 완벽! + 다이아 +1', pf.skip || (pf.done && pf.dia >= 1 && (!is3 || await page.evaluate(function () { return !!document.querySelector('.ov-perfect'); }))), pf);
+  ok('조각 100% → 완벽! + 다이아 +1', pf.skip || (pf.done && pf.dia >= 1 && (!is3 || await waitFor(function () { return !!document.querySelector('.ov-perfect'); }, 2500))), pf);
   await closeModal();
   // 콤보 표시
   await sleep(700); await closeModal();
@@ -300,7 +302,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     var d = JY.SnowAct.door('mess'); __SNOW.view()._teleport(d.x, d.y + 14); w.player.dir = { x: 0, y: -1 }; if (__SNOW.view()._setLook) __SNOW.view()._setLook(Math.PI, 0);
   });
   ok('심부름 카드 (누가·무엇·어디서)', await waitFor(function () { return /짬밥 부탁/.test(document.getElementById('h-reqs').textContent); }, 3000));
-  await verbIs('/식판 받아 가기/');
+  await verbIs('/식판 챙기기/');
   await page.click('#act-btn');
   ok('식판을 손에 든다 (손에 든 것 표시)', await waitFor(function () { return !document.getElementById('h-hand').hidden && /식판/.test(document.getElementById('h-hand').textContent); }, 3000));
   await shot('09i-hand');
@@ -313,6 +315,31 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#act2-btn');
   ok('따라와 → 따라온다', await waitFor(function () { return __SNOW.view().world().crew[0].state === 'follow'; }, 3000));
   await page.evaluate(function () { var w = __SNOW.view().world(), c = w.crew[0]; c.state = 'work'; c.speed = 46; });
+
+  // v9 소품: 공중전화 → 통화 장면, 철봉 → 턱걸이 미니게임, 자판기 → 뽑기
+  function toProp(i) {
+    return page.evaluate(function (i) {
+      var w = __SNOW.view().world(), pr = JY.SNOW.PROPS[i]; w.events = []; w.deer = []; w.crew.forEach(function (c) { c.x = 600; c.y = 900; c.retarget = 99; c.speed = 0; });
+      w.haeng.x = 700; w.haeng.y = 1100; w.haeng.hold = 60; if (w.act) { w.act.off = []; w.act.reqs = []; w.act.hand = null; }
+      __SNOW.view()._teleport(pr.ux, pr.uy + 12); w.player.dir = { x: 0, y: -1 }; if (__SNOW.view()._setLook) __SNOW.view()._setLook(Math.PI, 0);
+    }, i);
+  }
+  await page.evaluate(function () { __SNOW.save().daily.call = 0; __SNOW.save().bank += 500; });
+  await toProp(0); await verbIs('/전화 걸기/'); await page.click('#act-btn');
+  ok('공중전화 → 통화 장면', await waitFor(function () { return !document.getElementById('talk').hidden && /공중전화/.test(document.getElementById('talk-title').textContent); }, 3000));
+  await shot('09k-call');
+  for (var tc = 0; tc < 8 && !(await page.evaluate(function () { return document.getElementById('talk').hidden; })); tc++) { await page.click('.talk-box'); await sleep(150); }
+  await toProp(1); await verbIs('/턱걸이/'); await page.click('#act-btn');
+  ok('철봉 → 턱걸이 미니게임', await waitFor(function () { return !!document.getElementById('pull-go'); }, 3000));
+  for (var tp = 0; tp < 26; tp++) await page.dispatchEvent('#pull-go', 'pointerdown');
+  await shot('09l-pullup');
+  await waitFor(function () { return /개!/.test(document.getElementById('pull-n').textContent); }, 7000);
+  ok('턱걸이 13개 → 기록·버프', await page.evaluate(function () { return (__SNOW.save().stats.pullBest || 0) >= 10 && JY.SnowAct.state(__SNOW.view().world()).buffs.some(function (b) { return b.id === 'power'; }); }));
+  await sleep(700); await page.click('#pull-go'); await sleep(200);
+  await toProp(2); await verbIs('/뽑기/');
+  var v0 = await page.evaluate(function () { return __SNOW.save().stats.vend || 0; });
+  await page.click('#act-btn');
+  ok('자판기 뽑기', await waitFor(function () { return /자판기/.test(document.getElementById('chip').textContent); }, 3000) && await page.evaluate(function (v) { return __SNOW.save().stats.vend === v + 1; }, v0));
 
   // 인력 배치 + 훈장 탭
   await page.click('#h-shop'); await page.click('#s-tabs [data-tab="crew"]'); await sleep(200);

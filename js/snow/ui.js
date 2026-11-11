@@ -31,7 +31,7 @@
     ['acts', 'side'].forEach(function (k) { $(k).hidden = id !== 'play' || !A; });
     if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; } else fpLayout();
     if (id === 'title') $('say').hidden = true;
-    $('say').classList.toggle('low', id === 'shop');
+    $('stack').classList.toggle('low', id === 'shop');
     if (id !== 'play') $('hint').hidden = true;
   }
 
@@ -411,10 +411,10 @@
     if (f.t === 'comboEnd') return true;
     if (f.t === 'zonePerfect') { banner(f.name + ' 완벽 제설!', '구역 전체 100% · +' + fmt(f.bonus) + (f.mine ? ' · 다이아 +2' : ''), 2600); if (X) X.fanfare(); vibrate([60, 40, 60]); return true; }
     if (f.t === 'allClear') { if (X) { X.fanfare(); X.bugle(); } setTimeout(function () { daySummary(f); }, 1200); return true; }
-    if (f.t === 'locked') { chip('출입 통제: ' + f.name + ' — 보급·인력에서 확장 (' + fmt(f.cost) + ')', 'warn'); if (X) X.deny(); vibrate(40); return true; }
+    if (f.t === 'locked') { chip('출입 통제 · ' + f.name + ' (확장 ' + fmt(f.cost) + ')', 'warn'); if (X) X.deny(); vibrate(40); return true; }
     if (f.t === 'ach') { banner('훈장: ' + f.ach.name, f.ach.desc + ' · 다이아 +' + f.ach.dia + (f.ach.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); return true; }
     if (f.t === 'officer') {
-      if (f.state === 'arrive') { chip(f.title + ' 순찰 중! 마주치면 바로 경례!', 'warn'); if (X) X.bugle(); }
+      if (f.state === 'arrive') { chip(f.title + ' 순찰 중! 보면 경례!', 'warn'); if (X) X.bugle(); }
       else if (f.state === 'near') { if (X) X.whistle(false); vibrate([30, 30, 30]); }
       else if (f.state === 'miss') { chip(f.title + '께 경례를 안 했다! (분노)', 'bad'); vibrate([80, 40, 80]); }
       else if (f.state === 'saluted') { chip((f.quick ? '칼경례! ' : '경례 완료 · ') + f.title + (f.pie ? ' · +' + fmt(f.pie) : '') + (f.dia ? ' · 다이아 +' + f.dia : ''), 'good'); if (f.quick && X) X.perfect(); }
@@ -422,6 +422,14 @@
       else if (f.state === 'help') chip('소대장님이 40초 동안 같이 치운다!', 'good');
       return true;
     }
+    if (f.t === 'quest') {
+      chip('할 일 완료! ' + f.q.text + (f.pie ? ' · +' + fmt(f.pie) : '') + (f.dia ? ' · 다이아 +' + f.dia : ''), 'good');
+      if (X) X.ding(); var qc = $('h-quest'); qc.classList.remove('pop'); void qc.offsetWidth; qc.classList.add('pop');
+      if (!f.next) banner('할 일 끝!', '이제 마음대로 부대를 굴려라', 2400);
+      return true;
+    }
+    if (f.t === 'goal') { banner('득점!!', '족구공이 네트를 넘었다 · +' + fmt(f.pay), 1800); if (X) X.fanfare(); return true; }
+    if (f.t === 'warm' || f.t === 'call' || f.t === 'vend' || f.t === 'pullup') return true;
     if (f.t === 'recruit') { banner('신병 전입!', '생활관 앞에 신병 ' + f.n + '명 · 가서 인솔해서 구역에 배치해라', 2600); if (X) X.bugle(); return true; }
     if (f.t === 'assigned') { chip(f.e.def.name + ' → ' + (G.zoneById(f.zone) || {}).name + ' 담당' + (f.moved ? ' (이동)' : '!'), 'good'); return true; }
     if (f.t === 'req') {
@@ -431,7 +439,7 @@
       return true;
     }
     if (f.t === 'hand') { if (f.item) toast(f.name + '을(를) 들었다'); return true; }
-    if (f.t === 'slack') { if (!hud.slackSaid) { hud.slackSaid = true; chip('인력이 짱박혔다! 가서 일으키거나 초코파이를 줘라', 'warn'); setTimeout(function () { hud.slackSaid = false; }, 15000); } return true; }
+    if (f.t === 'slack') { if (!hud.slackSaid) { hud.slackSaid = true; chip('인력이 짱박혔다! 가서 일으켜라', 'warn'); setTimeout(function () { hud.slackSaid = false; }, 15000); } return true; }
     if (f.t === 'part' && f.perfect) {
       if (f.mine && f.first) { if (X) X.perfect(); vibrate([30, 30, 60]); }
       else if (X) X.ding();
@@ -521,7 +529,7 @@
     var now = Date.now();
     if (!force && now - actAt < 110) return;
     actAt = now;
-    var lk = look(), t = lk ? A.best(w, lk, lk.fp) : null, key = t ? t.k + '|' + t.verb + '|' + t.name + '|' + (t.verb2 || '') : '';
+    var lk = look(), t = lk ? A.best(w, lk, lk.fp) : null, key = t ? t.k + '|' + t.verb + '|' + t.name + '|' + (t.verb2 || '') + '|' + (t.ask || '') : '';
     curT = t; if (V.setFocus) V.setFocus(t);
     if (hudA.key !== key) {
       hudA.key = key;
@@ -530,7 +538,7 @@
       $('act-name').textContent = t ? t.name : '';
       $('act-verb').textContent = t ? t.verb : '행동';
       b.classList.toggle('pulse', !!t && (t.k === 'car' || t.k === 'exit' || t.k === 'plow'));
-      $('xh-t').innerHTML = t ? '<b>' + esc(t.verb) + '</b> · ' + esc(t.name) : '';
+      $('xh-t').innerHTML = t ? '<b>' + esc(t.verb) + '</b> · ' + esc(t.name) + (t.ask ? ' <small>' + esc(t.ask) + '</small>' : '') : '';
       $('xhair').classList.toggle('on', !!t);
     }
     var can = A.canThrow(w); if (hudA.can !== can) { hudA.can = can; $('ball-btn').disabled = !can; }
@@ -546,8 +554,20 @@
         var pr = m.kind === 'clear' ? Math.round(m.prog * 100) + '% / ' + Math.round(m.goal * 100) + '%' : m.kind === 'ball' ? '' : fmt(Math.min(m.prog, m.goal)) + ' / ' + fmt(m.goal);
         $('h-mis-t').textContent = m.text + (pr ? ' · ' + pr : '');
         $('h-mis-fill').style.width = Math.min(100, Math.max(0, m.prog / m.goal * 100)) + '%';
-        $('h-mis-time').innerHTML = '남은 시간 ' + Math.floor(m.t / 60) + ':' + ('0' + Math.max(0, Math.floor(m.t % 60))).slice(-2) + ' · 보상 ' + pie() + fmt(m.reward);
+        $('h-mis-time').innerHTML = Math.floor(m.t / 60) + ':' + ('0' + Math.max(0, Math.floor(m.t % 60))).slice(-2) + ' · ' + pie() + fmt(m.reward);
         $('h-mis').classList.toggle('late', m.t < 20);
+      }
+    }
+    if (M) {
+      var q = M.questNow(save), qk = q ? q.id + M.questProg(save, w, q) : '';
+      if (hudA.qk !== qk) {
+        hudA.qk = qk; $('h-quest').hidden = !q;
+        if (q) {
+          var pr = Math.min(q.goal, M.questProg(save, w, q));
+          $('q-n').textContent = ((save.quest || 0) + 1) + '/' + S.QUESTS.length;
+          $('q-t').textContent = q.text + (q.goal > 1 ? ' ' + pr + '/' + q.goal : '');
+          $('q-how').textContent = q.how; $('q-f').style.width = (pr / q.goal * 100) + '%';
+        }
       }
     }
     var hk = st.hand ? st.hand.name : '';
@@ -555,13 +575,15 @@
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
     if (hudA.rk !== rk) {
       hudA.rk = rk;
-      $('h-reqs').innerHTML = st.reqs.slice(0, 3).map(function (q) {
+      // 부탁은 한 장만 (들고 있는 것과 맞는 걸 먼저), 나머지는 +n
+      var rs = st.reqs.slice().sort(function (x, y) { return (st.hand && y.item === st.hand.id ? 1 : 0) - (st.hand && x.item === st.hand.id ? 1 : 0); });
+      $('h-reqs').innerHTML = rs.slice(0, 1).map(function (q) {
         var have = st.hand && st.hand.id === q.item;
-        return '<div class="' + (have ? 'have' : '') + '"><span><b>' + esc(q.who) + '</b>: ' + esc(q.want) + ' 부탁</span><small>' + (have ? '들고 있다 → 가서 건네줘라' : esc(q.from) + '에서 가져오기') + '</small><i><em style="width:' + Math.max(0, q.t / q.max * 100) + '%"></em></i></div>';
+        return '<div class="' + (have ? 'have' : '') + '"><span><b>' + esc(q.who) + '</b> ' + esc(q.want) + ' 부탁' + (rs.length > 1 ? ' <small>+' + (rs.length - 1) + '</small>' : '') + '</span><small>' + (have ? '들고 있다 → 건네주기' : esc(q.from) + '에서') + '</small><i><em style="width:' + Math.max(0, q.t / q.max * 100) + '%"></em></i></div>';
       }).join('');
     }
     var bk = st.buffs.map(function (x) { return x.name + ' ' + Math.ceil(x.t) + '초'; }).join('|');
-    if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 4).map(function (x) { return '<span>' + esc(x.name) + ' ' + Math.ceil(x.t) + '초</span>'; }).join(''); }
+    if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 3).map(function (x) { return '<span>' + esc(x.name.length > 5 ? x.name.slice(0, 5) : x.name) + ' ' + Math.ceil(x.t) + '</span>'; }).join('') + (st.buffs.length > 3 ? '<span>+' + (st.buffs.length - 3) + '</span>' : ''); }
   }
   function doAct(alt) {
     var w = V.world && V.world();
@@ -572,6 +594,9 @@
     if (!r.ok && r.why === 'money') toast('초코파이가 모자라다');
     if (!r.ok && r.why === 'zone') toast('구역 안으로 데려가서 배치해라');
     if (r.ui === 'px') openPX();
+    else if (r.ui === 'call') phoneCall(r.call);
+    else if (r.ui === 'pullup') pullUp();
+    else if (r.ui === 'vend') vendShow(r.item);
     else if (r.ui === 'sleep') sleepFx(r);
     else if (!r.ok && r.why === 'stun') toast('넘어져서 아무것도 못 한다');
     if (X && r.ok) X.pop();
@@ -592,7 +617,7 @@
   function onActEvent(f) {
     if (f.t === 'me') { subtitle(f.text); return true; }
     if (f.t === 'heat') {
-      if (f.heat > 0) { chip('행보관 분노 ' + stars(f.heat) + ' 도망쳐! (생활관에 숨거나 경례로 무마)', 'bad'); vibrate([40, 30, 40]); }
+      if (f.heat > 0) { chip('행보관 분노 ' + stars(f.heat) + ' 도망쳐! (숨거나 경례)', 'bad'); vibrate([40, 30, 40]); }
       else if (f.why === 'forgive') chip('행보관이 봐줬다. 휴…', 'good');
       else if (f.why === 'hide') chip('생활관에 숨었다. 행보관이 그냥 지나간다', 'good');
       else if (f.why === 'lost') chip('따돌렸다…', 'good');
@@ -609,7 +634,7 @@
     }
     if (f.t === 'gift') { if (X) { if (f.kind === 'none') X.deny(); else X.ding(); } return true; }
     if (f.t === 'ride') {
-      if (f.on) chip(f.name + ' 운전 중! 기름 떨어지기 전에 실컷 밀어라', 'good');
+      if (f.on) chip(f.name + ' 운전 중! 실컷 밀어라', 'good');
       else chip(f.hand ? f.name + '에서 내렸다' : f.name + ' 기름이 떨어졌다', '');
       return true;
     }
@@ -640,6 +665,57 @@
       };
     }
     render();
+  }
+
+  /* ── v9: 공중전화 · 턱걸이 · 자판기 ── */
+  function phoneCall(call) {
+    var C = JY.CHARS && JY.CHARS[call.who], lines = [['narr', '따르릉… 따르릉…']];
+    call.lines.forEach(function (l) { lines.push([call.who, l]); });
+    lines.push(['me', call.reward && (call.reward.pie || call.reward.buff) ? '(…힘이 난다. 충성!)' : '(…그래도 목소리 들으니 좋다)']);
+    playStory({ id: 'call', title: '공중전화 · ' + (C ? C.name : ''), lines: lines }, true);
+    if (X) X.ding();
+  }
+  var PULL_SVG = function (up) { return '<svg viewBox="0 0 120 120"><rect x="8" y="16" width="6" height="100" fill="#6b4a32"/><rect x="106" y="16" width="6" height="100" fill="#6b4a32"/><rect x="8" y="16" width="104" height="5" rx="2" fill="#9aa0a5"/>' +
+    '<g transform="translate(0 ' + (up ? 0 : 26) + ')"><path d="M42 19 L50 44 M78 19 L70 44" stroke="#5b6a3a" stroke-width="9" stroke-linecap="round"/><circle cx="42" cy="19" r="5" fill="#2b3020"/><circle cx="78" cy="19" r="5" fill="#2b3020"/>' +
+    '<circle cx="60" cy="' + (up ? 30 : 34) + '" r="13" fill="#f6c79c" stroke="#23281e" stroke-width="2.5"/><path d="M54 ' + (up ? 33 : 38) + ' q6 ' + (up ? 4 : -3) + ' 12 0" stroke="#23281e" stroke-width="2" fill="none"/><circle cx="55" cy="' + (up ? 28 : 32) + '" r="1.8"/><circle cx="65" cy="' + (up ? 28 : 32) + '" r="1.8"/>' +
+    '<rect x="46" y="44" width="28" height="34" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2.5"/><path d="M52 78 v22 M68 78 v22" stroke="#3d4628" stroke-width="8" stroke-linecap="round"/></g></svg>'; };
+  function pullUp() {
+    var w = V.world(); if (!w) return;
+    V.pause(true);
+    var taps = 0, T0 = 0, LEN = 5000, done = false, up = false;
+    modal('<div class="pull"><p class="kicker">철봉 · 5초 동안 연타!</p><div class="pull-art" id="pull-art">' + PULL_SVG(false) + '</div><div class="pull-n" id="pull-n">0</div><div class="pull-t"><i id="pull-t"></i></div><button class="btn big pull-go" id="pull-go">올려!</button><p style="margin:0;color:var(--mute);font-size:13px">최고 ' + (save.stats.pullBest || 0) + '개 · 15개 넘으면 다이아</p></div>', function () { V.pause(false); });
+    var go = $('pull-go');
+    function tick() {
+      if (done) return;
+      var left = Math.max(0, LEN - (Date.now() - T0));
+      $('pull-t').style.width = (left / LEN * 100) + '%';
+      if (left <= 0) return finish();
+      requestAnimationFrame(tick);
+    }
+    function finish() {
+      done = true;
+      var n = Math.floor(taps / 2), r = A.pullDone(w, n);
+      $('pull-n').textContent = n + '개!';
+      go.textContent = r.dia ? '특급 전사! 다이아 +1' : r.best ? '최고 기록!' : '수고했다';
+      go.setAttribute('data-m', 'ok'); go.disabled = true; setTimeout(function () { go.disabled = false; }, 600);
+      if (X) { if (r.best || r.dia) X.fanfare(); else X.pop(); }
+      persistRaw();
+    }
+    go.addEventListener('pointerdown', function (e) {
+      if (done) return;
+      e.preventDefault();
+      if (!T0) { T0 = Date.now(); requestAnimationFrame(tick); }
+      taps++; up = !up;
+      $('pull-art').innerHTML = PULL_SVG(up);
+      $('pull-n').textContent = Math.floor(taps / 2);
+      if (X && taps % 2 === 0) X.combo(taps * 3);
+      vibrate(8);
+    });
+  }
+  function vendShow(item) {
+    var bad = item.id === 'none';
+    chip('자판기: ' + item.name, bad ? 'bad' : 'good');
+    if (X) { if (item.dia) X.fanfare(); else if (bad) X.deny(); else X.coin(); }
   }
 
   /* ── v8: 스토리 장면 · 꾸미기 · 수첩 · 처음부터 ── */
@@ -678,6 +754,7 @@
     }
     function end() {
       $('talk').hidden = true; talking = false; box.onclick = null;
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       if (!replay) {
         var r = M.storyDone(save, ch); persistRaw();
         if (r && (r.dia || r.box || r.unlock)) chip('「' + M.fill(ch.title, save) + '」 ' + (r.dia ? '다이아 +' + r.dia + ' ' : '') + (r.box ? '보급 상자 ' : '') + (r.unlock ? '· ' + r.unlock + ' 해금' : ''), 'good');
@@ -689,6 +766,7 @@
       e.stopPropagation();
       var v = ($('talk-input').value || '').trim().slice(0, 6);
       save.look.name = v || '김제설'; persistRaw(); lookChanged();
+      try { $('talk-input').blur(); } catch (er) { /* 무시 */ }
       $('talk-name').hidden = true; $('talk-next').hidden = false; next();
     };
     $('talk-input').onkeydown = function (e) { if (e.key === 'Enter') $('talk-ok').onclick(e); e.stopPropagation(); };
@@ -810,7 +888,7 @@
     $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); fpLayout(); hintText(); if (X) X.pop(); };
     window.addEventListener('keydown', function (e) {
       if (!$('talk').hidden && (e.key === ' ' || e.key === 'Enter' || e.key === 'e')) { e.preventDefault(); if ($('talk-name').hidden) document.querySelector('.talk-box').click(); return; }
-      if (V.mode() !== 'play' || e.repeat) return;
+      if (V.mode() !== 'play' || e.repeat || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) return;
       var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === 'Tab' || k === 'q') { e.preventDefault(); scan(); }
       if (k === 'b') openShop();

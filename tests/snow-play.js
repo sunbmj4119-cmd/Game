@@ -322,12 +322,16 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await shot('09g-medal');
   // 꾸미기: 공짜 모자 고르기, 다이아로 사기
   await page.click('#s-tabs [data-tab="look"]'); await sleep(200);
-  ok('꾸미기 탭: 미리보기 + 옵션', await vis('.look-prev svg') && (await page.$$('.chips button')).length > 30);
-  await page.click('.chips [data-cat="hat"][data-look="helmet"]');
+  ok('꾸미기 탭: 대사 얼굴 미리보기 + 옵션마다 그림 카드', await vis('.pv-face svg') && (await page.$$('.lcard .lthumb svg')).length >= 30);
+  if (is3) ok('꾸미기: 실제 3D 모습 (3인칭·1인칭 손)', await waitFor(function () { var a = document.getElementById('pv-3p'), b = document.getElementById('pv-fp'); return a && b && /^data:image\/png/.test(a.src) && /^data:image\/png/.test(b.src); }, 4000));
+  await page.click('[data-ltab="hat"]'); await sleep(150);
+  ok('모자 탭: 모자 그림 8개', (await page.$$('.lcard[data-cat="hat"] svg')).length === 8);
+  await page.click('.lcard[data-cat="hat"][data-look="helmet"]');
   ok('모자 바꾸기 (철모)', await page.evaluate(function () { return __SNOW.save().look.hat === 'helmet'; }));
   await page.evaluate(function () { __SNOW.save().dia = 20; });
   await page.click('#s-tabs [data-tab="look"]'); await sleep(100);
-  await page.click('.chips [data-cat="tool"][data-look="gold"]');
+  await page.click('[data-ltab="tool"]'); await sleep(100);
+  await page.click('.lcard[data-cat="tool"][data-look="gold"]');
   ok('다이아로 황금 넉가래', await page.evaluate(function () { var s = __SNOW.save(); return s.look.tool === 'gold' && s.unlocked['tool:gold'] && s.dia === 10; }));
   await shot('09j-look');
   var ov3 = await overflow(); ok('꾸미기 탭 넘침 없음', !ov3.length, ov3);

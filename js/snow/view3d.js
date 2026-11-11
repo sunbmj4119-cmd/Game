@@ -1374,6 +1374,44 @@
     tractorObj.position.set(TR.x * U, 0, TR.y * U); scene.add(tractorObj);
   }
 
+  /* ── 꾸미기 미리보기: 지금 모습을 실제 3D로 찍는다 (3인칭 / 1인칭 손) ── */
+  var pv = null;
+  function snapshot(kind) {
+    if (!world || !renderer) return null;
+    var W = 220, H = 260, prr = renderer.getPixelRatio(), el = renderer.domElement;
+    if (el.width < W * prr || el.height < H * prr) return null;
+    if (!pv) {
+      pv = { scene: new T.Scene(), cam: new T.PerspectiveCamera(30, W / H, 0.03, 200), cv: document.createElement('canvas'), hold: [] };
+      pv.cv.width = W; pv.cv.height = H;
+      pv.scene.add(new T.HemisphereLight('#eef4ff', '#7d8ca0', 0.95));
+      var dl = new T.DirectionalLight('#fff1dd', 1.35); dl.position.set(2.5, 4, 3); pv.scene.add(dl);
+      var gr = new T.Mesh(new T.CircleGeometry(3, 32), new T.MeshLambertMaterial({ color: '#f4f8fc' })); gr.rotation.x = -Math.PI / 2; pv.scene.add(gr); pv.ground = gr;
+      pv.scene.background = new T.Color('#bcd3ea');
+    }
+    pv.hold.forEach(function (m) { pv.scene.remove(m); }); pv.hold = [];
+    var L = world.save.look || {};
+    if (kind === 'fp') {
+      vmColors(); var k = vmKey(), g = new T.Mesh(k.veh ? vmVehGeo(k.kind) : vmHandGeo(k.kind, k.r), matV);
+      pv.scene.add(g); pv.hold.push(g);
+      pv.ground.position.set(0, -1.15, -1.5); pv.ground.scale.setScalar(2);
+      pv.cam.fov = 64; pv.cam.position.set(0, 0, 0); pv.cam.lookAt(0, -0.38, -1);
+    } else {
+      var o = makePerson({ coat: lookCol('coat', '#5b6a3a'), face: 'me', hat: L.hat || 'beanie', toolColor: lookCol('tool', '#e7ae2f'), tool: 'pusher', r: 15, shadow: false });
+      scene.remove(o.g); o.shadow.visible = false; o.body.rotation.y = 0.55; pv.scene.add(o.g); pv.hold.push(o.g);
+      pv.ground.position.set(0, 0, 0); pv.ground.scale.setScalar(1);
+      pv.cam.fov = 30; pv.cam.position.set(1.6, 2.7, 6.6); pv.cam.lookAt(0, 1.55, 0.3);
+    }
+    pv.cam.aspect = W / H; pv.cam.updateProjectionMatrix();
+    // 화면 왼쪽 아래 귀퉁이에 잠깐 그려서 복사 (톤·색이 게임과 똑같다). 다음 프레임에 원래대로 다시 그린다
+    renderer.setScissorTest(true); renderer.setScissor(0, 0, W, H); renderer.setViewport(0, 0, W, H);
+    renderer.clear(); renderer.render(pv.scene, pv.cam);
+    var ctx = pv.cv.getContext('2d'); ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(el, 0, el.height - H * prr, W * prr, H * prr, 0, 0, W, H);
+    renderer.setScissorTest(false); renderer.setViewport(0, 0, vw, vh);
+    pv.hold.forEach(function (m) { pv.scene.remove(m); }); pv.hold = [];
+    try { return pv.cv.toDataURL('image/png'); } catch (e) { return null; }
+  }
+
   /* ── 입력 ── */
   function fpForward() { return { x: Math.sin(fpYaw), y: Math.cos(fpYaw) }; }
   function readInput(dt) {
@@ -1578,6 +1616,7 @@
     // 지금 보는 방향 (1인칭이면 고개 방향, 아니면 몸 방향)
     look: function () { if (!world) return null; if (isFP()) return { x: Math.sin(fpYaw), y: Math.cos(fpYaw), pitch: fpPitch, fp: true }; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
     setFocus: function (t) { curFocus = t || null; },
+    snapshot: function (kind) { try { return snapshot(kind); } catch (e) { return null; } },
     lookChanged: function () { Object.keys(mats).forEach(function (q) { if (q.indexOf('face:me:') === 0) delete mats[q]; }); playerKind = ''; vmKind = ''; },
     _setLook: function (yaw, pitch) { fpYaw = yaw; if (pitch !== undefined) fpPitch = pitch; },
     _screenToWorld: function (x, y) { return screenToWorld(x, y); },

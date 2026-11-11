@@ -327,6 +327,8 @@
   function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
   function onShopClick(e) {
+    var lt = e.target.closest('[data-ltab]');
+    if (lt) { lookTab = lt.getAttribute('data-ltab'); renderShop(); return; }
     var lk = e.target.closest('[data-look]');
     if (lk) {
       var cat = lk.getAttribute('data-cat'), id = lk.getAttribute('data-look'), st = lk.getAttribute('data-state');
@@ -705,23 +707,64 @@
     if (JY.SNOW && M) JY.SNOW.FACES.me = M.lookSpec(save);
     if (V.lookChanged) V.lookChanged();
   }
+  // ── 꾸미기: 옵션마다 그림 카드 + 위에 실제 모습 (대사 얼굴 · 3인칭 · 1인칭 손) ──
+  var lookTab = 'face', LOOK_TABS = [['face', '얼굴', ['eyes', 'mouth', 'brows', 'head', 'skin', 'extras']], ['hat', '모자', ['hat']], ['wear', '군복·장갑', ['coat', 'glove']], ['tool', '넉가래', ['tool']]];
+  var CROP = { hat: '14 -16 172 178', coat: '0 34 200 198' };
+  function lookThumb(cat, o) {
+    if (cat === 'glove') return '<svg viewBox="0 0 64 64"><path d="M18 58V30c0-4 3-6 6-6V12c0-3 2-5 4-5s4 2 4 5v10c0-3 2-5 4-5s4 2 4 5v4c0-2 2-4 4-4s4 2 4 5v18c0 9-6 14-14 14h-6c-6 0-10-3-10-8z" fill="' + o.color + '" stroke="#23281e" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 30c-4 0-8 3-8 8s4 8 8 8" fill="' + o.color + '" stroke="#23281e" stroke-width="2.5"/><rect x="16" y="54" width="30" height="8" rx="2" fill="#4d5b31" stroke="#23281e" stroke-width="2"/></svg>';
+    if (cat === 'tool') {
+      var gold = o.id === 'gold', wood = o.id === 'malnyeon', fill = gold ? 'url(#lg-gold)' : o.color;
+      return '<svg viewBox="0 0 64 64">' + (gold ? '<defs><linearGradient id="lg-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f5c542"/><stop offset="1" stop-color="#a87a12"/></linearGradient></defs>' : '') +
+        '<path d="M44 6L26 40" stroke="#8a6a44" stroke-width="5" stroke-linecap="round"/><rect x="38" y="2" width="12" height="7" rx="3" transform="rotate(28 44 5)" fill="#3b3128"/>' +
+        '<path d="M8 40h40l-4 14H12z" fill="' + fill + '" stroke="#23281e" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="52" width="38" height="5" rx="1.5" fill="#555"/>' +
+        (wood ? '<text x="28" y="50" text-anchor="middle" font-size="8" fill="#fff3d6" font-family="sans-serif">김말년</text><path d="M12 44h32" stroke="#6b4a32" stroke-width="1"/>' : '') +
+        (gold ? '<path d="M14 43l3 3M38 42l3 4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' : '') + '</svg>';
+    }
+    if (!JY.art) return '';
+    var L2 = {}; Object.keys(save.look).forEach(function (k) { L2[k] = save.look[k]; });
+    if (cat === 'extras') { var ex = (L2.extras || []).filter(function (x) { return x !== o.id; }); ex.push(o.id); L2.extras = ex.slice(-3); }
+    else L2[cat] = o.id;
+    var svg = JY.art.character(M.lookSpec({ look: L2 }));
+    return svg.replace('viewBox="0 0 200 232"', 'viewBox="' + (CROP[cat] || '24 26 152 150') + '"');
+  }
   function renderLook(list) {
     var opts = M.lookOptions(save);
     var top = document.createElement('div'); top.className = 'look-top';
-    top.innerHTML = '<div class="look-prev">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '</div><div><label>이름<input id="look-name" maxlength="6" value="' + esc(save.look.name || '') + '" placeholder="김제설"></label><small>다이아로 사거나 스토리를 진행하면 열린다 · 다이아 ' + save.dia + '개</small></div>';
+    var snap = V.snapshot ? '<figure><img id="pv-3p" alt="3인칭 모습"><figcaption>3인칭</figcaption></figure><figure><img id="pv-fp" alt="1인칭 손"><figcaption>1인칭 손</figcaption></figure>' : '';
+    top.innerHTML = '<div class="look-pv"><figure class="pv-face">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '<figcaption>대사 얼굴</figcaption></figure>' + snap + '</div>' +
+      '<label class="look-name">이름<input id="look-name" maxlength="6" value="' + esc(save.look.name || '') + '" placeholder="김제설"><small>다이아 ' + save.dia + '개 · 다이아로 사거나 스토리로 연다</small></label>';
     list.appendChild(top);
     var nm = top.querySelector('#look-name');
     nm.onchange = function () { save.look.name = (nm.value || '').trim().slice(0, 6); persistRaw(); };
     nm.onkeydown = function (e) { e.stopPropagation(); };
-    Object.keys(opts).forEach(function (cat) {
+    var tabs = document.createElement('div'); tabs.className = 'look-tabs';
+    tabs.innerHTML = LOOK_TABS.map(function (t) { return '<button data-ltab="' + t[0] + '" aria-pressed="' + (lookTab === t[0]) + '">' + t[1] + '</button>'; }).join('');
+    list.appendChild(tabs);
+    var cats = LOOK_TABS.filter(function (t) { return t[0] === lookTab; })[0][2];
+    cats.forEach(function (cat) {
       var sec = document.createElement('div'); sec.className = 'look-cat';
-      sec.innerHTML = '<b>' + S.LOOK_NAMES[cat] + (cat === 'extras' ? ' <small style="font-family:var(--f-body);font-size:12px;color:var(--mute)">(3개까지)</small>' : '') + '</b><div class="chips">' + opts[cat].map(function (o) {
-        return '<button data-look="' + o.id + '" data-cat="' + cat + '" data-state="' + o.state + '" aria-pressed="' + o.on + '" class="' + (o.state === 'own' ? '' : o.state) + '">' + (o.color ? '<i class="sw" style="background:' + o.color + '"></i>' : '') + esc(o.name) +
-          (o.state === 'buy' ? dia() + o.dia : o.state === 'lock' ? ' (스토리)' : '') + '</button>';
+      sec.innerHTML = '<b>' + S.LOOK_NAMES[cat] + (cat === 'extras' ? ' <small>(3개까지 켜고 끈다)</small>' : '') + '</b><div class="lgrid">' + opts[cat].map(function (o) {
+        var badge = o.on ? '<em class="on">사용 중</em>' : o.state === 'buy' ? '<em class="cost">' + dia() + o.dia + '</em>' : o.state === 'lock' ? '<em class="lock">스토리</em>' : '<em>보유</em>';
+        return '<button class="lcard' + (o.on ? ' on' : '') + (o.state !== 'own' ? ' ' + o.state : '') + '" data-look="' + o.id + '" data-cat="' + cat + '" data-state="' + o.state + '" aria-pressed="' + o.on + '">' +
+          '<span class="lthumb' + (cat === 'skin' ? ' skin' : '') + '">' + lookThumb(cat, o) + '</span><b>' + esc(o.name) + '</b>' + badge + '</button>';
       }).join('') + '</div>';
       list.appendChild(sec);
     });
+    refreshSnaps();
   }
+  // 3D 미리보기는 얼굴 그림이 늦게 오므로 몇 번 다시 찍는다
+  var snapTimers = [];
+  function refreshSnaps() {
+    if (!V.snapshot) return;
+    snapTimers.forEach(clearTimeout); snapTimers = [];
+    [30, 400, 1100].forEach(function (ms) {
+      snapTimers.push(setTimeout(function () {
+        var a = document.getElementById('pv-3p'), b = document.getElementById('pv-fp'); if (!a || !b) return;
+        var u1 = V.snapshot('third'), u2 = V.snapshot('fp'); if (u1) a.src = u1; if (u2) b.src = u2;
+      }, ms));
+    });
+  }
+
   var WHEN = { start: '처음', dump1: '처음 집하장에 부으면', perfect1: '처음 완벽 제설하면', crew1: '첫 인력이 오면', inspect: '사단장님 순시 날', canDischarge: '전역할 때' };
   function whenText(w) { if (WHEN[w]) return WHEN[w]; if (w.indexOf('zone:') === 0) return (G.zoneById(w.slice(5)) || {}).name + '을(를) 열면'; if (w.indexOf('rank:') === 0) return S.RANKS[+w.slice(5)].name + ' 진급'; return ''; }
   function renderStory(list) {

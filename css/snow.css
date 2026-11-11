@@ -421,3 +421,53 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .ov-new { background: #2f8f4e; color: #fff; font-size: 12.5px; padding: 3px 8px; border-radius: 9px; font-family: var(--f-title); }
 .crew-head .info { color: #c9d6e6; font-size: 12.5px; line-height: 1.4; }
 .crew-head .info b { color: var(--gold); font-weight: 400; }
+
+/* ── v8: 스토리 장면, 꾸미기, 수첩 ── */
+.t-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 6px; }
+#talk { position: fixed; inset: 0; z-index: 24; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, rgba(10,16,28,0) 30%, rgba(10,16,28,.72)); padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+.talk-title { order: -1; align-self: center; margin: 0 0 12px; background: rgba(14,24,42,.86); color: var(--gold); font-family: var(--f-title); font-size: 18px; padding: 6px 16px; border-radius: 99px; white-space: nowrap; }
+.talk-box { position: relative; width: min(100%, 560px); margin: 0 auto; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: end; background: var(--card); border-radius: 20px; padding: 12px 14px 14px; box-shadow: 0 -4px 30px rgba(0,0,0,.35), inset 0 0 0 3px var(--line); animation: card-in .25s; cursor: pointer; }
+.talk-box.narr { grid-template-columns: 1fr; background: #16233a; box-shadow: 0 -4px 30px rgba(0,0,0,.35); }
+.talk-box.narr .talk-face { display: none; }
+.talk-box.narr .talk-text { color: #e5edf5; font-style: italic; text-align: center; }
+.talk-box.narr .talk-who { display: none; }
+.talk-face { width: 96px; height: 111px; margin-top: -46px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+.talk-face svg { width: 100%; height: 100%; display: block; }
+.talk-body { min-width: 0; display: grid; gap: 4px; padding-bottom: 2px; }
+.talk-who { margin: 0; font-family: var(--f-title); font-size: 15px; color: var(--olive); }
+.talk-who small { font-family: var(--f-body); font-size: 12px; color: var(--mute); margin-left: 6px; }
+.talk-text { margin: 0; font-size: 18px; line-height: 1.45; color: var(--ink); min-height: 52px; word-break: keep-all; }
+.talk-next { justify-self: end; color: var(--gold-d); font-size: 14px; animation: beat .6s ease-in-out infinite alternate; }
+.talk-name { display: flex; gap: 8px; }
+.talk-body > * { min-width: 0; }
+.talk-name input { flex: 1 1 0; width: 0; min-width: 0; font: inherit; font-size: 18px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); }
+.talk-name .btn { padding: 10px 16px; font-size: 16px; }
+.look-top { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: center; background: var(--navy); color: #fff; border-radius: 16px; padding: 10px 12px; }
+.look-prev { width: 110px; height: 127px; background: radial-gradient(circle at 50% 60%, #2b4466, #16233a); border-radius: 14px; }
+.look-prev svg { width: 100%; height: 100%; display: block; }
+.look-top label { display: grid; gap: 4px; font-size: 12.5px; color: #c9d6e6; }
+.look-top input { font: inherit; font-size: 17px; padding: 8px 10px; border-radius: 10px; border: 0; width: 100%; }
+.look-top small { color: #c9d6e6; font-size: 12px; }
+.look-cat { display: grid; gap: 6px; }
+.look-cat b { font-family: var(--f-title); font-weight: 400; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 0; border-radius: 99px; padding: 7px 12px; font-size: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--line); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.chips button[aria-pressed="true"] { background: var(--olive); color: #fff; box-shadow: none; }
+.chips button.buy { background: #eaf6ff; box-shadow: inset 0 0 0 2px #7fc4ee; }
+.chips button.lock { opacity: .5; cursor: default; }
+.chips button .sw { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(0,0,0,.25); }
+.chips button .dia { width: 9px; height: 9px; margin: 0 0 0 2px; }
+.story-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; background: var(--card); border-radius: 14px; padding: 8px 10px; box-shadow: inset 0 0 0 2px var(--line); }
+.story-row .n { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--navy); color: var(--gold); font-family: var(--f-title); font-size: 17px; }
+.story-row.lock { opacity: .55; }
+.story-row.lock .n { background: #d6cfbd; color: #fff; }
+.story-row b { font-weight: 400; font-size: 15.5px; } .story-row small { display: block; color: var(--mute); font-size: 12.5px; }
+.story-row button { border: 0; border-radius: 10px; padding: 8px 10px; background: var(--gold); box-shadow: 0 3px 0 var(--gold-d); font-size: 13.5px; cursor: pointer; }
+
+/* ── v8: 퍼 담는 손맛 ── */
+.carry.bump svg, .carry.bump .carry-t { animation: cbump .18s ease-out; }
+@keyframes cbump { 40% { transform: scale(1.14) rotate(-90deg); } }
+.carry.bump .carry-t { animation-name: cbumpt; }
+@keyframes cbumpt { 40% { transform: scale(1.14); } }
+.carry-pop { position: absolute; left: 50%; top: 58px; font-style: normal; font-family: var(--f-title); font-size: 15px; color: #fff; text-shadow: 0 2px 0 #2b4466, 0 0 6px rgba(127,216,255,.8); pointer-events: none; animation: cpopup .75s ease-out forwards; white-space: nowrap; }
+@keyframes cpopup { from { transform: translate(-50%, 0) scale(1.2); opacity: 1; } to { transform: translate(-50%, 26px) scale(.9); opacity: 0; } }

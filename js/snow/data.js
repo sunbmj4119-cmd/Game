@@ -239,10 +239,86 @@
     morale: 1                    // 전원 초코파이: 사기 100
   };
 
+  // ── 스토리: 이정표마다 짧은 장면 (얼굴 + 대사). {name}=내 이름, {rank}=내 계급 ──
+  // who: narr(내레이션) · me · haeng · malnyeon · lt · captain · hoobae · general · cook · driver
+  var STORY = [
+    { id: 'prologue', when: 'start', title: '전입 첫날', lines: [
+      ['narr', '강원도 산골, ○○사단 제설중대. 밤새 눈이 허리까지 왔다.'],
+      ['haeng', '어이, 신병. 거기 멍하니 서 있는 너.'],
+      ['haeng', '이름이 뭐냐?', 'name'],
+      ['haeng', '{name}이라… 좋아. 잘 들어라.'],
+      ['haeng', '눈은 하늘에서 내리는 쓰레기다. 그리고 넌 오늘부터 환경미화원이다.'],
+      ['me', '(…싸리비 하나로 이 부대를 다 치우라고?)'],
+      ['haeng', '퍼 담고, 집하장에 붓고, 초코파이 받고. 그게 다다. 시작!']] },
+    { id: 'firstDump', when: 'dump1', title: '첫 초코파이', lines: [
+      ['haeng', '오, 집하장에 부을 줄은 아는구만. 옛다, 초코파이.'],
+      ['me', '(초코파이가… 화폐라고?)'],
+      ['haeng', '모으면 장비도 사고, 사람도 부린다. 그게 군대 경제다.']], reward: { dia: 1 } },
+    { id: 'firstPerfect', when: 'perfect1', title: '한 톨도 없이', lines: [
+      ['haeng', '…이 자리, 네가 치웠냐?'],
+      ['me', '넵! 이병 {name}! 제가 치웠습니다!'],
+      ['haeng', '눈 한 톨이 없군. 이런 놈은 처음 보는데.'],
+      ['narr', '행보관의 입꼬리가 아주, 아주 조금 올라갔다.']], reward: { dia: 2 } },
+    { id: 'malnyeon', when: 'zone:B', title: '족구장의 주인', lines: [
+      ['malnyeon', '야, 신병. 족구장 눈은 아무나 치우는 게 아니다.'],
+      ['me', '넵! 그럼 누가 치웁니까?'],
+      ['malnyeon', '…너. 나는 전역이 41일 남았거든.'],
+      ['narr', '김말년 병장. 이 부대의 전설이자, 최강의 농땡이.']], reward: { dia: 2 } },
+    { id: 'lt', when: 'rank:1', title: '소대장이 왔다', lines: [
+      ['lt', '안녕! 새로 온 소대장 이신입이다!'],
+      ['lt', '제설… 이거 어떻게 하는 거지? 넉가래는 앞으로 미는 거야?'],
+      ['me', '(…큰일이다)'],
+      ['haeng', '소대장님, 그냥 {name} 따라다니시면 됩니다.']], reward: { dia: 2 } },
+    { id: 'parade', when: 'zone:C', title: '연병장의 비밀', lines: [
+      ['captain', '연병장 눈 밑에 뭐가 있는지 아나?'],
+      ['me', '…아스팔트 아닙니까?'],
+      ['captain', '"충성". 선배들이 새긴 두 글자다. 오늘 꼭 다시 보고 싶군.']], reward: { box: 'rare' } },
+    { id: 'hoobae', when: 'crew1', title: '첫 후임', lines: [
+      ['hoobae', '이병 오순둥! 잘 부탁드립니다!'],
+      ['me', '(나에게도… 후임이…)'],
+      ['malnyeon', '축하한다. 이제 네가 갈구는 쪽이다. 초코파이는 꼭 챙겨 줘라.']], reward: { dia: 1 } },
+    { id: 'general', when: 'inspect', title: '사단장님이 오신다', lines: [
+      ['haeng', '비상! 비상! 오늘 사단장님 순시다!'],
+      ['captain', '전원 제설! 사단장님 눈에 눈 한 톨이라도 보이면…'],
+      ['me', '(…눈에 눈?)'],
+      ['haeng', '웃냐? 경례 연습이나 해 둬라. 1초 안에!']] },
+    { id: 'sangbyeong', when: 'rank:2', title: '상병 {name}', lines: [
+      ['cook', '상병 축하한다! 오늘 짬밥은 특식이다.'],
+      ['me', '진짜입니까?!'],
+      ['cook', '…짜장이다. 어제도 짜장이었지만.']], reward: { unlock: 'hat:headband' } },
+    { id: 'farewell', when: 'rank:3', title: '말년의 넉가래', lines: [
+      ['malnyeon', '나 내일 전역한다.'],
+      ['me', '…병장님.'],
+      ['malnyeon', '이거 받아라. 내 넉가래다. 손잡이에 내 이름 새겨 놨다.'],
+      ['malnyeon', '눈은 쓰레기라지만… 같이 치운 건 꽤 괜찮았다.'],
+      ['narr', '말년의 넉가래를 받았다. (보급·인력 → 꾸미기)']], reward: { unlock: 'tool:malnyeon' } },
+    { id: 'discharge', when: 'canDischarge', title: '전역 신고', lines: [
+      ['captain', '{rank} {name}. 그동안 수고 많았다.'],
+      ['haeng', '…눈은 쓰레기다. 근데 네가 치운 눈은 좀 아깝구만.'],
+      ['general', '이 부대 제설은 전군 최고다. 자네 덕이야.'],
+      ['me', '충성!!!'],
+      ['narr', '전역 신고를 할 수 있다. (보급·인력 → 전역) 베레모를 받았다.']], reward: { unlock: 'hat:beret' } }
+  ];
+
+  // ── 꾸미기: [값, 이름, 다이아 값(없으면 공짜), 잠금 키(스토리로 열림)] ──
+  var LOOK = {
+    eyes: [['derp', '멍'], ['happy', '방긋'], ['sleepy', '졸림'], ['smug', '건방'], ['dot', '점눈'], ['wide', '왕눈'], ['worried', '울상'], ['sparkle', '반짝', 3], ['sunglasses', '선글라스', 5]],
+    mouth: [['wavy', '삐뚤'], ['grin', '씨익'], ['smirk', '피식'], ['open', '헤벌레'], ['cat', '고양이'], ['o', '오!'], ['teeth', '이 빠짐', 2]],
+    brows: [['worried', '걱정'], ['thick', '송충이'], ['up', '올라감'], ['angry', '화남'], ['none', '없음']],
+    head: [['round', '동글'], ['egg', '달걀'], ['square', '각'], ['wide', '넙대대'], ['potato', '감자']],
+    skin: [['#ffd9b5', '하얀'], ['#f6c79c', '보통'], ['#eab386', '구릿빛'], ['#d9a06b', '까무잡잡'], ['#9a6440', '진한']],
+    extras: [['snot', '콧물'], ['blush', '홍조'], ['stubble', '수염 자국'], ['glasses', '안경'], ['bandage', '반창고'], ['sweat', '땀'], ['mustache', '콧수염', 3]],
+    hat: [['beanie', '방한모'], ['helmet', '철모'], ['cap', '전투모'], ['none', '맨머리'], ['headband', '머리띠', 4, 'hat:headband'], ['cateears', '고양이 귀', 6], ['beret', '베레모', 0, 'hat:beret'], ['crown', '왕관', 15]],
+    coat: [['olive', '디지털 군복', 0, '', '#5b6a3a'], ['pink', '핑크 군복', 8, '', '#e57aa3'], ['gold', '황금 군복', 15, '', '#d4a73a']],
+    glove: [['olive', '군용 장갑', 0, '', '#2b3020'], ['black', '검정 장갑', 0, '', '#151515'], ['red', '빨간 장갑', 1, '', '#c8402e'], ['pink', '핑크 장갑', 2, '', '#f08cb4'], ['white', '하얀 장갑', 2, '', '#f2f2f2']],
+    tool: [['yellow', '노랑', 0, '', '#e7ae2f'], ['red', '빨강', 1, '', '#d23a2a'], ['blue', '파랑', 1, '', '#2b6fd1'], ['pink', '핑크', 2, '', '#f08cb4'], ['gold', '황금', 10, '', '#f5c542'], ['malnyeon', '말년의 넉가래', 0, 'tool:malnyeon', '#8a6a44']]
+  };
+  var LOOK_NAMES = { eyes: '눈', mouth: '입', brows: '눈썹', head: '얼굴형', skin: '피부', extras: '얼굴 소품', hat: '모자', coat: '군복', glove: '장갑', tool: '넉가래 색' };
+
   JY.SNOW = {
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, CREW_CAP: CREW_CAP, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, CREW_CAP: CREW_CAP, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 180, FALL: 0.004, HIT: 0.12, SPEED: 78, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

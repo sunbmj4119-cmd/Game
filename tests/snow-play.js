@@ -43,14 +43,28 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   }
 
   await page.goto(url);
-  await page.evaluate(function () { localStorage.clear(); });
+  await page.evaluate(function () { localStorage.clear(); localStorage.setItem('jeseol-v1', '{"bank":999}'); });
   await page.reload();
+  await sleep(600);
+  ok('예전 저장은 지워지고 처음부터', await page.evaluate(function () { return localStorage.getItem('jeseol-v1') === null && __SNOW.save().bank === 0; }));
   await sleep(1200);
   ok('타이틀 표시', await vis('#title .logo'));
   await shot('01-title');
 
-  // ── 걷고 퍼 담기 ──
+  // ── 프롤로그: 행보관이 이름을 묻는다 ──
   await page.click('#t-start');
+  var talk = await waitFor(function () { return !document.getElementById('talk').hidden; }, 4000);
+  ok('처음 시작하면 스토리 장면 (전입 첫날)', talk && /전입 첫날/.test(await page.evaluate(function () { return document.getElementById('talk-title').textContent; })));
+  await shot('01b-prologue');
+  for (var tk = 0; tk < 6 && !(await vis('#talk-name')); tk++) { await page.click('.talk-box'); await sleep(150); }
+  ok('이름을 묻는다', await vis('#talk-name'));
+  await page.fill('#talk-input', '홍길동');
+  await page.click('#talk-ok');
+  for (tk = 0; tk < 12 && !(await page.evaluate(function () { return document.getElementById('talk').hidden; })); tk++) { await page.click('.talk-box'); await sleep(150); }
+  var pro = await page.evaluate(function () { var s = __SNOW.save(); return { name: s.look.name, done: !!s.story.prologue, mode: __SNOW.view().mode() }; });
+  ok('이름 저장 + 장면 끝나면 작업 시작', pro.name === '홍길동' && pro.done && pro.mode === 'play', pro);
+
+  // ── 걷고 퍼 담기 ──
   await sleep(700);
   ok('작업 화면 + HUD + 보급 버튼', await vis('#hud') && await vis('#h-shop') && !(await vis('#title')));
   ok('첫 조작 안내', await vis('#hint'));
@@ -96,6 +110,12 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.keyboard.down('ArrowLeft'); await sleep(800); await page.keyboard.up('ArrowLeft');
   var dumped = await W();
   ok('집하장에 들어가면 붓고 초코파이', dumped.load === 0 && dumped.bank > b0, [b0, dumped]);
+  var t2 = await waitFor(function () { return !document.getElementById('talk').hidden && /첫 초코파이/.test(document.getElementById('talk-title').textContent); }, 4000);
+  var d2 = await page.evaluate(function () { return __SNOW.save().dia; });
+  for (var tk2 = 0; tk2 < 8 && !(await page.evaluate(function () { return document.getElementById('talk').hidden; })); tk2++) { await page.click('.talk-box'); await sleep(150); }
+  ok('첫 초코파이 장면 → 보상 다이아', t2 && await page.evaluate(function (d) { return __SNOW.save().dia > d && __SNOW.save().story.firstDump; }, d2));
+  // 이후 테스트는 장면 없이 진행
+  await page.evaluate(function () { var s = __SNOW.save(); JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); });
   await shot('04-dump');
 
   // ── 언제든 보급·인력 (멈춤) ──
@@ -300,6 +320,22 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#s-tabs [data-tab="medal"]'); await sleep(200);
   ok('훈장 탭: 분실물 도감 + 훈장 목록', await vis('.found-grid') && (await page.$$('.ach')).length >= 15);
   await shot('09g-medal');
+  // 꾸미기: 공짜 모자 고르기, 다이아로 사기
+  await page.click('#s-tabs [data-tab="look"]'); await sleep(200);
+  ok('꾸미기 탭: 미리보기 + 옵션', await vis('.look-prev svg') && (await page.$$('.chips button')).length > 30);
+  await page.click('.chips [data-cat="hat"][data-look="helmet"]');
+  ok('모자 바꾸기 (철모)', await page.evaluate(function () { return __SNOW.save().look.hat === 'helmet'; }));
+  await page.evaluate(function () { __SNOW.save().dia = 20; });
+  await page.click('#s-tabs [data-tab="look"]'); await sleep(100);
+  await page.click('.chips [data-cat="tool"][data-look="gold"]');
+  ok('다이아로 황금 넉가래', await page.evaluate(function () { var s = __SNOW.save(); return s.look.tool === 'gold' && s.unlocked['tool:gold'] && s.dia === 10; }));
+  await shot('09j-look');
+  var ov3 = await overflow(); ok('꾸미기 탭 넘침 없음', !ov3.length, ov3);
+  await page.click('#s-tabs [data-tab="story"]'); await sleep(200);
+  ok('수첩: 장면 목록 + 다시 보기', (await page.$$('.story-row')).length === 11 && (await page.$$('[data-replay]')).length >= 1);
+  await page.click('[data-replay="prologue"]');
+  ok('다시 보기 → 장면', await waitFor(function () { return !document.getElementById('talk').hidden; }, 2000));
+  for (var tk3 = 0; tk3 < 12 && !(await page.evaluate(function () { return document.getElementById('talk').hidden; })); tk3++) { await page.click('.talk-box'); await sleep(120); }
   var ov2 = await overflow(); ok('훈장 탭 넘침 없음', !ov2.length, ov2);
   await page.click('#s-go'); await sleep(500);
   // 전 구역 완벽 → 조기 퇴근 결산
@@ -314,7 +350,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6;
     s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.fresh = { A: true, B: true, C: true, D: true, E: true };
-    s.seen = { tut: true, dis: true }; s.made = { brick: 400, snowman: 40 }; s.px = 160; s.py = 300;
+    s.seen = { tut: true, dis: true }; s.made = { brick: 400, snowman: 40 }; s.px = 160; s.py = 300; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; });
     __SNOW.setSave(s); __SNOW.play(true);
   });
   await sleep(4000);
@@ -352,9 +388,12 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#modal [data-m]');
   await sleep(500);
   ok('전역 후 타이틀', await vis('#title .logo'));
+  // 처음부터 다시
+  await page.click('#t-reset'); await page.click('#modal [data-m="yes"]'); await sleep(300);
+  ok('처음부터 다시: 전부 초기화', await page.evaluate(function () { var s = __SNOW.save(); return s.bank === 0 && s.medals === 0 && !Object.keys(s.story).length && s.day === 1; }));
 
   // ── 쉬는 동안 ──
-  await page.evaluate(function () { var s = __SNOW.save(); s.crewRate = 50; s.last = Date.now() - 3600 * 1000; localStorage.setItem('jeseol-v1', JSON.stringify(s)); });
+  await page.evaluate(function () { var s = __SNOW.save(); s.crewRate = 50; s.last = Date.now() - 3600 * 1000; localStorage.setItem('jeseol-v8', JSON.stringify(s)); });
   await page.reload();
   await sleep(1200);
   ok('쉬는 동안 인력이 번 초코파이', await page.evaluate(function () { return !document.getElementById('modal').hidden && /후임들이/.test(document.getElementById('modal').textContent); }));

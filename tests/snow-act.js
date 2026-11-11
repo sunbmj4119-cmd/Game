@@ -322,5 +322,28 @@ w = fresh(); w.haeng.x = 200; w.haeng.y = 230; w.haeng.hold = 999; A.init(w).han
 look = near(w, w.haeng); t = A.best(w, look, true); ok(t.verb === '간식 드리기', '간식 들고 행보관: 간식 드리기', t.verb);
 A.act(w, t, look); ok(A.state(w).heat === 0 && A.state(w).buffs.some(function (b) { return b.id === 'praise'; }), '간식 드리면 분노 해제 + 칭찬');
 
+// ── v8: 스토리 · 꾸미기 ──
+var sS = G.newSave();
+ok(M.storyNext(sS).id === 'prologue', '처음엔 전입 첫날');
+M.storyDone(sS, M.storyNext(sS));
+ok(M.storyNext(sS) === null, '아무것도 안 했으면 다음 장면 없음');
+sS.life = 10; ok(M.storyNext(sS).id === 'firstDump', '첫 초코파이 → 장면');
+var rS = M.storyDone(sS, M.storyNext(sS)); ok(rS.dia === 1 && sS.dia === 1, '장면 보상: 다이아');
+ok(M.storyDone(sS, S.STORY[1]) === null, '같은 장면 보상은 한 번');
+sS.life = 2e6; sS.zones.B = true;
+var order = []; for (var k8 = 0; k8 < 12; k8++) { var ch8 = M.storyNext(sS); if (!ch8) break; order.push(ch8.id); M.storyDone(sS, ch8); }
+ok(order.indexOf('malnyeon') >= 0 && order.indexOf('farewell') > order.indexOf('lt') && sS.unlocked['tool:malnyeon'], '진급·구역에 따라 장면이 차례로 + 말년의 넉가래 해금', order);
+sS.look.name = '홍길동'; ok(M.fill('{rank} {name}', sS) === '병장 홍길동', '대사에 이름·계급');
+var sL = G.newSave(), oL = M.lookOptions(sL);
+ok(oL.hat.filter(function (h) { return h.id === 'beret'; })[0].state === 'lock' && oL.hat.filter(function (h) { return h.id === 'crown'; })[0].state === 'buy', '베레모는 스토리, 왕관은 다이아');
+ok(!M.setLook(sL, 'hat', 'crown') && sL.look.hat === 'beanie', '안 가진 건 못 쓴다');
+ok(!M.buyLook(sL, 'hat', 'crown'), '다이아 없으면 못 산다');
+sL.dia = 20; ok(M.buyLook(sL, 'hat', 'crown') && sL.look.hat === 'crown' && sL.dia === 5, '다이아 15로 왕관');
+M.setLook(sL, 'extras', 'glasses'); M.setLook(sL, 'extras', 'sweat');
+ok(sL.look.extras.length === 3 && sL.look.extras.indexOf('snot') < 0, '얼굴 소품은 3개까지 (오래된 것부터 빠짐)', sL.look.extras);
+ok(M.lookSpec(sL).hat === 'crown' && M.lookColor(sL, 'tool') === '#e7ae2f', '모습 → 그림 스펙·색');
+var dS = G.newSave(); dS.life = 2e6; dS.look.name = '전역자'; dS.unlocked['hat:beret'] = true; dS.story.prologue = true; G.discharge(dS);
+ok(dS.look.name === '전역자' && dS.unlocked['hat:beret'] && dS.story.prologue, '전역해도 꾸미기·스토리는 남는다');
+
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

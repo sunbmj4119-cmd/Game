@@ -78,6 +78,13 @@
     thud: function () { tone(110, 0.2, 'sine', 0.25, 0, 55); noise(0.12, 0.15, 'lowpass', 400, 0.8); },
     rumble: function () { noise(0.9, 0.18, 'lowpass', 180, 0.7); tone(60, 0.8, 'sine', 0.12, 0, 40); },
     honk: function () { tone(392, 0.18, 'square', 0.06); tone(466, 0.18, 'square', 0.05); tone(392, 0.25, 'square', 0.06, 0.24); tone(466, 0.25, 'square', 0.05, 0.24); },
+    // 뽀득: 눈을 퍼 담는 소리. 콤보가 오를수록 높고 맑아진다
+    crunch: function (k, combo) {
+      var p = 1 + Math.min(1, (combo || 0) / 150) * 0.7;
+      noise(0.05 + k * 0.05, 0.06 + k * 0.08, 'bandpass', (1600 + Math.random() * 1000) * p, 1.6);
+      noise(0.04 + k * 0.03, 0.04 + k * 0.06, 'lowpass', 300 + Math.random() * 120, 0.7);
+      if (combo >= 10 && Math.random() < 0.35) tone(330 * p + Math.random() * 30, 0.05, 'triangle', 0.02 + Math.min(0.03, combo / 4000));
+    },
     whoosh: function () { noise(0.18, 0.08, 'bandpass', 900, 0.7); },
     salute: function () { tone(330, 0.07, 'square', 0.04); noise(0.05, 0.08, 'highpass', 3000, 0.7); },
     meow: function () { tone(700, 0.35, 'triangle', 0.07, 0, 1100); tone(1000, 0.25, 'triangle', 0.05, 0.25, 600); },

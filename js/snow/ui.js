@@ -3,7 +3,9 @@
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
-  var KEY = 'jeseol-v1';
+  var KEY = 'jeseol-v8', OLD_KEYS = ['jeseol-v1'];
+  // v8: 예전 저장은 지우고 처음부터 (요청)
+  try { OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { /* 저장소 없음 */ }
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
 
   function $(id) { return document.getElementById(id); }
@@ -143,10 +145,24 @@
   }
 
   function tick(w) {
-    updAct(w);
+    updAct(w); storyTick(w);
     var P = w.player, p = G.pct(w), pc = Math.floor(p * 100), bank = Math.floor(save.bank), ld = Math.floor(P.load), full = P.load >= P.cap;
 
-    if (hud.bank !== bank) { hud.bank = bank; $('h-bank').textContent = fmt(bank); }
+    // 초코파이는 또르르 올라간다
+    var bs = hud.bankShown === undefined || hud.bank === -1 ? bank : hud.bankShown;
+    if (bs !== bank || hud.bank !== bank) {
+      var df = bank - bs; bs = Math.abs(df) < 2 ? bank : Math.round(bs + df * 0.2 + (df > 0 ? 1 : -1));
+      hud.bankShown = bs; hud.bank = bank; $('h-bank').textContent = fmt(bs);
+    }
+    // 퍼 담을 때마다 게이지가 통통, "+3"
+    var nowP = Date.now();
+    if (hud.ldPrev !== undefined && ld > hud.ldPrev) hud.gain = (hud.gain || 0) + (ld - hud.ldPrev);
+    hud.ldPrev = ld;
+    if (hud.gain > 0 && nowP - (hud.popAt || 0) > 220) {
+      hud.popAt = nowP; var cg = $('h-carry'), pop = document.createElement('i'); pop.className = 'carry-pop'; pop.textContent = '+' + hud.gain; cg.appendChild(pop);
+      setTimeout(function () { pop.remove(); }, 750); hud.gain = 0;
+      cg.classList.remove('bump'); void cg.offsetWidth; cg.classList.add('bump');
+    }
     if (hud.dia !== save.dia) { if (hud.dia !== undefined && save.dia > hud.dia) { var bp = document.querySelector('.pill.bank'); bp.classList.remove('flash-dia'); void bp.offsetWidth; bp.classList.add('flash-dia'); } hud.dia = save.dia; $('h-dia').textContent = fmt(save.dia); }
     var nb = (save.boxes || []).length; if (hud.nb !== nb) { hud.nb = nb; $('h-box').hidden = !nb; $('h-box-n').textContent = nb; }
     areaHud(w); comboHud(w);
@@ -176,7 +192,7 @@
   }
 
   /* ── 보급·인력·공장 ── */
-  var TABS = [['tool', '도구'], ['crew', '인력'], ['factory', '공장'], ['perk', '보급'], ['zone', '구역'], ['medal', '훈장'], ['dis', '전역']];
+  var TABS = [['tool', '도구'], ['crew', '인력'], ['factory', '공장'], ['perk', '보급'], ['zone', '구역'], ['look', '꾸미기'], ['story', '수첩'], ['medal', '훈장'], ['dis', '전역']];
   var PERK_ICON = {
     eisen: '<path d="M5 6h7v6l6 2a3 3 0 0 1 3 3v1H5z" fill="#3b3f33"/><path d="M6 19l1 3M10 19l1 3M14 19l1 3M18 19l1 3" stroke="#9aa3ab" stroke-width="1.6" stroke-linecap="round"/>',
     back: '<path d="M6 7c0-3 12-3 12 0l1 12c0 2-14 2-14 0z" fill="#8a7a52"/><path d="M8 7c1-2 7-2 8 0" stroke="#5a4c2c" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="6" rx="5" ry="1.6" fill="#fbfdff"/>',
@@ -250,12 +266,14 @@
     $('s-bank').textContent = fmt(save.bank);
     var showDis = G.rankOf(save) >= 3 || save.discharges > 0, all = G.offers(save);
     $('s-tabs').innerHTML = TABS.filter(function (t) { return t[0] !== 'dis' || showDis; }).map(function (t) {
-      var o = t[0] === 'dis' || t[0] === 'medal' ? [] : all[t[0]], n = o.filter(function (x) { return x.ok; }).length;
+      var o = all[t[0]] || [], n = o.filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
     if (tab === 'dis') { renderDischarge(list); return; }
     if (tab === 'medal') { renderMedals(list); return; }
+    if (tab === 'look') { renderLook(list); return; }
+    if (tab === 'story') { renderStory(list); return; }
     if (tab === 'crew') crewHead(list);
     if (tab === 'factory') {
       var mk = save.made, pm = G.procMult(save);
@@ -309,6 +327,16 @@
   function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
   function onShopClick(e) {
+    var lk = e.target.closest('[data-look]');
+    if (lk) {
+      var cat = lk.getAttribute('data-cat'), id = lk.getAttribute('data-look'), st = lk.getAttribute('data-state');
+      if (st === 'buy') { if (M.buyLook(save, cat, id)) { if (X) X.dia(); toast(M.lookName(cat + ':' + id) + ' 획득!'); } else { if (X) X.deny(); toast('다이아가 모자라다'); } }
+      else if (st === 'own') { M.setLook(save, cat, id); if (X) X.pop(); }
+      else { if (X) X.deny(); toast('스토리를 진행하면 열린다'); }
+      persistRaw(); lookChanged(); renderShop(); return;
+    }
+    var rp = e.target.closest('[data-replay]');
+    if (rp) { var ch = S.STORY.filter(function (c) { return c.id === rp.getAttribute('data-replay'); })[0]; if (ch) playStory(ch, true); return; }
     var du = e.target.closest('[data-dia]');
     if (du) {
       var w0 = V.world(), r0 = w0 && A ? A.useDia(w0, du.getAttribute('data-dia')) : { ok: false };
@@ -612,6 +640,104 @@
     render();
   }
 
+  /* ── v8: 스토리 장면 · 꾸미기 · 수첩 · 처음부터 ── */
+  var talking = false;
+  function portrait(who) {
+    if (!JY.art) return '';
+    if (who === 'me') return JY.art.character(M.lookSpec(save));
+    var C = JY.CHARS && JY.CHARS[who];
+    return C && C.spec ? JY.art.character(C.spec) : '';
+  }
+  function whoName(who) {
+    if (who === 'me') return (save.look.name || '김제설') + '<small>' + S.RANKS[G.rankOf(save)].name + ' · 나</small>';
+    var C = JY.CHARS && JY.CHARS[who];
+    return C ? esc(C.name) + '<small>' + esc(C.role || '') + '</small>' : '';
+  }
+  // 장면 재생: 한 줄씩, 화면을 누르면 다음. 'name' 줄에선 이름을 받는다
+  function playStory(ch, replay, done) {
+    var i = 0, box = document.querySelector('.talk-box'), wasPlay = V.mode && V.mode() === 'play';
+    talking = true; if (wasPlay) V.pause(true);
+    $('talk').hidden = false; $('talk-title').textContent = M.fill(ch.title, save);
+    function show() {
+      var L = ch.lines[i], who = L[0], ask = L[2] === 'name' && !replay;
+      box.classList.toggle('narr', who === 'narr');
+      $('talk-face').innerHTML = who === 'narr' ? '' : portrait(who);
+      $('talk-who').innerHTML = who === 'narr' ? '' : whoName(who);
+      $('talk-text').textContent = M.fill(L[1], save);
+      $('talk-name').hidden = !ask; $('talk-next').hidden = ask;
+      if (ask) { var inp = $('talk-input'); inp.value = save.look.name || ''; setTimeout(function () { try { inp.focus(); } catch (e) { /* 무시 */ } }, 50); }
+      if (X) X.pop();
+    }
+    function next() {
+      if (!$('talk-name').hidden) return;
+      i++;
+      if (i >= ch.lines.length) return end();
+      show();
+    }
+    function end() {
+      $('talk').hidden = true; talking = false; box.onclick = null;
+      if (!replay) {
+        var r = M.storyDone(save, ch); persistRaw();
+        if (r && (r.dia || r.box || r.unlock)) chip('「' + M.fill(ch.title, save) + '」 ' + (r.dia ? '다이아 +' + r.dia + ' ' : '') + (r.box ? '보급 상자 ' : '') + (r.unlock ? '· ' + r.unlock + ' 해금' : ''), 'good');
+      }
+      if (wasPlay) V.pause(false);
+      if (done) done();
+    }
+    $('talk-ok').onclick = function (e) {
+      e.stopPropagation();
+      var v = ($('talk-input').value || '').trim().slice(0, 6);
+      save.look.name = v || '김제설'; persistRaw(); lookChanged();
+      $('talk-name').hidden = true; $('talk-next').hidden = false; next();
+    };
+    $('talk-input').onkeydown = function (e) { if (e.key === 'Enter') $('talk-ok').onclick(e); e.stopPropagation(); };
+    box.onclick = function (e) { if (e.target.closest('.talk-name')) return; next(); };
+    show();
+  }
+  var storyAt = 0;
+  function storyTick(w) {
+    if (!M || talking || Date.now() - storyAt < 600) return;
+    storyAt = Date.now();
+    if (V.mode() !== 'play' || !$('modal').hidden) return;
+    var ch = M.storyNext(save, w);
+    if (ch) playStory(ch, false);
+  }
+  function lookChanged() {
+    if (JY.SNOW && M) JY.SNOW.FACES.me = M.lookSpec(save);
+    if (V.lookChanged) V.lookChanged();
+  }
+  function renderLook(list) {
+    var opts = M.lookOptions(save);
+    var top = document.createElement('div'); top.className = 'look-top';
+    top.innerHTML = '<div class="look-prev">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '</div><div><label>이름<input id="look-name" maxlength="6" value="' + esc(save.look.name || '') + '" placeholder="김제설"></label><small>다이아로 사거나 스토리를 진행하면 열린다 · 다이아 ' + save.dia + '개</small></div>';
+    list.appendChild(top);
+    var nm = top.querySelector('#look-name');
+    nm.onchange = function () { save.look.name = (nm.value || '').trim().slice(0, 6); persistRaw(); };
+    nm.onkeydown = function (e) { e.stopPropagation(); };
+    Object.keys(opts).forEach(function (cat) {
+      var sec = document.createElement('div'); sec.className = 'look-cat';
+      sec.innerHTML = '<b>' + S.LOOK_NAMES[cat] + (cat === 'extras' ? ' <small style="font-family:var(--f-body);font-size:12px;color:var(--mute)">(3개까지)</small>' : '') + '</b><div class="chips">' + opts[cat].map(function (o) {
+        return '<button data-look="' + o.id + '" data-cat="' + cat + '" data-state="' + o.state + '" aria-pressed="' + o.on + '" class="' + (o.state === 'own' ? '' : o.state) + '">' + (o.color ? '<i class="sw" style="background:' + o.color + '"></i>' : '') + esc(o.name) +
+          (o.state === 'buy' ? dia() + o.dia : o.state === 'lock' ? ' (스토리)' : '') + '</button>';
+      }).join('') + '</div>';
+      list.appendChild(sec);
+    });
+  }
+  var WHEN = { start: '처음', dump1: '처음 집하장에 부으면', perfect1: '처음 완벽 제설하면', crew1: '첫 인력이 오면', inspect: '사단장님 순시 날', canDischarge: '전역할 때' };
+  function whenText(w) { if (WHEN[w]) return WHEN[w]; if (w.indexOf('zone:') === 0) return (G.zoneById(w.slice(5)) || {}).name + '을(를) 열면'; if (w.indexOf('rank:') === 0) return S.RANKS[+w.slice(5)].name + ' 진급'; return ''; }
+  function renderStory(list) {
+    list.insertAdjacentHTML('beforeend', '<p class="sec-t">제설 수첩 (' + S.STORY.filter(function (c) { return save.story[c.id]; }).length + '/' + S.STORY.length + ')</p>' + S.STORY.map(function (c, i) {
+      var done = !!save.story[c.id];
+      return '<div class="story-row' + (done ? '' : ' lock') + '"><div class="n">' + (i + 1) + '</div><div><b>' + (done ? esc(M.fill(c.title, save)) : '???') + '</b><small>' + esc(whenText(c.when)) + (c.reward ? ' · 보상 있음' : '') + '</small></div>' + (done ? '<button data-replay="' + c.id + '">다시 보기</button>' : '<span></span>') + '</div>';
+    }).join(''));
+  }
+  function resetAll() {
+    modal('<div class="m-rank"><p class="kicker">처음부터 다시</p><h3>정말 다 지울까?</h3><p>초코파이, 다이아, 인력, 구역, 꾸미기, 스토리가 <b>전부</b> 사라지고 이병부터 다시 시작한다.</p><div class="res-btns"><button class="btn ghost" data-m="no">아니</button><button class="btn big" data-m="yes">다 지운다</button></div></div>', function (k) {
+      if (k !== 'yes') return;
+      try { localStorage.removeItem(KEY); } catch (e) { /* 무시 */ }
+      save = G.newSave(); rankSeen = 0; lookChanged(); persistRaw(); title(); toast('처음부터! 이병 신병으로 전입한다');
+    });
+  }
+
   /* ── 시작 ── */
   function boot() {
     var hooks = { say: function (k) { say(k); }, tick: tick, event: onEvent };
@@ -621,6 +747,13 @@
     $('say-face').innerHTML = haengFace();
     $('t-start').onclick = function () { play(false); };
     $('t-shop').onclick = function () { play(true); openShop(); };
+    $('t-look').onclick = function () { tab = 'look'; play(true); openShop(); };
+    $('t-reset').onclick = resetAll;
+    function hapticLabel() { $('t-haptic').textContent = JY.snowHaptic ? '진동 켬' : '진동 끔'; }
+    try { JY.snowHaptic = localStorage.getItem('jeseol-haptic') !== '0'; } catch (e) { JY.snowHaptic = true; }
+    hapticLabel();
+    $('t-haptic').onclick = function () { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (e) { /* 무시 */ } hapticLabel(); if (JY.snowHaptic) vibrate(30); };
+    lookChanged();
     $('t-sound').onclick = function () { if (!X) return; X.setMuted(!X.muted()); $('t-sound').textContent = X.muted() ? '소리 끔' : '소리 켬'; if (!X.muted()) { X.unlock(); X.pop(); } };
     $('s-go').onclick = closeShop;
     $('s-back').onclick = closeShop;
@@ -633,6 +766,7 @@
     if (V.toggleCam) camLabel();
     $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); fpLayout(); hintText(); if (X) X.pop(); };
     window.addEventListener('keydown', function (e) {
+      if (!$('talk').hidden && (e.key === ' ' || e.key === 'Enter' || e.key === 'e')) { e.preventDefault(); if ($('talk-name').hidden) document.querySelector('.talk-box').click(); return; }
       if (V.mode() !== 'play' || e.repeat) return;
       var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === 'Tab' || k === 'q') { e.preventDefault(); scan(); }
@@ -667,7 +801,7 @@
   window.__SNOW = {
     view: function () { return V; },
     save: function () { return save; },
-    setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); },
+    setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
     play: play, startDay: function () { play(false); }, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     autopilot: function (b) { V.setAutopilot(b); },
     act: function () { doAct(); }, ball: function () { doBall(); }, openBox: function () { openBox(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }

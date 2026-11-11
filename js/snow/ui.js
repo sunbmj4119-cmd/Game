@@ -328,6 +328,10 @@
     $('shop').addEventListener('click', onShopClick);
     $('h-pause').onclick = pause;
     $('h-scan').onclick = scan;
+    $('h-cam').hidden = !V.toggleCam;
+    function camLabel() { $('h-cam-t').textContent = V.camMode && V.camMode() === 'near' ? '위에서 보기' : '가까이 보기'; }
+    if (V.toggleCam) camLabel();
+    $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); if (X) X.pop(); };
     window.addEventListener('keydown', function (e) {
       if (V.mode() !== 'play') return;
       if (e.key === 'Tab' || e.key === 'q') { e.preventDefault(); scan(); }

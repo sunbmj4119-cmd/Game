@@ -253,3 +253,5 @@ body.is3d #cv { background: #c9d5e1; }
 .fac-head b { font-family: var(--f-title); font-weight: 400; font-size: 17px; }
 .fac-head span { color: var(--gold); font-size: 15px; }
 .fac-head small { color: #c9d6e6; font-size: 12.5px; }
+.hud-btns { display: flex; gap: 6px; justify-content: flex-end; }
+.hud-btns .scan { justify-self: auto; }

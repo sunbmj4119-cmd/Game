@@ -674,6 +674,7 @@
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
     shake: function (n) { shake = Math.max(shake, n); },
+    _screenToWorld: function (x, y) { var r = cv.getBoundingClientRect(); return { x: camX + (x - r.left) / zoom, y: camY + (y - r.top) / zoom }; },
     _teleport: function (x, y) { if (world) { world.player.x = x; world.player.y = y; camera(0, true); } },
     _drawPerson: drawPerson, _drawVehicle: drawVehicle, _drawPie: drawPie, _toolKind: toolKind, FONT: FONT
   };

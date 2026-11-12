@@ -458,7 +458,7 @@
       var ww = vw / zoom, wh = vh / zoom;
       c.save(); c.lineWidth = 4; c.setLineDash([10, 10]); c.strokeStyle = '#2b2b2b'; c.strokeRect(Z.x + 2, Z.y + 2, Z.w - 4, Z.h - 4);
       c.lineDashOffset = 10; c.strokeStyle = '#f2c230'; c.strokeRect(Z.x + 2, Z.y + 2, Z.w - 4, Z.h - 4); c.restore();
-      var a = Z.name + '  ', b = fmt(Z.cost);
+      var a = Z.name + '  ', b = '★' + (Z.need || 0);
       c.font = '700 13px ' + FONT; c.textAlign = 'left'; c.textBaseline = 'middle';
       var wa = c.measureText(a).width, wb = c.measureText(b).width, tw = wa + 14 + wb + 24;
       var vx0 = Math.max(Z.x, camX), vx1 = Math.min(Z.x + Z.w, camX + ww), vy0 = Math.max(Z.y, camY + 90 / zoom), vy1 = Math.min(Z.y + Z.h, camY + wh);
@@ -466,9 +466,8 @@
       var lx = Math.max(vx0 + tw / 2 + 8, Math.min(vx1 - tw / 2 - 8, Z.x + Z.w / 2)), ly = Math.max(vy0 + 24, Math.min(vy1 - 24, Z.y + Z.h / 2));
       c.fillStyle = 'rgba(30,40,30,.8)'; rr(c, lx - tw / 2, ly - 13, tw, 26, 13); c.fill();
       c.fillStyle = '#fff'; c.fillText(a, lx - tw / 2 + 12, ly + 0.5);
-      drawPie(c, lx - tw / 2 + 12 + wa + 5, ly, 5.5);
       c.fillStyle = '#ffd84a'; c.fillText(b, lx - tw / 2 + 12 + wa + 14, ly + 0.5);
-      c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillStyle = 'rgba(40,50,40,.75)'; c.fillText('출입 통제 · 보급·인력에서 확장', lx, ly + 22);
+      c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillStyle = 'rgba(40,50,40,.75)'; c.fillText('출입 통제 · ★이 쌓이면 맡는다', lx, ly + 22);
     });
     // 땅 위 눈 조각
     for (var i = 0; i < parts.length; i++) { var p = parts[i]; if (p.z < 1) { c.fillStyle = 'rgba(255,255,255,.8)'; circ(c, p.x, p.y, p.s); c.fill(); } }

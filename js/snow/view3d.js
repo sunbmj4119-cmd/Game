@@ -405,7 +405,7 @@
       });
       lockGroup.add(mesh(merge(parts.concat(tape))));
       var el = document.createElement('div'); el.className = 'ov-zone';
-      el.innerHTML = '<b>' + Z.name + '</b><span><i class="pie"></i>' + fmt(Z.cost) + '</span><small>출입 통제 · 보급·인력에서 확장</small>';
+      el.innerHTML = '<b>' + Z.name + '</b><span>근무평정 ★' + (Z.need || 0) + '</span><small>출입 통제 · ★이 쌓이면 맡는다</small>';
       ov.appendChild(el);
       zoneLabels.push({ el: el, x: (Z.x + Z.w / 2), y: Z.y + Z.h / 2 });
     });

@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -491,7 +491,7 @@
       c.fillStyle = '#9b7653'; c.beginPath(); c.ellipse(0, 0, 11, 6, 0, 0, 7); c.fill(); c.beginPath(); c.arc(11, 0, 4.5, 0, 7); c.fill();
       c.fillStyle = '#fffdf0'; c.fillRect(13, 1.5, 1.2, 3); c.fillStyle = '#111'; c.beginPath(); c.arc(13, -1.5, 1.2, 0, 7); c.fill(); c.restore(); } }); });
     world.cats.forEach(function (k) { list.push({ y: k.y, f: function () { c.fillStyle = '#e8913a'; c.beginPath(); c.arc(k.x, k.y - 5, 5, 0, 7); c.fill(); c.beginPath(); c.arc(k.x + 4, k.y - 10, 3.5, 0, 7); c.fill(); } }); });
-    if (world.car) { var cr = world.car; list.push({ y: cr.y + 12, f: function () { c.fillStyle = '#4f5d36'; rr(c, cr.x - 9, cr.y - 16, 18, 30, 4); c.fill(); c.fillStyle = '#9cc3dc'; c.fillRect(cr.x - 7, cr.y - (cr.dir.y < 0 ? 12 : -4), 14, 6); } }); }
+    if (world.car) { var cr = world.car; list.push({ y: cr.y + 12, f: function () { if (cr.stuck) { c.fillStyle = '#c8402e'; c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillText('빠졌다! 밀어!', cr.x, cr.y - 22); } c.fillStyle = '#4f5d36'; rr(c, cr.x - 9, cr.y - 16, 18, 30, 4); c.fill(); c.fillStyle = '#9cc3dc'; c.fillRect(cr.x - 7, cr.y - (cr.dir.y < 0 ? 12 : -4), 14, 6); } }); }
     if (world.heli) { var hl = world.heli; list.push({ y: hl.y + 20, f: function () { c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(hl.x, hl.y, 60, 0, 7); c.fill(); c.fillStyle = '#4c5a35'; c.beginPath(); c.ellipse(hl.x, hl.y - 10, 16, 10, 0, 0, 7); c.fill(); c.fillRect(hl.x - 36, hl.y - 12, 22, 4); } }); }
     list.push({ y: world.player.y + 0.1, f: function () { drawPlayer(c, world.player); var P = world.player; if (P.load > 0) { var k = Math.min(1, P.load / P.cap); c.fillStyle = '#9a8a5c'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 14, 3 + k * 5, 0, 7); c.fill(); c.fillStyle = '#fbfdff'; c.beginPath(); c.arc(P.x - P.dir.x * 6, P.y - 17 - k * 3, 2 + k * 3, 0, 7); c.fill(); } } });
     world.dumps.forEach(function (d) { list.push({ y: d.y - d.r, f: function () {
@@ -506,10 +506,11 @@
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
     (S.PROPS || []).forEach(function (pr) { list.push({ y: pr.y, f: function () {
-      var col = pr.id === 'phone' ? '#c8402e' : pr.id === 'vend' ? '#2b5fd1' : pr.id === 'stove' ? '#4a4d52' : '#6b4a32';
+      var col = pr.id === 'phone' ? '#c8402e' : pr.id === 'vend' ? '#2b5fd1' : pr.id === 'stove' ? '#4a4d52' : pr.id === 'saltbox' ? '#3f7a3c' : '#6b4a32';
       c.fillStyle = col; if (pr.id === 'bar') { c.fillRect(pr.x - 9, pr.y - 22, 2, 22); c.fillRect(pr.x + 7, pr.y - 22, 2, 22); c.fillRect(pr.x - 9, pr.y - 23, 18, 2); } else rr(c, pr.x - 5, pr.y - 16, 10, 16, 2), c.fill();
       if (pr.id === 'stove') { c.fillStyle = 'rgba(255,140,40,' + (0.6 + Math.sin(performance.now() / 90) * 0.3) + ')'; circ(c, pr.x, pr.y - 19, 3.5); c.fill(); }
       c.fillStyle = '#2f3a25'; c.font = '700 7px ' + FONT; c.textAlign = 'center'; c.fillText(pr.name, pr.x, pr.y - 26); } }); });
+    (world.parts || []).forEach(function (pt) { if (!pt.icy || pt.salted) return; list.push({ y: -1e5, f: function () { c.fillStyle = 'rgba(120,190,255,.3)'; c.fillRect(pt.x, pt.y, pt.w, pt.h); c.fillStyle = '#2b6fd1'; c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillText('빙판 · 염화칼슘', pt.x + pt.w / 2, pt.y + pt.h / 2); } }); });
     (world.recruits || []).forEach(function (r) { list.push({ y: r.y, f: function () { drawPerson(c, r, { coat: r.def.coat, hat: 'helmet', seed: 3, tool: null, r: 10 }); c.fillStyle = '#2f8f4e'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(r.state === 'follow' ? '따라오는 중' : '신병', r.x, r.y - 33); } }); });
     if (ac) {
       (ac.reqs || []).forEach(function (q) { var wo = q.who; list.push({ y: 4e5, f: function () { c.fillStyle = '#ff9f43'; c.font = '700 10px ' + FONT; c.textAlign = 'center'; c.fillText((JY.SnowAct.ITEM[q.item] || {}).want + '?', wo.x, wo.y - 44); } }); });
@@ -666,12 +667,13 @@
   }
 
   /* ── 루프 ── */
+  var speed = 1;   // 병장 말년 특권: 작전 2배속
   function frame(t) {
     raf = requestAnimationFrame(frame);
     var raw = last ? Math.min(0.25, (t - last) / 1000) : 0.016, dt = Math.min(0.05, raw); last = t;
     if (world && (mode === 'play' || mode === 'demo')) {
-      var n = Math.ceil(raw / 0.05);
-      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, raw / n, mode === 'demo' || autopilot ? botInput() : readInput());
+      var span = raw * (mode === 'play' ? speed : 1), n = Math.ceil(span / 0.05);
+      for (var sn = 0; sn < n && !world.done; sn++) G.step(world, span / n, mode === 'demo' || autopilot ? botInput() : readInput());
       onFx(); markDirty();
       if (mode === 'demo' && world.done) { world = G.createWorld(world.save, { demo: true, salt: (Math.random() * 1e6) | 0 }); buildSnow(); }
       if (mode === 'play' && world.done && !doneSent) { doneSent = true; mode = 'end'; if (hooks.done) hooks.done(world); }
@@ -702,6 +704,7 @@
     world: function () { return world; },
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
+    setSpeed: function (n) { speed = Math.max(1, Math.min(3, n || 1)); }, speed: function () { return speed; },
     shake: function (n) { shake = Math.max(shake, n); },
     look: function () { if (!world) return null; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
     setFocus: function (t) { focusT = t || null; },

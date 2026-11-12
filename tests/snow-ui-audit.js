@@ -21,7 +21,7 @@ function scan() {
     var cs = getComputedStyle(el);
     if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el));
   });
-  var HUD = ['.hud-top', '.prog', '.hud-btns', '#say', '#chip', '#banner', '#hint', '#acts', '#h-shop', '#side', '#salute', '#sub', '#xhair span'];
+  var HUD = ['.hud-top', '.prog', '.hud-btns', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span'];
   var rs = HUD.map(function (q) { var el = document.querySelector(q); return shown(el) ? { q: q, r: el.getBoundingClientRect() } : null; }).filter(Boolean);
   for (var i = 0; i < rs.length; i++) for (var j = i + 1; j < rs.length; j++) {
     var a = rs[i].r, b = rs[j].r, ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -48,26 +48,39 @@ function scan() {
     await page.evaluate(function () { localStorage.clear(); });
     await page.reload(); await sleep(900);
     await check('title');
-    // 진행된 저장으로 작업 화면
+    async function closeAll() { for (var i = 0; i < 8; i++) { if (await page.evaluate(function () { return !document.getElementById('talk').hidden; })) { await page.click('.talk-box'); await sleep(120); continue; } var m = await page.$('#modal:not([hidden]) [data-m]'); if (!m) return; await m.click(); await sleep(250); } }
+    // 생활관 (진행된 저장: 일병, 분대원 3명, 상점·상자)
     await page.evaluate(function () {
-      var s = JY.SnowSim.newSave(); s.day = 5; s.bank = 123456; s.life = 60000; s.dia = 27; s.tool = 3; s.zones = { A: true, B: true, C: true }; s.fresh = { A: true, B: true, C: true };
-      s.crew = { hoobae: 3 }; s.cpost = { hoobae: ['A', 'B', 'C'] }; s.seen = { tut: true }; s.boxes = ['rare', 'common']; s.look.name = '김제설';
-      JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); __SNOW.setSave(s);
+      var s = JY.SnowSim.newSave(); s.day = 9; s.bank = 123456; s.life = 60000; s.dia = 27; s.tool = 3; s.rank = 1; s.merit = 13; JY.SnowSim.assignZones(s);
+      s.crew = { hoobae: 2, donggi: 1 }; s.cpost = { hoobae: ['A', 'B'], donggi: ['C'] }; s.seen = { tut: true, dis: true }; s.boxes = ['rare', 'common']; s.look.name = '김제설';
+      s.lastOp = { day: 8, stars: 2, score: 88, exam: false, pass: false }; s.prep = { hotpack: 1 }; s.stats.ops = 8;
+      JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); __SNOW.setSave(s); __SNOW.title();
     });
-    await page.click('#t-start'); await sleep(1500);
+    await sleep(700); await closeAll(); await check('hub');
+    // 상병 브리핑 (조원 배치까지 있는 가장 긴 브리핑)
+    await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
+    await sleep(400); await closeAll();
+    await page.click('#t-start'); await sleep(500); await check('brief');
+    await page.click('#modal [data-m="go"]'); await sleep(1500); await closeAll();
+    // 바쁜 작전 화면: 지시서 6줄 + 빙판 경고 + 기름 + 손에 든 것 + 버프 + 콤보 + 출입 통제 + 말풍선
     await page.evaluate(function () {
-      var w = __SNOW.view().world(), A = JY.SnowAct, a = A.init(w); w.events = [];
-      a.mission = A.newMission(w); a.reqs = [{ who: w.crew[0], item: 'meal', t: 80, max: 100 }, { who: w.haeng, item: 'snack', t: 50, max: 100 }]; a.hand = 'meal';
-      a.buffs = { matsta: 40, praise: 30, meal: 90 }; a.heat = 2; w.combo = 57; w.comboT = 30; w.player.load = w.player.cap; a.reqT = 999; a.fuelT = 999;
+      var w = __SNOW.view().world(), A = JY.SnowAct, a = A.init(w); w.events = []; a.offPlan = [];
+      var p = w.parts.filter(function (q) { return q.ice; })[0], bag = { cap: 1e9, load: 0, val: 0 }; for (var y = p.y; y < p.y + p.h; y += 10) for (var x = p.x; x < p.x + p.w; x += 10) JY.SnowSim.clearAt(w, x + 5, y + 5, 3, 9, 'player', bag);
+      a.reqs = [{ who: w.crew[0], item: 'fuel', t: 80, max: 100 }]; a.hand = 'salt';
+      a.buffs = { matsta: 40, praise: 30, hotpack: 90, rally: 20 }; w.combo = 57; w.comboT = 30; w.player.load = w.player.cap; a.fuelT = 999; a.nagT = 999;
+      w.time = JY.SnowSim.timeAt(425);
     });
-    await page.evaluate(function () { var w = __SNOW.view().world(); w.fx.push({ t: 'locked', zone: 'D', name: '취사장 앞', cost: 7000, x: 500, y: 330 }); w.fx.push({ t: 'say', key: '자, 제설 작전 개시! 오늘은 눈이 허리까지 왔다. 다 치우기 전엔 점심 없다!' }); });
+    await page.evaluate(function () { var w = __SNOW.view().world(); w.fx.push({ t: 'locked', zone: 'G', name: '위병소 앞', cost: 0, x: 500, y: 330 }); w.fx.push({ t: 'say', key: '자, 제설 작전 개시! 오늘은 눈이 허리까지 왔다. 다 치우기 전엔 아침 없다!' }); });
     await sleep(900);
     await check('play-busy');
     // 사람 앞: 긴 행동 이름 + 두 번째 버튼
-    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; e.x = 300; e.y = 230; e.speed = 0; e.retarget = 99; e.state = 'follow'; __SNOW.view()._teleport(300, 205); __SNOW.view()._setLook && __SNOW.view()._setLook(0, -0.1); });
+    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; JY.SnowAct.init(w).hand = null; e.x = 300; e.y = 230; e.speed = 0; e.retarget = 99; e.state = 'follow'; __SNOW.view()._teleport(300, 205); __SNOW.view()._setLook && __SNOW.view()._setLook(0, -0.1); });
     await sleep(600); await check('play-follow');
-    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; e.state = 'work'; JY.SnowAct.init(w).hand = null; e.mor = 30; });
+    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; e.state = 'work'; e.mor = 30; });
     await sleep(600); await check('play-crew');
+    // 행보관 앞: 장비 요청 버튼
+    await page.evaluate(function () { var w = __SNOW.view().world(); w.haeng.x = 300; w.haeng.y = 228; w.haeng.hold = 60; w.crew[0].x = 600; __SNOW.save().bank = 1e7; __SNOW.view()._teleport(300, 205); __SNOW.view()._setLook && __SNOW.view()._setLook(0, -0.1); });
+    await sleep(700); await check('play-haeng');
     // 간부 경례
     await page.evaluate(function () { var w = __SNOW.view().world(), o = JY.SnowAct.spawnOfficer(w, 'gen'); o.x = w.player.x + 10; o.y = w.player.y + 40; o.phase = 'stay'; o.stayT = 60; });
     await sleep(900); await check('play-salute');
@@ -75,21 +88,29 @@ function scan() {
     await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('near'); });
     await sleep(700); await check('play-third');
     await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('fp'); });
-    // 상점 탭들
-    await page.click('#h-shop'); await sleep(300);
-    for (var t of ['tool', 'crew', 'factory', 'perk', 'zone', 'look', 'story', 'medal']) {
+    // 검열 결과 (가장 긴 경우) → 진급 신고
+    await page.evaluate(function () {
+      var lines = JY.SNOW.ZONES.slice(0, 7).map(function (Z, i) { return { name: Z.name, due: Z.due, done: i % 3 !== 2, late: i === 1, pct: 0.7 }; });
+      __SNOW.results({ why: 'report', day: 9, stars: 2, score: 0.88, base: 0.9, lines: lines, icy: 1, jigeok: 2, stuck: true, report: true, early: true, carPass: false, pie: 123456, earlyPie: 23456, dia: 3, merit: 42, rank: 3, rank0: 2, exam: true, pass: true, promoted: true, examNext: false, zones: ['위병소 앞'], box: 'rare' });
+    });
+    await sleep(1300); await check('results');
+    await page.click('#modal [data-m]'); await sleep(600); await check('promo');
+    await closeAll(); await sleep(500); await closeAll();
+    // 상점 탭들 (생활관에서)
+    await page.click('[data-hub="shop"]'); await sleep(300);
+    for (var t of ['tool', 'crew', 'perk', 'factory', 'zone', 'look', 'story', 'medal', 'dis']) {
       var tb = await page.$('#s-tabs [data-tab="' + t + '"]'); if (!tb) continue;
       await tb.click(); await sleep(t === 'look' ? 900 : 250); await check('shop-' + t);
     }
-    await page.click('#s-go'); await sleep(400);
+    await page.click('#s-go'); await sleep(400); await closeAll();
     // PX · 상자 · 대사
-    await page.evaluate(function () { var d = JY.SnowAct.door('px'); __SNOW.view()._teleport(d.x, d.y + 14); __SNOW.view()._setLook && __SNOW.view()._setLook(Math.PI, 0); });
-    await sleep(500); await page.click('#act-btn'); await sleep(500); await check('px');
+    await page.click('[data-hub="px"]'); await sleep(400); await check('px');
     var cl = await page.$('#modal [data-m]'); if (cl) await cl.click(); await sleep(300);
-    await page.click('#h-box'); await sleep(1500); await check('box');
+    await page.evaluate(function () { __SNOW.save().boxes.unshift('legend'); __SNOW.openBox(); });
+    await sleep(1500); await check('box');
     var bo = await page.$('#box-ok'); if (bo) await bo.click(); await sleep(300);
-    await page.evaluate(function () { var s = __SNOW.save(); delete s.story.malnyeon; });
-    await sleep(1200); await check('talk');
+    await page.evaluate(function () { var s = __SNOW.save(); s.story = { prologue: true }; s.stats.ops = 1; __SNOW.title(); });
+    await page.click('[data-hub="phone"]'); await sleep(900); await check('talk');
     await page.close();
   }
   await browser.close();

@@ -99,6 +99,8 @@
     if (when === 'perfect1') return (save.stats.perfect || 0) >= 1;
     if (when === 'crew1') return G.crewCount(save) >= 1;
     if (when === 'inspect') return !!(w && w.inspect);
+    if (when === 'op1') return (save.stats.ops || 0) >= 1;
+    if (when === 'exam') return !!(w && w.op && w.op.exam);
     if (when === 'canDischarge') return G.canDischarge(save);
     if (when.indexOf('zone:') === 0) return !!save.zones[when.slice(5)];
     if (when.indexOf('rank:') === 0) return G.rankOf(save) >= +when.slice(5);

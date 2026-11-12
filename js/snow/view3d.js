@@ -186,6 +186,11 @@
     if (h < 0.3) { var k = Math.min(1, (0.3 - h) / 0.38); r -= 0.16 * k; g -= 0.12 * k; bl -= 0.05 * k; }
     var cav = (hl + hr + hu + hd) / 4 - h; if (cav > 0.03) { r -= cav * 0.3; g -= cav * 0.22; bl -= cav * 0.07; }
     if (s) { r -= 0.2 * s; g -= 0.15 * s; bl -= 0.06 * s; }
+    // 빙판(염화칼슘 전): 푸르게 번들번들 / 뿌린 뒤: 젖은 회갈색
+    if (h < 0.3 && world) {
+      var gi = Math.min(GW - 1, i >> 1), gj = Math.min(GH - 1, j >> 1), pk = world.partOf[gj * GW + gi], pt = pk >= 0 ? world.parts[pk] : null;
+      if (pt && pt.icy) { if (pt.salted) { r = 0.6; g = 0.58; bl = 0.55; } else { r = 0.62 + hash(i, j) * 0.06; g = 0.82; bl = 0.99; } }
+    }
     if (scanT > 0 && remaining(i, j)) { r = 1; g = 0.62; bl = 0.25; }
     c[v * 3] = r; c[v * 3 + 1] = g; c[v * 3 + 2] = bl;
   }
@@ -904,7 +909,7 @@
       } else if (f.t === 'found') {
         var rcc = new T.Color(S.RARITY[f.item.r].color);
         for (k = 0; k < (f.item.r === 'c' ? 24 : 70); k++) emit(f.x * U + rnd(-0.4, 0.4), 0.5, f.y * U + rnd(-0.4, 0.4), rnd(-2.5, 2.5), rnd(5, 10), rnd(-2.5, 2.5), rnd(0.8, 1.4), [rcc.r, rcc.g, rcc.b]);
-        var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 다이아 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
+        var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 상점 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
         of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5;
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
@@ -915,7 +920,25 @@
       else if (f.t === 'slack') { addOv('(짱박힘…)', 'ov-slack', 0, 0, 3.6, 3, f.e); }
       else if (f.t === 'unslack') { addOv('…다시 일한다', 'ov-chat', 0, 0, 4.3, 1.4, f.e); }
       else if (f.t === 'choco') { if (f.e) { for (k = 0; k < 14; k++) emit(f.e.x * U, 2.6, f.e.y * U, rnd(-1.5, 1.5), rnd(2, 4), rnd(-1.5, 1.5), 0.6, [0.45, 0.27, 0.15]); addOv('냠냠', 'ov-bang', 0, 0, 4.6, 1, f.e); } vmPlay('act', 0.6); if (sfx) sfx.coin(); }
-      if (hooks.event && mode === 'play' && /^(me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm)$/.test(f.t)) hooks.event(f);
+      // v10 작전
+      else if (f.t === 'task') {
+        for (k = 0; k < 70; k++) emit(f.x * U + rnd(-6, 6), 0.6, f.y * U + rnd(-6, 6), rnd(-3, 3), rnd(6, 12), rnd(-3, 3), rnd(0.9, 1.5), [[1, 0.84, 0.3], [0.55, 0.85, 0.5], [1, 1, 1]][k % 3]);
+        var ot = addOv('작업 완료!<span>' + esc(f.task.name) + (f.late ? ' · 늦음' : '') + '</span>', 'ov-inspect', f.x, f.y, 2, 2.6); ot.rise = 0.4;
+      } else if (f.t === 'icy') {
+        recolorAll();
+        var oi2 = addOv('빙판!<span>염화칼슘 필요</span>', 'ov-lock', f.x, f.y, 1.8, 2.4); oi2.rise = 0.3;
+        for (k = 0; k < 24; k++) emit(f.x * U + rnd(-4, 4), 0.3, f.y * U + rnd(-4, 4), 0, rnd(1, 2), 0, rnd(0.6, 1), [0.6, 0.85, 1]);
+      } else if (f.t === 'salted') {
+        recolorAll();
+        for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 1.4, f.y * U + rnd(-1, 1), rnd(-4, 4), rnd(1, 3), rnd(-4, 4), rnd(0.5, 0.9), [0.95, 0.95, 0.9]);
+        if (!f.auto) vmPlay('throw', 0.45); if (sfx) sfx.pour(0.6);
+      } else if (f.t === 'slip') { addOv('미끄덩!', 'ov-hurt', f.x, f.y, 2.6, 1.2); shake = Math.max(shake, 0.4); stunK = 1; if (sfx) sfx.thud(); }
+      else if (f.t === 'carStuck') { addOv('빠졌다!!', 'ov-hurt', f.x, f.y, 4, 2.2); shake = Math.max(shake, 0.35); if (sfx) sfx.honk(); }
+      else if (f.t === 'push') { for (k = 0; k < 10; k++) emit(f.x * U + rnd(-0.8, 0.8), 0.4, f.y * U + 1.2, rnd(-1.5, 1.5), rnd(2, 4), rnd(1, 3), rnd(0.4, 0.7)); vmPlay('act', 0.35); if (sfx) sfx.thud(); }
+      else if (f.t === 'carFree') { for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 0.5, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1)); if (sfx) sfx.vroom(); }
+      else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
+      else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t)) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -1233,6 +1256,7 @@
     if (k === 'meal') parts = [[box(0.5, 0.04, 0.36, { x: -0.18, y: -0.46, z: -0.72, rx: 0.25 }), '#b8c0c6'], [cyl(0.07, 0.06, 0.06, { x: -0.3, y: -0.42, z: -0.72 }, 10), '#f4f1e6'], [cyl(0.06, 0.05, 0.05, { x: -0.1, y: -0.42, z: -0.66 }, 10), '#3b2a1c'], [box(0.14, 0.05, 0.12, { x: -0.12, y: -0.42, z: -0.8 }), '#c8402e'], [sph(0.05, { x: -0.3, y: -0.38, z: -0.72 }), '#fff']];
     else if (k === 'snack') parts = [[box(0.26, 0.34, 0.14, { x: -0.22, y: -0.36, z: -0.66, ry: 0.3 }), '#f2e6c9'], [box(0.27, 0.1, 0.15, { x: -0.22, y: -0.3, z: -0.66, ry: 0.3 }), '#c0563f'], [cyl(0.05, 0.05, 0.18, { x: -0.1, y: -0.18, z: -0.68 }, 8), '#2f8f5b']];
     else if (k === 'letter') parts = [[box(0.3, 0.2, 0.02, { x: -0.2, y: -0.38, z: -0.62, rx: -0.5, rz: 0.2 }), '#fdfbf2'], [box(0.08, 0.08, 0.025, { x: -0.12, y: -0.33, z: -0.6, rx: -0.5 }), '#d23a2a']];
+    else if (k === 'salt') parts = [[box(0.34, 0.42, 0.2, { x: -0.22, y: -0.46, z: -0.66, rz: 0.1 }), '#f2f4f6'], [box(0.35, 0.12, 0.21, { x: -0.22, y: -0.33, z: -0.66, rz: 0.1 }), '#2f6fb0'], [box(0.12, 0.06, 0.22, { x: -0.2, y: -0.47, z: -0.66 }), '#d23a2a']];
     else parts = [[box(0.26, 0.34, 0.16, { x: -0.22, y: -0.5, z: -0.66 }), '#c8402e'], [cyl(0.03, 0.03, 0.12, { x: -0.14, y: -0.3, z: -0.66, rz: -0.6 }, 8), '#333'], [box(0.12, 0.04, 0.05, { x: -0.25, y: -0.31, z: -0.66 }), '#222']];
     return (geos[gk] = merge(parts.concat(arm)));
   }
@@ -1387,6 +1411,11 @@
           [sph(0.4, { s: [1.3, 0.3, 1], x: x, y: 2.35, z: z }), '#f7fafd']);
         for (var c = 0; c < 6; c++) parts.push([cyl(0.07, 0.07, 0.22, { x: x - 0.28 + (c % 3) * 0.28, y: 1.85 - Math.floor(c / 3) * 0.42, z: z + 0.42 }, 8), ['#d23a2a', '#2f8f5b', '#f0b429', '#e57aa3', '#5d6f86', '#ff8a2a'][c]]);
         g.add(propSign('자판기', x, 2.75, z + 0.42));
+      } else if (pr.id === 'saltbox') {
+        // 제설함: 초록 상자에 노란 뚜껑, 옆에 염화칼슘 포대
+        parts.push([box(1.5, 0.95, 0.9, { x: x, y: 0.48, z: z }), '#3f7a3c'], [box(1.56, 0.12, 0.96, { x: x, y: 1.0, z: z, rx: -0.12 }), '#f0c63a'], [box(0.5, 0.18, 0.05, { x: x, y: 0.6, z: z + 0.46 }), '#f4f8fc'],
+          [box(0.5, 0.32, 0.32, { x: x + 1.05, y: 0.16, z: z + 0.1, ry: 0.4 }), '#f2f4f6'], [box(0.51, 0.08, 0.33, { x: x + 1.05, y: 0.26, z: z + 0.1, ry: 0.4 }), '#2f6fb0']);
+        g.add(propSign('제설함', x, 1.9, z + 0.5));
       } else if (pr.id === 'stove') {
         parts.push([cyl(0.42, 0.42, 1.0, { x: x, y: 0.5, z: z }, 14), '#4a4d52'], [cyl(0.44, 0.44, 0.06, { x: x, y: 0.75, z: z }, 14), '#2b2d30'], [cyl(0.44, 0.44, 0.06, { x: x, y: 0.3, z: z }, 14), '#2b2d30'],
           [cyl(0.08, 0.08, 1.4, { x: x + 0.25, y: 1.6, z: z - 0.1 }, 8), '#3a3d42'], [box(0.4, 0.12, 0.08, { x: x, y: 0.55, z: z + 0.42 }), '#ff8a2a']);
@@ -1408,7 +1437,7 @@
     var TR = JY.SnowAct ? JY.SnowAct.TRACTOR : { x: 252, y: 1062 };
     tractorObj = new T.Group();
     var tm = new T.Mesh(vehicleGeo('tractor'), matV); tm.castShadow = true; tm.rotation.y = -Math.PI / 2; tractorObj.add(tm);
-    var tt = textTex('정비고 트랙터 · 일병부터', { size: 28 }), sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 60, tt.image.height / 60), new T.MeshLambertMaterial({ map: tt }));
+    var tt = textTex('정비고 트랙터', { size: 28 }), sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 60, tt.image.height / 60), new T.MeshLambertMaterial({ map: tt }));
     sm.position.set(0, 3.3, 1.2); tractorObj.add(sm);
     tractorObj.position.set(TR.x * U, 0, TR.y * U); scene.add(tractorObj);
   }
@@ -1542,6 +1571,7 @@
   }
 
   /* ── 루프 ── */
+  var speed = 1;   // 병장 말년 특권: 작전 2배속
   function frame(t) {
     raf = requestAnimationFrame(frame);
     var raw = last ? (t - last) / 1000 : 0.016, dt = Math.min(0.05, raw); last = t;
@@ -1557,7 +1587,7 @@
     } else if (slowN > 0) slowN--;
     if (world && (mode === 'play' || mode === 'demo')) {
       // 입력은 잘게 나눈 걸음마다 다시 읽는다 (느린 프레임에서 목표를 지나치지 않게)
-      var span = Math.min(0.35, raw), n = Math.ceil(span / 0.05);
+      var span = Math.min(0.35, raw) * (mode === 'play' ? speed : 1), n = Math.ceil(span / 0.05);
       for (var sn = 0; sn < n; sn++) {
         var inp = mode === 'demo' || autopilot ? botInput() : readInput(span / n);
         if (autopilot && isFP() && mode === 'play') { inp.face = { x: inp.x || Math.sin(fpYaw), y: inp.y || Math.cos(fpYaw) }; fpYaw = Math.atan2(inp.face.x, inp.face.y); inp.reach = 10; }
@@ -1646,6 +1676,7 @@
     world: function () { return world; },
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
+    setSpeed: function (n) { speed = Math.max(1, Math.min(3, n || 1)); }, speed: function () { return speed; },
     shake: function (n) { shake = Math.max(shake, n * 0.2); },
     scan: function () { if (!world) return false; scanT = 3; recolorAll(); return true; },
     toggleCam: function (to) {

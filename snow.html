@@ -23,7 +23,7 @@
       <div class="pill bank"><i class="pie" aria-hidden="true"></i><b id="h-bank">0</b><i class="dia" aria-hidden="true"></i><b id="h-dia" class="dia-n">0</b></div>
     </div>
     <div class="prog"><span id="h-area" class="area">부대 전체</span><div class="bar"><i id="h-fill"></i></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
-    <div class="hud-btns"><div id="h-heat" class="heat" hidden><span>행보관</span><b id="h-heat-s">★☆☆</b></div><div id="h-ride" class="ridep" hidden><b id="h-ride-n"></b><i><em id="h-ride-f"></em></i></div><button id="h-box" class="scan boxb" hidden aria-label="보급 상자 열기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5v9l-9 4-9-4z" fill="#c9a24a" stroke="#6b5420" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 9l9 4 9-4M12 13v9" stroke="#6b5420" stroke-width="1.4" fill="none"/><path d="M8 6.5l9 4.5" stroke="#e33" stroke-width="2"/></svg><span class="lbl">상자</span><i id="h-box-n">0</i></button><button id="h-cam" class="scan" aria-label="시점 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span id="h-cam-t" class="lbl">시점</span></button>
+    <div class="hud-btns"><button id="h-speed" class="scan speed" hidden aria-label="작업 속도 바꾸기"><b id="h-speed-t">×1</b><span class="lbl">말년 특권</span></button><button id="h-box" class="scan boxb" hidden aria-label="보급 상자 열기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5v9l-9 4-9-4z" fill="#c9a24a" stroke="#6b5420" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 9l9 4 9-4M12 13v9" stroke="#6b5420" stroke-width="1.4" fill="none"/><path d="M8 6.5l9 4.5" stroke="#e33" stroke-width="2"/></svg><span class="lbl">상자</span><i id="h-box-n">0</i></button><button id="h-cam" class="scan" aria-label="시점 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span id="h-cam-t" class="lbl">시점</span></button>
     <button id="h-scan" class="scan" aria-label="남은 눈 표시"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span class="lbl">남은 눈</span></button></div>
   </header>
   <button id="h-shop" class="shopbtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16l-1.5 11h-13z" fill="currentColor"/><path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>보급·인력<i id="h-shop-n" hidden></i></button>
@@ -33,35 +33,40 @@
   <div id="salute" hidden><b id="sal-t">중대장님이다!</b><span>경례!</span><i><em id="sal-f"></em></i></div>
   <div id="say" hidden><div class="say-face" id="say-face"></div><p id="say-text"></p></div>
   <div id="chip" hidden></div>
+  <div id="sub" hidden></div>
   <div id="hint" hidden><b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span></div>
   </div>
   <div id="splat" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 18c14 0 18 26 30 30s34-14 42 0-18 26-12 40 30 22 22 36-34 4-42 16 2 40-14 44-22-26-36-26-30 26-42 14 6-34-6-44-36-6-36-22 30-16 30-32-22-30-10-40 30 8 40 0 10-56 18-56z" fill="#fbfdff" stroke="#c9d8e6" stroke-width="4"/><circle cx="160" cy="40" r="10" fill="#fbfdff"/><circle cx="40" cy="168" r="8" fill="#fbfdff"/><circle cx="178" cy="150" r="6" fill="#fbfdff"/></svg><b>누가 던졌어!!</b></div>
 
   <div id="combo" hidden><b id="combo-n">x0</b><span id="combo-t"></span></div>
   <div id="xhair" hidden><i></i><span id="xh-t"></span></div>
-  <div id="sub" hidden></div>
   <div id="side" hidden>
-    <div id="h-quest" class="quest" hidden><b>할 일 <i id="q-n">1/14</i></b><span id="q-t"></span><small id="q-how"></small><i class="qbar"><em id="q-f"></em></i></div>
+    <div id="h-op" class="opcard" hidden><b><span id="op-title">작업 지시서</span><i id="op-n">0/1</i></b><ol id="op-list"></ol><p id="op-warn" class="op-warn" hidden></p><small id="op-tip" class="op-tip" hidden></small></div>
     <div id="h-reqs" class="reqs"></div>
     <button id="h-hand" class="hand" hidden aria-label="들고 있는 물건 내려놓기"><span>손에 든 것</span><b id="h-hand-n"></b><i>✕</i></button>
     <div id="h-buffs" class="buffs"></div>
-    <div id="h-mis" class="mis" hidden><b>행정반 임무</b><span id="h-mis-t"></span><div class="mis-bar"><i id="h-mis-fill"></i></div><em id="h-mis-time"></em></div>
   </div>
   <div id="acts" hidden>
-    <button id="ball-btn" class="actb small" aria-label="눈덩이 던지기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.6"/><path d="M8 11c1-1.6 3-2.4 5-2" stroke="#c9d8e6" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M17 4l3-2M19 7l3-1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg><span>눈덩이</span></button>
     <div class="act-col"><button id="act2-btn" class="act2" hidden></button><button id="act-btn" class="actb" aria-label="행동"><small id="act-name"></small><b id="act-verb">행동</b></button></div>
   </div>
   <div id="fade" hidden></div>
 
   <section id="title" class="screen">
-    <div class="title-box">
+    <div class="title-box" id="title-box">
       <p class="kicker">전역각 외전</p>
       <h1 class="logo"><span>제설각</span></h1>
       <p class="tag">눈은 하늘에서 내리는 쓰레기다</p>
       <div id="t-info" class="t-info"></div>
+      <div id="hub" class="hub" hidden></div>
       <div class="t-btns">
         <button id="t-start" class="btn big">작업 개시</button>
         <button id="t-shop" class="btn ghost">보급·인력 관리</button>
+      </div>
+      <div id="hub-grid" class="hub-grid" hidden>
+        <button data-hub="shop"><b>보급·인원</b><small>장비·분대원·시설</small><i id="hub-shop-n" hidden></i></button>
+        <button data-hub="px"><b>PX</b><small>내일 작전 준비물</small></button>
+        <button data-hub="phone"><b>공중전화</b><small id="hub-phone-s">하루 한 번</small></button>
+        <button data-hub="pull"><b>체력단련</b><small>턱걸이 → 적재 +25%</small></button>
       </div>
       <div class="t-links"><button id="t-look" class="btn link">꾸미기</button><button id="t-sound" class="btn link">소리 켬</button><button id="t-haptic" class="btn link">진동 켬</button><button id="t-reset" class="btn link">처음부터 다시</button></div>
     </div>

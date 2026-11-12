@@ -21,7 +21,7 @@ function scan() {
     var cs = getComputedStyle(el);
     if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el));
   });
-  var HUD = ['.hud-top', '.prog', '.hud-btns', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span'];
+  var HUD = ['.hud-top', '#goal', '.prog', '.hud-btns', '#combo', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span'];
   var rs = HUD.map(function (q) { var el = document.querySelector(q); return shown(el) ? { q: q, r: el.getBoundingClientRect() } : null; }).filter(Boolean);
   for (var i = 0; i < rs.length; i++) for (var j = i + 1; j < rs.length; j++) {
     var a = rs[i].r, b = rs[j].r, ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -47,16 +47,23 @@ function scan() {
     await page.goto(url);
     await page.evaluate(function () { localStorage.clear(); });
     await page.reload(); await sleep(900);
-    await check('title');
+    await check('splash');
+    await page.click('#splash'); await sleep(600);
+    var rc = await page.$('#modal:not([hidden]) [data-m]'); if (rc) { await rc.click(); await sleep(300); }
+    await check('lobby-new');
+    await page.click('#t-start'); await sleep(400); await check('help');
+    await page.evaluate(function () { document.getElementById('modal').hidden = true; });   // 교범만 보고 닫는다 (프롤로그는 건너뜀)
     async function closeAll() { for (var i = 0; i < 8; i++) { if (await page.evaluate(function () { return !document.getElementById('talk').hidden; })) { await page.click('.talk-box'); await sleep(120); continue; } var m = await page.$('#modal:not([hidden]) [data-m]'); if (!m) return; await m.click(); await sleep(250); } }
     // 생활관 (진행된 저장: 일병, 분대원 3명, 상점·상자)
     await page.evaluate(function () {
       var s = JY.SnowSim.newSave(); s.day = 9; s.bank = 123456; s.life = 60000; s.dia = 27; s.tool = 3; s.rank = 1; s.merit = 13; JY.SnowSim.assignZones(s);
-      s.crew = { hoobae: 2, donggi: 1 }; s.cpost = { hoobae: ['A', 'B'], donggi: ['C'] }; s.seen = { tut: true, dis: true }; s.boxes = ['rare', 'common']; s.look.name = '김제설';
+      s.crew = { hoobae: 2, donggi: 1 }; s.cpost = { hoobae: ['A', 'B'], donggi: ['C'] }; s.seen = { tut: true, dis: true, help: true }; s.boxes = ['rare', 'common']; s.look.name = '김제설';
       s.lastOp = { day: 8, stars: 2, score: 88, exam: false, pass: false }; s.prep = { hotpack: 1 }; s.stats.ops = 8;
       JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); __SNOW.setSave(s); __SNOW.title();
     });
     await sleep(700); await closeAll(); await check('hub');
+    await page.click('[data-hub="settings"]'); await sleep(300); await check('settings');
+    await closeAll();
     // 상병 브리핑 (조원 배치까지 있는 가장 긴 브리핑)
     await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
     await sleep(400); await closeAll();
@@ -84,10 +91,13 @@ function scan() {
     // 간부 경례
     await page.evaluate(function () { var w = __SNOW.view().world(), o = JY.SnowAct.spawnOfficer(w, 'gen'); o.x = w.player.x + 10; o.y = w.player.y + 40; o.phase = 'stay'; o.stayT = 60; });
     await sleep(900); await check('play-salute');
-    // 3인칭
-    await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('near'); });
-    await sleep(700); await check('play-third');
+    // 반전: 폭풍 제설 + 폭설 경보 + 콤보
+    await page.evaluate(function () { var w = __SNOW.view().world(); JY.SnowAct.init(w).off = []; w.fever = 6; w.surge = 10; w.combo = 45; w.comboT = 30; });
+    await sleep(700); await check('play-fever');
+    await page.evaluate(function () { var w = __SNOW.view().world(); w.fever = 0; w.surge = 0; });
+    // 1인칭 (시점 버튼)
     await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('fp'); });
+    await sleep(700); await check('play-fp');
     // 검열 결과 (가장 긴 경우) → 진급 신고
     await page.evaluate(function () {
       var lines = JY.SNOW.ZONES.slice(0, 7).map(function (Z, i) { return { name: Z.name, due: Z.due, done: i % 3 !== 2, late: i === 1, pct: 0.7 }; });

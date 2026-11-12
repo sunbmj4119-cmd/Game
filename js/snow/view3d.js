@@ -477,7 +477,7 @@
   // 짐이 많으면 가장 가까운 집하장 쪽 화살표
   function stepArrow() {
     if (!arrowEl) { arrowEl = document.createElement('div'); arrowEl.id = 'arrow3d'; arrowEl.innerHTML = '<svg viewBox="0 0 40 40"><path d="M6 20h20M20 10l10 10-10 10" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20h20M20 10l10 10-10 10" stroke="#ff6a55" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'; ov.appendChild(arrowEl); }
-    var P = world.player, show = mode === 'play' && P.load >= P.cap * 0.6;
+    var P = world.player, show = false;   // v11: 땅 위 길잡이 화살표로 바뀌었다
     arrowEl.style.display = show ? '' : 'none';
     if (!show) return;
     var d = G.nearestDump(world, P.x, P.y);
@@ -862,6 +862,7 @@
         var dm = f.src === 'player', fromX = f.fromX * U, fromZ = f.fromY * U, tx = f.x * U, tz = f.y * U, nn = Math.min(dm ? 40 : 8, 4 + (f.units / 4 | 0));
         for (k = 0; k < nn; k++) { var tt = rnd(0.45, 0.75); emit(fromX + rnd(-0.4, 0.4), 2.2, fromZ + rnd(-0.4, 0.4), (tx - fromX) / tt + rnd(-1, 1), 7 * tt + rnd(0, 2), (tz - fromZ) / tt + rnd(-1, 1), tt + 0.05); }
         pileLevel[f.main ? 'main' : 'relay'] += f.units / 300;
+        if (dm) flyStack(f);
         if (dm || Math.random() < 0.35) { var od = addOv('+' + fmt(f.pay) + '<i class="pie"></i>', 'ov-dump', f.x, f.y, 4, dm ? 1.4 : 0.9); od.rise = 1.6; }
         if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
         if (dm && hooks.event) hooks.event(f);
@@ -938,7 +939,7 @@
       else if (f.t === 'carFree') { for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 0.5, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1)); if (sfx) sfx.vroom(); }
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t)) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -951,7 +952,7 @@
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
     placePerson(playerObj, P, { lie: P.stun > 0.6 && !playerObj.vehicle });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
-    sack(playerObj, P.load / P.cap);
+    stackOn(playerObj, P);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
     setExpr(haengObj, w.haeng.chasing ? 'shout' : 'normal');
@@ -999,14 +1000,15 @@
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var CAMS = ['fp', 'near', 'far'], camMode = 'fp', WIDN = [15, 16, 17.5, 19, 21, 24, 28, 33, 42], PITCHN = 0.43, FOVN = 62, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
-  try { var cm0 = localStorage.getItem('jeseol-cam2'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
+  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 1.06, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  // v11: 처음엔 위에서 비스듬히 내려다보는 3인칭 (한 손가락으로 끌어서 이동). 1인칭은 시점 버튼으로
+  try { var cm0 = localStorage.getItem('jeseol-cam3'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
   // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
-  function cm() { return mode === 'demo' || mode === 'idle' ? 'near' : camMode; }
+  function cm() { return mode === 'lobby' ? 'lobby' : mode === 'demo' || mode === 'idle' ? 'near' : camMode; }
   function isFP() { return cm() === 'fp'; }
   function fitCam() {
     var c = cm(); camera.aspect = vw / vh;
-    camera.fov = c === 'fp' ? (vw < vh ? 84 : 66) : c === 'near' ? FOVN : FOV;
+    camera.fov = c === 'fp' ? (vw < vh ? 84 : 66) : c === 'near' ? FOVN : c === 'lobby' ? (vw < vh ? 46 : 34) : FOV;
     camera.near = c === 'fp' ? 0.12 : 0.5;
     camera.updateProjectionMatrix();
     if (vmCam) { vmCam.aspect = vw / vh; vmCam.fov = vw < vh ? 66 : 54; vmCam.updateProjectionMatrix(); }
@@ -1016,6 +1018,7 @@
     if (!world) return;
     var P = world.player, tx = P.x * U, tz = P.y * U - 1.5, c = cm(), now = performance.now() / 1000;
     if (c !== lastCamMode) { lastCamMode = c; fitCam(); if (c === 'fp') { fpYaw = Math.atan2(P.dir.x, P.dir.y); fpPitch = -0.2; } }
+    if (c === 'lobby') { lobbyCam(); return; }
     if (focus) { focus.t += dt; if (focus.t > focus.life) focus = null; else { var k = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tx += (focus.x - tx) * k; tz += (focus.z - tz) * k; } }
     var halfW = visW / 2;
     if (c === 'near') { tz = P.y * U - 1.2; if (focus) { var kf = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tz += (focus.z - tz) * kf; tx = P.x * U + (focus.x - P.x * U) * kf; } }
@@ -1046,7 +1049,7 @@
     } else if (c === 'near') {
       var a0 = vw / vh, tn = Math.tan(FOVN * Math.PI / 360), wn = WIDN[world.save.tool] || 16, dn = a0 < 1 ? (wn / 2) / (tn * a0) : (wn * 0.6 / 2) / tn, ly = 1.3;
       camDn += (dn - camDn) * (snap ? 1 : Math.min(1, dt * 2));
-      var ahead = camDn * 0.22;
+      var ahead = camDn * 0.1;   // v11: 거의 위에서 내려다본다 (화면 위 = 북쪽, 끄는 방향 그대로 걷는다)
       camera.up.set(0, 1, 0);
       camera.position.set(camT.x + sx, ly + Math.sin(PITCHN) * camDn, camT.z + Math.cos(PITCHN) * camDn + sz);
       camera.lookAt(camT.x + sx, ly, camT.z - ahead + sz);
@@ -1570,6 +1573,152 @@
     window.addEventListener('resize', resize);
   }
 
+  /* ── v11: 바닥 원 · 길잡이 화살표 · 등에 쌓인 눈 · 공병대 제설차 · 몰아치기 · 로비 ── */
+  var padObjs = {}, guide = null, goalT = 0, goalC = null, flyPool = [], flies = [], supportObj = null, lastStackN = 0, flyOrder = 0, stackGeo = null, stackMat = null;
+  var PADCOL = { supply: '#ffd24a', report: '#4fcf74', lock: '#9aa4ae' };
+  var TONE = { red: '#ff5a46', gold: '#ffd24a', blue: '#6fc3ff', green: '#4fcf74', navy: '#ffffff' };
+  function resetV11() {
+    Object.keys(padObjs).forEach(function (k) { var o = padObjs[k]; scene.remove(o.g); o.el.remove(); }); padObjs = {};
+    flies.forEach(function (f) { f.m.visible = false; flyPool.push(f.m); }); flies = [];
+    if (supportObj) { removeObj(supportObj); supportObj = null; }
+    goalC = null; goalT = 0; lastStackN = 0;
+    if (guide) { guide.arrow.visible = false; guide.mark.visible = false; guide.ring.visible = false; }
+  }
+  function padObj(p) {
+    var o = padObjs[p.id]; if (o) return o;
+    var g = new T.Group();
+    function disc(geo, op) { var m = new T.Mesh(geo, new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: op, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; g.add(m); return m; }
+    var base = disc(new T.CircleGeometry(p.r * U, 40), 0.22), fill = disc(new T.CircleGeometry(p.r * U, 40), 0.55), ring = disc(new T.RingGeometry(p.r * U * 0.88, p.r * U * 1.08, 44), 0.95);
+    base.position.y = 0.08; fill.position.y = 0.09; ring.position.y = 0.1;
+    g.position.set(p.x * U, 0, p.y * U); scene.add(g);
+    var el = document.createElement('div'); el.className = 'ov-pad'; ov.appendChild(el);
+    return (padObjs[p.id] = { g: g, base: base, fill: fill, ring: ring, el: el, key: '' });
+  }
+  function syncPads(t) {
+    var A0 = A(), a = world.act, list = A0 && a && (mode === 'play' || mode === 'paused') ? A0.pads(world) : [], seen = {};
+    list.forEach(function (p) {
+      seen[p.id] = 1;
+      var o = padObj(p), col = p.ok ? PADCOL[p.kind] : PADCOL.lock, prog = a.padT && a.padT[p.id] > 0 ? Math.min(1, a.padT[p.id] / p.dwell) : 0;
+      o.g.visible = true;
+      o.base.material.color.set(col); o.ring.material.color.set(col); o.fill.material.color.set(col);
+      o.base.material.opacity = p.ok ? 0.26 + Math.sin(t * 4) * 0.08 : 0.12;
+      o.fill.visible = prog > 0; o.fill.scale.setScalar(Math.max(0.001, prog));
+      o.ring.scale.setScalar(p.ok ? 1 + Math.sin(t * 4) * 0.05 : 1);
+      o.g.position.y = snowAt(p.x, p.y) * 0.25;
+      var key = p.kind + p.ok + p.lock + p.name + p.cost;
+      if (o.key !== key) {
+        o.key = key; o.el.className = 'ov-pad ' + p.kind + (p.ok ? ' ok' : '');
+        o.el.innerHTML = '<b>' + esc(p.title) + '</b><span>' + esc(p.name) + '</span>' + (p.lock ? '<em>' + esc(p.lock) + '</em>' : p.cost ? '<em><i class="pie"></i>' + fmt(p.cost) + '</em>' : '');
+      }
+      var pp = project(p.x, p.y, 0.2), on = pp[2] < 1 && (!isFP() || Math.hypot(p.x - world.player.x, p.y - world.player.y) < 150);
+      o.el.style.display = on ? '' : 'none';
+      if (on) o.el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-50%)';
+    });
+    Object.keys(padObjs).forEach(function (k) { if (!seen[k]) { padObjs[k].g.visible = false; padObjs[k].el.style.display = 'none'; } });
+  }
+  function buildGuide() {
+    var sh = new T.Shape(); sh.moveTo(0, 0.95); sh.lineTo(0.66, 0.08); sh.lineTo(0.24, 0.08); sh.lineTo(0.24, -0.72); sh.lineTo(-0.24, -0.72); sh.lineTo(-0.24, 0.08); sh.lineTo(-0.66, 0.08); sh.closePath();
+    var arrow = new T.Mesh(new T.ShapeGeometry(sh), new T.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.95, depthWrite: false, depthTest: false }));
+    arrow.rotation.x = -Math.PI / 2; arrow.renderOrder = 8;
+    var ag = new T.Group(); ag.add(arrow); scene.add(ag);
+    var mark = new T.Mesh(merge([[cone(0.45, 0.95, { rx: Math.PI }, 4), '#ffffff'], [cyl(0.13, 0.13, 0.55, { y: 0.72 }, 6), '#ffffff']]), new T.MeshBasicMaterial({ vertexColors: true, depthTest: false, transparent: true }));
+    mark.renderOrder = 9; scene.add(mark);
+    var ring = new T.Mesh(new T.RingGeometry(0.95, 1.3, 36), new T.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.85, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 5; scene.add(ring);
+    guide = { arrow: ag, arrowMesh: arrow, mark: mark, ring: ring };
+  }
+  function stepGuide(dt, t) {
+    if (!guide) buildGuide();
+    var P = world.player, show = mode === 'play' && !!A();
+    if (show) { goalT -= dt; if (goalT <= 0 || !goalC) { goalT = 0.15; goalC = A().objective(world); } }
+    var g = show ? goalC : null, far = !!(g && !g.here && g.kind !== 'salute' && Math.hypot(g.x - P.x, g.y - P.y) > 30);
+    var markOn = far && !(g.kind === 'task' && g.inZone);
+    guide.arrow.visible = far; guide.mark.visible = markOn; guide.ring.visible = markOn;
+    if (!g) return;
+    var col = TONE[g.tone] || '#ffd24a';
+    guide.arrowMesh.material.color.set(col); guide.mark.material.color.set(col); guide.ring.material.color.set(col);
+    if (!far) return;
+    var dx = g.x - P.x, dy = g.y - P.y, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d, off = (isFP() ? 2.8 : 2.1) + Math.sin(t * 6) * 0.18;
+    guide.arrow.position.set(P.x * U + ux * off, 0.14 + snowAt(P.x, P.y) * 0.45, P.y * U + uy * off);
+    guide.arrow.rotation.y = Math.atan2(-ux, -uy);
+    guide.arrow.scale.setScalar(isFP() ? 0.8 : 1.15);
+    var gh = snowAt(g.x, g.y) * 0.4;
+    guide.mark.position.set(g.x * U, 3.1 + gh + Math.abs(Math.sin(t * 3.2)) * 0.6, g.y * U);
+    guide.mark.rotation.y = t * 1.6;
+    guide.ring.position.set(g.x * U, 0.12 + gh, g.y * U); guide.ring.scale.setScalar(1 + (t * 1.5 % 1) * 0.5); guide.ring.material.opacity = 0.85 * (1 - (t * 1.5 % 1));
+  }
+  // 등에 쌓인 눈 블록 (가득 찰수록 탑이 높아진다)
+  function stackOn(o, P) {
+    if (o.vehicle) return;
+    if (!o.stack) {
+      stackGeo = stackGeo || new T.BoxGeometry(0.64, 0.26, 0.46);
+      stackMat = stackMat || new T.MeshLambertMaterial({ color: '#f4f8fc', emissive: '#22303f', emissiveIntensity: 0.15 });
+      o.stack = new T.Group(); o.stack.position.set(0, 1.0, -0.6); o.body.add(o.stack); o.stackBoxes = [];
+      for (var i = 0; i < 12; i++) { var m = new T.Mesh(stackGeo, stackMat); m.position.set((hash(i, 3) - 0.5) * 0.09, i * 0.255, (hash(i, 5) - 0.5) * 0.06); m.rotation.y = (hash(i, 7) - 0.5) * 0.45; m.castShadow = true; m.visible = false; o.stack.add(m); o.stackBoxes.push(m); }
+    }
+    var n = P.load > 0 ? Math.max(1, Math.round(P.load / P.cap * 12)) : 0, k = n / 12;
+    o.stackBoxes.forEach(function (m, i) { m.visible = i < n; });
+    o.stack.rotation.x = P.moving ? Math.sin((P.walk || 0) * 2) * 0.05 * k : 0;
+    o.stack.rotation.z = P.moving ? Math.sin(P.walk || 0) * 0.06 * k : 0;
+    lastStackN = n;
+  }
+  // 부으면 블록이 위에서부터 하나씩 집하장으로 날아간다 (뿅뿅뿅 — 소리가 점점 높아진다)
+  function flyStack(f) {
+    var n = Math.max(1, Math.min(12, lastStackN)), P = world.player, base = snowAt(P.x, P.y) * 0.45;
+    flyOrder = 0;
+    for (var i = n - 1; i >= 0; i--) {
+      var m = flyPool.pop();
+      if (!m) { m = new T.Mesh(stackGeo || new T.BoxGeometry(0.64, 0.26, 0.46), stackMat || new T.MeshLambertMaterial({ color: '#f4f8fc' })); scene.add(m); }
+      m.visible = false;
+      flies.push({ m: m, sx: P.x * U - P.dir.x * 0.6, sy: 1.6 + i * 0.32 + base, sz: P.y * U - P.dir.y * 0.6, ex: f.x * U + rnd(-0.7, 0.7), ey: 0.9, ez: f.y * U + rnd(-0.7, 0.7), t: -(n - 1 - i) * 0.055, d: 0.34 });
+    }
+  }
+  function stepFlies(dt) {
+    for (var k = flies.length - 1; k >= 0; k--) {
+      var f = flies[k]; f.t += dt;
+      if (f.t < 0) continue;
+      var u = Math.min(1, f.t / f.d); f.m.visible = true;
+      f.m.position.set(f.sx + (f.ex - f.sx) * u, f.sy + (f.ey - f.sy) * u + Math.sin(u * Math.PI) * 2.4, f.sz + (f.ez - f.sz) * u);
+      f.m.rotation.set(u * 6, u * 4, 0);
+      if (u >= 1) {
+        f.m.visible = false; flyPool.push(f.m); flies.splice(k, 1);
+        var s = X(); if (s && s.stack && mode === 'play') s.stack(flyOrder);
+        flyOrder++;
+        for (var q = 0; q < 5; q++) emit(f.ex, 1.1, f.ez, rnd(-2.2, 2.2), rnd(2, 5), rnd(-2.2, 2.2), rnd(0.35, 0.6), q % 2 ? [1, 0.86, 0.35] : null);
+      }
+    }
+  }
+  function stepV11(dt) {
+    var t = performance.now() / 1000;
+    syncPads(t); stepGuide(dt, t); stepFlies(dt);
+    // 공병대 제설차 (좋은 반전)
+    var sp = world.support;
+    if (sp && !supportObj) supportObj = makePerson({ coat: '#55603a', face: 'driver', vehicle: 'truck', big: true, shadow: true });
+    if (!sp && supportObj) { removeObj(supportObj); supportObj = null; }
+    if (supportObj) { placePerson(supportObj, sp); if (Math.random() < 0.8) for (var q = 0; q < 3; q++) emit(sp.x * U + sp.dir.x * 2.6 + rnd(-1.5, 1.5), 0.6, sp.y * U + sp.dir.y * 2.6 + rnd(-1.5, 1.5), (sp.dir.y ? rnd(-5, 5) : 0) + sp.dir.x * 3, rnd(3, 7), (sp.dir.x ? rnd(-5, 5) : 0) + sp.dir.y * 3, rnd(0.5, 0.9)); }
+    // 몰아치기: 금빛 반짝이 + 발밑 고리
+    if (playerObj && playerObj.ring) {
+      var fv = world.fever > 0 && mode === 'play';
+      playerObj.ring.material.color.set(fv ? '#ffb020' : '#ffd84a'); playerObj.ring.scale.setScalar(fv ? 1.7 + Math.sin(t * 10) * 0.12 : 1);
+      if (fv) { var P = world.player; for (var e = 0; e < 4; e++) { var an = Math.random() * 6.28; emit(P.x * U + Math.cos(an) * 1.2, rnd(0.3, 2.2), P.y * U + Math.sin(an) * 1.2, 0, rnd(1, 3), 0, rnd(0.4, 0.8), [1, 0.78 + Math.random() * 0.2, 0.25]); } }
+    }
+  }
+  // 로비: 생활관 앞에 선 내 캐릭터를 가까이서 천천히 돌아본다
+  function lobbyCam() {
+    var P = world.player, now = performance.now() / 1000, ang = 0.32 + Math.sin(now * 0.13) * 0.38, R = vw < vh ? 11.5 : 9.5;
+    P.dir.x = 0; P.dir.y = 1;
+    var cx = P.x * U, cz = P.y * U;
+    camera.up.set(0, 1, 0);
+    camera.position.set(cx + Math.sin(ang) * R, 3.4, cz + Math.cos(ang) * R);
+    camera.lookAt(cx + Math.sin(ang) * 0.4, vw < vh ? 0.95 : 1.3, cz);   // 캐릭터가 위 카드와 아래 출동 버튼 사이에 서도록
+    camT.x = cx; camT.z = cz;
+    scene.fog.near = 40; scene.fog.far = 300;
+    sun.target.position.set(cx, 0, cz);
+    var sc = sun.shadow.camera; if (Math.abs(sc.right - 12) > 0.5) { sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.updateProjectionMatrix(); }
+    sun.position.copy(sun.target.position).addScaledVector(sunDir, 90);
+    sky.position.copy(camera.position); sunSprite.position.copy(camera.position).addScaledVector(sunDir, 520);
+    if (playerObj) { playerObj.body.position.y = Math.abs(Math.sin(now * 1.8)) * 0.04; playerObj.body.rotation.z = Math.sin(now * 0.9) * 0.04; if (playerObj.ring) playerObj.ring.visible = false; }
+  }
+
   /* ── 루프 ── */
   var speed = 1;   // 병장 말년 특권: 작전 2배속
   function frame(t) {
@@ -1602,7 +1751,7 @@
       syncActors(dt); stepParticles(dt); stepChunks(dt); lighting(); camera3(dt); stepOverlays(dt); fadeBuildings();
       clouds.forEach(function (cl, i) { cl.position.x += dt * (1.5 + i % 3); if (cl.position.x > 420) cl.position.x = -340; });
       scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
-      stepDumps(dt); stepArrow(); syncAct(dt);
+      stepDumps(dt); stepArrow(); syncAct(dt); stepV11(dt);
     }
     renderer.clear();
     renderer.render(scene, camera);
@@ -1610,14 +1759,14 @@
   }
 
   function begin(save, m) {
-    world = G.createWorld(save, { demo: m === 'demo', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });
+    world = G.createWorld(save, { demo: m === 'demo' || m === 'lobby', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });   // 로비 장면은 저장을 건드리지 않는다
     mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
     for (i = 0; i < MAXC; i++) cPos[i * 3 + 1] = -50;
     offObjs.forEach(removeObj); offObjs = []; spkT = 0;
     recObjs.forEach(function (ob) { removeObj(ob); if (ob.tag) ob.tag.remove(); }); recObjs = [];
-    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
+    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps(); resetV11();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;
   }
@@ -1671,6 +1820,11 @@
     init: init,
     rebuildArt: function () { /* 글꼴이 늦게 와도 3D 글씨는 다시 안 그린다 */ },
     demo: function (save) { return begin(save, 'demo'); },
+    lobby: function (save) {
+      var w = begin(save, 'lobby'); w.player.x = 250; w.player.y = 172; w.player.dir = { x: 0, y: 1 }; w.haeng.x = 292; w.haeng.y = 182; w.haeng.dir = { x: -0.5, y: 0.85 }; w.haeng.hold = 1e9; w.time = w.dayLen * 0.3;
+      lastCamMode = ''; fitCam(); camera3(0, true); return w;
+    },
+    screenOf: function (x, y, h) { if (!world || !camera) return null; var p = project(x, y, h || 1); return { x: p[0], y: p[1], on: p[2] < 1 }; },
     play: function (save) { return begin(save, 'play'); },
     pause: function (b) { if (mode === 'play' && b) mode = 'paused'; else if (mode === 'paused' && !b) { mode = 'play'; last = 0; } },
     world: function () { return world; },
@@ -1681,7 +1835,7 @@
     scan: function () { if (!world) return false; scanT = 3; recolorAll(); return true; },
     toggleCam: function (to) {
       camMode = CAMS.indexOf(to) >= 0 ? to : CAMS[(CAMS.indexOf(camMode) + 1) % CAMS.length];
-      try { localStorage.setItem('jeseol-cam2', camMode); } catch (e) { /* 무시 */ }
+      try { localStorage.setItem('jeseol-cam3', camMode); } catch (e) { /* 무시 */ }
       stick = null; lookPtr = null; stickEl.hidden = true; moveTo = null;
       fitCam(); if (world) camera3(0, true); return camMode;
     },

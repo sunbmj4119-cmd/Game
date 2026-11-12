@@ -241,6 +241,11 @@
     if (save.zones[HAZ.car.zone]) at(timeAt(HAZ.car.at), 'car');
     if (day >= 2) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
     if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) at(20 + R() * (dl - 40), 'heli');
+    // v11 돌발: 폭설 경보(날씨가 나쁠수록 자주), 공병대 제설차 지원(좋은 반전), 사단장님 불시 방문
+    var TW = S.TWIST, wxi = ['light', 'normal', 'heavy', 'blizzard'].indexOf(weatherFor(save).id);
+    if (day >= TW.surge.from && R() < TW.surge.p[Math.max(0, wxi)]) at(dl * (0.3 + R() * 0.3), 'surge');
+    if (day >= TW.support.from && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');
+    if (day >= TW.surprise.from && day % 7 && R() < TW.surprise.p) at(dl * (0.35 + R() * 0.25), 'surprise');
     ev.sort(function (a, b) { return a.t - b.t; });
     return ev;
   }
@@ -627,7 +632,7 @@
     }
     if (removed) {
       w.units += removed;
-      if (src === 'player') val *= comboMult(w);
+      if (src === 'player') val *= comboMult(w) * (w.fever > 0 ? S.FEVER.value : 1);
       if (who) { who.load += removed; who.val += val; }
       else { var g = val * w.mult * 0.5; w.earned += g; pay(w, g, src); }
       w.fx.push({ t: 'clear', x: cx, y: cy, n: removed, src: src });
@@ -749,6 +754,22 @@
       var b = cand[(R() * cand.length) | 0], segW = 60 + R() * 70, sx = b.x + R() * Math.max(1, b.w - segW), sy = b.y + b.h + 18;
       w.roofs.push({ b: b, sx: sx, sy: sy, segW: segW, t: HAZ.roof.warn });
       w.fx.push({ t: 'roofWarn', x: sx, y: b.y + b.h, w: segW, b: b.id }); say(w, 'roofWarn', true);
+    } else if (k === 'surge') {
+      if (w.demo) return;
+      w.surge = S.TWIST.surge.sec; w.fx.push({ t: 'surge', on: true, sec: w.surge }); say(w, 'surge', true);
+    } else if (k === 'support') {
+      // 눈이 제일 많이 남은 구역을 긴 방향으로 한 줄 밀고 지나간다
+      var bestZ = -1, bestN = 0;
+      S.ZONES.forEach(function (Z, zi) { var n = w.zoneOpen[zi] ? w.zoneTotal[zi] - w.zoneClear[zi] : 0; if (n > bestN) { bestN = n; bestZ = zi; } });
+      if (bestZ < 0 || bestN < 30) return;
+      var SZ = S.ZONES[bestZ], vert = SZ.h > SZ.w;
+      w.support = vert ? { x: SZ.x + SZ.w / 2, y: SZ.y - 30, dir: { x: 0, y: 1 }, end: SZ.y + SZ.h + 30, vert: true, zone: SZ.name, walk: 0, moving: true, tick: 0 }
+        : { x: SZ.x - 30, y: SZ.y + SZ.h / 2, dir: { x: 1, y: 0 }, end: SZ.x + SZ.w + 30, vert: false, zone: SZ.name, walk: 0, moving: true, tick: 0 };
+      w.fx.push({ t: 'support', on: true, zone: SZ.name, x: SZ.x + SZ.w / 2, y: SZ.y + SZ.h / 2 }); say(w, 'support', true);
+    } else if (k === 'surprise') {
+      if (w.demo || !JY.SnowAct) return;
+      w.fx.push({ t: 'surprise' }); say(w, 'surprise', true);
+      JY.SnowAct.spawnOfficer(w, 'gen');
     } else if (k === 'heli') {
       var Hz = zoneById(HAZ.heli.zone);
       w.heli = { x: Hz.x + Hz.w / 2, y: Hz.y + Hz.h / 2, t: 0, life: HAZ.heli.life, tick: 0 };
@@ -835,6 +856,16 @@
         if (!car.stuck && P.stun <= 0 && Math.abs(P.x - car.x) < 16 && Math.abs(P.y - car.y) < 20) { P.stun = 0.8 * w.mod.stun; P.x += P.x < car.x ? -24 : 24; w.fx.push({ t: 'carHit', x: P.x, y: P.y }); }
       }
     }
+    // 공병대 제설차: 한 줄로 밀고 지나간다 (치운 만큼 초코파이도)
+    var sp = w.support;
+    if (sp) {
+      var mv = S.TWIST.support.speed * dt;
+      if (sp.vert) sp.y += mv; else sp.x += mv;
+      sp.walk += mv * 0.2; sp.tick -= dt;
+      if (sp.tick <= 0) { sp.tick = 0.1; clearAt(w, sp.x, sp.y, S.TWIST.support.r, 3, 'support', null); }
+      w.crew.forEach(function (c) { if (Math.abs(c.x - sp.x) < 22 && Math.abs(c.y - sp.y) < 22) { if (sp.vert) c.x += c.x < sp.x ? -30 : 30; else c.y += c.y < sp.y ? -30 : 30; c.retarget = 0; } });
+      if ((sp.vert ? sp.y : sp.x) > sp.end) { w.support = null; w.fx.push({ t: 'support', on: false }); }
+    }
     var hl = w.heli;
     if (hl) {
       hl.t += dt; hl.tick -= dt;
@@ -910,13 +941,16 @@
       if (P.hitT < 0) P.hitT = 0;
       if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
         var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
-        if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) {
-          P.swing = 1; w.combo++; w.comboT = 1.4;
+        if (clearAt(w, cx, cy, P.r * (w.fever > 0 ? S.FEVER.range : 1), P.p, 'player', P)) {
+          P.swing = 1; w.combo++; w.comboT = 2;
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
+          // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배
+          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
         }
       }
     }
+    if (w.fever > 0) { w.fever -= dt; if (w.fever <= 0) { w.fever = 0; w.fx.push({ t: 'fever', on: false }); } }
     // 콤보: 쉬지 않고 치우면 쌓인다 (짐이 가득 차 있는 동안은 안 줄어든다)
     if (w.combo > 0 && P.load < P.cap) { w.comboT -= dt; if (w.comboT <= 0) { if (w.combo >= 25) w.fx.push({ t: 'comboEnd', n: w.combo }); w.combo = 0; } }
     if (P.load >= P.cap) { if (!P.fullSaid) { P.fullSaid = true; w.fx.push({ t: 'full' }); say(w, 'full', true); } } else P.fullSaid = false;
@@ -1016,7 +1050,8 @@
     }
 
     // 낮에도 눈은 날린다. 다 치워 가는 조각(80%↑)엔 안 쌓인다 — 한 땀 한 땀 끝낸 곳은 지켜 준다
-    w.fallAcc += w.cells.length * S.FALL * w.wx.fall * dt;
+    if (w.surge > 0) { w.surge -= dt; if (w.surge <= 0) { w.surge = 0; w.fx.push({ t: 'surge', on: false }); } }
+    w.fallAcc += w.cells.length * S.FALL * w.wx.fall * (w.surge > 0 ? S.TWIST.surge.fall : 1) * dt;
     while (w.fallAcc >= 1) {
       w.fallAcc -= 1;
       var k = w.cells[(R() * w.cells.length) | 0], d0 = w.depth[k], pk = w.partOf[k];

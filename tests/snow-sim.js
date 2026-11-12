@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* 제설각 v10 페이싱: 가상 플레이어가 제설 작전을 하나씩 치른다.
+/* 제설각 v10/v11 페이싱: 가상 플레이어가 제설 작전을 하나씩 치른다.
  * 마감 순서대로 치우고, 빙판엔 염화칼슘, 간부에겐 경례(반응 시간), 빠진 차는 밀고, 다 하면 보고. 작전 사이엔 보급을 산다.
+ * v11: 보고·보급은 빛나는 원 위에 서 있기, 제설함·빙판·차 밀기는 그 자리에 가기만 하면 저절로.
  * node tests/snow-sim.js [작전 수] [시드] [효율 0~1] [-v] */
 'use strict';
 global.window = {};
@@ -36,9 +37,9 @@ function runOp() {
     if (off) A.act(w, { k: 'officer', ref: off }, P.dir, false);
     // 보고 (빙판을 다 처리한 뒤에)
     var icy0 = w.parts.some(function (q) { return q.icy && !q.salted; });
-    if (o.ready && !icy0) { var hv = toward(P, w.haeng.x, w.haeng.y); if (hv.d < 30) { tryAct('haeng'); return { x: 0, y: 0 }; } return hv; }
+    if (o.ready && !icy0) { var hv = toward(P, S.PADS.report.x, S.PADS.report.y); if (hv.d < 8) return { x: 0, y: 0 }; return hv; }
     // 빠진 차 밀기
-    if (w.car && w.car.stuck) { var cv = toward(P, w.car.x, w.car.y + 14); if (cv.d < 40) { tryAct('car'); return { x: 0, y: 0 }; } return cv; }
+    if (w.car && w.car.stuck) { var cv = toward(P, w.car.x, w.car.y + 14); if (cv.d < 30) return { x: 0, y: 0 }; return cv; }
     // 짐이 가득 → 집하장
     if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return toward(P, d.x, d.y); }
     // 빙판 → 제설함 → 뿌리기
@@ -46,15 +47,15 @@ function runOp() {
     if (icy && !G.toolOf(save).aura) {
       if (w.act.hand !== 'salt') {
         var box = S.PROPS.filter(function (p) { return p.id === 'saltbox'; }).sort(function (a, b) { return Math.hypot(a.ux - P.x, a.uy - P.y) - Math.hypot(b.ux - P.x, b.uy - P.y); })[0];
-        var bv = toward(P, box.ux, box.uy); if (bv.d < 20) { tryAct('saltbox'); return { x: 0, y: 0 }; } return bv;
+        return toward(P, box.ux, box.uy);
       }
       var iv = toward(P, icy.x + icy.w / 2, icy.y + icy.h / 2);
-      if (tryAct('spread')) return { x: 0, y: 0 };
+      if (iv.d < 6) return { x: 0, y: 0 };
       return iv;
     }
     // 장비: 행보관에게 요청 (살 수 있으면)
     var nt = A.nextTool(save);
-    if (nt && save.bank >= nt.cost * 1.1 && G.rankOf(save) >= (nt.rank || 0)) { var tv = toward(P, w.haeng.x, w.haeng.y); if (tv.d < 30) { tryAct('haeng', true); return { x: 0, y: 0 }; } return tv; }
+    if (nt && save.bank >= nt.cost * 1.1 && G.rankOf(save) >= (nt.rank || 0)) { var tv = toward(P, S.PADS.supply.x, S.PADS.supply.y); if (tv.d < 8) return { x: 0, y: 0 }; return tv; }
     // 지시서: 마감이 가장 빠른 미완료 구역의 눈
     bot.t -= DT;
     if (bot.t <= 0 || bot.idx < 0 || !w.depth[bot.idx]) {
@@ -66,7 +67,13 @@ function runOp() {
     var c = cellXY(bot.idx); return toward(P, c.x, c.y);
   }
   while (!w.opEnd && t < 400) {
-    var inp = input(); G.step(w, DT, inp); t += DT;
+    var inp = input();
+    if (bot.side > 0) { bot.side -= DT; inp = { x: bot.sx, y: bot.sy }; }   // 막히면 옆으로 비켜 걷는다 (사람처럼 돌아간다)
+    G.step(w, DT, inp); t += DT;
+    if (inp.x || inp.y) {
+      if (Math.hypot(w.player.x - (bot.px || 0), w.player.y - (bot.py || 0)) < DT * 8) { bot.stuck = (bot.stuck || 0) + DT; if (bot.stuck > 0.4) { var sg = rnd() < 0.5 ? 1 : -1; bot.stuck = 0; bot.sx = -inp.y * sg; bot.sy = inp.x * sg; bot.side = 0.9; } } else bot.stuck = 0;
+    }
+    bot.px = w.player.x; bot.py = w.player.y;
     if (w.recruits.length) G.autoPost(w);
     w.fx.length = 0; w.dirty.length = 0;
   }

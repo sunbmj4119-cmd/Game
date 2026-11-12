@@ -48,6 +48,10 @@
     unlock: function () { ctx(); },
     scrape: function (k) { noise(0.07 + k * 0.05, 0.05 + k * 0.08, 'bandpass', 1500 + Math.random() * 1800, 0.9); },
     tick: function () { tone(1250 + Math.random() * 180, 0.06, 'sine', 0.045); },
+    // 등에 진 눈 블록이 집하장에 하나씩 떨어질 때: 갈수록 높아진다
+    stack: function (i) { var k = Math.pow(1.06, Math.min(18, i || 0)); tone(560 * k, 0.07, 'triangle', 0.07); tone(1120 * k, 0.05, 'sine', 0.03, 0.02); },
+    // 몰아치기 시작
+    fever: function () { [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, 0.12, 'square', 0.045, i * 0.05); }); noise(0.5, 0.06, 'highpass', 3000, 0.7); },
     whistle: function (long) {
       var c = ctx(); if (!c) return;
       var t = c.currentTime, o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), g = c.createGain(), dur = long ? 0.9 : 0.4;

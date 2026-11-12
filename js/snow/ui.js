@@ -1,5 +1,6 @@
-/* 제설각 — 화면 흐름 (v10): 생활관(저녁) → 제설 비상 브리핑 → 작전(05:30~08:00) → 검열 결과(★) → 진급 → 생활관
- * 보급·인원·PX·공중전화·체력단련은 생활관에서만. 작전 중엔 눈과 사람에만 집중한다. */
+/* 제설각 — 화면 흐름 (v11): 타이틀 → 생활관 로비 → 제설 비상 브리핑 → 작전(05:30~08:00) → 검열 결과(★) → 진급 → 로비
+ * v11: 한 손가락 조작 · 빛나는 원 위에 서면 저절로 · 화면 위 '지금 할 일' 한 줄 · 등에 쌓이는 눈 블록 · 폭풍 제설·폭설 경보 같은 반전.
+ * 보급·인원·PX·공중전화·체력단련은 로비에서만. 작전 중엔 눈과 사람에만 집중한다. */
 (function (JY) {
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
@@ -23,6 +24,8 @@
     lastSave = Date.now();
   }
   function fmt(n) { return Math.floor(n).toLocaleString('ko-KR'); }
+  // 작전 HUD처럼 좁은 곳: 10만부터 '12.3만', 1억부터 '1.2억'
+  function short(n) { n = Math.floor(n); return n >= 1e8 ? (n / 1e8).toFixed(n >= 1e9 ? 0 : 1) + '억' : n >= 1e5 ? (n / 1e4).toFixed(n >= 1e6 ? 0 : 1) + '만' : fmt(n); }
   // 받침 있으면 a(을·은·이), 없으면 b(를·는·가)
   function josa(w, a, b) { var c = String(w).charCodeAt(String(w).length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b); }
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
@@ -33,14 +36,20 @@
   function insignia(r) { return JY.art ? JY.art.rankInsignia(r + 1) : ''; }
 
   function show(id) {
-    ['title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
+    ['splash', 'title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
     $('hud').hidden = id !== 'play';
     $('h-shop').hidden = true;   // v10: 보급은 생활관에서만 (작전 중 장비는 행보관에게 직접 요청)
     ['acts', 'side'].forEach(function (k) { $(k).hidden = id !== 'play' || !A; });
     if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; } else fpLayout();
     if (id === 'title') $('say').hidden = true;
     $('stack').classList.toggle('low', id === 'shop');
-    if (id !== 'play') $('hint').hidden = true;
+    if (id !== 'play') {
+      $('stack').style.top = ''; document.body.classList.remove('saluting');
+      $('hint').hidden = true;
+      ['fever', 'surge', 'combo', 'chip', 'banner', 'salute'].forEach(function (k) { $(k).hidden = true; });
+      document.body.classList.remove('fever', 'surge'); hudA.fv = hudA.sg = false; comboShown = 0;
+      $('coins').innerHTML = '';
+    }
   }
 
   /* ── 행보관 말풍선·알림 ── */
@@ -89,60 +98,118 @@
   function midOp() { return !!(save.snow && save.dayT > 0 && save.op && save.op.day === save.day); }
   function title() {
     show('title');
-    V.demo(save);
-    var r = G.rankOf(save), on = started(), nr = G.nextRank(save), box = $('title-box');
-    box.classList.toggle('hubmode', on);
-    $('hub').hidden = !on; $('hub-grid').hidden = !on; $('t-shop').hidden = true;
-    $('t-info').hidden = on;
-    $('t-info').innerHTML = '<span>이병 · 싸리비 하나로 부대를 치운다</span>';
-    $('t-start').textContent = !on ? '전입 신고' : midOp() ? '작전 이어하기 (' + G.clockText(G.clockOf(save.dayT)) + ')' : save.exam ? '진급 심사 작전 출동' : '제설 비상! 출동';
-    $('t-start').classList.toggle('exam', !!save.exam && !midOp());
-    $('t-sound').textContent = X && X.muted() ? '소리 끔' : '소리 켬';
-    if (on) renderHub();
+    if (V.lobby) V.lobby(save); else V.demo(save);
+    var on = started(), mid = midOp();
+    $('t-start-b').textContent = !on ? '전입 신고' : mid ? '작전 이어하기' : save.exam ? '진급 심사 출동' : '제설 출동';
+    $('t-start-s').textContent = !on ? '이병 · 싸리비 하나로 시작' : mid ? G.clockText(G.clockOf(save.dayT)) + '부터 계속' : save.day + '일차 · 05:30 제설 비상';
+    $('t-start').classList.toggle('exam', !!save.exam && !mid);
+    document.body.classList.toggle('fresh', !on);
+    renderHub();
   }
+  var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.6L12 16.6 6 19.9l1.5-6.6-5-4.5 6.6-.6z" fill="#ffd24a" stroke="#a87a12" stroke-width="1.2"/></svg>';
+  // 로비: 왼쪽 위 내 카드(얼굴·계급·★ 막대), 아래 진급 길 + 소식 3줄, 오른쪽 생활관 버튼 배지
   function renderHub() {
-    var r = G.rankOf(save), nr = G.nextRank(save), m = save.merit || 0, R0 = S.RANKS[r];
-    var wx = G.weatherFor(save), lo = save.lastOp;
-    var prog = nr ? Math.min(1, (m - R0.merit) / (nr.merit - R0.merit)) : Math.min(1, m / S.DISCHARGE_MERIT);
-    var goalTxt = save.exam ? '<b class="examtag">다음 작전: ' + nr.name + ' 진급 심사</b>' : nr ? '근무평정 <b>★' + m + '</b> / ' + nr.merit + ' → ' + nr.name + ' 진급 심사' : '근무평정 <b>★' + m + '</b> / ' + S.DISCHARGE_MERIT + ' → 전역';
-    var nextZone = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; })[0];
-    var leaveOk = save.dia >= S.LEAVE.cost, disOk = G.canDischarge(save);
-    $('hub').innerHTML =
-      '<div class="hub-card">' +
-        '<div class="hub-top"><span class="ins big">' + insignia(r) + '</span><div><b>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</b><small>' + esc(R0.role) + '</small></div></div>' +
-        '<p class="hub-goal">' + goalTxt + '</p><div class="hub-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div>' +
-        '<ul class="hub-stats">' +
-          '<li><span>복무</span><b>' + save.day + '일차</b></li>' +
-          '<li><span>초코파이</span><b>' + pie() + fmt(save.bank) + '</b></li>' +
-          '<li><span>상점</span><b>' + dia() + save.dia + '</b></li>' +
-          '<li><span>분대원</span><b>' + G.crewCount(save) + '/' + G.crewCap(save) + '명</b></li>' +
-        '</ul>' +
-        (lo ? '<p class="hub-last">지난 작전(' + lo.day + '일차) <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 진급 심사 합격' : ' · 심사 불합격') : '') + '</p>' : '') +
-        '<p class="hub-wx">내일 새벽: <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + (nextZone ? ' · 다음 담당 구역 ' + esc(nextZone.name) + ' (★' + nextZone.need + ')' : '') + '</p>' +
-        '<div class="hub-acts">' +
-          '<button id="hub-leave" class="btn ghost"' + (leaveOk ? '' : ' disabled') + '>포상휴가 <small>' + dia() + S.LEAVE.cost + (save.leave ? ' · ' + save.leave + '번 다녀옴' : '') + '</small></button>' +
-          (disOk || r >= 3 ? '<button id="hub-dis" class="btn ghost"' + (disOk ? '' : ' disabled') + '>전역 신고' + (disOk ? '' : ' <small>★' + S.DISCHARGE_MERIT + '</small>') + '</button>' : '') +
-        '</div>' +
-      '</div>';
+    var r = G.rankOf(save), nr = G.nextRank(save), m = save.merit || 0, R0 = S.RANKS[r], on = started();
+    var lo = save.lastOp, wx = G.weatherFor(save), base = R0.merit, top = nr ? nr.merit : S.DISCHARGE_MERIT;
+    var prog = Math.max(0, Math.min(1, (m - base) / Math.max(1, top - base)));
+    $('hub-card').innerHTML =
+      '<div class="lc-face">' + (JY.art && M ? JY.art.character(M.lookSpec(save)) : '') + '</div>' +
+      '<div class="lc-body"><b class="lc-name"><span class="ins">' + insignia(r) + '</span><span>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</span></b>' +
+      '<small class="lc-role">' + esc(R0.role.split(' — ')[0]) + ' · ' + save.day + '일차 · 분대원 ' + G.crewCount(save) + '명</small>' +
+      '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div></div>';
+    $('lb-bank').textContent = save.bank >= 1e7 ? short(save.bank) : fmt(save.bank); $('lb-dia').textContent = fmt(save.dia);
+    var steps = S.RANKS.map(function (R, i) { return { name: R.name, need: R.merit, i: i }; }).concat([{ name: '전역', need: S.DISCHARGE_MERIT, i: S.RANKS.length }]);
+    var road = '<ol class="road">' + steps.map(function (s) {
+      var cls = s.i < r ? 'past' : s.i === r ? 'now' : s.i === r + 1 ? 'next' + (save.exam ? ' exam' : '') : '';
+      return '<li class="' + cls + '"><i>' + (s.i < S.RANKS.length ? insignia(s.i) : STAR_SVG) + '</i><b>' + s.name + '</b><small>' + (s.i === r ? '지금' : s.i === r + 1 && save.exam ? '심사!' : '★' + s.need) + '</small></li>';
+    }).join('') + '</ol>';
+    var nextZone = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; })[0], news = [];
+    if (!on) news.push('<li class="hl">끌어서 걷고, 눈을 <b>등에 쌓아</b> 집하장에 붓는다</li>', '<li>★이 쌓이면 <b>진급</b> — 계급이 오를수록 편해진다</li>');
+    if (G.canDischarge(save)) news.push('<li class="hl" data-hub="dis">전역할 수 있다! <b>전역 신고 ›</b></li>');
+    if (save.exam && nr) news.push('<li class="exam">다음 작전 = <b>' + nr.name + ' 진급 심사</b> · ★★ 이상이면 진급</li>');
+    if (lo) news.push('<li>지난 작전 <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 심사 합격' : ' · 심사 불합격') : '') + '</li>');
+    if (on) news.push('<li>내일 새벽 <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + '</li>');
+    if (nextZone && on) news.push('<li>★' + nextZone.need + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
+    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 3).join('') + '</ul>';
     var any = G.offers(save), n = 0;
-    ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { any[k].forEach(function (o) { if (o.ok) n++; }); });
+    ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
-    $('hub-phone-s').textContent = save.daily.call === save.day ? '오늘은 통화했다' : '하루 한 번';
-    var lv = $('hub-leave'); if (lv) lv.onclick = goLeave;
-    var ds = $('hub-dis'); if (ds) ds.onclick = function () { tab = 'dis'; openShop(); };
+    $('hub-phone-n').hidden = !on || save.daily.call === save.day;
+    $('hub-leave-n').hidden = save.dia < S.LEAVE.cost;
+    $('hub-grid').hidden = !on;
   }
   function hubClick(e) {
     var b = e.target.closest('[data-hub]'); if (!b) return;
     var k = b.getAttribute('data-hub');
-    if (X) X.pop();
+    if (X) { X.unlock(); X.pop(); }
     if (k === 'shop') { tab = 'tool'; openShop(); }
     else if (k === 'px') openPX();
     else if (k === 'phone') phoneCall();
     else if (k === 'pull') pullUp();
+    else if (k === 'leave') { if (save.dia >= S.LEAVE.cost) goLeave(); else toast('포상휴가는 상점 ' + S.LEAVE.cost + '개 (지금 ' + save.dia + '개) · 작전 ★★★·칼경례로 모은다'); }
+    else if (k === 'help') help();
+    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis') { tab = k; openShop(); }
+    else if (k === 'settings') settings();
+  }
+  // 설정: 소리·진동·작전 시점·교범·전역·처음부터
+  var CAM_NAME = { near: '위에서 (추천)', far: '멀리서', fp: '1인칭' };
+  function settings() {
+    function render() {
+      modal('<div class="m-rank set"><p class="kicker">설정</p><h3>설정</h3><div class="set-list">' +
+        '<button data-set="sound"><span>소리</span><b>' + (X && X.muted() ? '끔' : '켬') + '</b></button>' +
+        '<button data-set="haptic"><span>진동</span><b>' + (JY.snowHaptic ? '켬' : '끔') + '</b></button>' +
+        (V.toggleCam ? '<button data-set="cam"><span>작전 시점</span><b>' + (CAM_NAME[V.camMode()] || '') + '</b></button>' : '') +
+        '<button data-set="help"><span>제설 교범 다시 보기</span><b>›</b></button>' +
+        (G.rankOf(save) >= 3 || save.discharges ? '<button data-set="dis"><span>전역 신고</span><b>›</b></button>' : '') +
+        '<button data-set="reset" id="t-reset" class="danger"><span>처음부터 다시</span><b>›</b></button>' +
+        '</div><button class="btn big" data-m="close">닫기</button></div>');
+      var b = $('modal-box'), base = b.onclick;
+      b.onclick = function (e) {
+        var s = e.target.closest('[data-set]'); if (!s) return base(e);
+        var k = s.getAttribute('data-set');
+        if (k === 'sound') { if (X) { X.setMuted(!X.muted()); if (!X.muted()) { X.unlock(); X.pop(); } } render(); }
+        else if (k === 'haptic') { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (er) { /* 무시 */ } if (JY.snowHaptic) vibrate(30); render(); }
+        else if (k === 'cam') { V.toggleCam(); camLabel(); render(); }
+        else { $('modal').hidden = true; if (k === 'help') help(); else if (k === 'dis') { tab = 'dis'; openShop(); } else if (k === 'reset') resetAll(); }
+      };
+    }
+    render();
+  }
+  // 제설 교범: 처음 출동 전에 4장. 무엇을 하고(눈을 쌓아 붓는다), 어떻게 하고(끌기·원 위에 서기), 왜 하는지(★→진급)
+  var HELP = [
+    { t: '끌어서 걷는다', s: '화면 <b>아무 데나</b> 손가락을 대고 끌면 그쪽으로 걷는다. 빗자루·넉가래는 <b>알아서</b> 민다.', art: 'drag' },
+    { t: '등에 쌓고 → 집하장에 붓는다', s: '치운 눈은 <b>등에 블록으로</b> 쌓인다. 꽉 차면 <b>노란 집하장</b>에 들어가기만 하면 와르르 — 그게 초코파이.', art: 'stack' },
+    { t: '빛나는 원 위에 서 있기', s: '<b>보급 원</b>에 서면 다음 장비, <b>보고 원</b>에 서면 작전 끝. 뭘 할지 모르겠으면 화면 위 한 줄과 <b>노란 화살표</b>.', art: 'pad' },
+    { t: '마감 전에 끝내면 ★', s: '지시서 구역을 시각 안에 치우면 ★. ★이 쌓이면 <b>진급</b>, 계급이 오르면 후임·장비·제설차가 대신 해 준다.', art: 'star' }
+  ];
+  var HELP_ART = {
+    drag: '<svg viewBox="0 0 200 120"><rect x="60" y="6" width="80" height="108" rx="12" fill="#1d2f4d" stroke="#9fb6cd" stroke-width="3"/><rect x="67" y="16" width="66" height="88" rx="4" fill="#e9f1f8"/><path d="M78 84 q22 -30 44 -42" stroke="#ffd24a" stroke-width="4" fill="none" stroke-dasharray="6 5"/><path d="M122 42 l-12 0 l8 -9z" fill="#ffd24a"/><circle cx="78" cy="84" r="9" fill="rgba(255,210,74,.45)" stroke="#ffd24a" stroke-width="2"/><path d="M76 96 c-2-10 0-18 6-18 4 0 5 4 5 8 v-12 c0-3 2-5 4-5s4 2 4 5v14 c0-2 2-4 4-4s4 2 4 5v10 c0 8-6 14-14 14h-4c-8 0-12-6-13-17z" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><circle cx="118" cy="52" r="7" fill="#5b6a3a"/><circle cx="118" cy="45" r="5" fill="#f6c79c"/></svg>',
+    stack: '<svg viewBox="0 0 200 120"><ellipse cx="150" cy="100" rx="36" ry="12" fill="#ffd24a" opacity=".55"/><path d="M126 98 q24 -40 48 0z" fill="#f4f8fc" stroke="#9fb6cd" stroke-width="2"/><g transform="translate(52 0)"><rect x="-14" y="60" width="28" height="36" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2"/><circle cx="0" cy="50" r="11" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><path d="M-11 46 q11 -14 22 0z" fill="#4d5b31"/>' + [0, 1, 2, 3, 4].map(function (i) { return '<rect x="-28" y="' + (84 - i * 11) + '" width="16" height="10" rx="2" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.5"/>'; }).join('') + '</g><path d="M78 60 q34 -26 62 6" stroke="#ffd24a" stroke-width="4" fill="none" stroke-dasharray="6 5"/>' + [0, 1, 2].map(function (i) { return '<rect x="' + (96 + i * 14) + '" y="' + (40 + i * 4) + '" width="12" height="8" rx="2" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.2" transform="rotate(' + (i * 18 - 10) + ' ' + (102 + i * 14) + ' ' + (44 + i * 4) + ')"/>'; }).join('') + '<text x="150" y="30" text-anchor="middle" font-size="18" fill="#b8861b" font-family="Black Han Sans,sans-serif">+120</text></svg>',
+    pad: '<svg viewBox="0 0 200 120"><ellipse cx="100" cy="88" rx="62" ry="22" fill="rgba(255,210,74,.35)" stroke="#ffd24a" stroke-width="4"/><path d="M38 88 a62 22 0 0 1 124 0" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/><rect x="86" y="50" width="28" height="34" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2"/><circle cx="100" cy="40" r="11" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><path d="M89 36 q11 -14 22 0z" fill="#4d5b31"/><rect x="58" y="4" width="84" height="22" rx="11" fill="#16233a"/><text x="100" y="20" text-anchor="middle" font-size="13" fill="#ffd24a" font-family="Jua,sans-serif">보급 · 넉가래</text></svg>',
+    star: '<svg viewBox="0 0 200 120">' + [0, 1, 2].map(function (i) { return '<g transform="translate(' + (52 + i * 48) + ' ' + (i === 1 ? 44 : 54) + ') scale(' + (i === 1 ? 1.5 : 1.2) + ')"><path d="M0 -16l4.7 9.6 10.5 1.2-7.8 7.2 2.2 10.4L0 7.2l-9.6 5.2 2.2-10.4-7.8-7.2 10.5-1.2z" fill="#ffd24a" stroke="#a87a12" stroke-width="1.6"/></g>'; }).join('') + '<path d="M70 96 l30 -12 30 12 M70 108 l30 -12 30 12" stroke="#c8402e" stroke-width="6" fill="none" stroke-linejoin="round"/></svg>'
+  };
+  function help(done) {
+    var i = 0;
+    function render() {
+      var h = HELP[i], last = i === HELP.length - 1;
+      modal('<div class="m-help"><p class="kicker">제설 교범 ' + (i + 1) + ' / ' + HELP.length + '</p><div class="help-art">' + HELP_ART[h.art] + '</div><h3>' + h.t + '</h3><p>' + h.s + '</p>' +
+        '<div class="dots">' + HELP.map(function (_, j) { return '<i class="' + (j === i ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+        '<div class="res-btns"><button class="btn ghost" data-h="' + (i ? 'prev' : 'skip') + '">' + (i ? '이전' : '건너뛰기') + '</button><button class="btn big" data-h="next">' + (last ? (done ? '알겠다! 출동' : '알겠다') : '다음') + '</button></div></div>');
+      $('modal-box').onclick = function (e) {
+        var b = e.target.closest('[data-h]'); if (!b) return;
+        var k = b.getAttribute('data-h'); if (X) X.pop();
+        if (k === 'next' && !last) { i++; render(); return; }
+        if (k === 'prev') { i--; render(); return; }
+        $('modal').hidden = true; save.seen.help = true; persistRaw(); if (done) done();
+      };
+    }
+    render();
   }
 
   /* ── 제설 비상 브리핑: 누가 지시하나(계급마다), 날씨, 작업 지시서(마감 시각), 특이사항, 상병부터 조원 배치 ── */
   function startOp() {
+    if (X) X.unlock();
+    if (!save.seen.help) { help(startOp); return; }   // v11: 처음 한 번은 교범 4장
     if (!started() && !save.story.prologue) { play(false); return; }   // 첫 전입: 프롤로그가 이어진다
     if (midOp()) { play(true); return; }
     briefing();
@@ -253,7 +320,12 @@
     if (f.t === 'jigeok') { chip('지적 ' + f.n + '건 — 경례 안 했다 (등급 감점)', 'bad'); vibrate([80, 40, 80]); hud.op = null; return true; }
     if (f.t === 'nag') return true;
     if (f.t === 'prep') { chip('준비물: ' + f.used.join(', '), 'good'); return true; }
-    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '행보관이 창고에서 꺼내 줬다 · 초코파이 ' + fmt(f.cost), 2200); if (X) X.buy(); return true; }
+    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '행보관이 창고에서 꺼내 줬다 · 초코파이 ' + fmt(f.cost), 2200); if (X) X.buy(); if (V.shake) V.shake(2); vibrate([30, 30, 60]); hud.ld = -1; return true; }
+    if (f.t === 'fever') { if (f.on) { banner('폭풍 제설!!', '콤보 ' + f.n + ' · ' + S.FEVER.sec + '초 동안 눈 값 ×' + S.FEVER.value + ' · 넉가래 범위 UP', 2000); if (X && X.fever) X.fever(); vibrate([30, 30, 30, 30, 90]); } return true; }
+    if (f.t === 'surge') { if (f.on) { banner('폭설 경보!', '눈이 미친 듯이 쏟아진다 · ' + Math.round(f.sec) + '초 버텨라', 2400); if (X) X.whistle(false); vibrate([100, 60, 100]); } else chip('폭설이 잦아들었다. 지금이 기회!', 'good'); return true; }
+    if (f.t === 'support') { if (f.on) { banner('공병대 제설차 지원!', f.zone + '을(를) 한 줄 싹 밀고 간다', 2400); if (X) X.bugle(); } return true; }
+    if (f.t === 'surprise') { banner('사단장님 불시 방문!!', '보이면 바로 경례 — 칼경례면 상점', 2600); if (X) X.bugle(); vibrate([80, 40, 80, 40, 80]); return true; }
+    if (f.t === 'dump') { if (f.src === 'player') coinFly(f); return true; }
     return false;
   }
 
@@ -271,7 +343,7 @@
     var bs = hud.bankShown === undefined || hud.bank === -1 ? bank : hud.bankShown;
     if (bs !== bank || hud.bank !== bank) {
       var df = bank - bs; bs = Math.abs(df) < 2 ? bank : Math.round(bs + df * 0.2 + (df > 0 ? 1 : -1));
-      hud.bankShown = bs; hud.bank = bank; $('h-bank').textContent = fmt(bs);
+      hud.bankShown = bs; hud.bank = bank; $('h-bank').textContent = short(bs);
     }
     // 퍼 담을 때마다 게이지가 통통, "+3"
     var nowP = Date.now();
@@ -294,6 +366,8 @@
     if (!save.seen.tut && P.moving && P.load > 0) { save.seen.tut = true; $('hint').hidden = true; }
     var ck = G.clockText(G.clockOf(w.time));
     if (hud.clock !== ck) { hud.clock = ck; $('h-day').textContent = ck; var late = w.dayLen - w.time < 30; $('h-day').classList.toggle('late', late); }
+    // 알림 줄은 HUD(지금 할 일·진행 막대) 바로 아래에서 시작한다
+    if (nowP - (hud.stackAt || 0) > 400) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; } }
     if (Date.now() - lastSave > 5000) persist();
   }
 
@@ -563,9 +637,10 @@
       name = Pt.name; txt = Pt.done ? '완벽!' : pr >= S.ALMOST ? '남은 ' + left + '칸' : Math.floor(pr * 100) + '%';
       cls = Pt.done ? 'done' : pr >= S.ALMOST ? 'almost' : '';
     } else { pr = G.pct(w); name = '부대 전체'; txt = Math.floor(pr * 100) + '%'; }
-    var key = name + txt + cls + Math.round(pr * 200);
+    var showP = !!(Pt && w.zoneOpen[Pt.zi] && (Pt.done || pr >= 0.7));
+    var key = name + txt + cls + Math.round(pr * 200) + showP;
     if (hud.area === key) return;
-    hud.area = key;
+    hud.area = key; $('h-prog').hidden = !showP;
     $('h-area').textContent = name; $('h-pct').textContent = txt; $('h-fill').style.width = Math.min(100, pr * 100) + '%';
     var pg = document.querySelector('.prog'); pg.classList.toggle('almost', cls === 'almost'); pg.classList.toggle('done', cls === 'done');
   }
@@ -576,7 +651,8 @@
     if (n === comboShown) return;
     comboShown = n; el.hidden = false;
     $('combo-n').textContent = '콤보 x' + n;
-    $('combo-t').textContent = '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
+    var nf = S.FEVER.at.filter(function (a) { return a > n; })[0];
+    $('combo-t').textContent = w.fever > 0 ? '폭풍 제설 중!' : nf && nf - n <= 30 ? '폭풍 제설까지 ' + (nf - n) : '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
     el.classList.toggle('hot', n >= 50); el.classList.toggle('fire', n >= 150);
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     if (X && n % 5 === 0) X.combo(n);
@@ -689,7 +765,7 @@
 
   /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
   var curT = null, actAt = 0, subTimer = 0, hudA = {};
-  var CAM_NEXT = { fp: '3인칭', near: '위에서', far: '1인칭' };
+  var CAM_NEXT = { near: '멀리', far: '1인칭', fp: '위에서' };
   function camLabel() { if (V.camMode) $('h-cam-t').textContent = CAM_NEXT[V.camMode()] || '시점'; }
   function fp() { return !!(V.isFP && V.isFP()); }
   function fpLayout() {
@@ -700,7 +776,7 @@
   function hintText() {
     $('hint').innerHTML = fp()
       ? '<b>왼쪽 끌면 걷고, 오른쪽 끌면 둘러본다</b><span>도구는 알아서 쓴다 · 가득 차면 <em>집하장</em> · 사람 앞에선 <em>행동</em> 버튼 (경례·요청·보고)</span>'
-      : '<b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span>';
+      : '<b>화면 아무 데나 끌면 걷는다</b><span>빗자루는 알아서 민다 · 위의 <em>지금 할 일</em>과 <em>노란 화살표</em>를 따라가라</span>';
   }
   function look() { return V.look ? V.look() : null; }
   function updAct(w, force) {
@@ -717,12 +793,16 @@
       $('act-name').textContent = t ? t.name : '';
       $('act-verb').textContent = t ? t.verb : '행동';
       b.classList.toggle('pulse', !!t && (t.k === 'car' || t.k === 'spread' || (t.k === 'haeng' && t.urgent)));
+      $('acts').classList.toggle('off', !t);
+      var salNow = !!t && t.k === 'officer' && t.urgent && t.verb === '경례';
+      $('acts').classList.toggle('salute', salNow); document.body.classList.toggle('saluting', salNow);
       $('xh-t').innerHTML = t ? '<b>' + esc(t.verb) + '</b> · ' + esc(t.name) + (t.ask ? ' <small>' + esc(t.ask) + '</small>' : '') : '';
       $('xhair').classList.toggle('on', !!t);
     }
     var st = A.state(w);
     saluteHud(st);
     opHud(w, st);
+    goalHud(st); twistHud(st);
     var hk = st.hand ? st.hand.name : '';
     if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand; $('h-hand-n').textContent = hk; }
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
@@ -736,6 +816,46 @@
     }
     var bk = st.buffs.map(function (x) { return x.name + ' ' + Math.ceil(x.t) + '초'; }).join('|');
     if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 3).map(function (x) { return '<span>' + esc(x.name.length > 5 ? x.name.slice(0, 5) : x.name) + ' ' + Math.ceil(x.t) + '</span>'; }).join('') + (st.buffs.length > 3 ? '<span>+' + (st.buffs.length - 3) + '</span>' : ''); }
+  }
+  // v11 '지금 할 일' 한 줄: 화면 맨 위 가운데. 색 = 급한 정도 (빨강 경례·차 / 노랑 붓기·보급 / 파랑 빙판 / 초록 보고·신병 / 남색 치우기)
+  function goalHud(st) {
+    var g = st.goal, el = $('goal');
+    if (!g) { el.hidden = true; hudA.goal = null; return; }
+    var key = g.kind + '|' + g.text + '|' + g.sub + '|' + Math.round((g.pct || 0) * 50) + g.tone;
+    if (hudA.goal === key) return;
+    var changed = hudA.goalKind !== g.kind + g.text;
+    hudA.goal = key; hudA.goalKind = g.kind + g.text;
+    el.hidden = false; el.className = 'goal t-' + (g.tone || 'navy') + (g.pct !== undefined ? ' has-bar' : '');
+    $('g-t').textContent = g.text; $('g-s').textContent = g.sub || '';
+    $('g-f').style.width = g.pct !== undefined ? Math.round(Math.min(1, g.pct) * 100) + '%' : '0';
+    if (changed) { void el.offsetWidth; el.classList.add('pop'); if (X && hudA.goalSeen && (g.tone === 'red' || g.kind === 'report' || g.kind === 'supply')) X.ding(); hudA.goalSeen = true; }
+  }
+  function twistHud(st) {
+    var fv = st.fever > 0, sg = st.surge > 0;
+    if (hudA.fv !== fv) { hudA.fv = fv; $('fever').hidden = !fv; document.body.classList.toggle('fever', fv); }
+    if (fv) $('fever-t').textContent = '눈 값 ×' + S.FEVER.value + ' · ' + Math.ceil(st.fever) + '초';
+    if (hudA.sg !== sg) { hudA.sg = sg; $('surge').hidden = !sg; document.body.classList.toggle('surge', sg); }
+    if (sg) $('surge-t').textContent = '눈이 쏟아진다 · ' + Math.ceil(st.surge) + '초';
+  }
+  // 집하장에 부으면 초코파이가 화면 위 지갑으로 날아간다 (+금액 글자도 튀어 오른다)
+  function coinFly(f) {
+    var p = V.screenOf ? V.screenOf(f.x, f.y, 1) : null, dst = document.querySelector('#hud .pill.bank'), box = $('coins');
+    if (!p || !p.on || !dst || !box || $('hud').hidden) return;
+    var cr = $('cv').getBoundingClientRect(), r = dst.getBoundingClientRect(), sx = cr.left + p.x, sy = cr.top + p.y, dx = r.left + 22, dy = r.top + r.height / 2;
+    var pop = document.createElement('b'); pop.className = 'pay-pop' + (f.full ? ' full' : ''); pop.textContent = '+' + fmt(f.pay) + (f.full ? ' 만재!' : '');
+    pop.style.left = sx + 'px'; pop.style.top = sy + 'px'; box.appendChild(pop); setTimeout(function () { pop.remove(); }, 1100);
+    var n = Math.max(3, Math.min(12, Math.round(Math.log(f.pay + 1) * 1.6))), reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !Element.prototype.animate) return;
+    for (var i = 0; i < n; i++) (function (i) {
+      var c = document.createElement('i'); c.className = 'coin'; box.appendChild(c);
+      var ox = (Math.random() - 0.5) * 90, oy = -30 - Math.random() * 60;
+      var an = c.animate([
+        { transform: 'translate(' + sx + 'px,' + sy + 'px) scale(.4)', opacity: 0 },
+        { transform: 'translate(' + (sx + ox) + 'px,' + (sy + oy) + 'px) scale(1.15)', opacity: 1, offset: 0.35 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.7)', opacity: 1 }
+      ], { duration: 620 + i * 45, easing: 'cubic-bezier(.45,0,.75,.55)', delay: i * 25 });
+      an.onfinish = function () { c.remove(); if (i === n - 1) { dst.classList.remove('gain'); void dst.offsetWidth; dst.classList.add('gain'); if (X) X.coin(); } };
+    })(i);
   }
   // 작업 지시서 카드: 마감 순서대로 3줄(지금 할 것 ▶), 빙판·차·보고 경고 한 줄, 처음엔 할 일 안내 한 줄
   function opHud(w, st) {
@@ -1008,17 +1128,10 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { V.rebuildArt(); });
     $('say-face').innerHTML = haengFace();
     $('t-start').onclick = startOp;
-    $('t-shop').onclick = function () { tab = 'tool'; openShop(); };
-    $('t-look').onclick = function () { tab = 'look'; openShop(); };
-    $('t-reset').onclick = resetAll;
-    $('hub-grid').addEventListener('click', hubClick);
+    $('title').addEventListener('click', hubClick);
     $('h-speed').onclick = function () { if (!V.setSpeed) return; var s = V.speed && V.speed() > 1 ? 1 : 2; V.setSpeed(s); $('h-speed-t').textContent = '×' + s; $('h-speed').classList.toggle('on', s > 1); if (X) X.pop(); };
-    function hapticLabel() { $('t-haptic').textContent = JY.snowHaptic ? '진동 켬' : '진동 끔'; }
     try { JY.snowHaptic = localStorage.getItem('jeseol-haptic') !== '0'; } catch (e) { JY.snowHaptic = true; }
-    hapticLabel();
-    $('t-haptic').onclick = function () { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (e) { /* 무시 */ } hapticLabel(); if (JY.snowHaptic) vibrate(30); };
     lookChanged();
-    $('t-sound').onclick = function () { if (!X) return; X.setMuted(!X.muted()); $('t-sound').textContent = X.muted() ? '소리 끔' : '소리 켬'; if (!X.muted()) { X.unlock(); X.pop(); } };
     $('s-go').onclick = closeShop;
     $('s-back').onclick = closeShop;
     $('h-shop').onclick = openShop;
@@ -1044,12 +1157,26 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
     window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());
-    title();
+    // 타이틀 화면: 뒤에선 생활관 앞 3D 장면이 돌고, 누르면 로비로
+    if (V.lobby) V.lobby(save); else V.demo(save);
+    show('splash');
+    var entered = false;
+    function enter(e) {
+      if (entered) return; entered = true; if (e && e.preventDefault) e.preventDefault();
+      if (X) { X.unlock(); X.pop(); }
+      $('splash').classList.add('out');
+      setTimeout(function () { $('splash').classList.remove('out'); title(); welcome(off); }, 260);
+    }
+    $('splash').addEventListener('pointerup', enter);
+    window.addEventListener('keydown', function (e) { if (!entered && !$('splash').hidden && (e.key === 'Enter' || e.key === ' ')) enter(e); });
+    if (/[?&]go\b/.test(location.search)) { entered = true; title(); welcome(off); }
+    save.last = Date.now(); persistRaw();
+  }
+  function welcome(off) {
     if (off > 0) {
-      save.bank += off; save.life += off;
+      save.bank += off; save.life += off; persistRaw(); renderHub();
       modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>분대원들이 정리해 뒀다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 분대원은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>', function () { rollCall(); });
     } else rollCall();
-    save.last = Date.now(); persistRaw();
   }
 
   function pause() {
@@ -1064,7 +1191,7 @@
     view: function () { return V; },
     save: function () { return save; },
     setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
-    play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
+    play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, help: help, settings: settings, renderHub: renderHub, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     openPX: openPX, phone: phoneCall, pullUp: pullUp, leave: goLeave, results: results,
     autopilot: function (b) { V.setAutopilot(b); },
     act: function (alt) { doAct(alt === true); }, openBox: function () { openBox(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }

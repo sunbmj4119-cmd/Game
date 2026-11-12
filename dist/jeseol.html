@@ -706,6 +706,262 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 /* v10: 내 대사(자막)는 위쪽 알림 줄에 같이 쌓는다 — 왼쪽 아래 작업 지시서와 겹치지 않게 */
 #stack > #sub { position: relative; left: auto; right: auto; top: auto; bottom: auto; transform: none; margin: 0; max-width: 100%; font-size: 15px; }
 
+/* ══════════════ v11 — 아케이드 제설: 타이틀 · 로비 · '지금 할 일' · 빛나는 원 · 코인 · 폭풍 제설 ══════════════ */
+
+/* ── 타이틀 화면 ── */
+#splash { z-index: 12; flex-direction: column; cursor: pointer; transition: opacity .26s ease;
+  background: radial-gradient(ellipse 85% 60% at 50% 42%, rgba(18,30,52,.15), rgba(6,11,22,.9) 100%), linear-gradient(180deg, rgba(6,11,22,.55), rgba(6,11,22,.1) 45%, rgba(6,11,22,.92)); }
+#splash.out { opacity: 0; }
+#splash::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .85;
+  background-image: radial-gradient(2.4px 2.4px at 20% 30%, #fff 50%, transparent 52%), radial-gradient(3.2px 3.2px at 70% 60%, #fff 50%, transparent 52%), radial-gradient(1.8px 1.8px at 40% 80%, #fff 50%, transparent 52%), radial-gradient(2px 2px at 85% 15%, #fff 50%, transparent 52%);
+  background-size: 240px 240px, 300px 300px, 180px 180px, 220px 220px; animation: spsnow 14s linear infinite; }
+@keyframes spsnow { to { background-position: 60px 480px, -40px 600px, 30px 360px, -20px 440px; } }
+.sp-in { display: grid; justify-items: center; gap: 14px; text-align: center; margin-top: -10vh; }
+.sp-kicker { margin: 0; padding-left: .45em; font-size: 15px; letter-spacing: .45em; color: var(--gold); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+.sp-logo { margin: 0; font-family: var(--f-title); font-weight: 400; font-size: clamp(92px, 31vw, 156px); line-height: .95; letter-spacing: .02em; }
+.sp-logo span { display: block; color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(180deg, #ffffff 0%, #eef5fb 46%, #a8c2dc 54%, #f1f7fc 100%);
+  filter: drop-shadow(0 4px 0 #7f9ab6) drop-shadow(0 7px 0 #3d5677) drop-shadow(0 20px 26px rgba(0,0,0,.6));
+  animation: logoin .9s cubic-bezier(.2,1.4,.5,1) both; }
+@keyframes logoin { from { transform: translateY(-30px) scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+.sp-tag { margin: 0; font-size: 18px; color: #eef4fa; background: rgba(8,14,26,.62); border-radius: 99px; padding: 8px 20px; box-shadow: inset 0 0 0 1.5px rgba(255,210,74,.65); animation: logoin .9s .25s cubic-bezier(.2,1.4,.5,1) both; }
+.sp-tap { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 13vh); transform: translateX(-50%); white-space: nowrap; font-size: 21px; letter-spacing: .12em; color: #fff; text-shadow: 0 2px 10px #000; animation: sptap 1.1s ease-in-out infinite alternate; }
+@keyframes sptap { from { opacity: .45; } to { opacity: 1; } }
+
+/* ── 로비 (생활관) ── */
+#title.lobby { display: block; padding: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(8,14,26,0) 45%, rgba(8,14,26,.5) 100%), linear-gradient(180deg, rgba(8,14,26,.72) 0%, rgba(8,14,26,0) 24%, rgba(8,14,26,0) 52%, rgba(8,14,26,.9) 100%); }
+#title.lobby > * { pointer-events: auto; }
+.lb-top { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 10px); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.lb-card { display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 66%; color: #fff; border-radius: 20px; padding: 8px 14px 8px 8px;
+  background: linear-gradient(180deg, rgba(40,60,92,.94), rgba(16,27,46,.94)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.12), inset 0 2px 0 rgba(255,255,255,.12), 0 8px 20px rgba(0,0,0,.4); }
+.lc-face { width: 60px; height: 60px; border-radius: 16px; overflow: hidden; flex: none; background: radial-gradient(circle at 50% 30%, #8db3df, #2b4466); box-shadow: inset 0 0 0 2.5px var(--gold), 0 3px 0 #0b1424; }
+.lc-face svg { width: 100%; height: 100%; display: block; transform: scale(1.35) translateY(9%); }
+.lc-body { min-width: 0; display: grid; gap: 1px; }
+.lc-name { display: flex; align-items: center; gap: 6px; font-family: var(--f-title); font-weight: 400; font-size: 20px; line-height: 1.1; min-width: 0; }
+.lc-name > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-name .ins { flex: none; display: inline-flex; }
+.lc-name .ins svg { width: 26px; height: 20px; }
+.lc-role { font-size: 13.5px; color: #c9d6e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-bar { position: relative; height: 19px; border-radius: 99px; background: rgba(0,0,0,.5); margin-top: 5px; overflow: hidden; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.18); min-width: 150px; }
+.lc-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(180deg, #fff0a0, #f5c21e 55%, #d99a00); transition: width .8s cubic-bezier(.2,1,.4,1); }
+.lc-bar.exam i { background: linear-gradient(180deg, #ffc28a, #ff7a2b 55%, #d2541b); }
+.lc-bar span { position: relative; display: block; text-align: center; font-family: var(--f-title); font-size: 13px; line-height: 19px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6); }
+.lb-cur { display: grid; gap: 7px; justify-items: end; flex: none; }
+.lb-c { display: inline-flex; align-items: center; gap: 7px; color: #fff; border-radius: 99px; padding: 5px 15px 5px 6px; background: rgba(8,14,26,.8); box-shadow: inset 0 0 0 2px rgba(255,255,255,.14), 0 4px 10px rgba(0,0,0,.3); }
+.lb-c b { font-family: var(--f-title); font-weight: 400; font-size: 19px; font-variant-numeric: tabular-nums; }
+.lb-c .pie { width: 24px; height: 24px; }
+.lb-c .dia { width: 24px; height: 24px; margin: 0; border-radius: 7px; }
+.lb-c .dia::before { font-size: 15px; }
+
+.lb-side { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 104px); display: grid; gap: 10px; }
+.lb-left { left: max(10px, env(safe-area-inset-left, 0px)); }
+.lb-right { right: max(10px, env(safe-area-inset-right, 0px)); }
+.lb-side button { position: relative; width: 66px; height: 66px; border: 0; border-radius: 19px; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 2px; color: #fff; touch-action: manipulation;
+  background: linear-gradient(180deg, #34507c, #1a2b47); box-shadow: inset 0 2px 0 rgba(255,255,255,.24), inset 0 -3px 0 rgba(0,0,0,.28), 0 4px 0 #0b1424, 0 9px 16px rgba(0,0,0,.35); transition: transform .08s; }
+.lb-right button { background: linear-gradient(180deg, #6a8a42, #3b4f22); box-shadow: inset 0 2px 0 rgba(255,255,255,.24), inset 0 -3px 0 rgba(0,0,0,.28), 0 4px 0 #1c260f, 0 9px 16px rgba(0,0,0,.35); }
+.lb-side button svg { width: 32px; height: 32px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.lb-side button b { font-weight: 400; font-size: 13.5px; line-height: 1; text-shadow: 0 1px 0 rgba(0,0,0,.55); white-space: nowrap; }
+.lb-side button:active { transform: translateY(3px); }
+.lb-side button i { position: absolute; top: -7px; right: -7px; min-width: 24px; height: 24px; border-radius: 12px; padding: 0 6px; background: #e2412f; color: #fff; font-style: normal; font-family: var(--f-title); font-size: 14px; line-height: 24px; text-align: center; box-shadow: 0 0 0 2.5px #fff, 0 3px 6px rgba(0,0,0,.35); animation: lbbadge 1.4s ease-in-out infinite; }
+@keyframes lbbadge { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.25); } 90% { transform: scale(.95); } }
+
+.lb-bottom { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); max-width: 540px; margin: 0 auto; display: grid; gap: 10px; justify-items: center; }
+.lb-info { width: 100%; display: grid; gap: 8px; }
+.road { list-style: none; margin: 0; padding: 9px 6px 7px; display: grid; grid-template-columns: repeat(5, 1fr); border-radius: 18px; background: rgba(8,14,26,.76); box-shadow: inset 0 0 0 2px rgba(255,255,255,.1); }
+.road li { position: relative; display: grid; justify-items: center; gap: 2px; color: #8ea2ba; }
+.road li::before { content: ""; position: absolute; top: 16px; right: 50%; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,.16); }
+.road li:first-child::before { display: none; }
+.road li.past::before, .road li.now::before { background: linear-gradient(90deg, #b8860b, var(--gold)); }
+.road li i { position: relative; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #22344f; box-shadow: 0 0 0 2px rgba(255,255,255,.22); }
+.road li i svg { width: 23px; height: 18px; }
+.road li.past i { background: #4d5b31; box-shadow: 0 0 0 2px var(--gold); }
+.road li.now i { background: radial-gradient(circle at 50% 35%, #fff3b0, var(--gold)); box-shadow: 0 0 0 3px #fff, 0 0 18px rgba(255,210,74,.85); transform: scale(1.14); }
+.road li.next i { box-shadow: 0 0 0 2px var(--gold); animation: roadnext 1.2s ease-in-out infinite alternate; }
+.road li.next.exam i { background: #d2541b; box-shadow: 0 0 0 2.5px #ffd0a8; }
+@keyframes roadnext { to { box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(255,210,74,.7); } }
+.road li b { font-weight: 400; font-size: 14px; color: #fff; }
+.road li small { font-size: 11.5px; line-height: 1; font-variant-numeric: tabular-nums; }
+.road li.now small { color: var(--gold); }
+.road li.next.exam small { color: #ffb36b; }
+.news { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.news li { background: rgba(8,14,26,.7); color: #dbe5f0; border-radius: 13px; padding: 8px 13px; font-size: 15px; line-height: 1.3; word-break: keep-all; }
+.news li b { color: #fff; font-weight: 400; }
+.news li .st { color: var(--gold); letter-spacing: 1px; }
+.news li .red { color: #ff8a7a; }
+.news li.hl { box-shadow: inset 0 0 0 2px var(--gold); }
+.news li.exam { box-shadow: inset 0 0 0 2px #ff9f43; }
+.news li[data-hub] { cursor: pointer; }
+.lb-go { position: relative; overflow: hidden; width: min(100%, 360px); border: 0; border-radius: 24px; padding: 14px 20px 12px; cursor: pointer; display: grid; gap: 3px; justify-items: center; color: #3a2a00; touch-action: manipulation;
+  background: linear-gradient(180deg, #fff09a 0%, #ffd23a 46%, #f2aa00 54%, #ffc61f 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.75), inset 0 -4px 0 rgba(150,90,0,.35), 0 6px 0 #9a6400, 0 16px 30px rgba(0,0,0,.5); transition: transform .08s; }
+.lb-go b { font-family: var(--f-title); font-weight: 400; font-size: 32px; line-height: 1; letter-spacing: .05em; text-shadow: 0 2px 0 rgba(255,255,255,.55); }
+.lb-go small { font-size: 14.5px; color: #6b4a00; }
+.lb-go::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.65), transparent); animation: goshine 2.8s ease-in-out infinite; pointer-events: none; }
+@keyframes goshine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+.lb-go:active { transform: translateY(4px); box-shadow: inset 0 2px 0 rgba(255,255,255,.75), inset 0 -4px 0 rgba(150,90,0,.35), 0 2px 0 #9a6400, 0 6px 14px rgba(0,0,0,.45); }
+.lb-go.exam { color: #fff; background: linear-gradient(180deg, #ffbf85 0%, #ff8a2b 46%, #e2541b 54%, #ff7a2b 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -4px 0 rgba(100,30,0,.35), 0 6px 0 #8a2f08, 0 16px 30px rgba(0,0,0,.5); }
+.lb-go.exam b { text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.lb-go.exam small { color: #ffe7d4; }
+@media (max-height: 740px) {
+  .lb-side { top: calc(env(safe-area-inset-top, 0px) + 96px); gap: 8px; }
+  .lb-side button { width: 58px; height: 58px; border-radius: 17px; }
+  .lb-side button svg { width: 27px; height: 27px; }
+  .lb-side button b { font-size: 12.5px; }
+  .news li:nth-child(n+3) { display: none; }
+  .lb-go b { font-size: 28px; }
+}
+@media (max-height: 600px) { .news { display: none; } .lb-side button { width: 52px; height: 52px; } .lb-side button b { display: none; } }
+
+/* ── 교범 · 설정 ── */
+.m-help { display: grid; gap: 10px; text-align: center; }
+.help-art { border-radius: 16px; padding: 10px 6px; background: linear-gradient(180deg, #dce8f4, #f5f8fb); box-shadow: inset 0 0 0 2px #e3eaf2; }
+.help-art svg { display: block; width: 100%; height: auto; max-height: 150px; }
+.m-help h3 { margin: 0; font-family: var(--f-title); font-weight: 400; font-size: 27px; line-height: 1.15; }
+.m-help p { margin: 0; font-size: 17px; line-height: 1.5; color: #3d4236; word-break: keep-all; }
+.m-help p b { color: #8a5a00; font-weight: 400; }
+.dots { display: flex; justify-content: center; gap: 6px; margin: 2px 0; }
+.dots i { width: 8px; height: 8px; border-radius: 4px; background: #d8d2c2; transition: width .2s; }
+.dots i.on { width: 24px; background: var(--gold-d); }
+.set-list { display: grid; gap: 8px; width: 100%; margin: 6px 0 12px; }
+.set-list button { display: flex; justify-content: space-between; align-items: center; border: 0; border-radius: 14px; padding: 14px 16px; background: #fff; box-shadow: inset 0 0 0 2px var(--line), 0 3px 0 #e2dbc8; font-size: 17px; cursor: pointer; color: var(--ink); }
+.set-list button b { font-weight: 400; color: #8a6200; }
+.set-list button:active { transform: translateY(2px); }
+.set-list .danger span { color: var(--red); }
+
+/* ── 작전 HUD: '지금 할 일' 한 줄 ── */
+.goal { --tone: #9fd3ff; pointer-events: none; justify-self: center; width: min(100%, 460px); display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 11px; color: #fff; border-radius: 18px; padding: 9px 15px 9px 13px;
+  background: rgba(8,14,26,.86); box-shadow: inset 0 0 0 2.5px var(--tone), 0 6px 18px rgba(0,0,0,.32); }
+.goal.t-red { --tone: #ff5a4a; background: rgba(70,12,8,.88); }
+.goal.t-gold { --tone: #ffd24a; }
+.goal.t-blue { --tone: #6ec6ff; }
+.goal.t-green { --tone: #4fcf74; }
+.goal.t-navy { --tone: #9fd3ff; }
+.g-dot { width: 15px; height: 15px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 12px var(--tone); animation: gdot .8s ease-in-out infinite alternate; }
+@keyframes gdot { from { transform: scale(.8); opacity: .7; } to { transform: scale(1.1); opacity: 1; } }
+.g-txt { display: grid; min-width: 0; }
+.g-txt b { font-family: var(--f-title); font-weight: 400; font-size: 22px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-txt small { font-size: 15px; line-height: 1.3; color: #cfdbe8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-txt small:empty { display: none; }
+.g-bar { grid-column: 1 / -1; display: none; height: 8px; margin-top: 7px; border-radius: 4px; background: rgba(255,255,255,.15); overflow: hidden; }
+.goal.has-bar .g-bar { display: block; }
+.g-bar em { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--tone); transition: width .25s; }
+.goal.pop { animation: gpop .45s cubic-bezier(.2,1.5,.5,1); }
+@keyframes gpop { from { transform: scale(.86); } 60% { transform: scale(1.04); } to { transform: scale(1); } }
+.goal.t-red .g-txt b { animation: gshout .35s ease-in-out infinite alternate; }
+@keyframes gshout { to { color: #ffd0c8; } }
+
+/* 행동 버튼: 할 게 없으면 숨는다 · 급한 경례는 화면 가운데 큰 빨간 버튼 */
+#acts { transition: opacity .15s, transform .18s cubic-bezier(.2,1.4,.5,1); transform-origin: 100% 100%; }
+#acts.off { opacity: 0; transform: scale(.6); pointer-events: none; }
+#act-btn { width: 100px; height: 100px; }
+#act-btn b { font-size: 20px; max-width: 90px; }
+#act-btn small { font-size: 13px; max-width: 88px; }
+#acts.salute { right: auto; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22%); transform: translateX(-50%); }
+#acts.salute #act-btn { width: 150px; height: 150px; color: #fff; background: radial-gradient(circle at 50% 35%, #ffb8ad, #e2412f 62%);
+  box-shadow: 0 7px 0 #8a2014, 0 0 0 7px rgba(255,255,255,.35), 0 0 44px rgba(255,80,60,.75); animation: salbtn .45s ease-in-out infinite alternate; }
+#acts.salute #act-btn b { font-size: 36px; max-width: 140px; }
+#acts.salute #act-btn small { color: #ffe1dc; font-size: 15px; max-width: 130px; }
+#acts.salute .act2 { display: none; }
+@keyframes salbtn { to { transform: scale(1.07); } }
+
+/* 빛나는 원 이름표 (3D) */
+.ov-pad { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 1px; pointer-events: none; white-space: nowrap; will-change: transform; color: #fff; border-radius: 13px; padding: 5px 12px 6px;
+  background: rgba(8,14,26,.85); box-shadow: 0 0 0 2px rgba(255,255,255,.3), 0 4px 12px rgba(0,0,0,.3); }
+.ov-pad b { font-family: var(--f-title); font-weight: 400; font-size: 16px; color: #c9d6e6; line-height: 1.1; }
+.ov-pad span { font-size: 13.5px; }
+.ov-pad em { font-style: normal; display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-title); font-size: 14px; color: #ffd24a; }
+.ov-pad em .pie { width: 13px; height: 13px; }
+.ov-pad.ok { animation: padglow .8s ease-in-out infinite alternate; }
+.ov-pad.ok b { color: var(--gold); }
+.ov-pad.report.ok b { color: #86f2a6; }
+.ov-pad.report.ok { animation-name: padglowg; }
+@keyframes padglow { from { box-shadow: 0 0 0 2.5px var(--gold), 0 0 6px rgba(255,210,74,.4); } to { box-shadow: 0 0 0 2.5px var(--gold), 0 0 22px rgba(255,210,74,.85); } }
+@keyframes padglowg { from { box-shadow: 0 0 0 2.5px #4fcf74, 0 0 6px rgba(79,207,116,.4); } to { box-shadow: 0 0 0 2.5px #4fcf74, 0 0 22px rgba(79,207,116,.85); } }
+
+/* 폭풍 제설 · 폭설 경보 */
+#stack > #fever, #stack > #surge { position: relative; display: grid; justify-items: center; gap: 1px; border-radius: 16px; padding: 6px 20px 7px; }
+#fever { color: #3a2a00; background: linear-gradient(180deg, #fff09a, #f2aa00); box-shadow: 0 4px 0 #9a6400, 0 0 26px rgba(255,200,40,.85); animation: fevpulse .32s ease-in-out infinite alternate; }
+#fever b, #surge b { font-family: var(--f-title); font-weight: 400; font-size: 25px; line-height: 1.05; }
+#fever span, #surge span { font-size: 14.5px; }
+#surge { color: #10213b; background: linear-gradient(180deg, #ffffff, #a9c9ec); box-shadow: 0 4px 0 #4d6f96, 0 0 22px rgba(210,230,255,.85); animation: fevpulse .6s ease-in-out infinite alternate; }
+@keyframes fevpulse { to { transform: scale(1.05); } }
+body.fever #app::after, body.surge #app::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+body.fever #app::after { box-shadow: inset 0 0 70px 14px rgba(255,190,40,.55); animation: fevglow .45s ease-in-out infinite alternate; }
+body.surge #app::before { box-shadow: inset 0 0 90px 20px rgba(225,238,255,.6); background: repeating-linear-gradient(115deg, rgba(255,255,255,0) 0 22px, rgba(255,255,255,.08) 22px 24px); background-size: 200% 200%; animation: surgeblow .6s linear infinite; }
+@keyframes fevglow { to { box-shadow: inset 0 0 100px 22px rgba(255,170,20,.7); } }
+@keyframes surgeblow { to { background-position: -60px 40px; } }
+
+/* 초코파이가 지갑으로 날아간다 */
+#coins { position: fixed; inset: 0; pointer-events: none; z-index: 9; overflow: hidden; }
+#coins .coin { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; will-change: transform;
+  background: radial-gradient(circle at 34% 32%, #b07a4c 0 22%, #5e3620 24% 100%); box-shadow: inset 0 -2px 0 rgba(0,0,0,.3), 0 0 0 2px #3a2012, 0 0 10px rgba(255,210,74,.85); }
+#coins .pay-pop { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-family: var(--f-title); font-weight: 400; font-size: 32px; color: #ffd84a; text-shadow: 0 3px 0 #3a2a10, 0 0 14px rgba(0,0,0,.5); animation: paypop 1.1s ease-out forwards; }
+#coins .pay-pop.full { color: #fff3b0; font-size: 36px; }
+@keyframes paypop { 0% { transform: translate(-50%, -60%) scale(.5); opacity: 0; } 15% { transform: translate(-50%, -100%) scale(1.25); opacity: 1; } 30% { transform: translate(-50%, -110%) scale(1); } 100% { transform: translate(-50%, -230%) scale(1); opacity: 0; } }
+.pill.bank.gain { animation: bankgain .38s ease-out; }
+@keyframes bankgain { 40% { transform: scale(1.2); box-shadow: 0 0 0 3px var(--gold), 0 0 20px rgba(255,210,74,.8); } }
+
+/* ── 글자 키우기 (작전 중 읽히게) ── */
+.pill.bank b { font-size: 19px; }
+.rank-txt b { font-size: 17px; }
+.rank-txt small { font-size: 13px; }
+#chip { font-size: 16px; padding: 9px 16px; }
+#banner b { font-size: 40px; }
+#banner span { font-size: 17px; }
+#say p { font-size: 17px; }
+#hint b { font-size: 19px; }
+#hint span { font-size: 15px; }
+.scan { font-size: 14.5px; padding: 7px 13px 7px 10px; }
+.scan svg { width: 18px; height: 18px; }
+.opcard { padding: 8px 11px; }
+.opcard > b { font-size: 14.5px; }
+#op-list li { font-size: 14.5px; }
+#op-list li em { font-size: 13px; }
+#op-list li small { font-size: 12.5px; }
+.op-warn { font-size: 14px; }
+.op-tip { font-size: 13px; }
+#side { max-width: min(54%, 270px); }
+#stack { top: calc(env(safe-area-inset-top, 0px) + 196px); }
+#sub { font-size: 17px; }
+@media (max-height: 700px) { #stack { top: calc(env(safe-area-inset-top, 0px) + 186px); } .g-txt b { font-size: 19px; } .g-txt small { font-size: 13.5px; } #act-btn { width: 88px; height: 88px; } }
+.sp-logo { white-space: nowrap; font-size: clamp(80px, 27vw, 150px); }
+.lb-go b, .lb-go small { position: relative; z-index: 1; }
+/* 콤보는 캐릭터를 가리지 않게 오른쪽 위 (버튼 줄 아래) */
+#combo { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 196px); transform: none; justify-items: end; }
+#combo b { font-size: 28px; }
+#combo span { font-size: 14px; background: rgba(8,14,26,.7); padding: 2px 8px; border-radius: 8px; margin-top: 3px; }
+#combo { right: auto; left: max(14px, env(safe-area-inset-left, 0px)); top: 44%; justify-items: start; }
+.goal { margin-top: 9px; }
+@media (max-height: 700px) {
+  .lb-side { top: calc(env(safe-area-inset-top, 0px) + 90px); gap: 6px; }
+  .lb-side button { width: 54px; height: 54px; border-radius: 16px; }
+  .lb-side button svg { width: 24px; height: 24px; }
+  .lb-side button b { display: block; font-size: 11.5px; }
+  .news li:nth-child(n+2) { display: none; }
+  .road { padding: 6px 4px 5px; }
+  .road li i { width: 28px; height: 28px; }
+  .road li::before { top: 13px; }
+  .lb-go { padding: 10px 16px 9px; }
+  .lb-go b { font-size: 26px; }
+  .lc-face { width: 52px; height: 52px; }
+}
+/* 콤보는 알림 줄 맨 위 (캐릭터·알림과 겹치지 않게) */
+#stack > #combo { position: relative; left: auto; right: auto; top: auto; transform: none; justify-items: center; grid-auto-flow: column; align-items: baseline; gap: 8px; }
+#stack > #combo b { font-size: 26px; }
+#stack > #combo span { margin-top: 0; }
+body.saluting #side { visibility: hidden; }
+@media (max-height: 700px) {
+  #stack > #salute:not([hidden]) ~ #say, #stack > #fever:not([hidden]) ~ #say, #stack > #surge:not([hidden]) ~ #say { display: none; }
+  #stack > #fever, #stack > #surge { grid-auto-flow: column; align-items: baseline; gap: 8px; padding: 4px 14px 5px; }
+  #fever b, #surge b { font-size: 20px; }
+  #stack { gap: 6px; }
+}
+.rank-txt small { white-space: nowrap; }
+@media (max-width: 380px) { .pill.bank b { font-size: 17px; } .pill.bank .dia-n { font-size: 14px; } .rank-txt b { font-size: 15px; } .rank-txt small { font-size: 12px; } }
+@media (max-height: 700px) { #acts.salute { bottom: calc(env(safe-area-inset-bottom, 0px) + 56px); } #acts.salute #act-btn { width: 128px; height: 128px; } #acts.salute #act-btn b { font-size: 30px; } }
+.goal { margin-top: 14px; }
+
 </style>
 </head>
 <body>
@@ -718,23 +974,26 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       <div class="carry" id="h-carry" aria-label="짊어진 눈"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-bg" cx="22" cy="22" r="19"/><circle id="h-cring" class="tr-fg" cx="22" cy="22" r="19"/></svg><span class="carry-t"><b id="h-load">0</b><small id="h-cap">/40</small></span><em>짊어진 눈</em></div>
       <div class="pill bank"><i class="pie" aria-hidden="true"></i><b id="h-bank">0</b><i class="dia" aria-hidden="true"></i><b id="h-dia" class="dia-n">0</b></div>
     </div>
-    <div class="prog"><span id="h-area" class="area">부대 전체</span><div class="bar"><i id="h-fill"></i></div><b id="h-pct">0%</b><button id="h-pause" class="pause" aria-label="작업 중지"><span></span><span></span></button></div>
-    <div class="hud-btns"><button id="h-speed" class="scan speed" hidden aria-label="작업 속도 바꾸기"><b id="h-speed-t">×1</b><span class="lbl">말년 특권</span></button><button id="h-box" class="scan boxb" hidden aria-label="보급 상자 열기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5v9l-9 4-9-4z" fill="#c9a24a" stroke="#6b5420" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 9l9 4 9-4M12 13v9" stroke="#6b5420" stroke-width="1.4" fill="none"/><path d="M8 6.5l9 4.5" stroke="#e33" stroke-width="2"/></svg><span class="lbl">상자</span><i id="h-box-n">0</i></button><button id="h-cam" class="scan" aria-label="시점 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span id="h-cam-t" class="lbl">시점</span></button>
+    <div id="goal" class="goal"><i id="g-dot" class="g-dot"></i><div class="g-txt"><b id="g-t">작전 준비</b><small id="g-s"></small></div><div class="g-bar"><em id="g-f"></em></div></div>
+    <div class="prog" id="h-prog" hidden><span id="h-area" class="area">부대 전체</span><div class="bar"><i id="h-fill"></i></div><b id="h-pct">0%</b></div>
+    <div class="hud-btns"><button id="h-pause" class="scan" aria-label="작전 일시 정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg><span class="lbl">정지</span></button><button id="h-speed" class="scan speed" hidden aria-label="작업 속도 바꾸기"><b id="h-speed-t">×1</b><span class="lbl">말년 특권</span></button><button id="h-box" class="scan boxb" hidden aria-label="보급 상자 열기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5v9l-9 4-9-4z" fill="#c9a24a" stroke="#6b5420" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 9l9 4 9-4M12 13v9" stroke="#6b5420" stroke-width="1.4" fill="none"/><path d="M8 6.5l9 4.5" stroke="#e33" stroke-width="2"/></svg><span class="lbl">상자</span><i id="h-box-n">0</i></button><button id="h-cam" class="scan" aria-label="시점 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span id="h-cam-t" class="lbl">시점</span></button>
     <button id="h-scan" class="scan" aria-label="남은 눈 표시"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span class="lbl">남은 눈</span></button></div>
   </header>
   <button id="h-shop" class="shopbtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16l-1.5 11h-13z" fill="currentColor"/><path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>보급·인력<i id="h-shop-n" hidden></i></button>
   <div id="flash" hidden></div>
   <div id="stack">
+  <div id="fever" hidden><b>폭풍 제설!</b><span id="fever-t">눈 값 ×2</span></div>
+  <div id="surge" hidden><b>폭설 경보</b><span id="surge-t"></span></div>
+  <div id="combo" hidden><b id="combo-n">x0</b><span id="combo-t"></span></div>
   <div id="banner" hidden></div>
   <div id="salute" hidden><b id="sal-t">중대장님이다!</b><span>경례!</span><i><em id="sal-f"></em></i></div>
   <div id="say" hidden><div class="say-face" id="say-face"></div><p id="say-text"></p></div>
   <div id="chip" hidden></div>
   <div id="sub" hidden></div>
-  <div id="hint" hidden><b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span></div>
+  <div id="hint" hidden><b>화면 아무 데나 끌면 걷는다</b><span>넉가래는 알아서 민다 · <em>노란 화살표</em>를 따라가라</span></div>
   </div>
   <div id="splat" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 18c14 0 18 26 30 30s34-14 42 0-18 26-12 40 30 22 22 36-34 4-42 16 2 40-14 44-22-26-36-26-30 26-42 14 6-34-6-44-36-6-36-22 30-16 30-32-22-30-10-40 30 8 40 0 10-56 18-56z" fill="#fbfdff" stroke="#c9d8e6" stroke-width="4"/><circle cx="160" cy="40" r="10" fill="#fbfdff"/><circle cx="40" cy="168" r="8" fill="#fbfdff"/><circle cx="178" cy="150" r="6" fill="#fbfdff"/></svg><b>누가 던졌어!!</b></div>
 
-  <div id="combo" hidden><b id="combo-n">x0</b><span id="combo-t"></span></div>
   <div id="xhair" hidden><i></i><span id="xh-t"></span></div>
   <div id="side" hidden>
     <div id="h-op" class="opcard" hidden><b><span id="op-title">작업 지시서</span><i id="op-n">0/1</i></b><ol id="op-list"></ol><p id="op-warn" class="op-warn" hidden></p><small id="op-tip" class="op-tip" hidden></small></div>
@@ -746,25 +1005,39 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     <div class="act-col"><button id="act2-btn" class="act2" hidden></button><button id="act-btn" class="actb" aria-label="행동"><small id="act-name"></small><b id="act-verb">행동</b></button></div>
   </div>
   <div id="fade" hidden></div>
+  <div id="coins" aria-hidden="true"></div>
 
-  <section id="title" class="screen">
-    <div class="title-box" id="title-box">
-      <p class="kicker">전역각 외전</p>
-      <h1 class="logo"><span>제설각</span></h1>
-      <p class="tag">눈은 하늘에서 내리는 쓰레기다</p>
-      <div id="t-info" class="t-info"></div>
-      <div id="hub" class="hub" hidden></div>
-      <div class="t-btns">
-        <button id="t-start" class="btn big">작업 개시</button>
-        <button id="t-shop" class="btn ghost">보급·인력 관리</button>
-      </div>
-      <div id="hub-grid" class="hub-grid" hidden>
-        <button data-hub="shop"><b>보급·인원</b><small>장비·분대원·시설</small><i id="hub-shop-n" hidden></i></button>
-        <button data-hub="px"><b>PX</b><small>내일 작전 준비물</small></button>
-        <button data-hub="phone"><b>공중전화</b><small id="hub-phone-s">하루 한 번</small></button>
-        <button data-hub="pull"><b>체력단련</b><small>턱걸이 → 적재 +25%</small></button>
-      </div>
-      <div class="t-links"><button id="t-look" class="btn link">꾸미기</button><button id="t-sound" class="btn link">소리 켬</button><button id="t-haptic" class="btn link">진동 켬</button><button id="t-reset" class="btn link">처음부터 다시</button></div>
+  <section id="splash" class="screen splash" hidden>
+    <div class="sp-in">
+      <p class="sp-kicker">전역각 외전</p>
+      <h1 class="sp-logo"><span>제설각</span></h1>
+      <p class="sp-tag">05:30 제설 비상 · 짬이 차면 편해진다</p>
+      <div class="sp-tap" id="sp-go">화면을 눌러 시작</div>
+    </div>
+  </section>
+
+  <section id="title" class="screen lobby">
+    <div class="lb-top">
+      <div id="hub-card" class="lb-card"></div>
+      <div class="lb-cur"><span class="lb-c"><i class="pie" aria-hidden="true"></i><b id="lb-bank">0</b></span><span class="lb-c"><i class="dia" aria-hidden="true"></i><b id="lb-dia">0</b></span></div>
+    </div>
+    <nav class="lb-side lb-left" aria-label="기록">
+      <button data-hub="help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5c3-1.4 6-1.4 9 .6v14c-3-2-6-2-9-.6z" fill="#ffd24a"/><path d="M21 5c-3-1.4-6-1.4-9 .6v14c3-2 6-2 9-.6z" fill="#f2e6c9"/><path d="M6 9h3M6 12h3M15 9h3M15 12h3" stroke="#6b5420" stroke-width="1.4"/></svg><b>교범</b></button>
+      <button data-hub="medal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l1 6-3 1zM17 2h-4l-1 6 3 1z" fill="#c8402e"/><circle cx="12" cy="15" r="6.5" fill="#ffd24a" stroke="#a87a12" stroke-width="1.5"/><path d="M12 11.5l1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3z" fill="#a87a12"/></svg><b>훈장</b></button>
+      <button data-hub="story"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" fill="#6b8f4e"/><rect x="7.5" y="5.5" width="9" height="13" rx="1" fill="#f4f0e4"/><path d="M9 9h6M9 12h6M9 15h4" stroke="#6b7064" stroke-width="1.4"/></svg><b>수첩</b></button>
+      <button data-hub="look"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7" fill="#f6c79c" stroke="#23281e" stroke-width="1.4"/><path d="M5 11c0-5 14-5 14 0z" fill="#4d5b31" stroke="#23281e" stroke-width="1.4"/><circle cx="9.5" cy="13.5" r="1.2"/><circle cx="14.5" cy="13.5" r="1.2"/><path d="M10 16.5q2 1.4 4 0" stroke="#23281e" stroke-width="1.3" fill="none"/></svg><b>꾸미기</b></button>
+      <button data-hub="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 2.6 3-.9.5 3.1 3 .9-1 3 2 2.3-2.6 1.8.9 3-3.1.5-.9 3-3-1L12 22l-1.8-2.6-3 .9-.5-3.1-3-.9 1-3L2.7 11l2.6-1.8-.9-3 3.1-.5.9-3 3 1z" fill="#c9d6e6"/><circle cx="12" cy="12" r="3.6" fill="#22344f"/></svg><b>설정</b></button>
+    </nav>
+    <nav class="lb-side lb-right" id="hub-grid" aria-label="생활관">
+      <button data-hub="shop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17z" fill="#c9a24a" stroke="#6b5420" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5v9" stroke="#6b5420" stroke-width="1.2" fill="none"/><path d="M7.5 5.8l9 4.5" stroke="#d23a2a" stroke-width="2"/></svg><b>보급</b><i id="hub-shop-n" hidden></i></button>
+      <button data-hub="px"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" fill="#2f8f5b"/><rect x="7" y="8" width="10" height="7" fill="#f4d35e"/><rect x="9" y="1.5" width="6" height="2" rx="1" fill="#c9d6e6"/></svg><b>PX</b></button>
+      <button data-hub="phone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3l3.5 1 1 4.5-2.2 1.5a11 11 0 0 0 5.7 5.7l1.5-2.2 4.5 1 1 3.5c-1 2-3.3 3-5.5 2.3A16 16 0 0 1 3.7 8.5C3 6.3 4 4 6 3z" fill="#e2564a"/></svg><b>전화</b><i id="hub-phone-n" hidden>!</i></button>
+      <button data-hub="pull"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18" stroke="#c9d6e6" stroke-width="2.4" stroke-linecap="round"/><path d="M9 4l1 5M15 4l-1 5" stroke="#f6c79c" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="11" r="2.6" fill="#f6c79c"/><path d="M9 14h6l-1 7h-4z" fill="#6b8f4e"/></svg><b>체력단련</b></button>
+      <button data-hub="leave" id="hub-leave"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v10H3z" fill="#f2e6c9"/><path d="M3 11l9-7 9 7" stroke="#c8402e" stroke-width="2.2" fill="none" stroke-linejoin="round"/><path d="M12 19s-3.5-2.2-3.5-4.4a1.9 1.9 0 0 1 3.5-1 1.9 1.9 0 0 1 3.5 1C15.5 16.8 12 19 12 19z" fill="#e2564a"/></svg><b>휴가</b><i id="hub-leave-n" hidden>!</i></button>
+    </nav>
+    <div class="lb-bottom">
+      <div id="hub" class="lb-info"></div>
+      <button id="t-start" class="lb-go"><b id="t-start-b">제설 출동</b><small id="t-start-s"></small></button>
     </div>
   </section>
 
@@ -1828,7 +2101,12 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     icy: ['거기 얼었다! 염화칼슘 뿌려!', '빙판 됐다. 제설함에서 염화칼슘 가져와!'],
     roofWarn: ['처마 밑에서 떨어져! 눈 떨어진다!', '우두둑… 지붕 소리 들리지? 피해!'],
     nag: ['야 막내, 거기 덜 됐잖아.', '이병이 제일 열심히 해야지?', '넉가래 각도가 그게 뭐냐.', '막내야, 손 놀지 마라.'],
-    exam: ['오늘 진급 심사다. 행보관이 보고 있다.', '심사 날이다. 실수하면 한 달 더 그 계급이다.']
+    exam: ['오늘 진급 심사다. 행보관이 보고 있다.', '심사 날이다. 실수하면 한 달 더 그 계급이다.'],
+    // v11: 몰아치기·돌발
+    fever: ['폭풍 제설이다!! 몰아쳐!', '미쳤다! 이대로 밀어붙여!'],
+    surge: ['폭설 경보!! 하늘이 뚫렸다!', '눈 쏟아진다! 다 치운 데부터 지켜!'],
+    support: ['공병대 제설차 지원 왔다! 길 비켜!', '공병대다! 한 줄 시원하게 밀고 간다!'],
+    surprise: ['비상! 사단장님 불시 방문이다!', '사단장님 차 들어오신다! 경례 준비!']
   };
   // 작전 시작 브리핑: 누가 지시하나 (계급마다 다르다 — 짬이 차면 내가 지시한다)
   var BRIEF = [
@@ -1978,16 +2256,16 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   // stat: 저장의 기록 / life / tool / rank / zone / crew / pend / load
   // v10: 작전 흐름을 그대로 따라가는 안내
   var QUESTS = [
-    { id: 'scoop', text: '눈 퍼 담기', how: '걸으면 빗자루가 알아서 퍼 담는다', stat: 'load', goal: 20, pie: 20 },
-    { id: 'dump', text: '집하장에 붓기', how: '노란 동그라미(눈 집하장)로 가져가라', stat: 'dumps', goal: 1, pie: 40 },
-    { id: 'pusher', text: '행보관에게 넉가래 받기', how: '행보관 앞에서 위쪽 작은 버튼 "넉가래 요청"', stat: 'tool', goal: 1, dia: 1 },
+    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걸으면 빗자루가 알아서 등에 쌓는다', stat: 'load', goal: 20, pie: 20 },
+    { id: 'dump', text: '집하장에 붓기', how: '노란 원(눈 집하장)에 들어가면 와르르', stat: 'dumps', goal: 1, pie: 40 },
+    { id: 'pusher', text: '넉가래 받기', how: '초코파이가 모이면 행보관 옆 노란 보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
     { id: 'task', text: '지시서 한 줄 끝내기', how: '작업 지시서의 구역을 기준(%)까지 치워라', stat: 'tasks', goal: 1, pie: 60 },
-    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 "경례!" 막대가 줄기 전에 노란 버튼', stat: 'salute', goal: 1, pie: 50 },
-    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 행보관에게 가서 보고', stat: 'opReport', goal: 1, dia: 1 },
-    { id: 'salt', text: '빙판에 염화칼슘', how: '얼음 구간이 생기면 제설함(초록 상자)에서 포대를 들고 가서 뿌려라', stat: 'salt', goal: 1, pie: 80 },
+    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 화면 가운데 빨간 "경례" 버튼', stat: 'salute', goal: 1, pie: 50 },
+    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 초록 보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
+    { id: 'salt', text: '빙판에 염화칼슘', how: '빙판이 생기면 제설함을 지나가며 포대를 줍고, 빙판에 들어가면 저절로 뿌린다', stat: 'salt', goal: 1, pie: 80 },
     { id: 'perfect', text: '조각 하나 완벽!', how: '위 막대가 금색이면 남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
     { id: 'hire', text: '후임 전입 요청', how: '생활관 → 보급·인원 → 인원', stat: 'pend', goal: 1, pie: 80 },
-    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 "인솔"', stat: 'crew', goal: 1, dia: 2 },
+    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 다가가면 따라온다 → 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
     { id: 'rank1', text: '일병 진급', how: '★ 6개를 모으면 다음 작전이 진급 심사', stat: 'rank', goal: 1, dia: 3 },
     { id: 'star3', text: '★★★ 받기', how: '마감 전에 다 끝내고, 경례 빠짐없이, 빙판 없이', stat: 'star3', goal: 1, dia: 2 }
   ];
@@ -2016,7 +2294,14 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     { id: 'dia', name: '자판기 밑에서 다이아 발견!', w: 5, dia: 1 }
   ];
 
+  // v11: 바닥 원(패드) — 그 위에 서 있으면 저절로 된다 (아케이드 아이들식). 작전 지휘소: 집하장 옆 공터
+  var PADS = { supply: { x: 398, y: 288, r: 19, dwell: 1.0 }, report: { x: 452, y: 298, r: 19, dwell: 0.6 } };
+  // v11: 몰아치기(콤보가 이만큼 되면 8초 동안 넉가래 넓게 + 눈 값 두 배), 돌발 상황
+  var FEVER = { at: [40, 120, 240, 400, 600], sec: 8, range: 1.35, value: 2 };
+  var TWIST = { surge: { from: 3, p: [0.15, 0.3, 0.65, 0.8], sec: 18, fall: 5 }, support: { from: 4, p: 0.35, r: 26, speed: 70 }, surprise: { from: 5, p: 0.2 } };
+
   JY.SNOW = {
+    PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
     RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
@@ -2269,6 +2554,11 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (save.zones[HAZ.car.zone]) at(timeAt(HAZ.car.at), 'car');
     if (day >= 2) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
     if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) at(20 + R() * (dl - 40), 'heli');
+    // v11 돌발: 폭설 경보(날씨가 나쁠수록 자주), 공병대 제설차 지원(좋은 반전), 사단장님 불시 방문
+    var TW = S.TWIST, wxi = ['light', 'normal', 'heavy', 'blizzard'].indexOf(weatherFor(save).id);
+    if (day >= TW.surge.from && R() < TW.surge.p[Math.max(0, wxi)]) at(dl * (0.3 + R() * 0.3), 'surge');
+    if (day >= TW.support.from && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');
+    if (day >= TW.surprise.from && day % 7 && R() < TW.surprise.p) at(dl * (0.35 + R() * 0.25), 'surprise');
     ev.sort(function (a, b) { return a.t - b.t; });
     return ev;
   }
@@ -2655,7 +2945,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     }
     if (removed) {
       w.units += removed;
-      if (src === 'player') val *= comboMult(w);
+      if (src === 'player') val *= comboMult(w) * (w.fever > 0 ? S.FEVER.value : 1);
       if (who) { who.load += removed; who.val += val; }
       else { var g = val * w.mult * 0.5; w.earned += g; pay(w, g, src); }
       w.fx.push({ t: 'clear', x: cx, y: cy, n: removed, src: src });
@@ -2777,6 +3067,22 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       var b = cand[(R() * cand.length) | 0], segW = 60 + R() * 70, sx = b.x + R() * Math.max(1, b.w - segW), sy = b.y + b.h + 18;
       w.roofs.push({ b: b, sx: sx, sy: sy, segW: segW, t: HAZ.roof.warn });
       w.fx.push({ t: 'roofWarn', x: sx, y: b.y + b.h, w: segW, b: b.id }); say(w, 'roofWarn', true);
+    } else if (k === 'surge') {
+      if (w.demo) return;
+      w.surge = S.TWIST.surge.sec; w.fx.push({ t: 'surge', on: true, sec: w.surge }); say(w, 'surge', true);
+    } else if (k === 'support') {
+      // 눈이 제일 많이 남은 구역을 긴 방향으로 한 줄 밀고 지나간다
+      var bestZ = -1, bestN = 0;
+      S.ZONES.forEach(function (Z, zi) { var n = w.zoneOpen[zi] ? w.zoneTotal[zi] - w.zoneClear[zi] : 0; if (n > bestN) { bestN = n; bestZ = zi; } });
+      if (bestZ < 0 || bestN < 30) return;
+      var SZ = S.ZONES[bestZ], vert = SZ.h > SZ.w;
+      w.support = vert ? { x: SZ.x + SZ.w / 2, y: SZ.y - 30, dir: { x: 0, y: 1 }, end: SZ.y + SZ.h + 30, vert: true, zone: SZ.name, walk: 0, moving: true, tick: 0 }
+        : { x: SZ.x - 30, y: SZ.y + SZ.h / 2, dir: { x: 1, y: 0 }, end: SZ.x + SZ.w + 30, vert: false, zone: SZ.name, walk: 0, moving: true, tick: 0 };
+      w.fx.push({ t: 'support', on: true, zone: SZ.name, x: SZ.x + SZ.w / 2, y: SZ.y + SZ.h / 2 }); say(w, 'support', true);
+    } else if (k === 'surprise') {
+      if (w.demo || !JY.SnowAct) return;
+      w.fx.push({ t: 'surprise' }); say(w, 'surprise', true);
+      JY.SnowAct.spawnOfficer(w, 'gen');
     } else if (k === 'heli') {
       var Hz = zoneById(HAZ.heli.zone);
       w.heli = { x: Hz.x + Hz.w / 2, y: Hz.y + Hz.h / 2, t: 0, life: HAZ.heli.life, tick: 0 };
@@ -2863,6 +3169,16 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
         if (!car.stuck && P.stun <= 0 && Math.abs(P.x - car.x) < 16 && Math.abs(P.y - car.y) < 20) { P.stun = 0.8 * w.mod.stun; P.x += P.x < car.x ? -24 : 24; w.fx.push({ t: 'carHit', x: P.x, y: P.y }); }
       }
     }
+    // 공병대 제설차: 한 줄로 밀고 지나간다 (치운 만큼 초코파이도)
+    var sp = w.support;
+    if (sp) {
+      var mv = S.TWIST.support.speed * dt;
+      if (sp.vert) sp.y += mv; else sp.x += mv;
+      sp.walk += mv * 0.2; sp.tick -= dt;
+      if (sp.tick <= 0) { sp.tick = 0.1; clearAt(w, sp.x, sp.y, S.TWIST.support.r, 3, 'support', null); }
+      w.crew.forEach(function (c) { if (Math.abs(c.x - sp.x) < 22 && Math.abs(c.y - sp.y) < 22) { if (sp.vert) c.x += c.x < sp.x ? -30 : 30; else c.y += c.y < sp.y ? -30 : 30; c.retarget = 0; } });
+      if ((sp.vert ? sp.y : sp.x) > sp.end) { w.support = null; w.fx.push({ t: 'support', on: false }); }
+    }
     var hl = w.heli;
     if (hl) {
       hl.t += dt; hl.tick -= dt;
@@ -2938,13 +3254,16 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       if (P.hitT < 0) P.hitT = 0;
       if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
         var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
-        if (clearAt(w, cx, cy, P.r, P.p, 'player', P)) {
-          P.swing = 1; w.combo++; w.comboT = 1.4;
+        if (clearAt(w, cx, cy, P.r * (w.fever > 0 ? S.FEVER.range : 1), P.p, 'player', P)) {
+          P.swing = 1; w.combo++; w.comboT = 2;
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
+          // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배
+          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
         }
       }
     }
+    if (w.fever > 0) { w.fever -= dt; if (w.fever <= 0) { w.fever = 0; w.fx.push({ t: 'fever', on: false }); } }
     // 콤보: 쉬지 않고 치우면 쌓인다 (짐이 가득 차 있는 동안은 안 줄어든다)
     if (w.combo > 0 && P.load < P.cap) { w.comboT -= dt; if (w.comboT <= 0) { if (w.combo >= 25) w.fx.push({ t: 'comboEnd', n: w.combo }); w.combo = 0; } }
     if (P.load >= P.cap) { if (!P.fullSaid) { P.fullSaid = true; w.fx.push({ t: 'full' }); say(w, 'full', true); } } else P.fullSaid = false;
@@ -3044,7 +3363,8 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     }
 
     // 낮에도 눈은 날린다. 다 치워 가는 조각(80%↑)엔 안 쌓인다 — 한 땀 한 땀 끝낸 곳은 지켜 준다
-    w.fallAcc += w.cells.length * S.FALL * w.wx.fall * dt;
+    if (w.surge > 0) { w.surge -= dt; if (w.surge <= 0) { w.surge = 0; w.fx.push({ t: 'surge', on: false }); } }
+    w.fallAcc += w.cells.length * S.FALL * w.wx.fall * (w.surge > 0 ? S.TWIST.surge.fall : 1) * dt;
     while (w.fallAcc >= 1) {
       w.fallAcc -= 1;
       var k = w.cells[(R() * w.cells.length) | 0], d0 = w.depth[k], pk = w.partOf[k];
@@ -3187,47 +3507,134 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     return Pt && Pt.icy && !Pt.salted ? { k: k, part: Pt } : null;
   }
 
-  /* ── 주변에서 할 수 있는 것 ── */
+  /* ── 주변에서 할 수 있는 것 (v11: 버튼은 사람에게만. 나머지는 다가가면 저절로 — auto()) ── */
   function candidates(w) {
-    var a = init(w), P = w.player, save = w.save, out = [], op = w.op || {};
+    var a = init(w), P = w.player, out = [], op = w.op || {};
     function add(k, ref, x, y, r, name, verb, extra) { var o = { k: k, ref: ref, x: x, y: y, r: r, name: name, verb: verb }; if (extra) Object.keys(extra).forEach(function (q) { o[q] = extra[q]; }); out.push(o); }
     (a.off || []).forEach(function (o) {
       var verb = !o.saluted ? '경례' : !o.done.report && o.id !== 'lt' ? '보고하기' : o.id === 'lt' && !o.done.help ? '같이 하시죠' : '경례';
       add('officer', o, o.x, o.y, o.saluted ? 40 : 60, OFF[o.id].title, verb, { urgent: !o.saluted && !o.missed });
     });
-    var H = w.haeng, hand = a.hand, here = G.zoneAt(w, P.x, P.y), hereV = here ? '여기 배치' : '따라오는 중';
-    var nt = nextTool(save), ntOk = nt && rank(w) >= (nt.rank || 0);
-    add('haeng', H, H.x, H.y, op.ready ? 60 : 36, '행보관', op.ready ? '작업 완료 보고' : '경례',
-      { verb2: ntOk ? nt.name + ' 요청' : null, ask: ntOk ? '초코파이 ' + nt.cost.toLocaleString('ko-KR') + '개' : '', urgent: !!op.ready });
-    // 염화칼슘을 들고 언 구간 안에 서 있으면 뿌린다
-    var icy = hand === 'salt' ? icyPartHere(w) : null;
-    if (icy) add('spread', icy, P.x, P.y, 999, icy.part.name, '염화칼슘 뿌리기', { urgent: true });
-    // 빠진 출근 차량: 다 같이 민다
-    if (w.car && w.car.stuck) add('car', w.car, w.car.x, w.car.y, 50, '중대장님 차', '차 밀기', { ask: Math.round(w.car.push * 100) + '%' });
-    // 신병: 인솔 → 따라와서 → 구역에서 배치
-    (w.recruits || []).forEach(function (r) {
-      if (r.state === 'wait') add('recruit', r, r.x, r.y, 36, '신병', '인솔하기', { ask: r.def.name });
-      else add('recruit', r, r.x, r.y, 70, '신병', hereV, { behind: true, soft: !here, ask: here ? here.name : '구역 안으로' });
-    });
+    var H = w.haeng, hand = a.hand;
+    add('haeng', H, H.x, H.y, op.ready ? 60 : 36, '행보관', op.ready ? '작업 완료 보고' : '경례', { urgent: !!op.ready });
     w.crew.forEach(function (e) {
-      if (e.off) return;
+      if (e.off || e.state === 'follow') return;
       var C = e.def, nm = C.vehicle ? '제설차' : C.name, ask = '담당 ' + (G.zoneById(e.post) || { name: '?' }).name;
-      if (e.state === 'follow') { add(C.vehicle ? 'plow' : 'crew', e, e.x, e.y, 70, nm, hereV, { behind: true, soft: !here, follow: true, ask: here ? here.name : '구역 안으로' }); return; }
-      if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음' : '따라와', { ask: e.noFuel ? '정비고 기름통' : ask }); return; }
-      var choco = e.mor < 50 && !(e.asleep || e.slack || e.injured > 0.8 || (P.load >= 10 && e.cap - e.load >= 5));
-      var verb = e.asleep ? '깨우기' : e.slack ? '일으켜 세우기' : e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 맡기기' : choco ? '초코파이 주기' : '재촉하기';
+      if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음' : '따라와', { ask: e.noFuel ? '정비고에 가면 기름통' : ask }); return; }
+      if (e.asleep || e.slack) return;   // 지나가면 저절로 깨운다
+      var choco = e.mor < 50 && !(e.injured > 0.8 || (P.load >= 10 && e.cap - e.load >= 5));
+      var verb = e.injured > 0.8 ? '부축하기' : P.load >= 10 && e.cap - e.load >= 5 ? '짐 맡기기' : choco ? '초코파이 주기' : '재촉하기';
       add('crew', e, e.x, e.y, 36, nm, verb, { verb2: '따라와', ask: choco ? '초코파이 ' + chocoCost(w) + '개' : ask });
     });
-    w.deer.forEach(function (d) { if (!d.leaving) add('deer', d, d.x, d.y, 42, '고라니', '쫓아내기'); });
     w.cats.forEach(function (c) { add('cat', c, c.x, c.y, 30, '짬타이거', '쓰다듬기'); });
-    if (w.crew.some(function (e) { return e.def.vehicle; })) { var dG = door('garage'); add('garage', null, dG.x, dG.y, 34, '정비고', hand ? '손이 꽉 찼다' : '기름통 받기'); }
-    if (rank(w) >= 2 && w.crew.length) { var st = bld('stand'); add('stand', null, st.x + st.w / 2, st.y + st.h + 6, 40, '구령대', '구령하기'); }
-    S.PROPS.forEach(function (pr) {
-      if (!pr.use) return;
-      if (pr.id === 'stove') add('stove', pr, pr.ux, pr.uy, 30, pr.name, a.cool.stove > 0 ? '아직 따뜻' : '몸 녹이기');
-      else if (pr.id === 'saltbox') add('saltbox', pr, pr.ux, pr.uy, 30, pr.name, hand === 'salt' ? '포대 들고 있다' : hand ? '손이 꽉 찼다' : '염화칼슘 들기', { ask: w.parts.some(function (q) { return q.icy && !q.salted; }) ? '빙판 있다!' : '' });
-    });
     return out;
+  }
+
+  /* ── v11: 다가가면 저절로 (아케이드 아이들식) ── */
+  // 바닥 원: 보급(다음 장비, 서 있으면 초코파이가 빨려 들어가며 지급), 작업 완료 보고
+  function pads(w) {
+    var save = w.save, nt = nextTool(save), op = w.op || {}, out = [], PD = S.PADS;
+    if (nt) {
+      var rk = rank(w) >= (nt.rank || 0);
+      out.push({ id: 'supply', kind: 'supply', x: PD.supply.x, y: PD.supply.y, r: PD.supply.r, dwell: PD.supply.dwell, title: '장비 보급', name: nt.name, cost: nt.cost,
+        lock: rk ? '' : S.RANKS[nt.rank || 0].name + '부터', ok: rk && save.bank >= nt.cost });
+    }
+    out.push({ id: 'report', kind: 'report', x: PD.report.x, y: PD.report.y, r: PD.report.r, dwell: PD.report.dwell, title: '작업 완료 보고', name: op.ready ? '행보관에게 보고' : '지시서를 끝내면', cost: 0, lock: op.ready ? '' : '아직', ok: !!op.ready && !w.opEnd });
+    return out;
+  }
+  function auto(w, dt) {
+    var a = w.act, P = w.player, save = w.save;
+    a.padT = a.padT || {};
+    // 바닥 원
+    pads(w).forEach(function (pd) {
+      var on = Math.hypot(P.x - pd.x, P.y - pd.y) < pd.r;
+      if (!on || !pd.ok) { a.padT[pd.id] = 0; return; }
+      a.padT[pd.id] = (a.padT[pd.id] || 0) + dt;
+      if (a.padT[pd.id] < pd.dwell) return;
+      a.padT[pd.id] = -1.5;   // 끝나면 잠깐 쉰다
+      if (pd.kind === 'supply') {
+        var nt = nextTool(save), r = G.buy(save, 'tool', nt.id);
+        if (r.ok) { me(w, '행보관님! ' + nt.name + ' 하나 주십시오!'); bubble(w, w.haeng, pick(L.tool)); applyStats(w); fx(w, { t: 'toolGet', name: nt.name, cost: r.cost, x: pd.x, y: pd.y }); }
+      } else if (pd.kind === 'report') {
+        me(w, '충성! 제설 작업 완료했습니다!'); bubble(w, w.haeng, '수고했다. 들어가서 밥 먹어라.');
+        G.endOp(w, 'report');
+      }
+    });
+    if (w.opEnd) return;
+    // 제설함: 빙판이 있고 빈손이면 지나가며 포대를 든다
+    var icyAny = w.parts.some(function (q) { return q.icy && !q.salted; });
+    if (!a.hand && icyAny) S.PROPS.forEach(function (pr) { if (pr.id === 'saltbox' && Math.hypot(P.x - pr.ux, P.y - pr.uy) < 22) { hold(w, 'salt'); me(w, '염화칼슘 한 포대. 무겁다…'); } });
+    // 빙판: 포대를 들고 언 구간에 들어가면 0.4초 뒤 뿌린다
+    var ic = a.hand === 'salt' ? icyPartHere(w) : null;
+    if (ic) { a.spreadT = (a.spreadT || 0) + dt; if (a.spreadT > 0.4) { a.spreadT = 0; act(w, { k: 'spread', ref: ic }, P.dir); } } else a.spreadT = 0;
+    // 정비고: 기름 떨어진 제설차가 있으면 지나가며 기름통, 들고 제설차 옆에 가면 넣는다
+    if (!a.hand && w.crew.some(function (e) { return e.noFuel; })) { var dG = door('garage'); if (Math.hypot(P.x - dG.x, P.y - dG.y) < 30) act(w, { k: 'garage' }, P.dir); }
+    if (a.hand === 'fuel') w.crew.forEach(function (e) { if (e.def.vehicle && e.noFuel && Math.hypot(P.x - e.x, P.y - e.y) < 40) act(w, { k: 'plow', ref: e }, P.dir); });
+    // 빠진 출근 차량: 옆에 붙어 있으면 민다
+    var car = w.car;
+    if (car && car.stuck && Math.hypot(P.x - car.x, P.y - car.y) < 42) {
+      car.push += 0.45 * dt; car.mine = true; a.pushT = (a.pushT || 0) - dt;
+      if (a.pushT <= 0) { a.pushT = 0.45; me(w, pick(['영차!', '하나 둘 셋, 영차!', '밀어!!'])); fx(w, { t: 'push', x: car.x, y: car.y, push: car.push }); }
+    }
+    // 고라니: 가까이 가면 도망간다
+    w.deer.forEach(function (d) { if (!d.leaving && Math.hypot(d.x - P.x, d.y - P.y) < 34) { shoo(w, d, true); me(w, '훠이! 훠이!'); } });
+    // 자거나 짱박힌 분대원: 지나가면 깨운다
+    w.crew.forEach(function (e) {
+      if (e.off || !(e.asleep || e.slack) || Math.hypot(e.x - P.x, e.y - P.y) > 28) return;
+      act(w, { k: 'crew', ref: e }, P.dir);
+    });
+    // 신병: 다가가면 따라온다
+    (w.recruits || []).forEach(function (r) {
+      if (r.state === 'wait' && Math.hypot(r.x - P.x, r.y - P.y) < 40) act(w, { k: 'recruit', ref: r }, P.dir);
+    });
+    // 따라오는 사람(신병·분대원): 구역 안에서 1초 멈춰 서면 거기 배치
+    var fol = (w.recruits || []).filter(function (r) { return r.state === 'follow'; }).concat(w.crew.filter(function (e) { return e.state === 'follow'; }));
+    var here = fol.length ? G.zoneAt(w, P.x, P.y) : null;
+    if (here && !P.moving) {
+      a.assignT = (a.assignT || 0) + dt;
+      if (a.assignT > 1) { a.assignT = 0; fol.forEach(function (e) { act(w, { k: w.crew.indexOf(e) >= 0 ? (e.def.vehicle ? 'plow' : 'crew') : 'recruit', ref: e }, P.dir); }); }
+    } else a.assignT = 0;
+    // 난로: 옆에 서 있으면 몸을 녹인다
+    S.PROPS.forEach(function (pr) {
+      if (pr.id !== 'stove' || a.cool.stove > 0 || Math.hypot(P.x - pr.ux, P.y - pr.uy) > 22) return;
+      a.stoveT = (a.stoveT || 0) + dt; if (a.stoveT > 0.8) { a.stoveT = 0; act(w, { k: 'stove', ref: pr }, P.dir); }
+    });
+    // 구령대 (상병부터): 앞에 서 있으면 구령
+    if (rank(w) >= 2 && w.crew.length && !(a.cool.stand > 0)) {
+      var st = bld('stand');
+      if (Math.hypot(P.x - (st.x + st.w / 2), P.y - (st.y + st.h + 6)) < 22) { a.standT = (a.standT || 0) + dt; if (a.standT > 0.8) { a.standT = 0; act(w, { k: 'stand' }, P.dir); } } else a.standT = 0;
+    }
+  }
+  // 지금 할 일 하나 (화면 위 큰 글씨 + 땅 위 화살표가 가리키는 곳)
+  function objective(w) {
+    var a = init(w), P = w.player, op = w.op || {}, save = w.save;
+    function near(list) { var b = null, bd = 1e9; list.forEach(function (o) { var d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd) { bd = d; b = o; } }); return b; }
+    var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
+    if (urgent) return { kind: 'salute', x: urgent.x, y: urgent.y, text: OFF[urgent.id].title + '께 경례!', sub: '아래 큰 버튼', tone: 'red' };
+    if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
+    if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return { kind: 'dump', x: d.x, y: d.y, text: '가득 찼다! 집하장에 붓기', sub: '노란 원으로', tone: 'gold' }; }
+    var icy = w.parts.filter(function (q) { return q.icy && !q.salted; });
+    if (icy.length && a.hand === 'salt') { var ip = near(icy.map(function (q) { return { x: q.x + q.w / 2, y: q.y + q.h / 2, q: q }; })); return { kind: 'spread', x: ip.x, y: ip.y, text: '빙판에 염화칼슘', sub: ip.q.name + '에 들어가면 뿌린다', tone: 'blue' }; }
+    if (icy.length && !a.hand) { var sb = near(S.PROPS.filter(function (p) { return p.id === 'saltbox'; }).map(function (p) { return { x: p.ux, y: p.uy }; })); return { kind: 'salt', x: sb.x, y: sb.y, text: '빙판! 제설함에서 염화칼슘', sub: icy[0].name + ' · 초록 상자로', tone: 'blue' }; }
+    if (op.ready) return { kind: 'report', x: S.PADS.report.x, y: S.PADS.report.y, text: '작업 완료 보고', sub: '보고 원 위에 서 있기 · 일찍 할수록 수당', tone: 'green' };
+    var waiting = (w.recruits || []).filter(function (r) { return r.state === 'wait'; });
+    if (waiting.length) { var rc = near(waiting); return { kind: 'recruit', x: rc.x, y: rc.y, text: '신병 데려오기', sub: '다가가면 따라온다 · 구역에서 멈추면 배치', tone: 'green' }; }
+    var fol = (w.recruits || []).some(function (r) { return r.state === 'follow'; }) || w.crew.some(function (e) { return e.state === 'follow'; });
+    if (fol) return { kind: 'assign', x: P.x, y: P.y, text: '배치할 구역에서 멈춰 서기', sub: '1초 서 있으면 그 구역 담당', tone: 'green', here: true };
+    var nt = nextTool(save);
+    if (nt && rank(w) >= (nt.rank || 0) && save.bank >= nt.cost && !op.ready) return { kind: 'supply', x: S.PADS.supply.x, y: S.PADS.supply.y, text: nt.name + ' 받을 수 있다!', sub: '보급 원 위에 서 있기', tone: 'gold', soft: true };
+    var t = (op.tasks || []).filter(function (q) { return q.done < 0; })[0];
+    if (t) {
+      var pct = G.taskPct(w, t), Z = S.ZONES[t.zi], inZone = P.x > Z.x && P.x < Z.x + Z.w && P.y > Z.y && P.y < Z.y + Z.h, tx = Z.x + Z.w / 2, ty = Z.y + Z.h / 2;
+      if (inZone) {
+        // 구역 안: 제일 가까운 남은 눈 쪽으로
+        var cells = w.zoneCells[t.zi] || [], best = -1, bd2 = 1e9;
+        for (var k = 0; k < cells.length; k += 3) { var idx = cells[k]; if (!w.depth[idx]) continue; var cx = (idx % S.GW) * S.CELL + 5, cy = ((idx / S.GW) | 0) * S.CELL + 5, dd = Math.hypot(cx - P.x, cy - P.y); if (dd < bd2) { bd2 = dd; best = idx; } }
+        if (best >= 0) { tx = (best % S.GW) * S.CELL + 5; ty = ((best / S.GW) | 0) * S.CELL + 5; }
+      }
+      return { kind: 'task', x: tx, y: ty, text: Z.name + ' 치우기', sub: Math.floor(pct * 100) + '% / ' + Math.round(t.goal * 100) + '% · ' + G.clockText(t.due) + '까지', pct: Math.min(1, pct / t.goal), tone: t.lateSaid ? 'red' : 'navy', inZone: inZone };
+    }
+    return { kind: 'free', x: P.x, y: P.y, text: '남은 눈 마저 치우기', sub: '다 하면 보고', tone: 'navy', here: true };
   }
 
   // 지금 할 행동 하나. look = 보는 방향(단위벡터), fp = 1인칭이면 앞에 있는 것만
@@ -3366,8 +3773,10 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     Object.keys(a.cool).forEach(function (k) { a.cool[k] -= dt; });
     a.pickCd -= dt;
     w.crew.forEach(function (e) { if (e.naggedT > 0) e.naggedT -= dt; });
-    // 다 끝냈으면 행보관이 보고 받으러 다가온다
-    if (w.op && w.op.ready && !(H.hold > 0)) { H.tx = P.x; H.ty = P.y; H.wait = 1; if (dist(H, P) < 30) { H.tx = H.x; H.ty = H.y; } }
+    // 다 끝냈으면 행보관이 보고 원(작전 지휘소)에 가서 기다린다
+    if (w.op && w.op.ready && !(H.hold > 0)) { H.tx = S.PADS.report.x + 14; H.ty = S.PADS.report.y - 22; H.wait = 1; }
+    if (!w.demo) auto(w, dt);
+    if (w.opEnd) return;
     // 이병 때는 선임이 가끔 잔소리 (상병부터는 내가 하는 쪽)
     a.nagT -= dt;
     if (a.nagT <= 0) { a.nagT = 50 + w.rand() * 40; if (rank(w) === 0 && w.save.day >= 2 && !(w.op && w.op.ready)) { say(w, 'nag'); fx(w, { t: 'nag' }); } }
@@ -3590,13 +3999,15 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     var reqs = a.reqs.map(function (q) { return { who: '제설차', item: q.item, want: ITEM[q.item].want, from: ITEM[q.item].from, t: q.t, max: q.max, ref: q.who }; });
     return { hand: a.hand ? { id: a.hand, name: ITEM[a.hand].name } : null, reqs: reqs, recruits: (w.recruits || []).length, heat: 0, buffs: list, mission: null,
       salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack, ride: null,
-      op: G.opStatus(w), car: w.car && w.car.stuck ? { push: w.car.push } : null };
+      op: G.opStatus(w), car: w.car && w.car.stuck ? { push: w.car.push } : null,
+      pads: pads(w).map(function (p) { var t = a.padT && a.padT[p.id] > 0 ? a.padT[p.id] : 0; p.prog = Math.min(1, t / p.dwell); return p; }),
+      goal: objective(w), assign: Math.min(1, (a.assignT || 0) / 1), fever: w.fever || 0, surge: w.surge || 0 };
   }
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
     canThrow: function () { return false; }, throwBall: function () { return { ok: false }; },
-    prepItems: prepItems, prepBuy: prepBuy, pullDone: pullDone, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool,
+    prepItems: prepItems, prepBuy: prepBuy, pullDone: pullDone, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
     RIDE: RIDE, BUFF: BUFF, PX: S.PREP, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
@@ -3827,6 +4238,10 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     unlock: function () { ctx(); },
     scrape: function (k) { noise(0.07 + k * 0.05, 0.05 + k * 0.08, 'bandpass', 1500 + Math.random() * 1800, 0.9); },
     tick: function () { tone(1250 + Math.random() * 180, 0.06, 'sine', 0.045); },
+    // 등에 진 눈 블록이 집하장에 하나씩 떨어질 때: 갈수록 높아진다
+    stack: function (i) { var k = Math.pow(1.06, Math.min(18, i || 0)); tone(560 * k, 0.07, 'triangle', 0.07); tone(1120 * k, 0.05, 'sine', 0.03, 0.02); },
+    // 몰아치기 시작
+    fever: function () { [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, 0.12, 'square', 0.045, i * 0.05); }); noise(0.5, 0.06, 'highpass', 3000, 0.7); },
     whistle: function (long) {
       var c = ctx(); if (!c) return;
       var t = c.currentTime, o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), g = c.createGain(), dur = long ? 0.9 : 0.4;
@@ -4294,7 +4709,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -4429,6 +4844,19 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
         c.fillStyle = 'rgba(255,200,60,' + (0.55 + Math.sin(performance.now() / 120) * 0.35) + ')';
         for (var gy = Math.floor(PT.y / CELL); gy < Math.ceil((PT.y + PT.h) / CELL); gy++) for (var gx = Math.floor(PT.x / CELL); gx < Math.ceil((PT.x + PT.w) / CELL); gx++) { var kk = gy * GW + gx; if (world.partOf[kk] === pq && world.depth[kk] > 0) { circ(c, gx * CELL + 5, gy * CELL + 5, 2.2); c.fill(); } }
       } });
+      if (JY.SnowAct && mode === 'play') {
+        JY.SnowAct.pads(world).forEach(function (p) { list.push({ y: -9e4, f: function () {
+          var pr = ac.padT && ac.padT[p.id] > 0 ? Math.min(1, ac.padT[p.id] / p.dwell) : 0;
+          c.fillStyle = p.ok ? (p.kind === 'report' ? 'rgba(79,207,116,.4)' : 'rgba(255,210,74,.45)') : 'rgba(150,160,170,.3)'; circ(c, p.x, p.y, p.r); c.fill();
+          c.strokeStyle = p.ok ? '#fff' : 'rgba(255,255,255,.5)'; c.lineWidth = 2; c.stroke();
+          if (pr) { c.fillStyle = 'rgba(255,255,255,.65)'; circ(c, p.x, p.y, p.r * pr); c.fill(); }
+          c.fillStyle = '#16233a'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(p.title, p.x, p.y - 2); c.fillText(p.lock || (p.cost ? fmt(p.cost) : p.name), p.x, p.y + 8); } }); });
+        var gq = JY.SnowAct.objective(world), Pg = world.player;
+        if (gq && !gq.here && gq.kind !== 'salute' && Math.hypot(gq.x - Pg.x, gq.y - Pg.y) > 30) { var ga = Math.atan2(gq.y - Pg.y, gq.x - Pg.x); list.push({ y: 1e9, f: function () {
+          c.save(); c.translate(Pg.x + Math.cos(ga) * 26, Pg.y - 4 + Math.sin(ga) * 26); c.rotate(ga); c.fillStyle = '#ffd24a'; c.strokeStyle = '#16233a'; c.lineWidth = 1.5;
+          c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -9); c.lineTo(-2, 0); c.lineTo(-6, 9); c.closePath(); c.fill(); c.stroke(); c.restore();
+          c.fillStyle = '#ffd24a'; circ(c, gq.x, gq.y - 30 - Math.abs(Math.sin(performance.now() / 200)) * 6, 4.5); c.fill(); } }); }
+      }
       var KB = ac.ball; list.push({ y: KB.y, f: function () { c.fillStyle = '#f4f1e6'; circ(c, KB.x, KB.y - 3 - KB.h, 3.4); c.fill(); c.strokeStyle = '#e2b33c'; c.lineWidth = 1.2; c.stroke(); } });
       ac.balls.forEach(function (b) { list.push({ y: b.y + 1e5, f: function () { c.fillStyle = 'rgba(40,60,90,.25)'; circ(c, b.x, b.y, 2.2); c.fill(); c.fillStyle = '#fff'; circ(c, b.x, b.y - b.h * 0.6, 2.6); c.fill(); } }); });
     }
@@ -4613,6 +5041,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
     setSpeed: function (n) { speed = Math.max(1, Math.min(3, n || 1)); }, speed: function () { return speed; },
+    screenOf: function (x, y) { return { x: (x - camX) * zoom, y: (y - camY) * zoom, on: true }; },
     shake: function (n) { shake = Math.max(shake, n); },
     look: function () { if (!world) return null; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
     setFocus: function (t) { focusT = t || null; },
@@ -5103,7 +5532,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   // 짐이 많으면 가장 가까운 집하장 쪽 화살표
   function stepArrow() {
     if (!arrowEl) { arrowEl = document.createElement('div'); arrowEl.id = 'arrow3d'; arrowEl.innerHTML = '<svg viewBox="0 0 40 40"><path d="M6 20h20M20 10l10 10-10 10" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20h20M20 10l10 10-10 10" stroke="#ff6a55" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'; ov.appendChild(arrowEl); }
-    var P = world.player, show = mode === 'play' && P.load >= P.cap * 0.6;
+    var P = world.player, show = false;   // v11: 땅 위 길잡이 화살표로 바뀌었다
     arrowEl.style.display = show ? '' : 'none';
     if (!show) return;
     var d = G.nearestDump(world, P.x, P.y);
@@ -5488,6 +5917,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
         var dm = f.src === 'player', fromX = f.fromX * U, fromZ = f.fromY * U, tx = f.x * U, tz = f.y * U, nn = Math.min(dm ? 40 : 8, 4 + (f.units / 4 | 0));
         for (k = 0; k < nn; k++) { var tt = rnd(0.45, 0.75); emit(fromX + rnd(-0.4, 0.4), 2.2, fromZ + rnd(-0.4, 0.4), (tx - fromX) / tt + rnd(-1, 1), 7 * tt + rnd(0, 2), (tz - fromZ) / tt + rnd(-1, 1), tt + 0.05); }
         pileLevel[f.main ? 'main' : 'relay'] += f.units / 300;
+        if (dm) flyStack(f);
         if (dm || Math.random() < 0.35) { var od = addOv('+' + fmt(f.pay) + '<i class="pie"></i>', 'ov-dump', f.x, f.y, 4, dm ? 1.4 : 0.9); od.rise = 1.6; }
         if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
         if (dm && hooks.event) hooks.event(f);
@@ -5564,7 +5994,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       else if (f.t === 'carFree') { for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 0.5, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1)); if (sfx) sfx.vroom(); }
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t)) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -5577,7 +6007,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
     placePerson(playerObj, P, { lie: P.stun > 0.6 && !playerObj.vehicle });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
-    sack(playerObj, P.load / P.cap);
+    stackOn(playerObj, P);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
     setExpr(haengObj, w.haeng.chasing ? 'shout' : 'normal');
@@ -5625,14 +6055,15 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var CAMS = ['fp', 'near', 'far'], camMode = 'fp', WIDN = [15, 16, 17.5, 19, 21, 24, 28, 33, 42], PITCHN = 0.43, FOVN = 62, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
-  try { var cm0 = localStorage.getItem('jeseol-cam2'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
+  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 1.06, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  // v11: 처음엔 위에서 비스듬히 내려다보는 3인칭 (한 손가락으로 끌어서 이동). 1인칭은 시점 버튼으로
+  try { var cm0 = localStorage.getItem('jeseol-cam3'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
   // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
-  function cm() { return mode === 'demo' || mode === 'idle' ? 'near' : camMode; }
+  function cm() { return mode === 'lobby' ? 'lobby' : mode === 'demo' || mode === 'idle' ? 'near' : camMode; }
   function isFP() { return cm() === 'fp'; }
   function fitCam() {
     var c = cm(); camera.aspect = vw / vh;
-    camera.fov = c === 'fp' ? (vw < vh ? 84 : 66) : c === 'near' ? FOVN : FOV;
+    camera.fov = c === 'fp' ? (vw < vh ? 84 : 66) : c === 'near' ? FOVN : c === 'lobby' ? (vw < vh ? 46 : 34) : FOV;
     camera.near = c === 'fp' ? 0.12 : 0.5;
     camera.updateProjectionMatrix();
     if (vmCam) { vmCam.aspect = vw / vh; vmCam.fov = vw < vh ? 66 : 54; vmCam.updateProjectionMatrix(); }
@@ -5642,6 +6073,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (!world) return;
     var P = world.player, tx = P.x * U, tz = P.y * U - 1.5, c = cm(), now = performance.now() / 1000;
     if (c !== lastCamMode) { lastCamMode = c; fitCam(); if (c === 'fp') { fpYaw = Math.atan2(P.dir.x, P.dir.y); fpPitch = -0.2; } }
+    if (c === 'lobby') { lobbyCam(); return; }
     if (focus) { focus.t += dt; if (focus.t > focus.life) focus = null; else { var k = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tx += (focus.x - tx) * k; tz += (focus.z - tz) * k; } }
     var halfW = visW / 2;
     if (c === 'near') { tz = P.y * U - 1.2; if (focus) { var kf = Math.min(1, focus.t / 0.6, (focus.life - focus.t) / 0.6); tz += (focus.z - tz) * kf; tx = P.x * U + (focus.x - P.x * U) * kf; } }
@@ -5672,7 +6104,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     } else if (c === 'near') {
       var a0 = vw / vh, tn = Math.tan(FOVN * Math.PI / 360), wn = WIDN[world.save.tool] || 16, dn = a0 < 1 ? (wn / 2) / (tn * a0) : (wn * 0.6 / 2) / tn, ly = 1.3;
       camDn += (dn - camDn) * (snap ? 1 : Math.min(1, dt * 2));
-      var ahead = camDn * 0.22;
+      var ahead = camDn * 0.1;   // v11: 거의 위에서 내려다본다 (화면 위 = 북쪽, 끄는 방향 그대로 걷는다)
       camera.up.set(0, 1, 0);
       camera.position.set(camT.x + sx, ly + Math.sin(PITCHN) * camDn, camT.z + Math.cos(PITCHN) * camDn + sz);
       camera.lookAt(camT.x + sx, ly, camT.z - ahead + sz);
@@ -6196,6 +6628,152 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     window.addEventListener('resize', resize);
   }
 
+  /* ── v11: 바닥 원 · 길잡이 화살표 · 등에 쌓인 눈 · 공병대 제설차 · 몰아치기 · 로비 ── */
+  var padObjs = {}, guide = null, goalT = 0, goalC = null, flyPool = [], flies = [], supportObj = null, lastStackN = 0, flyOrder = 0, stackGeo = null, stackMat = null;
+  var PADCOL = { supply: '#ffd24a', report: '#4fcf74', lock: '#9aa4ae' };
+  var TONE = { red: '#ff5a46', gold: '#ffd24a', blue: '#6fc3ff', green: '#4fcf74', navy: '#ffffff' };
+  function resetV11() {
+    Object.keys(padObjs).forEach(function (k) { var o = padObjs[k]; scene.remove(o.g); o.el.remove(); }); padObjs = {};
+    flies.forEach(function (f) { f.m.visible = false; flyPool.push(f.m); }); flies = [];
+    if (supportObj) { removeObj(supportObj); supportObj = null; }
+    goalC = null; goalT = 0; lastStackN = 0;
+    if (guide) { guide.arrow.visible = false; guide.mark.visible = false; guide.ring.visible = false; }
+  }
+  function padObj(p) {
+    var o = padObjs[p.id]; if (o) return o;
+    var g = new T.Group();
+    function disc(geo, op) { var m = new T.Mesh(geo, new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: op, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; g.add(m); return m; }
+    var base = disc(new T.CircleGeometry(p.r * U, 40), 0.22), fill = disc(new T.CircleGeometry(p.r * U, 40), 0.55), ring = disc(new T.RingGeometry(p.r * U * 0.88, p.r * U * 1.08, 44), 0.95);
+    base.position.y = 0.08; fill.position.y = 0.09; ring.position.y = 0.1;
+    g.position.set(p.x * U, 0, p.y * U); scene.add(g);
+    var el = document.createElement('div'); el.className = 'ov-pad'; ov.appendChild(el);
+    return (padObjs[p.id] = { g: g, base: base, fill: fill, ring: ring, el: el, key: '' });
+  }
+  function syncPads(t) {
+    var A0 = A(), a = world.act, list = A0 && a && (mode === 'play' || mode === 'paused') ? A0.pads(world) : [], seen = {};
+    list.forEach(function (p) {
+      seen[p.id] = 1;
+      var o = padObj(p), col = p.ok ? PADCOL[p.kind] : PADCOL.lock, prog = a.padT && a.padT[p.id] > 0 ? Math.min(1, a.padT[p.id] / p.dwell) : 0;
+      o.g.visible = true;
+      o.base.material.color.set(col); o.ring.material.color.set(col); o.fill.material.color.set(col);
+      o.base.material.opacity = p.ok ? 0.26 + Math.sin(t * 4) * 0.08 : 0.12;
+      o.fill.visible = prog > 0; o.fill.scale.setScalar(Math.max(0.001, prog));
+      o.ring.scale.setScalar(p.ok ? 1 + Math.sin(t * 4) * 0.05 : 1);
+      o.g.position.y = snowAt(p.x, p.y) * 0.25;
+      var key = p.kind + p.ok + p.lock + p.name + p.cost;
+      if (o.key !== key) {
+        o.key = key; o.el.className = 'ov-pad ' + p.kind + (p.ok ? ' ok' : '');
+        o.el.innerHTML = '<b>' + esc(p.title) + '</b><span>' + esc(p.name) + '</span>' + (p.lock ? '<em>' + esc(p.lock) + '</em>' : p.cost ? '<em><i class="pie"></i>' + fmt(p.cost) + '</em>' : '');
+      }
+      var pp = project(p.x, p.y, 0.2), on = pp[2] < 1 && (!isFP() || Math.hypot(p.x - world.player.x, p.y - world.player.y) < 150);
+      o.el.style.display = on ? '' : 'none';
+      if (on) o.el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-50%)';
+    });
+    Object.keys(padObjs).forEach(function (k) { if (!seen[k]) { padObjs[k].g.visible = false; padObjs[k].el.style.display = 'none'; } });
+  }
+  function buildGuide() {
+    var sh = new T.Shape(); sh.moveTo(0, 0.95); sh.lineTo(0.66, 0.08); sh.lineTo(0.24, 0.08); sh.lineTo(0.24, -0.72); sh.lineTo(-0.24, -0.72); sh.lineTo(-0.24, 0.08); sh.lineTo(-0.66, 0.08); sh.closePath();
+    var arrow = new T.Mesh(new T.ShapeGeometry(sh), new T.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.95, depthWrite: false, depthTest: false }));
+    arrow.rotation.x = -Math.PI / 2; arrow.renderOrder = 8;
+    var ag = new T.Group(); ag.add(arrow); scene.add(ag);
+    var mark = new T.Mesh(merge([[cone(0.45, 0.95, { rx: Math.PI }, 4), '#ffffff'], [cyl(0.13, 0.13, 0.55, { y: 0.72 }, 6), '#ffffff']]), new T.MeshBasicMaterial({ vertexColors: true, depthTest: false, transparent: true }));
+    mark.renderOrder = 9; scene.add(mark);
+    var ring = new T.Mesh(new T.RingGeometry(0.95, 1.3, 36), new T.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.85, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 5; scene.add(ring);
+    guide = { arrow: ag, arrowMesh: arrow, mark: mark, ring: ring };
+  }
+  function stepGuide(dt, t) {
+    if (!guide) buildGuide();
+    var P = world.player, show = mode === 'play' && !!A();
+    if (show) { goalT -= dt; if (goalT <= 0 || !goalC) { goalT = 0.15; goalC = A().objective(world); } }
+    var g = show ? goalC : null, far = !!(g && !g.here && g.kind !== 'salute' && Math.hypot(g.x - P.x, g.y - P.y) > 30);
+    var markOn = far && !(g.kind === 'task' && g.inZone);
+    guide.arrow.visible = far; guide.mark.visible = markOn; guide.ring.visible = markOn;
+    if (!g) return;
+    var col = TONE[g.tone] || '#ffd24a';
+    guide.arrowMesh.material.color.set(col); guide.mark.material.color.set(col); guide.ring.material.color.set(col);
+    if (!far) return;
+    var dx = g.x - P.x, dy = g.y - P.y, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d, off = (isFP() ? 2.8 : 2.1) + Math.sin(t * 6) * 0.18;
+    guide.arrow.position.set(P.x * U + ux * off, 0.14 + snowAt(P.x, P.y) * 0.45, P.y * U + uy * off);
+    guide.arrow.rotation.y = Math.atan2(-ux, -uy);
+    guide.arrow.scale.setScalar(isFP() ? 0.8 : 1.15);
+    var gh = snowAt(g.x, g.y) * 0.4;
+    guide.mark.position.set(g.x * U, 3.1 + gh + Math.abs(Math.sin(t * 3.2)) * 0.6, g.y * U);
+    guide.mark.rotation.y = t * 1.6;
+    guide.ring.position.set(g.x * U, 0.12 + gh, g.y * U); guide.ring.scale.setScalar(1 + (t * 1.5 % 1) * 0.5); guide.ring.material.opacity = 0.85 * (1 - (t * 1.5 % 1));
+  }
+  // 등에 쌓인 눈 블록 (가득 찰수록 탑이 높아진다)
+  function stackOn(o, P) {
+    if (o.vehicle) return;
+    if (!o.stack) {
+      stackGeo = stackGeo || new T.BoxGeometry(0.64, 0.26, 0.46);
+      stackMat = stackMat || new T.MeshLambertMaterial({ color: '#f4f8fc', emissive: '#22303f', emissiveIntensity: 0.15 });
+      o.stack = new T.Group(); o.stack.position.set(0, 1.0, -0.6); o.body.add(o.stack); o.stackBoxes = [];
+      for (var i = 0; i < 12; i++) { var m = new T.Mesh(stackGeo, stackMat); m.position.set((hash(i, 3) - 0.5) * 0.09, i * 0.255, (hash(i, 5) - 0.5) * 0.06); m.rotation.y = (hash(i, 7) - 0.5) * 0.45; m.castShadow = true; m.visible = false; o.stack.add(m); o.stackBoxes.push(m); }
+    }
+    var n = P.load > 0 ? Math.max(1, Math.round(P.load / P.cap * 12)) : 0, k = n / 12;
+    o.stackBoxes.forEach(function (m, i) { m.visible = i < n; });
+    o.stack.rotation.x = P.moving ? Math.sin((P.walk || 0) * 2) * 0.05 * k : 0;
+    o.stack.rotation.z = P.moving ? Math.sin(P.walk || 0) * 0.06 * k : 0;
+    lastStackN = n;
+  }
+  // 부으면 블록이 위에서부터 하나씩 집하장으로 날아간다 (뿅뿅뿅 — 소리가 점점 높아진다)
+  function flyStack(f) {
+    var n = Math.max(1, Math.min(12, lastStackN)), P = world.player, base = snowAt(P.x, P.y) * 0.45;
+    flyOrder = 0;
+    for (var i = n - 1; i >= 0; i--) {
+      var m = flyPool.pop();
+      if (!m) { m = new T.Mesh(stackGeo || new T.BoxGeometry(0.64, 0.26, 0.46), stackMat || new T.MeshLambertMaterial({ color: '#f4f8fc' })); scene.add(m); }
+      m.visible = false;
+      flies.push({ m: m, sx: P.x * U - P.dir.x * 0.6, sy: 1.6 + i * 0.32 + base, sz: P.y * U - P.dir.y * 0.6, ex: f.x * U + rnd(-0.7, 0.7), ey: 0.9, ez: f.y * U + rnd(-0.7, 0.7), t: -(n - 1 - i) * 0.055, d: 0.34 });
+    }
+  }
+  function stepFlies(dt) {
+    for (var k = flies.length - 1; k >= 0; k--) {
+      var f = flies[k]; f.t += dt;
+      if (f.t < 0) continue;
+      var u = Math.min(1, f.t / f.d); f.m.visible = true;
+      f.m.position.set(f.sx + (f.ex - f.sx) * u, f.sy + (f.ey - f.sy) * u + Math.sin(u * Math.PI) * 2.4, f.sz + (f.ez - f.sz) * u);
+      f.m.rotation.set(u * 6, u * 4, 0);
+      if (u >= 1) {
+        f.m.visible = false; flyPool.push(f.m); flies.splice(k, 1);
+        var s = X(); if (s && s.stack && mode === 'play') s.stack(flyOrder);
+        flyOrder++;
+        for (var q = 0; q < 5; q++) emit(f.ex, 1.1, f.ez, rnd(-2.2, 2.2), rnd(2, 5), rnd(-2.2, 2.2), rnd(0.35, 0.6), q % 2 ? [1, 0.86, 0.35] : null);
+      }
+    }
+  }
+  function stepV11(dt) {
+    var t = performance.now() / 1000;
+    syncPads(t); stepGuide(dt, t); stepFlies(dt);
+    // 공병대 제설차 (좋은 반전)
+    var sp = world.support;
+    if (sp && !supportObj) supportObj = makePerson({ coat: '#55603a', face: 'driver', vehicle: 'truck', big: true, shadow: true });
+    if (!sp && supportObj) { removeObj(supportObj); supportObj = null; }
+    if (supportObj) { placePerson(supportObj, sp); if (Math.random() < 0.8) for (var q = 0; q < 3; q++) emit(sp.x * U + sp.dir.x * 2.6 + rnd(-1.5, 1.5), 0.6, sp.y * U + sp.dir.y * 2.6 + rnd(-1.5, 1.5), (sp.dir.y ? rnd(-5, 5) : 0) + sp.dir.x * 3, rnd(3, 7), (sp.dir.x ? rnd(-5, 5) : 0) + sp.dir.y * 3, rnd(0.5, 0.9)); }
+    // 몰아치기: 금빛 반짝이 + 발밑 고리
+    if (playerObj && playerObj.ring) {
+      var fv = world.fever > 0 && mode === 'play';
+      playerObj.ring.material.color.set(fv ? '#ffb020' : '#ffd84a'); playerObj.ring.scale.setScalar(fv ? 1.7 + Math.sin(t * 10) * 0.12 : 1);
+      if (fv) { var P = world.player; for (var e = 0; e < 4; e++) { var an = Math.random() * 6.28; emit(P.x * U + Math.cos(an) * 1.2, rnd(0.3, 2.2), P.y * U + Math.sin(an) * 1.2, 0, rnd(1, 3), 0, rnd(0.4, 0.8), [1, 0.78 + Math.random() * 0.2, 0.25]); } }
+    }
+  }
+  // 로비: 생활관 앞에 선 내 캐릭터를 가까이서 천천히 돌아본다
+  function lobbyCam() {
+    var P = world.player, now = performance.now() / 1000, ang = 0.32 + Math.sin(now * 0.13) * 0.38, R = vw < vh ? 11.5 : 9.5;
+    P.dir.x = 0; P.dir.y = 1;
+    var cx = P.x * U, cz = P.y * U;
+    camera.up.set(0, 1, 0);
+    camera.position.set(cx + Math.sin(ang) * R, 3.4, cz + Math.cos(ang) * R);
+    camera.lookAt(cx + Math.sin(ang) * 0.4, vw < vh ? 0.95 : 1.3, cz);   // 캐릭터가 위 카드와 아래 출동 버튼 사이에 서도록
+    camT.x = cx; camT.z = cz;
+    scene.fog.near = 40; scene.fog.far = 300;
+    sun.target.position.set(cx, 0, cz);
+    var sc = sun.shadow.camera; if (Math.abs(sc.right - 12) > 0.5) { sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.updateProjectionMatrix(); }
+    sun.position.copy(sun.target.position).addScaledVector(sunDir, 90);
+    sky.position.copy(camera.position); sunSprite.position.copy(camera.position).addScaledVector(sunDir, 520);
+    if (playerObj) { playerObj.body.position.y = Math.abs(Math.sin(now * 1.8)) * 0.04; playerObj.body.rotation.z = Math.sin(now * 0.9) * 0.04; if (playerObj.ring) playerObj.ring.visible = false; }
+  }
+
   /* ── 루프 ── */
   var speed = 1;   // 병장 말년 특권: 작전 2배속
   function frame(t) {
@@ -6228,7 +6806,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       syncActors(dt); stepParticles(dt); stepChunks(dt); lighting(); camera3(dt); stepOverlays(dt); fadeBuildings();
       clouds.forEach(function (cl, i) { cl.position.x += dt * (1.5 + i % 3); if (cl.position.x > 420) cl.position.x = -340; });
       scrapeT -= dt; crewScrapeT -= dt; shake = Math.max(0, shake - dt * 2);
-      stepDumps(dt); stepArrow(); syncAct(dt);
+      stepDumps(dt); stepArrow(); syncAct(dt); stepV11(dt);
     }
     renderer.clear();
     renderer.render(scene, camera);
@@ -6236,14 +6814,14 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   }
 
   function begin(save, m) {
-    world = G.createWorld(save, { demo: m === 'demo', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });
+    world = G.createWorld(save, { demo: m === 'demo' || m === 'lobby', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });   // 로비 장면은 저장을 건드리지 않는다
     mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
     for (var i = 0; i < MAXP; i++) pPos[i * 3 + 1] = -50;
     for (i = 0; i < MAXC; i++) cPos[i * 3 + 1] = -50;
     offObjs.forEach(removeObj); offObjs = []; spkT = 0;
     recObjs.forEach(function (ob) { removeObj(ob); if (ob.tag) ob.tag.remove(); }); recObjs = [];
-    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps();
+    carveDumps(); buildSnow(); buildLocks(); buildActors(); buildDumps(); resetV11();
     visW = VIS[save.tool] || 30; fitCam(); camera3(0, true);
     return world;
   }
@@ -6297,6 +6875,11 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     init: init,
     rebuildArt: function () { /* 글꼴이 늦게 와도 3D 글씨는 다시 안 그린다 */ },
     demo: function (save) { return begin(save, 'demo'); },
+    lobby: function (save) {
+      var w = begin(save, 'lobby'); w.player.x = 250; w.player.y = 172; w.player.dir = { x: 0, y: 1 }; w.haeng.x = 292; w.haeng.y = 182; w.haeng.dir = { x: -0.5, y: 0.85 }; w.haeng.hold = 1e9; w.time = w.dayLen * 0.3;
+      lastCamMode = ''; fitCam(); camera3(0, true); return w;
+    },
+    screenOf: function (x, y, h) { if (!world || !camera) return null; var p = project(x, y, h || 1); return { x: p[0], y: p[1], on: p[2] < 1 }; },
     play: function (save) { return begin(save, 'play'); },
     pause: function (b) { if (mode === 'play' && b) mode = 'paused'; else if (mode === 'paused' && !b) { mode = 'play'; last = 0; } },
     world: function () { return world; },
@@ -6307,7 +6890,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     scan: function () { if (!world) return false; scanT = 3; recolorAll(); return true; },
     toggleCam: function (to) {
       camMode = CAMS.indexOf(to) >= 0 ? to : CAMS[(CAMS.indexOf(camMode) + 1) % CAMS.length];
-      try { localStorage.setItem('jeseol-cam2', camMode); } catch (e) { /* 무시 */ }
+      try { localStorage.setItem('jeseol-cam3', camMode); } catch (e) { /* 무시 */ }
       stick = null; lookPtr = null; stickEl.hidden = true; moveTo = null;
       fitCam(); if (world) camera3(0, true); return camMode;
     },
@@ -6327,8 +6910,9 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 })(window.JY = window.JY || {});
 
 /* js/snow/ui.js */
-/* 제설각 — 화면 흐름 (v10): 생활관(저녁) → 제설 비상 브리핑 → 작전(05:30~08:00) → 검열 결과(★) → 진급 → 생활관
- * 보급·인원·PX·공중전화·체력단련은 생활관에서만. 작전 중엔 눈과 사람에만 집중한다. */
+/* 제설각 — 화면 흐름 (v11): 타이틀 → 생활관 로비 → 제설 비상 브리핑 → 작전(05:30~08:00) → 검열 결과(★) → 진급 → 로비
+ * v11: 한 손가락 조작 · 빛나는 원 위에 서면 저절로 · 화면 위 '지금 할 일' 한 줄 · 등에 쌓이는 눈 블록 · 폭풍 제설·폭설 경보 같은 반전.
+ * 보급·인원·PX·공중전화·체력단련은 로비에서만. 작전 중엔 눈과 사람에만 집중한다. */
 (function (JY) {
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
@@ -6352,6 +6936,8 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     lastSave = Date.now();
   }
   function fmt(n) { return Math.floor(n).toLocaleString('ko-KR'); }
+  // 작전 HUD처럼 좁은 곳: 10만부터 '12.3만', 1억부터 '1.2억'
+  function short(n) { n = Math.floor(n); return n >= 1e8 ? (n / 1e8).toFixed(n >= 1e9 ? 0 : 1) + '억' : n >= 1e5 ? (n / 1e4).toFixed(n >= 1e6 ? 0 : 1) + '만' : fmt(n); }
   // 받침 있으면 a(을·은·이), 없으면 b(를·는·가)
   function josa(w, a, b) { var c = String(w).charCodeAt(String(w).length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b); }
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
@@ -6362,14 +6948,20 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   function insignia(r) { return JY.art ? JY.art.rankInsignia(r + 1) : ''; }
 
   function show(id) {
-    ['title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
+    ['splash', 'title', 'shop'].forEach(function (s) { $(s).hidden = s !== id; });
     $('hud').hidden = id !== 'play';
     $('h-shop').hidden = true;   // v10: 보급은 생활관에서만 (작전 중 장비는 행보관에게 직접 요청)
     ['acts', 'side'].forEach(function (k) { $(k).hidden = id !== 'play' || !A; });
     if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; } else fpLayout();
     if (id === 'title') $('say').hidden = true;
     $('stack').classList.toggle('low', id === 'shop');
-    if (id !== 'play') $('hint').hidden = true;
+    if (id !== 'play') {
+      $('stack').style.top = ''; document.body.classList.remove('saluting');
+      $('hint').hidden = true;
+      ['fever', 'surge', 'combo', 'chip', 'banner', 'salute'].forEach(function (k) { $(k).hidden = true; });
+      document.body.classList.remove('fever', 'surge'); hudA.fv = hudA.sg = false; comboShown = 0;
+      $('coins').innerHTML = '';
+    }
   }
 
   /* ── 행보관 말풍선·알림 ── */
@@ -6418,60 +7010,118 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   function midOp() { return !!(save.snow && save.dayT > 0 && save.op && save.op.day === save.day); }
   function title() {
     show('title');
-    V.demo(save);
-    var r = G.rankOf(save), on = started(), nr = G.nextRank(save), box = $('title-box');
-    box.classList.toggle('hubmode', on);
-    $('hub').hidden = !on; $('hub-grid').hidden = !on; $('t-shop').hidden = true;
-    $('t-info').hidden = on;
-    $('t-info').innerHTML = '<span>이병 · 싸리비 하나로 부대를 치운다</span>';
-    $('t-start').textContent = !on ? '전입 신고' : midOp() ? '작전 이어하기 (' + G.clockText(G.clockOf(save.dayT)) + ')' : save.exam ? '진급 심사 작전 출동' : '제설 비상! 출동';
-    $('t-start').classList.toggle('exam', !!save.exam && !midOp());
-    $('t-sound').textContent = X && X.muted() ? '소리 끔' : '소리 켬';
-    if (on) renderHub();
+    if (V.lobby) V.lobby(save); else V.demo(save);
+    var on = started(), mid = midOp();
+    $('t-start-b').textContent = !on ? '전입 신고' : mid ? '작전 이어하기' : save.exam ? '진급 심사 출동' : '제설 출동';
+    $('t-start-s').textContent = !on ? '이병 · 싸리비 하나로 시작' : mid ? G.clockText(G.clockOf(save.dayT)) + '부터 계속' : save.day + '일차 · 05:30 제설 비상';
+    $('t-start').classList.toggle('exam', !!save.exam && !mid);
+    document.body.classList.toggle('fresh', !on);
+    renderHub();
   }
+  var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.6L12 16.6 6 19.9l1.5-6.6-5-4.5 6.6-.6z" fill="#ffd24a" stroke="#a87a12" stroke-width="1.2"/></svg>';
+  // 로비: 왼쪽 위 내 카드(얼굴·계급·★ 막대), 아래 진급 길 + 소식 3줄, 오른쪽 생활관 버튼 배지
   function renderHub() {
-    var r = G.rankOf(save), nr = G.nextRank(save), m = save.merit || 0, R0 = S.RANKS[r];
-    var wx = G.weatherFor(save), lo = save.lastOp;
-    var prog = nr ? Math.min(1, (m - R0.merit) / (nr.merit - R0.merit)) : Math.min(1, m / S.DISCHARGE_MERIT);
-    var goalTxt = save.exam ? '<b class="examtag">다음 작전: ' + nr.name + ' 진급 심사</b>' : nr ? '근무평정 <b>★' + m + '</b> / ' + nr.merit + ' → ' + nr.name + ' 진급 심사' : '근무평정 <b>★' + m + '</b> / ' + S.DISCHARGE_MERIT + ' → 전역';
-    var nextZone = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; })[0];
-    var leaveOk = save.dia >= S.LEAVE.cost, disOk = G.canDischarge(save);
-    $('hub').innerHTML =
-      '<div class="hub-card">' +
-        '<div class="hub-top"><span class="ins big">' + insignia(r) + '</span><div><b>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</b><small>' + esc(R0.role) + '</small></div></div>' +
-        '<p class="hub-goal">' + goalTxt + '</p><div class="hub-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div>' +
-        '<ul class="hub-stats">' +
-          '<li><span>복무</span><b>' + save.day + '일차</b></li>' +
-          '<li><span>초코파이</span><b>' + pie() + fmt(save.bank) + '</b></li>' +
-          '<li><span>상점</span><b>' + dia() + save.dia + '</b></li>' +
-          '<li><span>분대원</span><b>' + G.crewCount(save) + '/' + G.crewCap(save) + '명</b></li>' +
-        '</ul>' +
-        (lo ? '<p class="hub-last">지난 작전(' + lo.day + '일차) <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 진급 심사 합격' : ' · 심사 불합격') : '') + '</p>' : '') +
-        '<p class="hub-wx">내일 새벽: <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + (nextZone ? ' · 다음 담당 구역 ' + esc(nextZone.name) + ' (★' + nextZone.need + ')' : '') + '</p>' +
-        '<div class="hub-acts">' +
-          '<button id="hub-leave" class="btn ghost"' + (leaveOk ? '' : ' disabled') + '>포상휴가 <small>' + dia() + S.LEAVE.cost + (save.leave ? ' · ' + save.leave + '번 다녀옴' : '') + '</small></button>' +
-          (disOk || r >= 3 ? '<button id="hub-dis" class="btn ghost"' + (disOk ? '' : ' disabled') + '>전역 신고' + (disOk ? '' : ' <small>★' + S.DISCHARGE_MERIT + '</small>') + '</button>' : '') +
-        '</div>' +
-      '</div>';
+    var r = G.rankOf(save), nr = G.nextRank(save), m = save.merit || 0, R0 = S.RANKS[r], on = started();
+    var lo = save.lastOp, wx = G.weatherFor(save), base = R0.merit, top = nr ? nr.merit : S.DISCHARGE_MERIT;
+    var prog = Math.max(0, Math.min(1, (m - base) / Math.max(1, top - base)));
+    $('hub-card').innerHTML =
+      '<div class="lc-face">' + (JY.art && M ? JY.art.character(M.lookSpec(save)) : '') + '</div>' +
+      '<div class="lc-body"><b class="lc-name"><span class="ins">' + insignia(r) + '</span><span>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</span></b>' +
+      '<small class="lc-role">' + esc(R0.role.split(' — ')[0]) + ' · ' + save.day + '일차 · 분대원 ' + G.crewCount(save) + '명</small>' +
+      '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div></div>';
+    $('lb-bank').textContent = save.bank >= 1e7 ? short(save.bank) : fmt(save.bank); $('lb-dia').textContent = fmt(save.dia);
+    var steps = S.RANKS.map(function (R, i) { return { name: R.name, need: R.merit, i: i }; }).concat([{ name: '전역', need: S.DISCHARGE_MERIT, i: S.RANKS.length }]);
+    var road = '<ol class="road">' + steps.map(function (s) {
+      var cls = s.i < r ? 'past' : s.i === r ? 'now' : s.i === r + 1 ? 'next' + (save.exam ? ' exam' : '') : '';
+      return '<li class="' + cls + '"><i>' + (s.i < S.RANKS.length ? insignia(s.i) : STAR_SVG) + '</i><b>' + s.name + '</b><small>' + (s.i === r ? '지금' : s.i === r + 1 && save.exam ? '심사!' : '★' + s.need) + '</small></li>';
+    }).join('') + '</ol>';
+    var nextZone = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; })[0], news = [];
+    if (!on) news.push('<li class="hl">끌어서 걷고, 눈을 <b>등에 쌓아</b> 집하장에 붓는다</li>', '<li>★이 쌓이면 <b>진급</b> — 계급이 오를수록 편해진다</li>');
+    if (G.canDischarge(save)) news.push('<li class="hl" data-hub="dis">전역할 수 있다! <b>전역 신고 ›</b></li>');
+    if (save.exam && nr) news.push('<li class="exam">다음 작전 = <b>' + nr.name + ' 진급 심사</b> · ★★ 이상이면 진급</li>');
+    if (lo) news.push('<li>지난 작전 <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 심사 합격' : ' · 심사 불합격') : '') + '</li>');
+    if (on) news.push('<li>내일 새벽 <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + '</li>');
+    if (nextZone && on) news.push('<li>★' + nextZone.need + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
+    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 3).join('') + '</ul>';
     var any = G.offers(save), n = 0;
-    ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { any[k].forEach(function (o) { if (o.ok) n++; }); });
+    ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
-    $('hub-phone-s').textContent = save.daily.call === save.day ? '오늘은 통화했다' : '하루 한 번';
-    var lv = $('hub-leave'); if (lv) lv.onclick = goLeave;
-    var ds = $('hub-dis'); if (ds) ds.onclick = function () { tab = 'dis'; openShop(); };
+    $('hub-phone-n').hidden = !on || save.daily.call === save.day;
+    $('hub-leave-n').hidden = save.dia < S.LEAVE.cost;
+    $('hub-grid').hidden = !on;
   }
   function hubClick(e) {
     var b = e.target.closest('[data-hub]'); if (!b) return;
     var k = b.getAttribute('data-hub');
-    if (X) X.pop();
+    if (X) { X.unlock(); X.pop(); }
     if (k === 'shop') { tab = 'tool'; openShop(); }
     else if (k === 'px') openPX();
     else if (k === 'phone') phoneCall();
     else if (k === 'pull') pullUp();
+    else if (k === 'leave') { if (save.dia >= S.LEAVE.cost) goLeave(); else toast('포상휴가는 상점 ' + S.LEAVE.cost + '개 (지금 ' + save.dia + '개) · 작전 ★★★·칼경례로 모은다'); }
+    else if (k === 'help') help();
+    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis') { tab = k; openShop(); }
+    else if (k === 'settings') settings();
+  }
+  // 설정: 소리·진동·작전 시점·교범·전역·처음부터
+  var CAM_NAME = { near: '위에서 (추천)', far: '멀리서', fp: '1인칭' };
+  function settings() {
+    function render() {
+      modal('<div class="m-rank set"><p class="kicker">설정</p><h3>설정</h3><div class="set-list">' +
+        '<button data-set="sound"><span>소리</span><b>' + (X && X.muted() ? '끔' : '켬') + '</b></button>' +
+        '<button data-set="haptic"><span>진동</span><b>' + (JY.snowHaptic ? '켬' : '끔') + '</b></button>' +
+        (V.toggleCam ? '<button data-set="cam"><span>작전 시점</span><b>' + (CAM_NAME[V.camMode()] || '') + '</b></button>' : '') +
+        '<button data-set="help"><span>제설 교범 다시 보기</span><b>›</b></button>' +
+        (G.rankOf(save) >= 3 || save.discharges ? '<button data-set="dis"><span>전역 신고</span><b>›</b></button>' : '') +
+        '<button data-set="reset" id="t-reset" class="danger"><span>처음부터 다시</span><b>›</b></button>' +
+        '</div><button class="btn big" data-m="close">닫기</button></div>');
+      var b = $('modal-box'), base = b.onclick;
+      b.onclick = function (e) {
+        var s = e.target.closest('[data-set]'); if (!s) return base(e);
+        var k = s.getAttribute('data-set');
+        if (k === 'sound') { if (X) { X.setMuted(!X.muted()); if (!X.muted()) { X.unlock(); X.pop(); } } render(); }
+        else if (k === 'haptic') { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (er) { /* 무시 */ } if (JY.snowHaptic) vibrate(30); render(); }
+        else if (k === 'cam') { V.toggleCam(); camLabel(); render(); }
+        else { $('modal').hidden = true; if (k === 'help') help(); else if (k === 'dis') { tab = 'dis'; openShop(); } else if (k === 'reset') resetAll(); }
+      };
+    }
+    render();
+  }
+  // 제설 교범: 처음 출동 전에 4장. 무엇을 하고(눈을 쌓아 붓는다), 어떻게 하고(끌기·원 위에 서기), 왜 하는지(★→진급)
+  var HELP = [
+    { t: '끌어서 걷는다', s: '화면 <b>아무 데나</b> 손가락을 대고 끌면 그쪽으로 걷는다. 빗자루·넉가래는 <b>알아서</b> 민다.', art: 'drag' },
+    { t: '등에 쌓고 → 집하장에 붓는다', s: '치운 눈은 <b>등에 블록으로</b> 쌓인다. 꽉 차면 <b>노란 집하장</b>에 들어가기만 하면 와르르 — 그게 초코파이.', art: 'stack' },
+    { t: '빛나는 원 위에 서 있기', s: '<b>보급 원</b>에 서면 다음 장비, <b>보고 원</b>에 서면 작전 끝. 뭘 할지 모르겠으면 화면 위 한 줄과 <b>노란 화살표</b>.', art: 'pad' },
+    { t: '마감 전에 끝내면 ★', s: '지시서 구역을 시각 안에 치우면 ★. ★이 쌓이면 <b>진급</b>, 계급이 오르면 후임·장비·제설차가 대신 해 준다.', art: 'star' }
+  ];
+  var HELP_ART = {
+    drag: '<svg viewBox="0 0 200 120"><rect x="60" y="6" width="80" height="108" rx="12" fill="#1d2f4d" stroke="#9fb6cd" stroke-width="3"/><rect x="67" y="16" width="66" height="88" rx="4" fill="#e9f1f8"/><path d="M78 84 q22 -30 44 -42" stroke="#ffd24a" stroke-width="4" fill="none" stroke-dasharray="6 5"/><path d="M122 42 l-12 0 l8 -9z" fill="#ffd24a"/><circle cx="78" cy="84" r="9" fill="rgba(255,210,74,.45)" stroke="#ffd24a" stroke-width="2"/><path d="M76 96 c-2-10 0-18 6-18 4 0 5 4 5 8 v-12 c0-3 2-5 4-5s4 2 4 5v14 c0-2 2-4 4-4s4 2 4 5v10 c0 8-6 14-14 14h-4c-8 0-12-6-13-17z" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><circle cx="118" cy="52" r="7" fill="#5b6a3a"/><circle cx="118" cy="45" r="5" fill="#f6c79c"/></svg>',
+    stack: '<svg viewBox="0 0 200 120"><ellipse cx="150" cy="100" rx="36" ry="12" fill="#ffd24a" opacity=".55"/><path d="M126 98 q24 -40 48 0z" fill="#f4f8fc" stroke="#9fb6cd" stroke-width="2"/><g transform="translate(52 0)"><rect x="-14" y="60" width="28" height="36" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2"/><circle cx="0" cy="50" r="11" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><path d="M-11 46 q11 -14 22 0z" fill="#4d5b31"/>' + [0, 1, 2, 3, 4].map(function (i) { return '<rect x="-28" y="' + (84 - i * 11) + '" width="16" height="10" rx="2" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.5"/>'; }).join('') + '</g><path d="M78 60 q34 -26 62 6" stroke="#ffd24a" stroke-width="4" fill="none" stroke-dasharray="6 5"/>' + [0, 1, 2].map(function (i) { return '<rect x="' + (96 + i * 14) + '" y="' + (40 + i * 4) + '" width="12" height="8" rx="2" fill="#fbfdff" stroke="#9fb6cd" stroke-width="1.2" transform="rotate(' + (i * 18 - 10) + ' ' + (102 + i * 14) + ' ' + (44 + i * 4) + ')"/>'; }).join('') + '<text x="150" y="30" text-anchor="middle" font-size="18" fill="#b8861b" font-family="Black Han Sans,sans-serif">+120</text></svg>',
+    pad: '<svg viewBox="0 0 200 120"><ellipse cx="100" cy="88" rx="62" ry="22" fill="rgba(255,210,74,.35)" stroke="#ffd24a" stroke-width="4"/><path d="M38 88 a62 22 0 0 1 124 0" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/><rect x="86" y="50" width="28" height="34" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2"/><circle cx="100" cy="40" r="11" fill="#f6c79c" stroke="#23281e" stroke-width="2"/><path d="M89 36 q11 -14 22 0z" fill="#4d5b31"/><rect x="58" y="4" width="84" height="22" rx="11" fill="#16233a"/><text x="100" y="20" text-anchor="middle" font-size="13" fill="#ffd24a" font-family="Jua,sans-serif">보급 · 넉가래</text></svg>',
+    star: '<svg viewBox="0 0 200 120">' + [0, 1, 2].map(function (i) { return '<g transform="translate(' + (52 + i * 48) + ' ' + (i === 1 ? 44 : 54) + ') scale(' + (i === 1 ? 1.5 : 1.2) + ')"><path d="M0 -16l4.7 9.6 10.5 1.2-7.8 7.2 2.2 10.4L0 7.2l-9.6 5.2 2.2-10.4-7.8-7.2 10.5-1.2z" fill="#ffd24a" stroke="#a87a12" stroke-width="1.6"/></g>'; }).join('') + '<path d="M70 96 l30 -12 30 12 M70 108 l30 -12 30 12" stroke="#c8402e" stroke-width="6" fill="none" stroke-linejoin="round"/></svg>'
+  };
+  function help(done) {
+    var i = 0;
+    function render() {
+      var h = HELP[i], last = i === HELP.length - 1;
+      modal('<div class="m-help"><p class="kicker">제설 교범 ' + (i + 1) + ' / ' + HELP.length + '</p><div class="help-art">' + HELP_ART[h.art] + '</div><h3>' + h.t + '</h3><p>' + h.s + '</p>' +
+        '<div class="dots">' + HELP.map(function (_, j) { return '<i class="' + (j === i ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+        '<div class="res-btns"><button class="btn ghost" data-h="' + (i ? 'prev' : 'skip') + '">' + (i ? '이전' : '건너뛰기') + '</button><button class="btn big" data-h="next">' + (last ? (done ? '알겠다! 출동' : '알겠다') : '다음') + '</button></div></div>');
+      $('modal-box').onclick = function (e) {
+        var b = e.target.closest('[data-h]'); if (!b) return;
+        var k = b.getAttribute('data-h'); if (X) X.pop();
+        if (k === 'next' && !last) { i++; render(); return; }
+        if (k === 'prev') { i--; render(); return; }
+        $('modal').hidden = true; save.seen.help = true; persistRaw(); if (done) done();
+      };
+    }
+    render();
   }
 
   /* ── 제설 비상 브리핑: 누가 지시하나(계급마다), 날씨, 작업 지시서(마감 시각), 특이사항, 상병부터 조원 배치 ── */
   function startOp() {
+    if (X) X.unlock();
+    if (!save.seen.help) { help(startOp); return; }   // v11: 처음 한 번은 교범 4장
     if (!started() && !save.story.prologue) { play(false); return; }   // 첫 전입: 프롤로그가 이어진다
     if (midOp()) { play(true); return; }
     briefing();
@@ -6582,7 +7232,12 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (f.t === 'jigeok') { chip('지적 ' + f.n + '건 — 경례 안 했다 (등급 감점)', 'bad'); vibrate([80, 40, 80]); hud.op = null; return true; }
     if (f.t === 'nag') return true;
     if (f.t === 'prep') { chip('준비물: ' + f.used.join(', '), 'good'); return true; }
-    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '행보관이 창고에서 꺼내 줬다 · 초코파이 ' + fmt(f.cost), 2200); if (X) X.buy(); return true; }
+    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '행보관이 창고에서 꺼내 줬다 · 초코파이 ' + fmt(f.cost), 2200); if (X) X.buy(); if (V.shake) V.shake(2); vibrate([30, 30, 60]); hud.ld = -1; return true; }
+    if (f.t === 'fever') { if (f.on) { banner('폭풍 제설!!', '콤보 ' + f.n + ' · ' + S.FEVER.sec + '초 동안 눈 값 ×' + S.FEVER.value + ' · 넉가래 범위 UP', 2000); if (X && X.fever) X.fever(); vibrate([30, 30, 30, 30, 90]); } return true; }
+    if (f.t === 'surge') { if (f.on) { banner('폭설 경보!', '눈이 미친 듯이 쏟아진다 · ' + Math.round(f.sec) + '초 버텨라', 2400); if (X) X.whistle(false); vibrate([100, 60, 100]); } else chip('폭설이 잦아들었다. 지금이 기회!', 'good'); return true; }
+    if (f.t === 'support') { if (f.on) { banner('공병대 제설차 지원!', f.zone + '을(를) 한 줄 싹 밀고 간다', 2400); if (X) X.bugle(); } return true; }
+    if (f.t === 'surprise') { banner('사단장님 불시 방문!!', '보이면 바로 경례 — 칼경례면 상점', 2600); if (X) X.bugle(); vibrate([80, 40, 80, 40, 80]); return true; }
+    if (f.t === 'dump') { if (f.src === 'player') coinFly(f); return true; }
     return false;
   }
 
@@ -6600,7 +7255,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     var bs = hud.bankShown === undefined || hud.bank === -1 ? bank : hud.bankShown;
     if (bs !== bank || hud.bank !== bank) {
       var df = bank - bs; bs = Math.abs(df) < 2 ? bank : Math.round(bs + df * 0.2 + (df > 0 ? 1 : -1));
-      hud.bankShown = bs; hud.bank = bank; $('h-bank').textContent = fmt(bs);
+      hud.bankShown = bs; hud.bank = bank; $('h-bank').textContent = short(bs);
     }
     // 퍼 담을 때마다 게이지가 통통, "+3"
     var nowP = Date.now();
@@ -6623,6 +7278,8 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (!save.seen.tut && P.moving && P.load > 0) { save.seen.tut = true; $('hint').hidden = true; }
     var ck = G.clockText(G.clockOf(w.time));
     if (hud.clock !== ck) { hud.clock = ck; $('h-day').textContent = ck; var late = w.dayLen - w.time < 30; $('h-day').classList.toggle('late', late); }
+    // 알림 줄은 HUD(지금 할 일·진행 막대) 바로 아래에서 시작한다
+    if (nowP - (hud.stackAt || 0) > 400) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; } }
     if (Date.now() - lastSave > 5000) persist();
   }
 
@@ -6892,9 +7549,10 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       name = Pt.name; txt = Pt.done ? '완벽!' : pr >= S.ALMOST ? '남은 ' + left + '칸' : Math.floor(pr * 100) + '%';
       cls = Pt.done ? 'done' : pr >= S.ALMOST ? 'almost' : '';
     } else { pr = G.pct(w); name = '부대 전체'; txt = Math.floor(pr * 100) + '%'; }
-    var key = name + txt + cls + Math.round(pr * 200);
+    var showP = !!(Pt && w.zoneOpen[Pt.zi] && (Pt.done || pr >= 0.7));
+    var key = name + txt + cls + Math.round(pr * 200) + showP;
     if (hud.area === key) return;
-    hud.area = key;
+    hud.area = key; $('h-prog').hidden = !showP;
     $('h-area').textContent = name; $('h-pct').textContent = txt; $('h-fill').style.width = Math.min(100, pr * 100) + '%';
     var pg = document.querySelector('.prog'); pg.classList.toggle('almost', cls === 'almost'); pg.classList.toggle('done', cls === 'done');
   }
@@ -6905,7 +7563,8 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (n === comboShown) return;
     comboShown = n; el.hidden = false;
     $('combo-n').textContent = '콤보 x' + n;
-    $('combo-t').textContent = '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
+    var nf = S.FEVER.at.filter(function (a) { return a > n; })[0];
+    $('combo-t').textContent = w.fever > 0 ? '폭풍 제설 중!' : nf && nf - n <= 30 ? '폭풍 제설까지 ' + (nf - n) : '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
     el.classList.toggle('hot', n >= 50); el.classList.toggle('fire', n >= 150);
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     if (X && n % 5 === 0) X.combo(n);
@@ -7018,7 +7677,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 
   /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
   var curT = null, actAt = 0, subTimer = 0, hudA = {};
-  var CAM_NEXT = { fp: '3인칭', near: '위에서', far: '1인칭' };
+  var CAM_NEXT = { near: '멀리', far: '1인칭', fp: '위에서' };
   function camLabel() { if (V.camMode) $('h-cam-t').textContent = CAM_NEXT[V.camMode()] || '시점'; }
   function fp() { return !!(V.isFP && V.isFP()); }
   function fpLayout() {
@@ -7029,7 +7688,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
   function hintText() {
     $('hint').innerHTML = fp()
       ? '<b>왼쪽 끌면 걷고, 오른쪽 끌면 둘러본다</b><span>도구는 알아서 쓴다 · 가득 차면 <em>집하장</em> · 사람 앞에선 <em>행동</em> 버튼 (경례·요청·보고)</span>'
-      : '<b>끌면 걷고, 빗자루는 알아서 쓴다</b><span>가득 차면 <em>눈 집하장</em>에 가서 부어야 초코파이!</span>';
+      : '<b>화면 아무 데나 끌면 걷는다</b><span>빗자루는 알아서 민다 · 위의 <em>지금 할 일</em>과 <em>노란 화살표</em>를 따라가라</span>';
   }
   function look() { return V.look ? V.look() : null; }
   function updAct(w, force) {
@@ -7046,12 +7705,16 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
       $('act-name').textContent = t ? t.name : '';
       $('act-verb').textContent = t ? t.verb : '행동';
       b.classList.toggle('pulse', !!t && (t.k === 'car' || t.k === 'spread' || (t.k === 'haeng' && t.urgent)));
+      $('acts').classList.toggle('off', !t);
+      var salNow = !!t && t.k === 'officer' && t.urgent && t.verb === '경례';
+      $('acts').classList.toggle('salute', salNow); document.body.classList.toggle('saluting', salNow);
       $('xh-t').innerHTML = t ? '<b>' + esc(t.verb) + '</b> · ' + esc(t.name) + (t.ask ? ' <small>' + esc(t.ask) + '</small>' : '') : '';
       $('xhair').classList.toggle('on', !!t);
     }
     var st = A.state(w);
     saluteHud(st);
     opHud(w, st);
+    goalHud(st); twistHud(st);
     var hk = st.hand ? st.hand.name : '';
     if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand; $('h-hand-n').textContent = hk; }
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
@@ -7065,6 +7728,46 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     }
     var bk = st.buffs.map(function (x) { return x.name + ' ' + Math.ceil(x.t) + '초'; }).join('|');
     if (hudA.bk !== bk) { hudA.bk = bk; $('h-buffs').innerHTML = st.buffs.slice(0, 3).map(function (x) { return '<span>' + esc(x.name.length > 5 ? x.name.slice(0, 5) : x.name) + ' ' + Math.ceil(x.t) + '</span>'; }).join('') + (st.buffs.length > 3 ? '<span>+' + (st.buffs.length - 3) + '</span>' : ''); }
+  }
+  // v11 '지금 할 일' 한 줄: 화면 맨 위 가운데. 색 = 급한 정도 (빨강 경례·차 / 노랑 붓기·보급 / 파랑 빙판 / 초록 보고·신병 / 남색 치우기)
+  function goalHud(st) {
+    var g = st.goal, el = $('goal');
+    if (!g) { el.hidden = true; hudA.goal = null; return; }
+    var key = g.kind + '|' + g.text + '|' + g.sub + '|' + Math.round((g.pct || 0) * 50) + g.tone;
+    if (hudA.goal === key) return;
+    var changed = hudA.goalKind !== g.kind + g.text;
+    hudA.goal = key; hudA.goalKind = g.kind + g.text;
+    el.hidden = false; el.className = 'goal t-' + (g.tone || 'navy') + (g.pct !== undefined ? ' has-bar' : '');
+    $('g-t').textContent = g.text; $('g-s').textContent = g.sub || '';
+    $('g-f').style.width = g.pct !== undefined ? Math.round(Math.min(1, g.pct) * 100) + '%' : '0';
+    if (changed) { void el.offsetWidth; el.classList.add('pop'); if (X && hudA.goalSeen && (g.tone === 'red' || g.kind === 'report' || g.kind === 'supply')) X.ding(); hudA.goalSeen = true; }
+  }
+  function twistHud(st) {
+    var fv = st.fever > 0, sg = st.surge > 0;
+    if (hudA.fv !== fv) { hudA.fv = fv; $('fever').hidden = !fv; document.body.classList.toggle('fever', fv); }
+    if (fv) $('fever-t').textContent = '눈 값 ×' + S.FEVER.value + ' · ' + Math.ceil(st.fever) + '초';
+    if (hudA.sg !== sg) { hudA.sg = sg; $('surge').hidden = !sg; document.body.classList.toggle('surge', sg); }
+    if (sg) $('surge-t').textContent = '눈이 쏟아진다 · ' + Math.ceil(st.surge) + '초';
+  }
+  // 집하장에 부으면 초코파이가 화면 위 지갑으로 날아간다 (+금액 글자도 튀어 오른다)
+  function coinFly(f) {
+    var p = V.screenOf ? V.screenOf(f.x, f.y, 1) : null, dst = document.querySelector('#hud .pill.bank'), box = $('coins');
+    if (!p || !p.on || !dst || !box || $('hud').hidden) return;
+    var cr = $('cv').getBoundingClientRect(), r = dst.getBoundingClientRect(), sx = cr.left + p.x, sy = cr.top + p.y, dx = r.left + 22, dy = r.top + r.height / 2;
+    var pop = document.createElement('b'); pop.className = 'pay-pop' + (f.full ? ' full' : ''); pop.textContent = '+' + fmt(f.pay) + (f.full ? ' 만재!' : '');
+    pop.style.left = sx + 'px'; pop.style.top = sy + 'px'; box.appendChild(pop); setTimeout(function () { pop.remove(); }, 1100);
+    var n = Math.max(3, Math.min(12, Math.round(Math.log(f.pay + 1) * 1.6))), reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !Element.prototype.animate) return;
+    for (var i = 0; i < n; i++) (function (i) {
+      var c = document.createElement('i'); c.className = 'coin'; box.appendChild(c);
+      var ox = (Math.random() - 0.5) * 90, oy = -30 - Math.random() * 60;
+      var an = c.animate([
+        { transform: 'translate(' + sx + 'px,' + sy + 'px) scale(.4)', opacity: 0 },
+        { transform: 'translate(' + (sx + ox) + 'px,' + (sy + oy) + 'px) scale(1.15)', opacity: 1, offset: 0.35 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.7)', opacity: 1 }
+      ], { duration: 620 + i * 45, easing: 'cubic-bezier(.45,0,.75,.55)', delay: i * 25 });
+      an.onfinish = function () { c.remove(); if (i === n - 1) { dst.classList.remove('gain'); void dst.offsetWidth; dst.classList.add('gain'); if (X) X.coin(); } };
+    })(i);
   }
   // 작업 지시서 카드: 마감 순서대로 3줄(지금 할 것 ▶), 빙판·차·보고 경고 한 줄, 처음엔 할 일 안내 한 줄
   function opHud(w, st) {
@@ -7337,17 +8040,10 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { V.rebuildArt(); });
     $('say-face').innerHTML = haengFace();
     $('t-start').onclick = startOp;
-    $('t-shop').onclick = function () { tab = 'tool'; openShop(); };
-    $('t-look').onclick = function () { tab = 'look'; openShop(); };
-    $('t-reset').onclick = resetAll;
-    $('hub-grid').addEventListener('click', hubClick);
+    $('title').addEventListener('click', hubClick);
     $('h-speed').onclick = function () { if (!V.setSpeed) return; var s = V.speed && V.speed() > 1 ? 1 : 2; V.setSpeed(s); $('h-speed-t').textContent = '×' + s; $('h-speed').classList.toggle('on', s > 1); if (X) X.pop(); };
-    function hapticLabel() { $('t-haptic').textContent = JY.snowHaptic ? '진동 켬' : '진동 끔'; }
     try { JY.snowHaptic = localStorage.getItem('jeseol-haptic') !== '0'; } catch (e) { JY.snowHaptic = true; }
-    hapticLabel();
-    $('t-haptic').onclick = function () { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (e) { /* 무시 */ } hapticLabel(); if (JY.snowHaptic) vibrate(30); };
     lookChanged();
-    $('t-sound').onclick = function () { if (!X) return; X.setMuted(!X.muted()); $('t-sound').textContent = X.muted() ? '소리 끔' : '소리 켬'; if (!X.muted()) { X.unlock(); X.pop(); } };
     $('s-go').onclick = closeShop;
     $('s-back').onclick = closeShop;
     $('h-shop').onclick = openShop;
@@ -7373,12 +8069,26 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
     window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());
-    title();
+    // 타이틀 화면: 뒤에선 생활관 앞 3D 장면이 돌고, 누르면 로비로
+    if (V.lobby) V.lobby(save); else V.demo(save);
+    show('splash');
+    var entered = false;
+    function enter(e) {
+      if (entered) return; entered = true; if (e && e.preventDefault) e.preventDefault();
+      if (X) { X.unlock(); X.pop(); }
+      $('splash').classList.add('out');
+      setTimeout(function () { $('splash').classList.remove('out'); title(); welcome(off); }, 260);
+    }
+    $('splash').addEventListener('pointerup', enter);
+    window.addEventListener('keydown', function (e) { if (!entered && !$('splash').hidden && (e.key === 'Enter' || e.key === ' ')) enter(e); });
+    if (/[?&]go\b/.test(location.search)) { entered = true; title(); welcome(off); }
+    save.last = Date.now(); persistRaw();
+  }
+  function welcome(off) {
     if (off > 0) {
-      save.bank += off; save.life += off;
+      save.bank += off; save.life += off; persistRaw(); renderHub();
       modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>분대원들이 정리해 뒀다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 분대원은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>', function () { rollCall(); });
     } else rollCall();
-    save.last = Date.now(); persistRaw();
   }
 
   function pause() {
@@ -7393,7 +8103,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
     view: function () { return V; },
     save: function () { return save; },
     setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
-    play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
+    play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, help: help, settings: settings, renderHub: renderHub, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     openPX: openPX, phone: phoneCall, pullUp: pullUp, leave: goLeave, results: results,
     autopilot: function (b) { V.setAutopilot(b); },
     act: function (alt) { doAct(alt === true); }, openBox: function () { openBox(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }

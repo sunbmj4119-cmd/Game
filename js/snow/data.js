@@ -230,7 +230,12 @@
     icy: ['거기 얼었다! 염화칼슘 뿌려!', '빙판 됐다. 제설함에서 염화칼슘 가져와!'],
     roofWarn: ['처마 밑에서 떨어져! 눈 떨어진다!', '우두둑… 지붕 소리 들리지? 피해!'],
     nag: ['야 막내, 거기 덜 됐잖아.', '이병이 제일 열심히 해야지?', '넉가래 각도가 그게 뭐냐.', '막내야, 손 놀지 마라.'],
-    exam: ['오늘 진급 심사다. 행보관이 보고 있다.', '심사 날이다. 실수하면 한 달 더 그 계급이다.']
+    exam: ['오늘 진급 심사다. 행보관이 보고 있다.', '심사 날이다. 실수하면 한 달 더 그 계급이다.'],
+    // v11: 몰아치기·돌발
+    fever: ['폭풍 제설이다!! 몰아쳐!', '미쳤다! 이대로 밀어붙여!'],
+    surge: ['폭설 경보!! 하늘이 뚫렸다!', '눈 쏟아진다! 다 치운 데부터 지켜!'],
+    support: ['공병대 제설차 지원 왔다! 길 비켜!', '공병대다! 한 줄 시원하게 밀고 간다!'],
+    surprise: ['비상! 사단장님 불시 방문이다!', '사단장님 차 들어오신다! 경례 준비!']
   };
   // 작전 시작 브리핑: 누가 지시하나 (계급마다 다르다 — 짬이 차면 내가 지시한다)
   var BRIEF = [
@@ -380,16 +385,16 @@
   // stat: 저장의 기록 / life / tool / rank / zone / crew / pend / load
   // v10: 작전 흐름을 그대로 따라가는 안내
   var QUESTS = [
-    { id: 'scoop', text: '눈 퍼 담기', how: '걸으면 빗자루가 알아서 퍼 담는다', stat: 'load', goal: 20, pie: 20 },
-    { id: 'dump', text: '집하장에 붓기', how: '노란 동그라미(눈 집하장)로 가져가라', stat: 'dumps', goal: 1, pie: 40 },
-    { id: 'pusher', text: '행보관에게 넉가래 받기', how: '행보관 앞에서 위쪽 작은 버튼 "넉가래 요청"', stat: 'tool', goal: 1, dia: 1 },
+    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걸으면 빗자루가 알아서 등에 쌓는다', stat: 'load', goal: 20, pie: 20 },
+    { id: 'dump', text: '집하장에 붓기', how: '노란 원(눈 집하장)에 들어가면 와르르', stat: 'dumps', goal: 1, pie: 40 },
+    { id: 'pusher', text: '넉가래 받기', how: '초코파이가 모이면 행보관 옆 노란 보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
     { id: 'task', text: '지시서 한 줄 끝내기', how: '작업 지시서의 구역을 기준(%)까지 치워라', stat: 'tasks', goal: 1, pie: 60 },
-    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 "경례!" 막대가 줄기 전에 노란 버튼', stat: 'salute', goal: 1, pie: 50 },
-    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 행보관에게 가서 보고', stat: 'opReport', goal: 1, dia: 1 },
-    { id: 'salt', text: '빙판에 염화칼슘', how: '얼음 구간이 생기면 제설함(초록 상자)에서 포대를 들고 가서 뿌려라', stat: 'salt', goal: 1, pie: 80 },
+    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 화면 가운데 빨간 "경례" 버튼', stat: 'salute', goal: 1, pie: 50 },
+    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 초록 보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
+    { id: 'salt', text: '빙판에 염화칼슘', how: '빙판이 생기면 제설함을 지나가며 포대를 줍고, 빙판에 들어가면 저절로 뿌린다', stat: 'salt', goal: 1, pie: 80 },
     { id: 'perfect', text: '조각 하나 완벽!', how: '위 막대가 금색이면 남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
     { id: 'hire', text: '후임 전입 요청', how: '생활관 → 보급·인원 → 인원', stat: 'pend', goal: 1, pie: 80 },
-    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 "인솔"', stat: 'crew', goal: 1, dia: 2 },
+    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 다가가면 따라온다 → 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
     { id: 'rank1', text: '일병 진급', how: '★ 6개를 모으면 다음 작전이 진급 심사', stat: 'rank', goal: 1, dia: 3 },
     { id: 'star3', text: '★★★ 받기', how: '마감 전에 다 끝내고, 경례 빠짐없이, 빙판 없이', stat: 'star3', goal: 1, dia: 2 }
   ];
@@ -418,7 +423,14 @@
     { id: 'dia', name: '자판기 밑에서 다이아 발견!', w: 5, dia: 1 }
   ];
 
+  // v11: 바닥 원(패드) — 그 위에 서 있으면 저절로 된다 (아케이드 아이들식). 작전 지휘소: 집하장 옆 공터
+  var PADS = { supply: { x: 398, y: 288, r: 19, dwell: 1.0 }, report: { x: 452, y: 298, r: 19, dwell: 0.6 } };
+  // v11: 몰아치기(콤보가 이만큼 되면 8초 동안 넉가래 넓게 + 눈 값 두 배), 돌발 상황
+  var FEVER = { at: [40, 120, 240, 400, 600], sec: 8, range: 1.35, value: 2 };
+  var TWIST = { surge: { from: 3, p: [0.15, 0.3, 0.65, 0.8], sec: 18, fall: 5 }, support: { from: 4, p: 0.35, r: 26, speed: 70 }, surprise: { from: 5, p: 0.2 } };
+
   JY.SNOW = {
+    PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
     RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,

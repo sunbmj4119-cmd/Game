@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -520,6 +520,19 @@
         c.fillStyle = 'rgba(255,200,60,' + (0.55 + Math.sin(performance.now() / 120) * 0.35) + ')';
         for (var gy = Math.floor(PT.y / CELL); gy < Math.ceil((PT.y + PT.h) / CELL); gy++) for (var gx = Math.floor(PT.x / CELL); gx < Math.ceil((PT.x + PT.w) / CELL); gx++) { var kk = gy * GW + gx; if (world.partOf[kk] === pq && world.depth[kk] > 0) { circ(c, gx * CELL + 5, gy * CELL + 5, 2.2); c.fill(); } }
       } });
+      if (JY.SnowAct && mode === 'play') {
+        JY.SnowAct.pads(world).forEach(function (p) { list.push({ y: -9e4, f: function () {
+          var pr = ac.padT && ac.padT[p.id] > 0 ? Math.min(1, ac.padT[p.id] / p.dwell) : 0;
+          c.fillStyle = p.ok ? (p.kind === 'report' ? 'rgba(79,207,116,.4)' : 'rgba(255,210,74,.45)') : 'rgba(150,160,170,.3)'; circ(c, p.x, p.y, p.r); c.fill();
+          c.strokeStyle = p.ok ? '#fff' : 'rgba(255,255,255,.5)'; c.lineWidth = 2; c.stroke();
+          if (pr) { c.fillStyle = 'rgba(255,255,255,.65)'; circ(c, p.x, p.y, p.r * pr); c.fill(); }
+          c.fillStyle = '#16233a'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(p.title, p.x, p.y - 2); c.fillText(p.lock || (p.cost ? fmt(p.cost) : p.name), p.x, p.y + 8); } }); });
+        var gq = JY.SnowAct.objective(world), Pg = world.player;
+        if (gq && !gq.here && gq.kind !== 'salute' && Math.hypot(gq.x - Pg.x, gq.y - Pg.y) > 30) { var ga = Math.atan2(gq.y - Pg.y, gq.x - Pg.x); list.push({ y: 1e9, f: function () {
+          c.save(); c.translate(Pg.x + Math.cos(ga) * 26, Pg.y - 4 + Math.sin(ga) * 26); c.rotate(ga); c.fillStyle = '#ffd24a'; c.strokeStyle = '#16233a'; c.lineWidth = 1.5;
+          c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -9); c.lineTo(-2, 0); c.lineTo(-6, 9); c.closePath(); c.fill(); c.stroke(); c.restore();
+          c.fillStyle = '#ffd24a'; circ(c, gq.x, gq.y - 30 - Math.abs(Math.sin(performance.now() / 200)) * 6, 4.5); c.fill(); } }); }
+      }
       var KB = ac.ball; list.push({ y: KB.y, f: function () { c.fillStyle = '#f4f1e6'; circ(c, KB.x, KB.y - 3 - KB.h, 3.4); c.fill(); c.strokeStyle = '#e2b33c'; c.lineWidth = 1.2; c.stroke(); } });
       ac.balls.forEach(function (b) { list.push({ y: b.y + 1e5, f: function () { c.fillStyle = 'rgba(40,60,90,.25)'; circ(c, b.x, b.y, 2.2); c.fill(); c.fillStyle = '#fff'; circ(c, b.x, b.y - b.h * 0.6, 2.6); c.fill(); } }); });
     }
@@ -704,6 +717,7 @@
     mode: function () { return mode; },
     setAutopilot: function (b) { autopilot = !!b; },
     setSpeed: function (n) { speed = Math.max(1, Math.min(3, n || 1)); }, speed: function () { return speed; },
+    screenOf: function (x, y) { return { x: (x - camX) * zoom, y: (y - camY) * zoom, on: true }; },
     shake: function (n) { shake = Math.max(shake, n); },
     look: function () { if (!world) return null; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
     setFocus: function (t) { focusT = t || null; },

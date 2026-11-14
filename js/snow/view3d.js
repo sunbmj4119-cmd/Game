@@ -942,6 +942,8 @@
       else if (f.t === 'drift') { for (k = 0; k < 30; k++) emit(f.x * U + rnd(-1, 1), 0.4, f.y * U + rnd(-1, 1), rnd(-6, 6), rnd(1, 4), rnd(-6, 6), rnd(0.4, 0.8)); if (sfx) sfx.whoosh(); }
       else if (f.t === 'angel') { for (k = 0; k < 24; k++) emit(f.x * U + rnd(-0.8, 0.8), 0.3, f.y * U + rnd(-0.8, 0.8), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), rnd(0.5, 0.9)); if (sfx) sfx.thud(); }
       else if (f.t === 'fun') { if (sfx) sfx.found(); }
+      else if (f.t === 'knock') { for (k = 0; k < 14; k++) emit(f.x * U + rnd(-0.5, 0.5), 0.6, f.y * U + rnd(-0.5, 0.5), rnd(-2.5, 2.5), rnd(2, 4), rnd(-2.5, 2.5), rnd(0.4, 0.7)); if (!f.me && f.e) addOv('벌러덩!', 'ov-chat', 0, 0, 2.6, 1, f.e); if (sfx) sfx.thud(); }
+      else if (f.t === 'chase') { if (sfx) sfx.whistle(false); }
       else if (f.t === 'goal') { for (k = 0; k < 50; k++) emit(f.x * U, 1, f.y * U, rnd(-4, 4), rnd(4, 9), rnd(-4, 4), rnd(0.8, 1.4), [[1, 0.84, 0.3], [0.6, 0.9, 1], [1, 0.5, 0.5]][k % 3]); }
       else if (f.t === 'warm') { for (k = 0; k < 20; k++) emit(f.x * U + rnd(-0.4, 0.4), 1.2, f.y * U + rnd(-0.4, 0.4), rnd(-0.6, 0.6), rnd(1, 3), rnd(-0.6, 0.6), rnd(0.5, 0.9), [1, 0.6, 0.2]); vmPlay('act', 0.6); }
       else if (f.t === 'assigned') { addOv('담당: ' + esc((G.zoneById(f.zone) || {}).name || ''), 'ov-new', 0, 0, 4.4, 2, f.e); if (sfx) sfx.salute(); }
@@ -967,7 +969,7 @@
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
       else if (f.t === 'help') { if (f.e) addOv(f.name + ' 도우러 갑니다!', 'ov-chat', 0, 0, 3.6, 2, f.e); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel|chase|caught|escaped)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -982,7 +984,7 @@
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
     stackOn(playerObj, P);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
-    placePerson(haengObj, w.haeng);
+    placePerson(haengObj, w.haeng, { lie: w.haeng.downT > 0 });
     setExpr(haengObj, w.haeng.chasing ? 'shout' : 'normal');
     // v15: 작전 중에 들어온 사람(신병 배치·분대원 전입)도 바로 모델을 만든다 (예전엔 작전 시작 때만 만들어서 새 후임이 안 보였다)
     if (crewObjs.length !== w.crew.length || crewObjs.some(function (o, i) { return o.ref !== w.crew[i]; })) {
@@ -995,7 +997,7 @@
       var o = crewObjs[i]; if (!o) return;
       o.g.visible = !e.off;
       setExpr(o, e.injured > 0 ? 'hurt' : e.asleep || e.slack ? 'sleep' : 'normal');
-      placePerson(o, e, { lie: e.injured > 0 || e.asleep || e.slack });
+      placePerson(o, e, { lie: e.injured > 0 || e.asleep || e.slack || e.downT > 0 });
       sack(o, e.load / e.cap);
     });
     // 고라니
@@ -1346,7 +1348,7 @@
     offs.forEach(function (o) {
       var ob = null; for (var i = 0; i < offObjs.length; i++) if (offObjs[i].ref === o) ob = offObjs[i];
       if (!ob) { ob = makePerson({ coat: o.id === 'gen' ? '#2f3a22' : '#3d4a2b', face: OFFACE[o.id], hat: 'cap', tool: o.id === 'lt' ? 'shovel' : null, r: 10, shadow: true, scale: o.id === 'gen' ? 1.4 : 1.25 }); ob.ref = o; offObjs.push(ob); }
-      placePerson(ob, o); if (ob.tool) ob.tool.visible = o.helpT > 0;
+      placePerson(ob, o, { lie: o.downT > 0 }); if (ob.tool) ob.tool.visible = o.helpT > 0;
       if (!o.saluted && !o.missed && o.warned) urgent = o;
     });
     if (!salEl) { salEl = document.createElement('div'); salEl.className = 'ov ov-sal'; salEl.textContent = '경례!'; ov.appendChild(salEl); }

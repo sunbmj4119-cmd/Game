@@ -127,8 +127,8 @@
     var prog = Math.max(0, Math.min(1, (m - base) / Math.max(1, top - base)));
     $('hub-card').innerHTML =
       '<div class="lc-face">' + (JY.art && M ? JY.art.character(M.lookSpec(save)) : '') + '</div>' +
-      '<div class="lc-body"><b class="lc-name"><span class="ins">' + insignia(r) + '</span><span>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</span></b>' +
-      '<small class="lc-role">' + esc(R0.role.split(' — ')[0]) + ' · ' + save.day + '일차 · 분대원 ' + G.crewCount(save) + '명</small>' +
+      '<div class="lc-body"><b class="lc-name' + ((save.look.name || '').length >= 5 ? ' long' : '') + '"><span class="ins">' + insignia(r) + '</span><span>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</span></b>' +
+      '<small class="lc-role">' + esc(specLast() || R0.role.split(' — ')[0]) + ' · 분대원 ' + G.crewCount(save) + '명</small>' +   // 일차는 출동 버튼에
       '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div></div>';
     $('lb-bank').textContent = save.bank >= 1e7 ? short(save.bank) : fmt(save.bank); $('lb-dia').textContent = fmt(save.dia);
     var steps = S.RANKS.map(function (R, i) { return { name: R.name, need: R.merit, i: i }; }).concat([{ name: '전역', need: S.DISCHARGE_MERIT, i: S.RANKS.length }]);
@@ -193,6 +193,7 @@
         '<button data-set="haptic"><span>진동</span><b>' + (JY.snowHaptic ? '켬' : '끔') + '</b></button>' +
         (V.toggleCam ? '<button data-set="cam"><span>작전 시점</span><b>' + (CAM_NAME[V.camMode()] || '') + '</b></button>' : '') +
         '<button data-set="help"><span>제설 교범 다시 보기</span><b>›</b></button>' +
+        (specNames() ? '<button data-set="spec"><span>특기 다시 고르기 <small>' + esc(specNames()) + '</small></span><b>상점 5</b></button>' : '') +
         (G.rankOf(save) >= 3 || save.discharges ? '<button data-set="dis"><span>전역 신고</span><b>›</b></button>' : '') +
         '<button data-set="reset" id="t-reset" class="danger"><span>처음부터 다시</span><b>›</b></button>' +
         '</div><button class="btn big" data-m="close">닫기</button></div>');
@@ -203,6 +204,10 @@
         if (k === 'sound') { if (X) { X.setMuted(!X.muted()); if (!X.muted()) { X.unlock(); X.pop(); } } render(); }
         else if (k === 'haptic') { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (er) { /* 무시 */ } if (JY.snowHaptic) vibrate(30); render(); }
         else if (k === 'cam') { V.toggleCam(); camLabel(); render(); }
+        else if (k === 'spec') {
+          if (save.dia < 5) { toast('상점이 5개 있어야 한다 (지금 ' + save.dia + '개)'); return; }
+          $('modal').hidden = true; save.dia -= 5; save.spec = {}; persistRaw(); if (X) X.dia(); renderHub(); afterHub();
+        }
         else { $('modal').hidden = true; if (k === 'help') help(); else if (k === 'dis') { tab = 'dis'; openShop(); } else if (k === 'reset') resetAll(); }
       };
     }
@@ -242,6 +247,7 @@
   /* ── 제설 비상 브리핑: 누가 지시하나(계급마다), 날씨, 작업 지시서(마감 시각), 특이사항, 상병부터 조원 배치 ── */
   function startOp() {
     if (X) X.unlock();
+    var sdue = G.specDue(save); if (sdue) { chooseSpec(sdue, startOp); return; }   // v16: 특기를 안 골랐으면 출동 전에
     // v13: 처음 출동 전 교범 4장은 뺐다 (읽을 게 너무 많다) — 화면 위 '지금 할 일' 한 줄과 노란 화살표로 충분. 교범은 로비 버튼
     if (!started() && !save.story.prologue) { play(false); return; }   // 첫 전입: 프롤로그가 이어진다
     if (midOp()) { play(true); return; }
@@ -342,6 +348,9 @@
     else if (f.t === 'goal') { if (!(save.fun && save.fun.goal && hud.goalSaid)) chip('족구 한 골! +' + fmt(f.pay), 'good'); hud.goalSaid = 1; if (X) X.fanfare(); }
     else if (f.t === 'ride') { if (f.on) chip(f.name + ' 탑승!', 'good'); else if (!f.hand) chip('기름 떨어짐 · 정비고 앞에 세우면 찬다', 'warn'); }
     else if (f.t === 'drift') vibrate([30, 20, 30, 20, 30]);
+    else if (f.t === 'chase') { chip(f.who + ' 쫓아온다! 7초만 버텨!', 'bad'); vibrate([80, 40, 80]); }
+    else if (f.t === 'caught') { banner('잡혔다… 얼차려', f.took + (f.jigeok ? ' · 지적 +1' : ''), 2400); vibrate([120, 60, 120]); flash(); if (X) X.deny(); }
+    else if (f.t === 'escaped') { chip('따돌렸다! ' + f.who + ' 포기', 'good'); if (X) X.ding(); }
     else if (f.t === 'meHit') { chip('고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
     else if (f.t === 'snowball') { splat(); vibrate(50); }
     else if (f.t === 'car') chip('출근 차량 온다 · 진입로', 'warn');
@@ -485,7 +494,21 @@
     if (X) setTimeout(function () { if (res.stars >= 3) X.fanfare(); else if (res.stars >= 1) X.stamp(); else X.deny(); }, 700);
   }
   // 생활관에 돌아오면: 이야기 장면 → 전역 안내
+  // v16 진급 특기: 둘 중 하나 (밸런스 점검에서 '무엇을 사든 결과가 같다'가 나와서 넣은 갈림길)
+  function specLast() { var n = specNames().split(' · ').filter(Boolean); return n.length ? n[n.length - 1] : ''; }   // 생활관 카드엔 마지막 특기 하나 (전부는 설정에)
+  function specNames() { var sp = save.spec || {}; return (S.SPECS || []).map(function (g) { var o = g.opts.filter(function (q) { return q.id === sp[g.rank]; })[0]; return o ? o.name : ''; }).filter(Boolean).join(' · '); }
+  function chooseSpec(g, done) {
+    var R = S.RANKS[g.rank];
+    modal('<div class="m-spec"><p class="kicker">' + R.name + ' 특기 · 하나만 고른다</p><h3>어떤 ' + R.name + '이 될래?</h3><div class="spec-cards">' + g.opts.map(function (o, i) {
+      return '<button class="spec-c" data-m="' + i + '"><small>' + esc(o.tag) + '</small><b>' + esc(o.name) + '</b><span>' + esc(o.line) + '</span></button>';
+    }).join('') + '</div><p class="spec-note">이번 복무 동안 그대로 (전역하면 다시 고른다)</p></div>', function (k) {
+      var o = g.opts[+k] || g.opts[0]; save.spec = save.spec || {}; save.spec[g.rank] = o.id; persistRaw();
+      toast('특기: ' + o.name); if (X) X.fanfare(); renderHub(); if (done) done();
+    });
+  }
   function afterHub() {
+    var sd = G.specDue && G.specDue(save);
+    if (sd) { chooseSpec(sd, afterHub); return; }
     var ch = M && M.storyNext(save, null);
     if (ch) { playStory(ch, false, function () { renderHub(); afterHub(); }); return; }
     if (G.canDischarge(save) && !save.seen.dis) { save.seen.dis = true; persistRaw(); modal('<div class="m-rank"><p class="kicker">전역 신고 가능</p><h3>이제 전역할 수 있다</h3><p>생활관의 <b>전역 신고</b>를 누르면 처음(이병)부터 다시 시작하지만, 전역 메달로 초코파이 보상이 영원히 늘어난다. 꾸미기·훈장·상점은 남는다.</p><button class="btn big" data-m="ok">알겠다</button></div>'); }
@@ -549,6 +572,7 @@
     });
   }
   function itemIcon(o) {
+    if (o.kind === 'rideup') { var rk = o.id.split(':')[0]; return vehicle(rk === 'tractor' ? 'tractor' : rk === 'atv' ? 'plow' : 'cart', 26); }
     if (o.kind === 'crew') {
       var C = S.CREW.filter(function (c) { return c.id === o.id; })[0];
       if (C.vehicle) return vehicle('plow', 30);
@@ -591,8 +615,8 @@
   function renderShop() {
     $('s-bank').textContent = fmt(save.bank);
     var all = G.offers(save);
-    all.up = (G.feat(save, 'perk') ? all.perk : []).concat(G.feat(save, 'factory') ? all.factory : []);
-    var TGATE = { crew: 'crew', up: function () { return G.feat(save, 'perk') || G.feat(save, 'factory'); }, look: 'look', story: 'lobby', medal: 'lobby' };
+    all.up = (G.feat(save, 'perk') ? all.perk : []).concat(G.feat(save, 'factory') ? all.factory : []).concat(all.ride || []);
+    var TGATE = { crew: 'crew', up: function () { return G.feat(save, 'perk') || G.feat(save, 'factory') || (all.ride || []).length; }, look: 'look', story: 'lobby', medal: 'lobby' };
     function gate(k) { var g = TGATE[k]; return !g || (typeof g === 'function' ? g() : G.feat(save, g)); }
     if (tab === 'perk' || tab === 'factory' || tab === 'zone') tab = 'up';
     if (!gate(tab)) tab = 'tool';
@@ -623,7 +647,7 @@
     open.concat(shut).forEach(function (o, idx) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
+      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' || o.kind === 'rideup' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
       var label;
       if (o.state === 'buy') label = (o.kind === 'crew' ? '전입 ' : '') + (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
       else if (o.state === 'own') label = o.kind === 'zone' ? '담당 중' : o.cur ? '사용 중' : '보유';
@@ -880,7 +904,7 @@
     if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand && !st.ride; $('h-hand-n').textContent = hk; $('h-hand').classList.toggle('ride', !!st.ride); $('h-hand').querySelector('span').textContent = st.ride ? '타고 있다' : '손에 든 것'; }
     // v14 눈덩이 버튼: 던질 사람(고라니·분대원·행보관)이 근처에 있을 때만
     var tt = st.throwT, tk = tt ? tt.k + (tt.k === 'deer' ? '!' : '') : '';
-    if (hudA.tk !== tk) { hudA.tk = tk; $('throw-btn').hidden = !tt; $('throw-btn').classList.toggle('deer', !!tt && tt.k === 'deer'); $('throw-n').textContent = tt ? (tt.k === 'deer' ? '고라니!' : tt.name) : ''; }
+    if (hudA.tk !== tk) { hudA.tk = tk; $('throw-btn').hidden = !tt; $('throw-btn').classList.toggle('deer', !!tt && tt.k === 'deer'); $('throw-btn').classList.toggle('risky', !!tt && (tt.k === 'off' || tt.k === 'haeng')); $('throw-n').textContent = tt ? (tt.k === 'deer' ? '고라니!' : tt.k === 'off' || tt.k === 'haeng' ? tt.name + ' ⚠' : tt.name) : ''; }
     $('throw-btn').classList.toggle('cd', st.ballCd > 0);
     $('throw-btn').classList.toggle('up', !$('act2-btn').hidden && !$('acts').classList.contains('off'));   // 행동 버튼에 두 번째 줄이 있으면 그 위로
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
@@ -1271,7 +1295,7 @@
     if (off > 0) {
       save.bank += off; save.life += off; persistRaw(); renderHub();
       modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">당직 서는 동안</p><h3>분대원들이 정리해 뒀다</h3><p class="m-big">' + pie() + '+' + fmt(off) + '</p><p>쉬는 동안에도 분대원은 일한다. 그게 군대다.</p><button class="btn big" data-m="ok">수고했다</button></div>', function () { rollCall(); });
-    } else rollCall();
+    } else if (!rollCall()) { var sd0 = G.specDue(save); if (sd0) chooseSpec(sd0); }
   }
 
   function pause() {

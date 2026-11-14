@@ -273,7 +273,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="story"]'); await sleep(300);
-  ok('v14 수첩 → 발견 10칸 (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/10\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 10 && /\?\?\?/.test(t); }));
+  ok('v14 수첩 → 발견 12칸 (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/12\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 12 && /\?\?\?/.test(t); }));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]'); await sleep(200);
   ok('설정 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
@@ -338,11 +338,17 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('진급 신고: 역할·편해지는 것·새로 할 수 있는 것', await waitFor(function () { var m = document.querySelector('#modal .promo'); return m && /일병 진급/.test(m.textContent) && m.querySelectorAll('.promo-list.easy li').length >= 1 && m.querySelectorAll('.promo-list.more li').length >= 1; }, 3000));
   await shot('14-promo');
   var ov6 = await overflow(); ok('진급 신고 넘침 없음', !ov6.length, ov6);
+  await page.click('#modal [data-m]');
+  ok('v16 진급하면 특기를 고른다 (둘 중 하나)', await waitFor(function () { return !!document.querySelector('#modal .m-spec') && document.querySelectorAll('#modal .spec-c').length === 2; }, 4000));
+  await shot('14b-spec');
+  var ov6b = await overflow(); ok('특기 고르기 넘침 없음', !ov6b.length, ov6b);
+  await page.click('#modal .spec-c[data-m="0"]'); await sleep(300);
+  ok('v16 고른 특기가 저장되고 생활관 카드에 보인다', await page.evaluate(function () { return __SNOW.save().spec[1] === 'shovel' && /삽질 장인/.test(document.getElementById('hub-card').textContent); }));
   await toHub();
   ok('로비: 일병 + 진급 길 "일병 지금"', await page.evaluate(function () { var s = __SNOW.save(); return s.rank === 1 && /일병/.test(document.getElementById('hub-card').textContent) && /일병/.test(document.querySelector('#hub .road li.now').textContent); }));
 
   // ── 상병: 브리핑에서 조원 배치 ──
-  await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 20; s.exam = false; s.crew = { hoobae: 2, donggi: 1 }; s.cpost = { hoobae: ['A', 'A'], donggi: ['A'] }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.snow = null; s.dayT = 0; s.op = null; s.pend = []; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); __SNOW.setSave(s); __SNOW.title(); });
+  await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 20; s.exam = false; s.spec = { 1: 'shovel', 2: 'mule' }; s.crew = { hoobae: 2, donggi: 1 }; s.cpost = { hoobae: ['A', 'A'], donggi: ['A'] }; s.zones = { A: true, B: true, C: true, D: true, E: true }; s.snow = null; s.dayT = 0; s.op = null; s.pend = []; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; }); __SNOW.setSave(s); __SNOW.title(); });
   await sleep(400); await closeModal();
   await shot('15a-lobby-sangbyeong');
   await page.click('#t-start'); await waitFor(function () { return !!document.querySelector('#modal .crew-plan'); }, 3000);
@@ -363,7 +369,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
 
   // ── 병장: 말년 특권 2배속 · 후반 ──
   await page.evaluate(function () {
-    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 60;
+    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 60; s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
     s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; JY.SnowSim.assignZones(s); s.seen = { tut: true, dis: true, help: true }; s.px = 160; s.py = 300;
     s.look.name = '홍길동'; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; });

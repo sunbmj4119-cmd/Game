@@ -73,7 +73,7 @@
     save.snowmen = save.snowmen || []; save.daily = save.daily || {}; save.stats = save.stats || {}; save.prep = save.prep || {};
     var a = w.act = { buffs: {}, heat: 0, shoutT: 0, balls: [], ride: null, mission: null, cool: {}, ball: ballHome(w), n: { shoo: 0, pet: 0, wake: 0 },
       hand: null, reqs: [], fuelT: 80, pickCd: 0, off: [], offPlan: [], offDay: -1, nagT: 40, ballCd: 0, angelT: 0,
-      rides: (S.RIDES || []).map(function (R0) { return { id: R0.id, kind: R0.kind, name: R0.name, x: R0.x, y: R0.y, dir: { x: 0, y: -1 }, fuel: R0.fuel, max: R0.fuel }; }) };
+      rides: (S.RIDES || []).map(function (R0) { var f = R0.fuel ? Math.round(R0.fuel * (1 + 0.2 * G.rideUp(save, R0.id, 'cap'))) : 0; return { id: R0.id, kind: R0.kind, name: R0.name, x: R0.x, y: R0.y, dir: { x: 0, y: -1 }, fuel: f, max: f }; }) };
     if (!w.demo) applyPrep(w);
     return a;
   }
@@ -414,19 +414,27 @@
 
   // 도구·버프로 지금 능력치를 다시 계산
   function applyStats(w) {
-    var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? rideDef(a.ride) : null;
+    var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? rideDef(a.ride, save) : null;
     P.r = rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save); P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
     P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1) * (rd ? rd.capMul : 1));
     P.body = rd ? rd.body : 6;
     var m = w.mod;
     m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed : 1);
     m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1);
-    m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1);
+    m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1) * (G.spec(save, 'leader') ? 1.4 : 1);
+    if (G.spec(save, 'insa')) w.crew.forEach(function (c) { if (c.mor < 75) c.mor = 75; c.slack = false; });   // v16 특기 '인싸'
     m.stun = b.hotpack > 0 ? 0.5 : 1;
     w.mult = G.incomeMult(save) * (b.praise > 0 ? 1.2 : 1);
   }
   /* ── v14 탈것: 넓게·많이·빨리 대신 덩치 (좁은 틈 못 지나감) ── */
-  function rideDef(rd) { for (var i = 0; i < S.RIDES.length; i++) if (S.RIDES[i].id === rd.id) return S.RIDES[i]; return S.RIDES[0]; }
+  // 정비(상점)로 좋아진 만큼 더해서 돌려준다
+  function rideDef(rd, save) {
+    var B = S.RIDES[0]; for (var i = 0; i < S.RIDES.length; i++) if (S.RIDES[i].id === rd.id) B = S.RIDES[i];
+    if (!save) return B;
+    var sp = G.rideUp(save, B.id, 'spd'), cp = G.rideUp(save, B.id, 'cap'), o = {}; Object.keys(B).forEach(function (k) { o[k] = B[k]; });
+    o.speed = B.speed * (1 + 0.08 * sp); o.capMul = B.capMul * (1 + 0.25 * cp); o.r = B.r ? Math.round(B.r * (1 + 0.1 * cp)) : 0; o.fuel = B.fuel ? Math.round(B.fuel * (1 + 0.2 * cp)) : 0;
+    return o;
+  }
   function startRide(w, rd) {
     var a = init(w), P = w.player;
     if (a.ride || !G.feat(w.save, rd.id)) return { ok: false };
@@ -490,7 +498,8 @@
     }
     w.deer.forEach(function (d) { if (!d.down && d.x > 0 && d.x < S.W && d.y > 0 && d.y < S.H) consider('deer', d, d.x, d.y, 150, -1000, '고라니'); });
     w.crew.forEach(function (e) { if (!e.off && !e.def.vehicle && e.state !== 'follow') consider('crew', e, e.x, e.y, 100, 0, e.def.name); });
-    var H = w.haeng; if (!(w.op && w.op.ready)) consider('haeng', H, H.x, H.y, 85, 150, '행보관');
+    (a.off || []).forEach(function (o) { if (!(o.downT > 0) && !(o.chaseT > 0) && o.phase !== 'go') consider('off', o, o.x, o.y, 100, 120, OFF[o.id].title); });
+    var H = w.haeng; if (!(w.op && w.op.ready) && !(H.chaseT > 0) && !(H.downT > 0)) consider('haeng', H, H.x, H.y, 85, 150, '행보관');
     return best;
   }
   function throwBall(w) {
@@ -527,7 +536,8 @@
       var low = b.h <= 34 || oh <= 34, gone = b.h <= 0 || b.t > 3 || (b.h < 30 && G.blocked(b.x, b.y, 1));
       if (b.from === 'me' && low) {
         for (j = 0; !hit && j < w.deer.length; j++) if (!w.deer[j].down && near(w.deer[j].x, w.deer[j].y, 17)) hit = w.deer[j];
-        if (!hit && near(H.x, H.y, 12)) hit = 'haeng';
+        for (j = 0; !hit && j < (a.off || []).length; j++) { var oo = a.off[j]; if (!(oo.downT > 0) && near(oo.x, oo.y, 12)) hit = oo; }
+        if (!hit && !(H.downT > 0) && near(H.x, H.y, 12)) hit = 'haeng';
         for (j = 0; !hit && j < w.crew.length; j++) { var e = w.crew[j]; if (!e.off && !e.def.vehicle && near(e.x, e.y, 12)) hit = e; }
       }
       if (!hit && !(b.from !== 'me' && low && near(P.x, P.y, 11))) {
@@ -538,20 +548,25 @@
         fx(w, { t: 'splat', x: b.x, y: b.y, h: b.h, hit: true });
         a.balls.splice(i, 1);
         if (hit === 'haeng') {
-          H.hold = 1.6; bubble(w, H, pick(['어떤 놈이야!!', '눈덩이를 던져?! 이 녀석이!', '…너 이따 행정반으로 와.']));
+          bubble(w, H, pick(['어떤 놈이야!!', '눈덩이를 던져?! 이 녀석이!', '너 거기 서!!']));
           delete a.buffs.praise; stat(w, 'hitHaeng'); fun(w, 'haeng');
+          knock(w, H, 1.1); startChase(w, H, 'haeng');
+        } else if ((a.off || []).indexOf(hit) >= 0) {
+          bubble(w, hit, pick({ lt: ['어?! 누구야!', '야 이 녀석들!'], cpt: ['감히 중대장한테?!', '너 이리 와!!'], gen: ['…….', '이 부대 군기가!!'] }[hit.id]));
+          stat(w, 'hitOfficer'); fun(w, 'officer');
+          knock(w, hit, 1.1); startChase(w, hit, 'off');
         } else if (w.deer.indexOf(hit) >= 0) hitDeer(w, hit);
         else {
           stat(w, 'hit'); hit.hitByMe = true;
           if (hit.fought) { stat(w, 'fight'); if (fun(w, 'fight')) give(w, 20 * (1 + rank(w)) * w.mult, 'fight'); }
           if (hit.asleep) { hit.asleep = false; hit.sleepT = 10; stat(w, 'wake'); bubble(w, hit, '으악! 누구야!! …아 깼다'); fx(w, { t: 'wake', e: hit }); }
-          else { bubble(w, hit, pick(['아 누구야!!', '야 이씨…', '눈싸움 하자는 거지?!', '어? 지금 던진 거야?'])); hit.mor = Math.min(100, (hit.mor || 50) + 3); }
-          if (w.rand() < 0.6) hit.throwT = 0.6;   // 받아친다 → 눈싸움
+          else { bubble(w, hit, pick(['으악! 벌러덩!', '아 누구야!!', '야 이씨…', '눈싸움 하자는 거지?!'])); hit.mor = Math.min(100, (hit.mor || 50) + 3); knock(w, hit, 0.9); }
+          if (w.rand() < 0.75) hit.throwT = 1.3;   // 일어나서 받아친다 → 눈싸움
         }
       } else {
         a.balls.splice(i, 1);
-        P.stun = Math.max(P.stun, 0.25 * w.mod.stun);
-        fx(w, { t: 'snowball', from: 'crew' }); fx(w, { t: 'splat', x: b.x, y: b.y, h: b.h, hit: true, me: true });
+        P.stun = Math.max(P.stun, 0.8 * w.mod.stun);   // v16: 맞으면 나도 벌러덩
+        fx(w, { t: 'snowball', from: 'crew' }); fx(w, { t: 'knock', e: P, me: true, x: P.x, y: P.y }); fx(w, { t: 'splat', x: b.x, y: b.y, h: b.h, hit: true, me: true });
         if (b.src && b.src.hitByMe) { stat(w, 'fight'); if (fun(w, 'fight')) give(w, 20 * (1 + rank(w)) * w.mult, 'fight'); }
       }
     }
@@ -560,6 +575,43 @@
       e.throwT -= dt;
       if (e.throwT <= 0) { e.fought = true; bubble(w, e, pick(['받아라!!', '복수다!', '이병이 감히?!', '눈싸움이면 안 지지!'])); throwAt(w, e, P); }
     });
+  }
+  /* ── v16 벌러덩 · 추격 ── */
+  // 맞으면 잠깐 쓰러진다 (누운 모습, 그동안 일·이동 멈춤)
+  function knock(w, e, sec) { e.downT = Math.max(e.downT || 0, sec); e.moving = false; fx(w, { t: 'knock', e: e, x: e.x, y: e.y }); }
+  // 간부·행보관을 맞히면 일어나서 쫓아온다. 8초 안에 잡히면 얼차려 + 벌점, 버티면 '도주 성공'
+  var CHASE = { sec: 7, speed: 0.8, catchR: 14 };   // 쫓는 속도 = 내 걸음의 80% → 계속 도망치면 따돌리고, 멈추거나 막히면 잡힌다
+  function startChase(w, e, kind) {
+    e.chaseT = CHASE.sec + (e.downT || 0); e.chaseKind = kind;
+    fx(w, { t: 'chase', on: true, who: kind === 'haeng' ? '행보관' : OFF[e.id].title, e: e });
+  }
+  function stepChase(w, e, dt) {
+    var P = w.player, sp = S.SPEED * CHASE.speed * (e.chaseKind === 'haeng' ? 0.95 : 1);
+    if (e.downT > 0) { e.downT -= dt; e.moving = false; e.chaseT -= dt; return; }
+    e.chaseT -= dt;
+    if (e.chaseKind === 'haeng') { e.hold = 0; e.wait = 1; e.tx = P.x; e.ty = P.y; e.speed = sp; e.chasing = true; }
+    else G.steer(e, P.x, P.y, sp, dt, 6);
+    if (Math.hypot(P.x - e.x, P.y - e.y) < CHASE.catchR && !(a0(w).ride && a0(w).ride.kind !== 'cart')) return caught(w, e);
+    if (e.chaseT <= 0) escaped(w, e);
+  }
+  function a0(w) { return w.act; }
+  function caught(w, e) {
+    var P = w.player, save = w.save, a = w.act, off = e.chaseKind === 'off', lose = off ? { lt: 1, cpt: 2, gen: 3 }[e.id] : 1, took;
+    e.chaseT = 0; e.chasing = false; if (!off) e.speed = 40;
+    P.stun = Math.max(P.stun, off ? 3 : 2.5);
+    if (save.dia >= lose) { save.dia -= lose; took = '상점 -' + lose; }
+    else { var fine = Math.min(Math.round(save.bank * 0.1), 200 * (1 + rank(w))); save.bank = Math.max(0, save.bank - fine); took = '초코파이 -' + fine; }
+    if (off) { jigeok(w, 'snowball'); e.phase = 'go'; }
+    bubble(w, e, pick(off ? ['잡았다! 엎드려뻗쳐!', '어디서 장난이야! 얼차려!', '군기 교육 들어간다!'] : ['잡았다 이놈! 엎드려뻗쳐!', '너 오늘 얼차려다!']));
+    me(w, pick(['…죄송합니다!!', '(엎드려뻗쳐 중)', '다시는 안 그러겠습니다!']));
+    stat(w, 'caught'); fx(w, { t: 'caught', who: off ? OFF[e.id].title : '행보관', took: took, jigeok: off, x: P.x, y: P.y });
+    return true;
+  }
+  function escaped(w, e) {
+    var off = e.chaseKind === 'off';
+    e.chaseT = 0; e.chasing = false; if (!off) e.speed = 40; else e.phase = 'go';
+    bubble(w, e, pick(['헉헉… 놓쳤다. 다음엔 안 봐준다!', '…빠르네. 두고 보자.', '헉… 누군지 다 봤다!']));
+    stat(w, 'escape'); fun(w, 'escape'); fx(w, { t: 'escaped', who: off ? OFF[e.id].title : '행보관' });
   }
   // 선임 장난: 근처 분대원이 눈덩이를 던진다 (보이게) → 받아치면 눈싸움
   function prank(w) {
@@ -604,7 +656,8 @@
     if (w.save.zones.B && B.y > Z.y && B.y < Z.y + Z.h) {
       var side = B.x < Z.x + Z.w / 2 ? -1 : 1;
       if (B.side && side !== B.side && sp > 90 && !(B.goalT > 0)) {
-        B.goalT = 4; stat(w, 'goal'); var gp = give(w, 25 * (1 + rank(w)) * w.mult, 'goal');
+        B.goalT = 4; stat(w, 'goal'); a.goals = (a.goals || 0) + 1;
+        var gp = a.goals <= 3 ? give(w, 25 * (1 + rank(w)) * w.mult, 'goal') : 0;   // v16: 돈은 작전당 세 골까지 (공 왔다 갔다로 돈 버는 허점)
         fx(w, { t: 'goal', x: B.x, y: B.y, pay: gp }); fun(w, 'goal');
         w.crew.slice(0, 3).forEach(function (c) { if (!c.off) bubble(w, c, pick(['나이스!!', '족구 국가대표?', '한 판 더!'])); });
       }
@@ -635,6 +688,8 @@
     if (w.opEnd) return;
     a.ballCd -= dt;
     if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); }
+    if (H.chaseT > 0) stepChase(w, H, dt);
+    else if (H.downT > 0) { H.downT -= dt; H.hold = Math.max(H.hold || 0, 0.1); }
     if (w.opEnd) return;
     // 이병 때는 선임이 가끔 잔소리 (상병부터는 내가 하는 쪽)
     a.nagT -= dt;
@@ -733,6 +788,7 @@
     for (var i = a.off.length - 1; i >= 0; i--) {
       var o = a.off[i], def = OFF[o.id], d = dist(o, P);
       o.t += dt;
+      if (o.chaseT > 0 || o.downT > 0) { if (o.chaseT > 0) stepChase(w, o, dt); else { o.downT -= dt; o.moving = false; } continue; }
       if (o.helpT > 0) {
         // 소대장이 같이 치운다
         o.helpT -= dt; o.retarget -= dt;
@@ -867,7 +923,7 @@
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
-    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
+    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
     prepItems: prepItems, prepBuy: prepBuy, pullDone: pullDone, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,

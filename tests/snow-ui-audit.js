@@ -20,6 +20,12 @@ function scan() {
     if (scr && !el.closest('.tabs, .look-tabs') && (r.left < -1 || r.right > vw + 1)) out.push('옆으로 넘침: ' + name(el));
     var cs = getComputedStyle(el);
     if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el));
+    // v16 글자 꺾임: 칸이 좁아 한 줄에 서너 글자만 들어가며 여러 줄로 꺾이는 글 (v15 보급 카드 같은 것)
+    var txt = el.children.length === 0 ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+    if (txt.length >= 6 && !el.closest('.talk-face, .say-face, .lc-face, .ico, .dots')) {
+      var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3, lines = Math.round(r.height / lh);
+      if (lines >= 3 && txt.length / lines < 4.5) out.push('글자 꺾임 (' + lines + '줄, 줄마다 ' + (txt.length / lines).toFixed(1) + '자): ' + name(el));
+    }
   });
   var HUD = ['.hud-top', '#goal', '.prog', '.hud-btns', '#combo', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span', '#throw-btn'];
   var rs = HUD.map(function (q) { var el = document.querySelector(q); return shown(el) ? { q: q, r: el.getBoundingClientRect() } : null; }).filter(Boolean);
@@ -123,6 +129,17 @@ function scan() {
       await bb.click(); await sleep(hb === 'look' ? 900 : 300); await check('page-' + hb);
       await page.click('#s-go'); await sleep(400); await closeAll();
     }
+    // v16 극단값: 아주 큰 돈·상점, 가장 긴 이름, 분대원 꽉, 특기·탈것 정비 다 → 생활관·보급·결과
+    await page.evaluate(function () {
+      var s = __SNOW.save(); s.bank = 98765432109; s.dia = 9876; s.look.name = '가나다라마바'; s.rank = 3; s.merit = 70; JY.SnowSim.assignZones(s);
+      s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
+      s.rideUp = { cart: { spd: 3, cap: 3 }, atv: { spd: 2, cap: 1 } }; s.stats.ops = 40; JY.SnowSim.newFeatures(s, true); __SNOW.title();
+    });
+    await sleep(600); await closeAll(); await check('extreme-hub');
+    await page.click('[data-hub="shop"]'); await sleep(300);
+    for (var t2 of ['tool', 'crew', 'up']) { var tb2 = await page.$('#s-tabs [data-tab="' + t2 + '"]'); if (!tb2) continue; await tb2.click(); await sleep(250); await check('extreme-shop-' + t2); }
+    await page.click('#s-go'); await sleep(400); await closeAll();
+    await page.click('[data-hub="settings"]'); await sleep(300); await check('extreme-settings'); await closeAll();
     // PX · 상자 · 대사
     await page.click('[data-hub="px"]'); await sleep(400); await check('px');
     var cl = await page.$('#modal [data-m]'); if (cl) await cl.click(); await sleep(300);

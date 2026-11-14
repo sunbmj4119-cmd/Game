@@ -358,7 +358,7 @@ ok(wh.save.fun.haeng && !wh.act.buffs.praise, 'v14 행보관 명중 → "간 큰
 var wc = v14(function (s) { s.crew = { hoobae: 1 }; }); wc.act.offPlan = []; wc.act.off = []; away(wc);
 run(wc, 0.1); var cm = wc.crew[0]; cm.x = 320; cm.y = 470; cm.retarget = 99; cm.speed = 0; wc.player.x = 250; wc.player.y = 470; wc.deer = [];
 ok(A.prank(wc) && wc.act.balls.length === 1 && cm.fought, 'v14 선임 장난: 근처 분대원이 보이게 던진다');
-run(wc, 0.8); A.throwBall(wc); run(wc, 0.8);
+run(wc, 1.2); ok(wc.player.stun <= 0, 'v16 맞으면 나도 벌러덩 (0.8초) 뒤 일어난다'); A.throwBall(wc); run(wc, 0.8);
 ok(wc.save.fun.fight, 'v14 받아치면 눈싸움 발견', wc.save.fun);
 // 족구: 공을 몸으로 밀어 네트를 넘기면 한 골
 var wk = v14(); away(wk); wk.act.offPlan = []; wk.act.off = []; wk.deer = []; var ZB = G.zoneById('B'), B = wk.act.ball;
@@ -382,7 +382,7 @@ ok(rc.indexOf('cart') >= 0 && rc.indexOf('tractor') < 0, 'v14 일병: 리어카�
 A.applyStats(wr); var cap0 = wr.player.cap, sp0 = wr.mod.speed;
 ok(A.act(wr, { k: 'ride', ref: cart }, wr.player.dir).ok && wr.act.ride === cart, 'v14 리어카 타기');
 A.applyStats(wr);
-ok(wr.player.cap === cap0 * 3 && wr.mod.speed < sp0 && wr.player.body === 11, 'v14 리어카: 세 배 싣고, 느리고, 덩치가 크다', [cap0, wr.player.cap, wr.mod.speed, wr.player.body]);
+ok(wr.player.cap === cap0 * 3 && wr.mod.speed < sp0 && wr.player.body > 6, 'v14 리어카: 세 배 싣고, 조금 느리고, 덩치가 크다 (v16: 0.95·9)', [cap0, wr.player.cap, wr.mod.speed, wr.player.body]);
 var ex = A.best(wr, wr.player.dir, false); ok(ex && ex.k === 'exit', 'v14 타고 있으면 행동 버튼이 "내리기"', ex && ex.k);
 A.act(wr, ex, wr.player.dir); A.applyStats(wr);
 ok(!wr.act.ride && wr.player.cap === cap0 && wr.player.body === 6 && Math.hypot(cart.x - wr.player.x, cart.y - wr.player.y) > 10, 'v14 내리면 원래대로, 리어카는 그 자리에 남는다');
@@ -403,6 +403,49 @@ var wd = v14(function (s) { s.zones.D = true; }); away(wd); wd.act.offPlan = [];
 var a2 = wd.act.rides[1]; wd.player.x = a2.x; wd.player.y = a2.y; A.startRide(wd, a2); A.applyStats(wd);
 var dd = deerAt(wd, wd.player.x + 6, wd.player.y); dd.turnT = 9; run(wd, 0.2);
 ok(wd.player.stun <= 0, 'v14 탈것에 타면 고라니에 받혀도 안 넘어진다');
+
+
+// ── v16 벌러덩 · 간부 저격 · 추격 ──
+var wk2 = v14(function (s) { s.crew = { hoobae: 1 }; }); wk2.act.offPlan = []; wk2.act.off = []; away(wk2); wk2.deer = [];
+run(wk2, 0.1); var cm2 = wk2.crew[0]; cm2.x = 330; cm2.y = 470; cm2.retarget = 99; wk2.player.x = 270; wk2.player.y = 470;
+A.throwBall(wk2); run(wk2, 0.5);
+ok(cm2.downT > 0 || fxs(wk2, 'knock').length, 'v16 분대원을 맞히면 벌러덩 (잠깐 일을 멈춘다)', cm2.downT);
+var cx0 = cm2.x; run(wk2, 0.3); ok(Math.abs(cm2.x - cx0) < 0.5 || !(cm2.downT > 0), 'v16 쓰러진 동안은 안 움직인다');
+// 간부를 맞히면 쫓아온다 → 잡히면 얼차려 + 지적 + 상점
+var wo = v14(); away(wo); wo.act.offPlan = []; wo.act.off = []; wo.deer = []; wo.crew = [];
+wo.player.x = 270; wo.player.y = 470; wo.save.dia = 5;
+var of = A.spawnOfficer(wo, 'cpt'); of.x = 340; of.y = 470; of.phase = 'stay'; of.stayT = 60; of.saluted = true;
+var tgo = A.throwTarget(wo); ok(tgo && tgo.k === 'off', 'v16 간부도 눈덩이 표적 (버튼에 ⚠)', tgo && tgo.k);
+A.throwBall(wo); run(wo, 0.5);
+ok(of.chaseT > 0 && wo.save.fun.officer, 'v16 간부 명중 → 벌러덩 후 쫓아온다 · 발견 "간부 저격"', [of.chaseT, of.downT]);
+var j0 = wo.op.jigeok; wo.save.dia = 5; run(wo, 6);
+ok(wo.player.stun > 0 || wo.op.jigeok > j0, 'v16 가만히 있으면 잡힌다 → 얼차려', [wo.player.stun, wo.op.jigeok]);
+ok(wo.op.jigeok === j0 + 1 && wo.save.dia <= 3 + 1 && !(of.chaseT > 0) && wo.save.stats.caught === 1, 'v16 중대장님께 잡히면 지적 +1 · 상점 -2 (쫓는 사람은 나를 밀지 않는다)', [wo.op.jigeok, wo.save.dia]);
+// 도망치면 '도주 성공'
+var we = v14(function (s) { s.zones.D = true; }); away(we); we.act.offPlan = []; we.act.off = []; we.deer = []; we.crew = [];
+we.player.x = 270; we.player.y = 470;
+var of2 = A.spawnOfficer(we, 'lt'); of2.x = 330; of2.y = 470; of2.phase = 'stay'; of2.stayT = 60; of2.saluted = true;
+A.throwBall(we); run(we, 0.4);
+for (var es = 0; es < 12 * 30 && of2.chaseT > 0; es++) { var an = Math.atan2(we.player.y - 460, we.player.x - 270) + 0.7, tx = 270 + Math.cos(an) * 120, ty = 460 + Math.sin(an) * 120, dx = tx - we.player.x, dy = ty - we.player.y, dl = Math.hypot(dx, dy) || 1; G.step(we, 1 / 30, { x: dx / dl, y: dy / dl }); }   // 연병장에서 크게 돌며 도망
+ok(we.save.fun.escape && !(we.player.stun > 0.5), 'v16 7초 동안 도망치면 "도주 성공" (쫓는 속도는 내 걸음의 80%)', [we.save.fun, Math.round(Math.hypot(we.player.x - of2.x, we.player.y - of2.y))]);
+// 행보관도 쫓아온다
+var wh2 = v14(); wh2.act.offPlan = []; wh2.act.off = []; wh2.crew = []; wh2.deer = []; wh2.haeng.x = 330; wh2.haeng.y = 470; wh2.haeng.hold = 0; wh2.player.x = 270; wh2.player.y = 470; wh2.save.dia = 0; wh2.save.bank = 1000;
+A.throwBall(wh2); run(wh2, 0.5); ok(wh2.haeng.chaseT > 0, 'v16 행보관도 맞히면 쫓아온다'); wh2.save.dia = 0;
+run(wh2, 5); ok(wh2.save.bank < 1000 && wh2.save.stats.caught === 1, 'v16 행보관에게 잡히면 상점이 없으면 초코파이 10% (상한 있음)', wh2.save.bank);
+// 족구 골 돈은 작전당 세 번까지
+var wg = v14(); away(wg); wg.act.offPlan = []; wg.act.off = []; wg.deer = []; var ZB2 = G.zoneById('B'), Bb = wg.act.ball, paid = [];
+for (var gi = 0; gi < 5; gi++) { var b0 = wg.save.bank; Bb.x = ZB2.x + ZB2.w / 2 + (gi % 2 ? 20 : -20); Bb.y = ZB2.y + ZB2.h / 2; Bb.side = gi % 2 ? 1 : -1; Bb.vx = gi % 2 ? -200 : 200; Bb.vy = 0; Bb.goalT = 0; run(wg, 0.4); paid.push(Math.round(wg.save.bank - b0)); }
+ok(wg.save.stats.goal >= 4 && paid.slice(3).every(function (p) { return p === 0; }) && paid[0] > 0, 'v16 족구 골 보상은 작전당 세 골까지 (공 왔다 갔다 허점 막기)', paid);
+
+
+// ── v16 탈것 정비 (상점) ──
+var wu = v14(function (s) { s.dia = 30; }); away(wu); wu.act.offPlan = []; wu.act.off = [];
+var ro = G.offers(wu.save).ride.filter(function (o) { return o.id === 'cart:cap'; })[0];
+ok(ro && ro.dia === 3 && ro.ok, 'v16 일병: 리어카 정비가 보급 → 강화에 (상점 3)', ro);
+A.applyStats(wu); var cu = wu.act.rides[0]; wu.player.x = cu.x; wu.player.y = cu.y; A.startRide(wu, cu); A.applyStats(wu); var capA = wu.player.cap;
+A.act(wu, { k: 'exit' }, wu.player.dir); var dB = wu.save.dia; G.buy(wu.save, 'rideup', 'cart:cap'); var dA = wu.save.dia; A.startRide(wu, cu); A.applyStats(wu);
+ok(wu.player.cap === Math.round(capA * 1.25) && dB - dA === 3, 'v16 짐칸 정비 1단계: 적재 +25%', [capA, wu.player.cap, wu.save.dia]);
+ok(!G.offers(wu.save).ride.some(function (o) { return o.id.indexOf('tractor') === 0; }), 'v16 아직 못 타는 탈것은 정비 목록에 없다');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

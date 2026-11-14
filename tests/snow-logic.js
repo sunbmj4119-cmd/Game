@@ -372,5 +372,17 @@ s13.zones.B = true; ok(G.feat(s13, 'officer') && G.feat(s13, 'combo') && G.feat(
 var nf13 = G.newFeatures(s13, true); ok(nf13.length >= 3 && nf13.every(function (F) { return F.name && F.line; }) && !G.newFeatures(s13, false).length, '새로 생긴 것은 한 번만 소개', nf13.map(function (F) { return F.id; }));
 s13.rank = 1; ok(G.feat(s13, 'ice') && G.feat(s13, 'bonus') && G.newFeatures(s13, false).some(function (F) { return F.id === 'ice'; }), '일병: 빙판·특명');
 s13.rank = 2; ok(G.feat(s13, 'twist'), '상병: 돌발 상황');
+
+// ── v16 진급 특기 · 허점 ──
+var sp = G.newSave(); sp.rank = 1; sp.merit = 9; G.assignZones(sp);
+ok(G.specDue(sp) && G.specDue(sp).rank === 1, 'v16 일병이 되면 특기를 고른다 (아직 안 골랐으면)');
+var r0 = G.toolR(sp), c0 = G.capOf(sp), g0 = G.opGoal(sp, 'normal', false);
+sp.spec = { 1: 'shovel' }; ok(G.toolR(sp) === Math.round(r0 * 1.25) && !G.specDue(sp), 'v16 삽질 장인: 범위 +25%', [r0, G.toolR(sp)]);
+sp.rank = 2; ok(G.specDue(sp) && G.specDue(sp).rank === 2, 'v16 상병 특기는 상병이 되면');
+sp.spec[2] = 'mule'; ok(G.capOf(sp) === Math.round(c0 * 1.6), 'v16 짐꾼: 적재 +60%', [c0, G.capOf(sp)]);
+sp.rank = 3; sp.spec[3] = 'kal'; var gk = G.opGoal(sp, 'normal', false); sp.spec[3] = 'chill';
+ok(Math.abs(G.opGoal(sp, 'normal', false) - gk - 0.05) < 1e-9 && G.createWorld(sp).dayLen === S.DAY_LEN + 30, 'v16 칼각: 기준 −5%p / 말년 여유: 작전 +30초');
+sp.merit = S.DISCHARGE_MERIT; sp.life = 5e6; G.discharge(sp); ok(!Object.keys(sp.spec).length && G.rankOf(sp) === 0, 'v16 전역하면 특기도 처음부터');
+ok(S.SPECS.every(function (g) { return g.opts.length === 2; }) && S.SPECS.length === 3, 'v16 특기는 계급마다 둘 중 하나 (일병·상병·병장)');
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

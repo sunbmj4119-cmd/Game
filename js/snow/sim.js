@@ -25,7 +25,7 @@
       look: { name: '', eyes: 'derp', mouth: 'wavy', brows: 'worried', head: 'round', skin: '#f6c79c', extras: ['snot', 'blush'], hat: 'beanie', coat: 'olive', glove: 'olive', tool: 'yellow' },
       story: {}, unlocked: {}, quest: 0,
       // v10: 계급(진급 심사로만 오른다), 근무평정(★ 합), 지금 작전 상태, 다음 작전 준비물(PX), 포상휴가, 지난 작전 결과
-      rank: 0, merit: 0, op: null, prep: {}, leave: 0, lastOp: null, exam: false, fun: {} };
+      rank: 0, merit: 0, op: null, prep: {}, leave: 0, lastOp: null, exam: false, fun: {}, spec: {} };
   }
   function migrate(s) {
     var d = newSave();
@@ -95,7 +95,7 @@
   }
   // 지시서 기준: 계급마다 + 진급 심사면 +5%p, 함박눈·폭설이면 낮춘다
   function opGoal(save, wxId, exam) {
-    var g = S.OP.goal[rankOf(save)];
+    var g = S.OP.goal[rankOf(save)] - (spec(save, 'kal') ? 0.05 : 0);
     if (exam) g = Math.min(S.OP.examMax, g + S.OP.examAdd);
     return Math.round((g - (S.OP.wx[wxId] || 0)) * 100) / 100;
   }
@@ -107,15 +107,19 @@
   function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
   function incomeMult(save) { return (1 + 0.15 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }
   function toolOf(save) { return S.TOOLS[save.tool]; }
-  function toolR(save) { return Math.round(toolOf(save).r * (1 + 0.1 * (save.toolStar || 0))); }
+  function spec(save, id) { var sp = save.spec || {}; return sp[1] === id || sp[2] === id || sp[3] === id; }
+  function specDue(save) { var r = rankOf(save); for (var i = 0; i < S.SPECS.length; i++) if (r >= S.SPECS[i].rank && !(save.spec || {})[S.SPECS[i].rank]) return S.SPECS[i]; return null; }
+  function toolR(save) { return Math.round(toolOf(save).r * (1 + 0.1 * (save.toolStar || 0)) * (spec(save, 'shovel') ? 1.25 : 1)); }
   function gainDia(w, n, why) {
     if (w.demo || n <= 0) return 0;
     w.save.dia += n; w.save.diaLife += n; w.today.dia += n;
+    w.diaSrc = w.diaSrc || {}; w.diaSrc[why || '?'] = (w.diaSrc[why || '?'] || 0) + n;
     w.fx.push({ t: 'dia', n: n, why: why || '' });
     return n;
   }
   function stat(w, k, n) { if (w.demo) return; var st = w.save.stats; st[k] = (st[k] || 0) + (n || 1); }
-  function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back'))); }
+  function rideUp(save, rid, uid) { var r = (save.rideUp || {})[rid] || {}; return r[uid] || 0; }
+  function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back')) * (spec(save, 'mule') ? 1.6 : 1)); }
   function crewCap(save) { return S.CREW_CAP[rankOf(save)] || 0; }
   function pendN(save, id) { return (save.pend || []).filter(function (p) { return !id || p.id === id; }).length; }
   function crewCount(save) { return S.CREW.reduce(function (a, C) { return a + crewN(save, C.id); }, 0); }
@@ -134,7 +138,15 @@
 
   /* ── 상점 ── */
   function offers(save) {
-    var rank = rankOf(save), out = { tool: [], crew: [], perk: [], zone: [], factory: [] };
+    var rank = rankOf(save), out = { tool: [], crew: [], perk: [], zone: [], factory: [], ride: [] };
+    // v16 탈것 정비 (상점)
+    S.RIDES.forEach(function (R0) {
+      if (!feat(save, R0.id)) return;
+      S.RIDEUP.forEach(function (U) {
+        var l = rideUp(save, R0.id, U.id), d = U.dia[l] || 0;
+        out.ride.push({ kind: 'rideup', id: R0.id + ':' + U.id, name: R0.name + ' ' + U.name, desc: U.line + (R0.fuel ? ' · 기름 +20%' : ''), cost: 0, dia: d, n: l, max: U.max, state: l >= U.max ? 'max' : 'buy', ok: l < U.max && save.dia >= d });
+      });
+    });
     S.TOOLS.forEach(function (T, i) {
       if (i < save.tool - 1 || i > save.tool + 2) return;
       var lock = rank < (T.rank || 0), st = i <= save.tool ? 'own' : i === save.tool + 1 ? (lock ? 'lock' : 'buy') : 'later';
@@ -168,7 +180,7 @@
   }
 
   function buy(save, kind, id) {
-    var list = offers(save)[kind === 'proc' || kind === 'relay' ? 'factory' : kind === 'star' ? 'tool' : kind] || [], o = null;
+    var list = offers(save)[kind === 'proc' || kind === 'relay' ? 'factory' : kind === 'star' ? 'tool' : kind === 'rideup' ? 'ride' : kind] || [], o = null;
     list.forEach(function (x) { if (x.id === id && x.kind === kind) o = x; });
     if (!o || !o.ok) return { ok: false };
     save.bank -= o.cost; if (o.dia) save.dia -= o.dia;
@@ -179,6 +191,7 @@
     else if (kind === 'perk') save.perks[id] = lvl(save, id) + 1;
     else if (kind === 'proc') save.proc[id] = procLvl(save, id) + 1;
     else if (kind === 'relay') save.relays[id] = true;
+    else if (kind === 'rideup') { var ru = id.split(':'); save.rideUp = save.rideUp || {}; save.rideUp[ru[0]] = save.rideUp[ru[0]] || {}; save.rideUp[ru[0]][ru[1]] = rideUp(save, ru[0], ru[1]) + 1; }
     else if (kind === 'zone') { save.zones[id] = true; save.fresh[id] = true; save.seen['new' + id] = true; }
     return { ok: true, cost: o.cost, item: o };
   }
@@ -289,7 +302,7 @@
       save: save, rand: mulberry(save.seed + save.day * 101 + (opts.salt || 0) + Math.floor(save.dayT)),
       depth: new Uint8Array(GW * GH), zone: new Int8Array(GW * GH).fill(-1), partOf: new Int16Array(GW * GH).fill(-1),
       cells: [], zoneOpen: [], zoneTotal: [], zoneClear: [], parts: [], total: 0, clear: 0, inspected: {},
-      time: save.dayT || 0, dayLen: S.DAY_LEN, weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
+      time: save.dayT || 0, dayLen: S.DAY_LEN + (spec(save, 'chill') ? 30 : 0), weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
       earned: 0, crewEarned: 0, crewT: 0, units: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
       player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save), dumps: dumpsOf(save),
       events: [], deer: [], car: null, heli: null, cats: [], mod: { speed: 1, hit: 1, crew: 1, stun: 1 }, dumpedP: 0,
@@ -516,7 +529,7 @@
   // 사람 몸에 파고들지 않는다 (1인칭에서 얼굴이 화면을 다 덮지 않게): 가까우면 살살 밀려난다
   function pushOff(w, P, dt) {
     function away(e, R) {
-      if (!e) return;
+      if (!e || e.chaseT > 0) return;   // v16: 쫓아오는 사람은 나를 밀지 않는다 (밀면 영영 못 잡는다)
       var dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy);
       if (d >= R) return;
       if (d < 0.01) { dx = 1; dy = 0; d = 1; }
@@ -645,10 +658,12 @@
     if (w.demo || amount <= 0) return;
     w.save.bank += amount; w.save.life += amount; w.save.today += amount;
     if (src === 'crew') w.crewEarned += amount;
+    w.paySrc = w.paySrc || {}; w.paySrc[src || '?'] = (w.paySrc[src || '?'] || 0) + amount;   // 밸런스 점검용: 어디서 벌었나
   }
   // 조각을 한 칸도 없이 100% 치우면 띵! + 다이아 (하루에 한 번). 구역 전체 100%면 구역 완벽, 부대 전체면 조기 퇴근
   // v12: 조각·구역 완벽 상점은 작전당 4개까지 (구역 8곳이면 작전마다 10개 넘게 쌓여 상점이 수백 개가 됐다). 전 구역 100%는 따로
-  function perfDia(w, n, why) { var left = 4 - (w.today.perfDia || 0); n = Math.min(n, left); if (n <= 0) return 0; w.today.perfDia = (w.today.perfDia || 0) + n; return gainDia(w, n, why); }
+  // v16: 4 → 2 (밸런스 점검: 전역 때 상점이 230개 넘게 남았다 — 쓸 곳보다 훨씬 많이 들어온다)
+  function perfDia(w, n, why) { var key = 'perfDia_' + why, cap = 2, left = cap - (w.today[key] || 0); n = Math.min(n, left); if (n <= 0) return 0; w.today[key] = (w.today[key] || 0) + n; return gainDia(w, n, why); }   // 조각 완벽 2 + 구역 완벽 2 (작전당, 따로 센다)
   function partClear(w, p) {
     var P = w.parts[p];
     P.clear++;
@@ -1088,6 +1103,7 @@
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       if (e.off) { e.moving = false; continue; }
+      if (e.downT > 0) { e.downT -= dt; e.moving = false; continue; }   // v16: 눈덩이 맞고 벌러덩
       if (e.state === 'follow') {   // 따라와 → 새 구역으로 데려간다
         var fd = Math.hypot(P.x - e.x, P.y - e.y);
         if (fd > 32) steer(e, P.x + (e.x - P.x) / fd * 28, P.y + (e.y - P.y) / fd * 28, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
@@ -1179,7 +1195,7 @@
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
-    canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
+    canDischarge: canDischarge, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
     examDue: examDue, assignZones: assignZones, clockOf: clockOf, timeAt: timeAt, clockText: clockText, initOp: initOp, checkTasks: checkTasks, opStatus: opStatus, gradeOp: gradeOp, endOp: endOp, syncOpSave: syncOpSave, taskPct: taskPct,
     crewCap: crewCap, pendN: pendN, assignRecruit: assignRecruit, setPost: setPost, autoPost: autoPost, zoneAt: zoneAt, arriveRecruits: arriveRecruits, zoneIndex: zoneIndex,

@@ -159,9 +159,14 @@
   // v14 탈것: 넓게(폭)·많이(적재)·빨리(속도) 대신 몸집(body)이 커서 좁은 틈은 못 지나간다 — Moon Sweepers 차량처럼 '크기'가 장단점
   // r: 눈 치우는 폭(도구보다 넓을 때만), capMul: 적재 배수, speed: 이동 배수, body: 부딪히는 반지름(사람 6), fuel: 기름(움직인 초)
   var RIDES = [
-    { id: 'cart', name: '리어카', kind: 'cart', x: 176, y: 298, r: 0, capMul: 3, speed: 0.8, body: 11, fuel: 0, desc: '세 배 싣는다 · 느리다 · 덩치 큼' },
+    { id: 'cart', name: '리어카', kind: 'cart', x: 176, y: 298, r: 0, capMul: 3, speed: 0.95, body: 9, fuel: 0, desc: '세 배 싣는다 · 조금 느리다' },   // v16: 0.8·11이면 시뮬레이션에서 걷는 것보다 손해였다
     { id: 'atv', name: '사륜바이크', kind: 'atv', x: 522, y: 302, r: 24, capMul: 1.5, speed: 1.6, body: 10, fuel: 70, desc: '빠르다 · 앞날로 넓게 · 빙판 미끄덩' },
     { id: 'tractor', name: '트랙터', kind: 'tractor', x: 252, y: 1062, r: 44, capMul: 4, speed: 1.0, body: 16, fuel: 100, desc: '아주 넓게 · 네 배 · 좁은 길 못 감' }
+  ];
+  // v16 탈것 정비 (상점으로): 차마다 따로 — Moon Sweepers 차량 업그레이드처럼. 밸런스 점검에서 상점이 200개 넘게 남아서 만든 쓸 곳
+  var RIDEUP = [
+    { id: 'spd', name: '엔진·바퀴', line: '속도 +8%', max: 3, dia: [3, 6, 10] },
+    { id: 'cap', name: '짐칸·삽날', line: '적재 +25% · 폭 +10%', max: 3, dia: [3, 6, 10] }
   ];
   // v14 "아 이런 것도 되네" — 처음 해 보면 '발견!' + 상점 1 (수첩에 모인다)
   var FUN = [
@@ -174,7 +179,16 @@
     { id: 'angel', name: '눈천사', hint: '눈밭에서 5초 동안 가만히 서 있어 보자' },
     { id: 'ride', name: '첫 운전', hint: '세워 둔 탈것 옆에서 타기' },
     { id: 'drift', name: '빙판 드리프트', hint: '사륜바이크로 빙판 위를 달려 보자' },
-    { id: 'cat', name: '짬타이거 집사', hint: '고양이를 쓰다듬자' }
+    { id: 'cat', name: '짬타이거 집사', hint: '고양이를 쓰다듬자' },
+    { id: 'officer', name: '간부 저격', hint: '간부에게 눈덩이를… (잡히면 얼차려)' },
+    { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' }
+  ];
+
+  // v16 진급 특기: 진급할 때 둘 중 하나 (전역하면 다시 고른다). 밸런스 점검에서 '무엇을 사든 결과가 같다'가 나와서 넣은 갈림길
+  var SPECS = [
+    { rank: 1, opts: [{ id: 'shovel', name: '삽질 장인', line: '내 도구 범위 +25%', tag: '혼자 빠르게' }, { id: 'leader', name: '분대 챙기기', line: '분대원 속도 +40%', tag: '분대와 함께' }] },
+    { rank: 2, opts: [{ id: 'mule', name: '짐꾼', line: '적재 +60%', tag: '왕복이 준다' }, { id: 'insa', name: '인싸', line: '분대원이 지치지도 짱박히지도 않는다', tag: '분대가 안 쉰다' }] },
+    { rank: 3, opts: [{ id: 'kal', name: '칼각', line: '지시서 기준 −5%p', tag: '★ 받기 쉽게' }, { id: 'chill', name: '말년 여유', line: '작전 시간 +30초', tag: '시간 넉넉' }] }
   ];
 
   var FEATURES = [
@@ -497,7 +511,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

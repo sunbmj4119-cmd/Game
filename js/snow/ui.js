@@ -129,8 +129,11 @@
     if (save.exam && nr) news.push('<li class="exam">다음 작전 = <b>' + nr.name + ' 진급 심사</b> · ★★ 이상이면 진급</li>');
     if (lo) news.push('<li>지난 작전 <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 심사 합격' : ' · 심사 불합격') : '') + '</li>');
     if (on) news.push('<li>내일 새벽 <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + '</li>');
-    if (nextZone && on) news.push('<li>★' + nextZone.need + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
-    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 3).join('') + '</ul>';
+    var nt = A && on ? A.nextTool(save) : null, tb = on ? G.previewBonus(save) : null;
+    if (nt) news.push('<li>다음 장비 <b>' + esc(nt.name) + '</b> · ' + (r < (nt.rank || 0) ? S.RANKS[nt.rank].name + '부터' : save.bank >= nt.cost ? '<b class="ok">받을 수 있다! (보급 원)</b>' : pie() + fmt(save.bank) + '/' + fmt(nt.cost)) + '</li>');
+    if (tb) news.push('<li>내일 특명 <b>' + esc(tb.text) + '</b> · ' + dia() + '+' + tb.dia + '</li>');
+    if (nextZone && on) news.push('<li>★' + nextZone.need + (r < (nextZone.rank || 0) ? ' · ' + S.RANKS[nextZone.rank].name : '') + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
+    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 4).join('') + '</ul>';
     var any = G.offers(save), n = 0;
     ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
@@ -215,11 +218,12 @@
     briefing();
   }
   function briefing() {
-    var r = G.rankOf(save), wx = G.weatherFor(save), B = S.BRIEF[r], exam = !!save.exam, goal = exam ? S.OP.examGoal : S.OP.goal[r];
+    var r = G.rankOf(save), wx = G.weatherFor(save), B = S.BRIEF[r], exam = !!save.exam, goal = G.opGoal(save, wx.id, exam), wxCut = S.OP.wx[wx.id] || 0, bo = G.previewBonus(save);
     var zs = S.ZONES.filter(function (Z) { return save.zones[Z.id]; }).sort(function (a, b) { return (a.due || 480) - (b.due || 480); });
     var line = M.fill(pick(B.lines), save).replace('{zone}', zs.map(function (Z) { return Z.name; }).join(', '));
     var notes = [];
-    if (exam) notes.push('<li class="exam">진급 심사: 기준 ' + Math.round(goal * 100) + '%, ★★ 이상이면 ' + G.nextRank(save).name + ' 진급</li>');
+    if (exam) notes.push('<li class="exam">진급 심사: 기준 ' + Math.round(goal * 100) + '%, ★★ 이상이면 ' + G.nextRank(save).name + ' 진급' + (save.examFail ? ' (재심사 ' + (save.examFail + 1) + '번째)' : '') + '</li>');
+    if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' — 오늘은 기준을 ' + Math.round(wxCut * 100) + '%p 낮춰 준다 (이동로부터 뚫어라)</li>');
     if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 보이면 바로 경례</li>');
     if (save.zones.E) notes.push('<li>07:30 중대장님 출근 차량 — 진입로 가운데 바퀴 자리를 먼저</li>');
     if (S.ZONES.some(function (Z) { return save.zones[Z.id] && Z.parts.some(function (p) { return p[5]; }); })) notes.push('<li>그늘·비탈은 치우면 언다 → 제설함 염화칼슘</li>');
@@ -231,8 +235,9 @@
       '<p class="kicker">' + save.day + '일차 · 05:30 제설 비상</p>' +
       '<div class="brief-who"><div class="m-face">' + portrait(B.who) + '</div><p>' + esc(line) + '</p></div>' +
       '<p class="brief-wx">' + S.WEATHER[wx.id].name + ' · 08:00 아침 식사 전까지</p>' +
-      '<ol class="brief-list">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b><span>' + G.clockText(Z.due || 480) + '까지 · ' + esc(Z.why || '') + '</span></li>'; }).join('') + '</ol>' +
-      (notes.length ? '<ul class="brief-notes">' + notes.join('') + '</ul>' : '') + crewRows +
+      '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b><span>' + G.clockText(Z.due || 480) + (zs.length > 3 ? '' : '까지 · ' + esc(Z.why || '')) + '</span></li>'; }).join('') + '</ol>' +
+      (notes.length ? '<ul class="brief-notes">' + notes.join('') + '</ul>' : '') +
+      (bo ? '<div class="brief-bonus"><b>오늘의 특명</b><span>' + esc(bo.text) + '</span><small>' + dia() + '상점 +' + bo.dia + (bo.box ? ' · 보급 상자' : '') + ' · ' + esc(bo.how) + '</small></div>' : '') + crewRows +
       '<button class="btn big" data-m="go">' + (exam ? '심사 받으러 출동!' : '출동!') + '</button></div>', function (k) { if (k === 'go') play(false); });
     var box = $('modal-box'), base = box.onclick;
     box.onclick = function (e) {
@@ -306,6 +311,8 @@
   function onOpEvent(f) {
     if (f.t === 'task') { banner(f.late ? '늦었지만 완료' : '작업 완료!', f.task.name + ' ' + Math.round(f.task.goal * 100) + '% · +' + fmt(f.pay), 2000); if (X) { X.stamp(); X.coin(); } vibrate([30, 30, 60]); hud.op = null; return true; }
     if (f.t === 'taskLate') { chip('마감 지났다: ' + f.task.name + ' (' + G.clockText(f.task.due) + ')', 'bad'); if (X) X.deny(); hud.op = null; return true; }
+    if (f.t === 'bonus') { banner('특명 완료!', f.text + ' · 상점 +' + f.dia + (f.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); vibrate([40, 30, 80]); hud.op = null; return true; }
+    if (f.t === 'help') { if (!hud.helpSaid) { hud.helpSaid = true; chip(f.e.def.name + ': 담당 끝! ' + f.name + ' 도우러 간다', 'good'); } return true; }
     if (f.t === 'opReady') { banner('지시서 다 했다!', '행보관에게 가서 "작업 완료 보고" — 일찍 보고할수록 수당', 2800); if (X) X.fanfare(); hud.op = null; return true; }
     if (f.t === 'opEnd') { setTimeout(function () { results(f.res); }, f.res.why === 'report' ? 300 : 900); if (X) { X.whistle(true); } return true; }
     if (f.t === 'icy') { chip(f.name + ' 얼었다! 제설함 염화칼슘', 'warn'); vibrate(40); hud.op = null; return true; }
@@ -405,13 +412,23 @@
     if (res.carPass) lines.push('<li class="ok"><span>출근 차량 한 번에 통과</span><b>상점 +1</b></li>');
     if (res.report) lines.push('<li class="ok"><span>작업 완료 보고</span><b>가점</b></li>');
     if (res.early) lines.push('<li class="ok"><span>맡은 구역 전부 100%</span><b>가점</b></li>');
+    (res.ach || []).forEach(function (a) { lines.push('<li class="ok"><span>새 훈장: ' + esc(a.name) + '</span><b>상점 +' + a.dia + (a.box ? ' · 상자' : '') + '</b></li>'); });
+    if (res.bonus) lines.push('<li class="' + (res.bonus.done ? 'ok' : 'bad') + '"><span>특명: ' + esc(res.bonus.text) + '</span><b>' + (res.bonus.done ? '성공 · 상점 +' + res.bonus.dia : '실패') + '</b></li>');
     var meritTxt = nr ? '★' + res.merit + ' / ' + nr.merit + ' (' + nr.name + ')' : '★' + res.merit + ' / ' + S.DISCHARGE_MERIT + ' (전역)';
     var prog = nr ? Math.min(1, (res.merit - R0.merit) / (nr.merit - R0.merit)) : Math.min(1, res.merit / S.DISCHARGE_MERIT);
     var head = res.exam ? (res.pass ? '진급 심사 합격!' : '진급 심사 불합격') : ['재작업…', '미흡', '양호', '특급 제설!'][res.stars];
     var who = res.stars >= 2 ? '수고했다. 오늘 제설 아주 좋았다.' : res.stars === 1 ? '이 정도로 사단장님 오시면 큰일 난다.' : '내일 새벽 다시 나온다. 각오해라.';
+    if (res.exam && !res.pass) who = '불합격이다. 다음 작전에 재심사 (★★ 이상).' + (res.help ? ' 내일은 대대 지원을 붙여 주마.' : ' 마감 빠른 구역부터, 분대원은 큰 구역에.');
+    // 어디서 점수가 깎였는지 한 줄로 (다음엔 뭘 고치면 되는지)
+    var tip = '';
+    if (res.stars < 3) {
+      var miss = res.lines.filter(function (l) { return !l.done; }).sort(function (a, b) { return a.due - b.due; })[0], lateL = res.lines.filter(function (l) { return l.late; })[0];
+      tip = res.icy ? '빙판을 그냥 두면 감점 — 제설함 염화칼슘부터' : res.jigeok ? '경례를 놓치면 지적 — 간부가 오면 바로 큰 경례 버튼' : res.stuck ? '07:30 전에 진입로 가운데를 먼저 치워 두면 차가 안 빠진다'
+        : miss ? miss.name + ' ' + Math.floor(miss.pct * 100) + '% — 분대원을 그쪽에 배치하거나, 마감 순서대로' : lateL ? lateL.name + ' 마감(' + G.clockText(lateL.due) + ')을 넘겼다 — 마감 빠른 줄부터' : '';
+    }
     modal('<div class="m-res' + (res.exam ? ' exam' : '') + '"><p class="kicker">' + res.day + '일차 제설 작전 · 행보관 검열' + (res.why === 'report' ? ' (보고 ' + G.clockText(G.clockOf(V.world().time)) + ')' : ' (08:00)') + '</p>' +
       '<div class="res-stars s' + res.stars + '">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= res.stars ? 'on' : '') + '" style="animation-delay:' + (0.25 + i * 0.28) + 's">★</i>'; }).join('') + '</div>' +
-      '<h3>' + head + '</h3><p class="res-who">' + esc(who) + '</p>' +
+      '<h3>' + head + '</h3><p class="res-who">' + esc(who) + '</p>' + (tip ? '<p class="res-tip">다음엔: ' + esc(tip) + '</p>' : '') +
       '<ul class="res-lines op">' + lines.join('') + '</ul>' +
       '<div class="res-pay"><span>' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
@@ -678,7 +695,8 @@
     if (f.t === 'comboEnd') return true;
     if (f.t === 'zonePerfect') { banner(f.name + ' 완벽 제설!', '구역 전체 100% · +' + fmt(f.bonus) + (f.mine ? ' · 상점 +2' : ''), 2600); if (X) X.fanfare(); vibrate([60, 40, 60]); return true; }
     if (f.t === 'allClear') { banner('눈 한 톨 없다!', '맡은 구역 전부 100% · +' + fmt(f.bonus) + ' · 행보관에게 보고하자', 2800); if (X) { X.fanfare(); X.bugle(); } return true; }
-    if (f.t === 'locked') { var LZ = G.zoneById(f.zone); chip('출입 통제 · ' + f.name + ' (아직 우리 담당 아님 · ★' + (LZ ? LZ.need : 0) + ')', 'warn'); if (X) X.deny(); vibrate(40); return true; }
+    if (f.t === 'locked') { var LZ = G.zoneById(f.zone); chip('출입 통제 · ' + f.name + ' (★' + (LZ ? LZ.need : 0) + (LZ && G.rankOf(save) < (LZ.rank || 0) ? ' · ' + S.RANKS[LZ.rank].name + '부터' : '') + ' 되면 맡는다)', 'warn'); if (X) X.deny(); vibrate(40); return true; }
+    if (f.t === 'ach' && V.world && V.world() && V.world().opEnd) return true;   // 결과 화면에 같이 나온다
     if (f.t === 'ach') { banner('훈장: ' + f.ach.name, f.ach.desc + ' · 상점 +' + f.ach.dia + (f.ach.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); return true; }
     if (f.t === 'officer') {
       if (f.state === 'arrive') { chip(f.title + ' 순찰 중! 보면 경례!', 'warn'); if (X) X.bugle(); }
@@ -863,7 +881,8 @@
     var q = M ? M.questNow(save) : null, qp = q ? Math.min(q.goal, M.questProg(save, w, q)) : 0;
     var todo = o.tasks.filter(function (t) { return !t.done; }), cur = todo[0];
     var warn = st.car ? '중대장님 차 빠졌다! 진입로로 → 차 밀기 ' + Math.round(st.car.push * 100) + '%' : o.icy.length ? '빙판: ' + o.icy[0] + (o.icy.length > 1 ? ' 외 ' + (o.icy.length - 1) : '') + ' → 제설함 염화칼슘' : o.ready ? '다 했다! 행보관에게 "작업 완료 보고"' : '';
-    var key = o.tasks.map(function (t) { return t.id + (t.done ? 'd' : Math.floor(t.pct * 50)) + (t.late ? 'l' : '') + (t.left < 300 ? Math.ceil(t.left / 10) : ''); }).join(',') + '|' + warn + '|' + (q ? q.id + qp : '') + o.jigeok;
+    var bkey = o.bonus ? (o.bonus.done ? 'D' : Math.floor(o.bonus.cur / o.bonus.goal * 20)) : '';
+    var key = bkey + '|' + o.tasks.map(function (t) { return t.id + (t.done ? 'd' : Math.floor(t.pct * 50)) + (t.late ? 'l' : '') + (t.left < 300 ? Math.ceil(t.left / 10) : ''); }).join(',') + '|' + warn + '|' + (q ? q.id + qp : '') + o.jigeok;
     if (hud.op === key) return;
     hud.op = key;
     $('h-op').hidden = false;
@@ -880,7 +899,14 @@
         (t.done ? '' : '<i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>') + '</li>';
     }).join('');
     $('op-warn').hidden = !warn; $('op-warn').textContent = warn; $('op-warn').classList.toggle('ok', !!o.ready && !st.car && !o.icy.length);
-    $('op-tip').hidden = !q; if (q) $('op-tip').textContent = '할 일 ' + ((save.quest || 0) + 1) + '/' + S.QUESTS.length + ' · ' + q.text + (q.goal > 1 ? ' ' + qp + '/' + q.goal : '') + ' — ' + q.how;
+    var bo = o.bonus;
+    $('op-bonus').hidden = !bo;
+    if (bo) {
+      $('op-bonus').classList.toggle('done', !!bo.done);
+      var bp = bo.done ? '✔ 상점 +' + bo.dia : bo.end ? '' : bo.goal > 1 ? Math.floor(bo.cur) + '/' + bo.goal : bo.cur > 0 && bo.cur < 1 ? Math.floor(bo.cur * 100) + '%' : '';
+      $('op-bonus').innerHTML = '<b>특명</b> ' + esc(bo.text) + (bp ? ' <em>' + bp + '</em>' : '');
+    }
+    $('op-tip').hidden = !q || !!warn; if (q) $('op-tip').textContent = '할 일 ' + ((save.quest || 0) + 1) + '/' + S.QUESTS.length + ' · ' + q.text + (q.goal > 1 ? ' ' + qp + '/' + q.goal : '') + ' — ' + q.how;
   }
   function doAct(alt) {
     var w = V.world && V.world();

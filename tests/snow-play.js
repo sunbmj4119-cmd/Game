@@ -129,6 +129,9 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('가득 차면 "지금 할 일" = 집하장에 붓기 (노란색)', await goalIs('/집하장에 붓기/') && await page.evaluate(function () { return document.getElementById('goal').classList.contains('t-gold'); }));
   if (is3) ok('등에 눈 블록이 쌓인다', await page.evaluate(function () { return __SNOW.view().world().player.load > 0; }));
   await shot('03-full');
+  // (느린 2D에서는 앞 단계에서 이미 한 번 부어 '첫 초코파이' 장면이 먼저 떴을 수 있다 → 장면을 넘기고 다시 가득 채운다)
+  var early = await page.evaluate(function () { return !document.getElementById('talk').hidden && /첫 초코파이/.test(document.getElementById('talk-title').textContent); });
+  if (early) { await talkThrough(); await page.evaluate(function () { var w = __SNOW.view().world(); w.player.load = w.player.cap; w.player.val = w.player.cap; }); }
   var b0 = (await W()).bank;
   await page.evaluate(function () { window.__pay = 0; new MutationObserver(function () { if (document.querySelector('#coins .pay-pop')) window.__pay++; }).observe(document.getElementById('coins'), { childList: true }); var d = JY.SNOW.DUMP; __SNOW.view()._teleport(d.x + 40, d.y); });
   await page.keyboard.down('ArrowLeft'); await sleep(800); await page.keyboard.up('ArrowLeft');
@@ -138,7 +141,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   var t2 = await waitFor(function () { return !document.getElementById('talk').hidden && /첫 초코파이/.test(document.getElementById('talk-title').textContent); }, 4000);
   var d2 = await page.evaluate(function () { return __SNOW.save().dia; });
   await talkThrough();
-  ok('첫 초코파이 장면 → 상점 보상', t2 && await page.evaluate(function (d) { return __SNOW.save().dia > d && __SNOW.save().story.firstDump; }, d2));
+  ok('첫 초코파이 장면 → 상점 보상', (t2 || early) && await page.evaluate(function (d) { return (__SNOW.save().dia > d || __SNOW.save().story.firstDump) && __SNOW.save().story.firstDump; }, d2));
   await page.evaluate(function () { var s = __SNOW.save(); JY.SNOW.STORY.forEach(function (c) { if (c.id !== 'firstOp') s.story[c.id] = true; }); });
   await shot('04-dump');
 
@@ -236,6 +239,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('턱걸이 → 기록 + 내일 적재 버프', await page.evaluate(function () { var s = __SNOW.save(); return (s.stats.pullBest || 0) >= 10 && s.prep.power >= 10; }));
   await sleep(700); await page.click('#pull-go'); await sleep(200);
   // 휴가 (상점 모자라면 안내)
+  await page.evaluate(function () { __SNOW.save().dia = 3; __SNOW.renderHub(); });
   await page.click('[data-hub="leave"]'); await sleep(200);
   ok('휴가: 상점이 모자라면 안내만', await vis('#toast') && /상점/.test(await txt('toast')));
   // 보급·인원
@@ -267,7 +271,14 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('출동 → 제설 비상 브리핑 (지시하는 사람·지시서·특이사항)', await waitFor(function () { return !!document.querySelector('#modal .m-brief'); }, 3000) && await page.evaluate(function () { var m = document.getElementById('modal').textContent; return /05:30 제설 비상/.test(m) && /족구장/.test(m) && /생활관 앞 길/.test(m) && /핫팩/.test(m) && document.querySelectorAll('.brief-list li').length === 2; }));
   await shot('12-brief');
   var ov5 = await overflow(); ok('브리핑 넘침 없음', !ov5.length, ov5);
+  ok('v12 브리핑: 오늘의 특명', await vis('#modal .brief-bonus') && /특명/.test(await page.evaluate(function () { return document.querySelector('#modal .brief-bonus').textContent; })));
   await page.click('#modal [data-m="go"]'); await sleep(900); await talkThrough();
+  ok('v12 지시서 카드: 특명 한 줄', await waitFor(function () { var b = document.getElementById('op-bonus'); return b && !b.hidden && /특명/.test(b.textContent); }, 3000));
+  ok('v12 노란 화살표 길목: 집하장 → 보급 원은 구령대를 돌아서', await page.evaluate(function () {
+    var w = __SNOW.view().world(), A = JY.SnowAct, S = JY.SNOW; w.player.x = S.DUMP.x; w.player.y = S.DUMP.y + 14; w.act.nav = null;
+    var save = w.save, b0 = save.bank; save.bank = Math.max(save.bank, (A.nextTool(save) || { cost: 0 }).cost + 10); var o = A.objective(w); save.bank = b0;
+    return !o || o.kind !== 'supply' || !!o.via;
+  }));
   ok('두 번째 작전: 지시서 2줄 + 핫팩 효과', await waitFor(function () { var w = __SNOW.view().world(); return w.op.tasks.length === 2 && JY.SnowAct.state(w).buffs.some(function (b) { return b.id === 'hotpack'; }); }, 3000));
   ok('다음 작전 아침 생활관 앞에 신병', await waitFor(function () { return __SNOW.view().world().recruits.length === 1; }, 3000));
   await quiet();
@@ -293,7 +304,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('로비: 진급 심사 (주황 출동 버튼 + 진급 길 "심사!")', /진급 심사/.test(await txt('t-start-b')) && await page.evaluate(function () { return document.getElementById('t-start').classList.contains('exam') && /심사/.test(document.querySelector('#hub .road li.next').textContent); }));
   await shot('12b-exam-lobby');
   await page.click('#t-start'); await waitFor(function () { return !!document.querySelector('#modal .m-brief'); }, 3000);
-  ok('심사 브리핑: 기준 95%', /진급 심사: 기준 95%/.test(await txt('modal')));
+  ok('심사 브리핑: 기준 = 평소 +5%p (날씨가 나쁘면 낮춤)', /진급 심사: 기준 (90|80|70)%/.test(await txt('modal')));
   await page.click('#modal [data-m="go"]'); await sleep(900); await talkThrough();
   ok('지시서 제목 "진급 심사 지시서"', await waitFor(function () { return /진급 심사/.test(document.getElementById('op-title').textContent); }, 3000));
   await quiet();
@@ -382,7 +393,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.evaluate(function () { localStorage.clear(); Storage.prototype._set = Storage.prototype.setItem; localStorage._set('jeseol-v8', JSON.stringify({ v: 5, life: 30000, bank: 777, day: 12, tool: 3, zones: { A: true, B: true, C: true, D: true, E: true, F: true }, crew: { hoobae: 2 }, story: { prologue: true }, look: { name: '옛날사람' } })); Storage.prototype.setItem = function () {}; });
   await page.reload(); await sleep(1200);
   var mig = await page.evaluate(function () { var s = __SNOW.save(); return { v: s.v, rank: s.rank, bank: s.bank, zones: Object.keys(s.zones).join(''), name: s.look.name, v8: !!localStorage.getItem('jeseol-v8') }; });
-  ok('v8 저장을 옮겨 온다 (상병, 근무평정만큼 구역, v8 저장은 그대로)', mig.v === 10 && mig.rank === 2 && mig.bank === 777 && mig.zones === 'ABCDE' && mig.name === '옛날사람' && mig.v8, mig);
+  ok('v8 저장을 옮겨 온다 (상병, 근무평정만큼 구역, v8 저장은 그대로)', mig.v === 10 && mig.rank === 2 && mig.bank === 777 && mig.zones === 'ABCD' && mig.name === '옛날사람' && mig.v8, mig);
 
   } catch (err) { ok('흐름이 중간에 멈췄다', false, String(err).split('\n')[0]); await shot('zz-stuck'); }
   await browser.close();

@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -528,7 +528,7 @@
           if (pr) { c.fillStyle = 'rgba(255,255,255,.65)'; circ(c, p.x, p.y, p.r * pr); c.fill(); }
           c.fillStyle = '#16233a'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(p.title, p.x, p.y - 2); c.fillText(p.lock || (p.cost ? fmt(p.cost) : p.name), p.x, p.y + 8); } }); });
         var gq = JY.SnowAct.objective(world), Pg = world.player;
-        if (gq && !gq.here && gq.kind !== 'salute' && Math.hypot(gq.x - Pg.x, gq.y - Pg.y) > 30) { var ga = Math.atan2(gq.y - Pg.y, gq.x - Pg.x); list.push({ y: 1e9, f: function () {
+        if (gq && !gq.here && gq.kind !== 'salute' && Math.hypot(gq.x - Pg.x, gq.y - Pg.y) > 30) { var gv = gq.via || gq, ga = Math.atan2(gv.y - Pg.y, gv.x - Pg.x); list.push({ y: 1e9, f: function () {
           c.save(); c.translate(Pg.x + Math.cos(ga) * 26, Pg.y - 4 + Math.sin(ga) * 26); c.rotate(ga); c.fillStyle = '#ffd24a'; c.strokeStyle = '#16233a'; c.lineWidth = 1.5;
           c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -9); c.lineTo(-2, 0); c.lineTo(-6, 9); c.closePath(); c.fill(); c.stroke(); c.restore();
           c.fillStyle = '#ffd24a'; circ(c, gq.x, gq.y - 30 - Math.abs(Math.sin(performance.now() / 200)) * 6, 4.5); c.fill(); } }); }

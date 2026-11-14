@@ -65,7 +65,8 @@ ok(G.buy(s6, 'crew', 'hoobae').ok && !s6.crew.hoobae && s6.pend.length === 1, '�
 ok(!G.offers(s6).crew[0].ok, '이병 정원은 1명');
 s6.bank = 1e6; s6.perks.back = 2; ok(G.capOf(s6) === Math.round(110 * 1.6), '튼튼한 등짝: 적재 +30%씩', G.capOf(s6));
 ok(!G.buy(s6, 'zone', 'B').ok && G.offers(s6).zone.every(function (z) { return !z.ok; }), '구역은 사지 않는다 (v10)');
-s6.merit = 7; G.assignZones(s6); ok(s6.zones.B && s6.zones.C && !s6.zones.D, '근무평정 ★7 → 족구장·연병장을 맡는다');
+s6.merit = 8; G.assignZones(s6); ok(s6.zones.B && !s6.zones.C, '이병: ★이 쌓여도 족구장까지만 (v12: 구역은 계급만큼)');
+s6.rank = 1; G.assignZones(s6); ok(s6.zones.B && s6.zones.C && !s6.zones.D, '일병 + ★8 → 연병장도 맡는다');
 var o6 = G.offers(s6).factory;
 ok(o6.some(function (x) { return x.kind === 'relay' && x.id === 'B'; }) && !o6.some(function (x) { return x.kind === 'relay' && x.id === 'D'; }), '릴레이는 연 구역에만');
 ok(G.buy(s6, 'relay', 'B').ok && G.dumpsOf(s6).length === 2, '양동이 릴레이: 붓는 곳이 하나 더');
@@ -263,7 +264,7 @@ ok(wO2.op.tasks.length === 2 && wO2.op.tasks[0].id === 'A' && wO2.op.tasks[1].id
 var sE = G.newSave(); sE.seed = 34; sE.merit = 5; var wE = G.createWorld(sE); clearZone(wE, 'A', 0.86); G.checkTasks(wE); G.endOp(wE, 'report');
 ok(sE.merit === 8 && sE.exam && sE.rank === 0, '★6을 넘으면 다음 작전이 진급 심사 (아직 이병)');
 var wE2 = G.createWorld(sE);
-ok(wE2.op.exam && wE2.op.tasks.every(function (t) { return t.goal === S.OP.examGoal; }), '심사 작전은 기준 95%');
+ok(wE2.op.exam && wE2.op.tasks.every(function (t) { return t.goal === G.opGoal(sE, wE2.weather, true); }) && G.opGoal(sE, 'normal', true) === 0.9, '심사 작전은 기준 +5%p (이병→일병 90%)');
 var rE0 = G.endOp(wE2, 'time');
 ok(!rE0.pass && sE.rank === 0 && sE.exam, '심사에서 ★★ 못 받으면 불합격 (다음 작전에 다시)');
 var wE3 = G.createWorld(sE); wE3.events = []; wE3.op.tasks.forEach(function (t) { clearZone(wE3, t.id, 0.96); }); G.checkTasks(wE3);
@@ -287,7 +288,7 @@ ok(iceP3.icy, '다시 열어도 언 구간은 언 채로 (저장)');
 wI3.player.x = iceP3.x + 30; wI3.player.y = iceP3.y + 40; G.step(wI3, 1 / 30, null);
 ok(iceP3.salted && sI.stats.salt === 1 && sI.op.salted.length === 1, '염화칼슘 살포기로 지나가면 저절로 뿌려진다 (저장)');
 // 07:30 출근 차량: 진입로가 깊으면 빠진다 → 다 같이 밀어야 한다. 치워 두면 한 번에 올라가고 상점
-var sV = G.newSave(); sV.seed = 36; sV.merit = 18; G.assignZones(sV); var wV = G.createWorld(sV);
+var sV = G.newSave(); sV.seed = 36; sV.merit = 22; sV.rank = 2; G.assignZones(sV); var wV = G.createWorld(sV);
 ok(wV.events.some(function (e) { return e.k === 'car' && Math.abs(e.t - G.timeAt(450)) < 0.01; }), '진입로를 맡으면 07:30에 중대장님 차가 온다');
 wV.events = []; wV.player.x = 30; wV.player.y = 300; G.spawn(wV, 'car'); run(wV, 8);
 ok(wV.car && wV.car.stuck && wV.op.stuck && wV.fx.some(function (f) { return f.t === 'carStuck'; }), '눈 쌓인 진입로에서 차가 빠진다');
@@ -314,5 +315,50 @@ ok(wS2.time === 60 && wS2.op.tasks.filter(function (t) { return t.id === 'A'; })
 var v8 = G.migrate({ v: 5, life: 30000, bank: 999, zones: { A: true, B: true, C: true, D: true, E: true, F: true }, tool: 4, crew: { hoobae: 2 } });
 ok(v8.v === 10 && v8.rank === 2 && v8.merit === S.RANKS[2].merit && v8.zones.C && !v8.zones.F && v8.tool === 4 && v8.crew.hoobae === 2, 'v8 저장 → 상병, 근무평정만큼 구역', [v8.rank, v8.merit, Object.keys(v8.zones).join('')]);
 
+// ── v12: 구역은 근무평정 + 계급 (일병한테 진입로를 맡기지 않는다) ──
+var sZ = G.newSave(); sZ.merit = 3; G.assignZones(sZ);
+ok(sZ.zones.B && !sZ.zones.C, '★3 → 족구장');
+sZ.merit = 40; G.assignZones(sZ);
+ok(!sZ.zones.C && !sZ.zones.E, '이병은 ★이 많아도 족구장까지만 (진급해야 더 맡는다)');
+sZ.rank = 1; G.assignZones(sZ);
+ok(sZ.zones.C && sZ.zones.D && !sZ.zones.E, '일병: 연병장·취사장 앞까지');
+var nzZ = G.nextZone(sZ); ok(nzZ && nzZ.zone.id === 'E' && !nzZ.rankOk && nzZ.meritOk, '다음 구역 안내: 진입로는 상병부터', nzZ && nzZ.zone.id);
+var stuck = G.migrate({ v: 10, rank: 1, merit: 19, exam: true, zones: { A: true, B: true, C: true, D: true, E: true }, cpost: { hoobae: ['E'] }, crew: { hoobae: 1 } });
+ok(stuck.zones.D && !stuck.zones.E && stuck.exam, 'v10 저장: 일병한테 맡긴 진입로는 돌려받는다 (상병 되면 다시)');
+ok(G.createWorld(stuck).crew[0].post === 'A', '돌려준 구역 담당이던 분대원은 생활관 앞 길로');
+// 지시서 기준: 계급 + 심사 +5%p, 함박눈·폭설은 낮춘다
+var sG = G.newSave();
+ok(G.opGoal(sG, 'normal', false) === 0.85 && G.opGoal(sG, 'normal', true) === 0.9 && G.opGoal(sG, 'heavy', false) === 0.75 && G.opGoal(sG, 'blizzard', true) === 0.7, '지시서 기준: 평소 85, 심사 90, 함박눈 −10, 폭설 −20', [G.opGoal(sG, 'normal', true), G.opGoal(sG, 'blizzard', true)]);
+sG.rank = 3; ok(G.opGoal(sG, 'normal', false) === 0.95 && G.opGoal(sG, 'normal', true) === 0.95, '병장 기준 95 (심사도 95를 넘지 않는다)');
+// 분대원: 담당 구역 지시서가 끝나면 마감이 급한 구역을 도우러 간다
+var sHp = G.newSave(); sHp.seed = 5; sHp.zones.B = true; sHp.fresh.B = true; sHp.crew = { hoobae: 1 }; sHp.cpost = { hoobae: ['A'] };
+var wHp = G.createWorld(sHp), eHp = wHp.crew[0]; wHp.events = [];
+G.pickTarget(wHp, eHp); ok(wHp.zone[eHp.tidx] === 0, '담당(생활관 앞 길)이 안 끝났으면 거기부터');
+wHp.cells.forEach(function (idx) { if (wHp.zone[idx] === 0 && wHp.depth[idx]) G.clearAt(wHp, (idx % S.GW) * 10 + 5, ((idx / S.GW) | 0) * 10 + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 }); });
+G.checkTasks(wHp); G.pickTarget(wHp, eHp);
+ok(wHp.zone[eHp.tidx] === 1 && wHp.fx.some(function (f) { return f.t === 'help' && f.zone === 'B'; }), '담당 끝 → 족구장 도우러 간다', wHp.zone[eHp.tidx]);
+// 오늘의 특명: 첫날은 없고, 둘째 날부터 하나. 하면 상점
+var sB = G.newSave(); ok(!G.createWorld(sB).op.bonus, '첫 작전엔 특명 없음');
+var foundB = null;
+for (var sd = 1; sd < 60 && !foundB; sd++) { var sB2 = G.newSave(); sB2.seed = sd; sB2.day = 2; var pv = G.previewBonus(sB2); if (pv && pv.def.id === 'found') foundB = sB2; }
+ok(!!foundB, '특명 "분실물 2개" 나오는 날이 있다');
+var wB = G.createWorld(foundB), dB = foundB.dia; wB.events = [];
+ok(wB.op.bonus && wB.op.bonus.id === 'found' && G.bonusProg(wB).cur === 0, '작전 시작: 특명 진행 0');
+foundB.stats.found = (foundB.stats.found || 0) + 2; G.checkTasks(wB);
+ok(wB.op.bonus.done && foundB.dia === dB + 2 && wB.fx.some(function (f) { return f.t === 'bonus'; }), '분실물 2개 → 특명 완료, 상점 +2', foundB.dia - dB);
+G.serialize(wB); var wB2 = G.createWorld(foundB); ok(wB2.op.bonus && wB2.op.bonus.done, '이어하기해도 특명 완료는 남는다');
+var rB = G.endOp(wB2, 'time'); ok(rB.bonus && rB.bonus.done, '결과에 특명 성공');
+// 진급 심사: 떨어지면 재심사, 두 번째부터 대대 지원
+var sX = G.newSave(); sX.seed = 4; sX.merit = 6; sX.exam = true; var wX = G.createWorld(sX);
+ok(wX.op.exam && wX.op.goal === 0.9, '진급 심사 기준 90%', wX.op.goal);
+var rX = G.endOp(wX, 'time'); ok(!rX.pass && sX.exam && sX.rank === 0 && sX.examFail === 1 && !rX.help, '불합격 → 다음 작전 재심사');
+var rX2 = G.endOp(G.createWorld(sX), 'time'); ok(!rX2.pass && rX2.help && sX.prep.support, '두 번 떨어지면 행보관이 대대 지원을 붙여 준다');
+// 염화칼슘 살포기: 아예 안 언다
+var sA = G.newSave(); sA.seed = 5; sA.tool = 5; var wA = G.createWorld(sA), iceP = wA.parts.filter(function (p) { return p.ice; })[0];
+for (var iy = iceP.y; iy < iceP.y + iceP.h; iy += 10) for (var ix = iceP.x; ix < iceP.x + iceP.w; ix += 10) G.clearAt(wA, ix + 5, iy + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
+ok(iceP.icy && iceP.salted && !wA.fx.some(function (f) { return f.t === 'icy'; }), '살포기가 있으면 빙판이 안 생긴다');
+// 작전 끝에 단 훈장은 결과에 같이
+var sAc = G.newSave(); sAc.seed = 2; var wAc = G.createWorld(sAc); wAc.cells.forEach(function (idx) { if (wAc.depth[idx]) G.clearAt(wAc, (idx % S.GW) * 10 + 5, ((idx / S.GW) | 0) * 10 + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 }); });
+G.checkTasks(wAc);
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

@@ -208,7 +208,54 @@
     }
   }
   // 지금 할 일 하나 (화면 위 큰 글씨 + 땅 위 화살표가 가리키는 곳)
+  // v12: 길찾기 — 노란 화살표가 건물·나무·출입 통제 테이프를 피해 돌아가는 길을 가리킨다 (예전엔 일직선이라 구령대·테이프에 막혔다)
+  function navGrid(w) {
+    if (w.nav) return w.nav;
+    var GW = S.GW, GH = S.GH, g = new Uint8Array(GW * GH);
+    for (var gy = 0; gy < GH; gy++) for (var gx = 0; gx < GW; gx++) g[gy * GW + gx] = G.blocked(gx * S.CELL + 5, gy * S.CELL + 5, 6) ? 1 : 0;
+    w.nav = g; return g;
+  }
+  function cellOf(x, y) { var gx = Math.max(0, Math.min(S.GW - 1, Math.floor(x / S.CELL))), gy = Math.max(0, Math.min(S.GH - 1, Math.floor(y / S.CELL))); return gy * S.GW + gx; }
+  function clearLine(g, x0, y0, x1, y1) {
+    var d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 4);
+    for (var i = 1; i < n; i++) { if (g[cellOf(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)]) return false; }
+    return true;
+  }
+  function viaPoint(w, tx, ty) {
+    var a = w.act, P = w.player, c = a.nav;
+    if (c && Math.abs(c.tx - tx) < 15 && Math.abs(c.ty - ty) < 15 && Math.hypot(c.px - P.x, c.py - P.y) < 12 && w.time - c.t < 0.5) return c.via;
+    var g = navGrid(w), via = null;
+    if (!clearLine(g, P.x, P.y, tx, ty)) {
+      var N = S.GW * S.GH, prev = new Int32Array(N).fill(-1), q = new Int32Array(N), s0 = cellOf(P.x, P.y), goal = cellOf(tx, ty), qh = 0, qt = 0, found = -1;
+      prev[s0] = s0; q[qt++] = s0;
+      var gx0 = goal % S.GW, gy0 = (goal / S.GW) | 0;
+      while (qh < qt) {
+        var cur = q[qh++], cx = cur % S.GW, cy = (cur / S.GW) | 0;
+        if (Math.abs(cx - gx0) <= 1 && Math.abs(cy - gy0) <= 1) { found = cur; break; }
+        var nb = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (var k = 0; k < 4; k++) {
+          var nx = cx + nb[k][0], ny = cy + nb[k][1]; if (nx < 0 || ny < 0 || nx >= S.GW || ny >= S.GH) continue;
+          var ni = ny * S.GW + nx; if (prev[ni] >= 0 || (g[ni] && ni !== goal)) continue;
+          prev[ni] = cur; q[qt++] = ni;
+        }
+      }
+      if (found >= 0) {
+        var path = [], p = found; while (p !== s0 && path.length < 2000) { path.push(p); p = prev[p]; }
+        path.reverse();
+        // 지금 자리에서 곧장 보이는 가장 먼 길목
+        for (var j = path.length - 1; j >= 0; j--) { var px = (path[j] % S.GW) * S.CELL + 5, py = ((path[j] / S.GW) | 0) * S.CELL + 5; if (clearLine(g, P.x, P.y, px, py)) { via = { x: px, y: py }; break; } }
+        if (!via && path.length) via = { x: (path[0] % S.GW) * S.CELL + 5, y: ((path[0] / S.GW) | 0) * S.CELL + 5 };
+      }
+    }
+    a.nav = { tx: tx, ty: ty, px: P.x, py: P.y, t: w.time, via: via };
+    return via;
+  }
   function objective(w) {
+    var o = objective0(w);
+    if (o && !o.here && o.kind !== 'salute' && w.player && Math.hypot(o.x - w.player.x, o.y - w.player.y) > 30) o.via = viaPoint(w, o.x, o.y);
+    return o;
+  }
+  function objective0(w) {
     var a = init(w), P = w.player, op = w.op || {}, save = w.save;
     function near(list) { var b = null, bd = 1e9; list.forEach(function (o) { var d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd) { bd = d; b = o; } }); return b; }
     var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];

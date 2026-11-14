@@ -101,7 +101,7 @@ G.spawn(w, 'car'); ok(!A.candidates(w).some(function (c) { return c.k === 'car';
 ok(A.state(w).heat === 0 && !A.state(w).ride, '행보관 분노·운전 없음');
 
 // ── 빠진 출근 차량: 옆에 붙어 있으면 저절로 민다 (분대원도 와서 민다) ──
-w = fresh(function (s) { s.merit = 18; G.assignZones(s); s.crew = { hoobae: 1 }; s.rank = 1; }); away(w);
+w = fresh(function (s) { s.merit = 22; s.rank = 2; G.assignZones(s); s.crew = { hoobae: 1 }; }); away(w);
 w.player.x = 30; w.player.y = 300; G.spawn(w, 'car'); run(w, 8);
 var car = w.car;
 ok(car && car.stuck && w.op.stuck, '눈 쌓인 진입로 → 차가 빠졌다');
@@ -113,7 +113,7 @@ run(w, 2.5);
 ok(!car.stuck && car.freed && w.save.stats.carPush === 1 && w.fx.some(function (f) { return f.t === 'carFree'; }), '다 밀면 빠져나온다 + 기록');
 run(w, 12);
 ok(!w.car && A.init(w).off.some(function (o) { return o.id === 'cpt'; }), '차가 서면 중대장님이 내려서 순찰한다');
-var wP2 = fresh(function (s) { s.merit = 18; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
+var wP2 = fresh(function (s) { s.merit = 22; s.rank = 2; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
 var push0 = wP2.car.push;
 ok(wP2.car.stuck && push0 === 0, '혼자면 아무도 안 민다');
 
@@ -302,6 +302,26 @@ ok(S.QUESTS.every(function (q) { return !/자판기|족구공|철봉|행정반 �
 // ── 사람 몸에 파고들지 않는다 ──
 w = fresh(); w.haeng.x = 200; w.haeng.y = 200; w.haeng.hold = 999; w.player.x = 203; w.player.y = 200;
 run(w, 0.4); ok(Math.hypot(w.player.x - 200, w.player.y - 200) >= 21, '사람에게 바짝 붙으면 살살 밀려난다', Math.hypot(w.player.x - 200, w.player.y - 200));
+
+// ── v12: 노란 화살표만 따라 걸어도 도착한다 (구령대·테이프·건물을 돌아서) ──
+function followArrow(w, sec, until) {
+  for (var t = 0; t < sec; t += 1 / 30) {
+    var o = A.objective(w); if (!o || until(o)) return true;
+    var g = o.via || o, P = w.player, dx = g.x - P.x, dy = g.y - P.y, d = Math.hypot(dx, dy) || 1;
+    G.step(w, 1 / 30, d > 4 ? { x: dx / d, y: dy / d } : null); w.fx.length = 0;
+  }
+  return false;
+}
+w = fresh(function (s) { s.bank = 1000; }); away(w); w.act.offPlan = []; w.act.off = [];
+w.player.x = S.DUMP.x; w.player.y = S.DUMP.y + 14;
+var oS = A.objective(w);
+ok(oS && oS.kind === 'supply' && oS.via, '보급 원이 구령대 너머 → 화살표는 돌아가는 길목을 가리킨다', oS && [oS.kind, oS.via]);
+ok(followArrow(w, 25, function () { return w.save.tool >= 1; }) && w.save.tool === 1, '화살표만 따라 걸어도 보급 원에 도착 → 넉가래', [Math.round(w.player.x), Math.round(w.player.y), w.save.tool]);
+w = fresh(function (s) { s.merit = 3; s.zones.B = true; s.fresh.B = true; }); away(w); w.act.offPlan = []; w.act.off = [];
+w.op.tasks[0].done = 1; w.player.x = 100; w.player.y = 300;
+ok(followArrow(w, 25, function () { var z = G.zoneAt(w, w.player.x, w.player.y); return !!z && z.id === 'B'; }), '집하장 → 족구장도 화살표만 따라서', [Math.round(w.player.x), Math.round(w.player.y)]);
+var wV2 = fresh(); away(wV2); wV2.player.x = 200; wV2.player.y = 200; var oV = A.objective(wV2);
+ok(!oV || !oV.via, '곧장 갈 수 있으면 돌아가지 않는다');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

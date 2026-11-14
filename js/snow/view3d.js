@@ -939,7 +939,8 @@
       else if (f.t === 'carFree') { for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 0.5, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1)); if (sfx) sfx.vroom(); }
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|fever|surge|support|surprise|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      else if (f.t === 'help') { if (f.e) addOv(f.name + ' 도우러 갑니다!', 'ov-chat', 0, 0, 3.6, 2, f.e); }
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -1637,7 +1638,7 @@
     var col = TONE[g.tone] || '#ffd24a';
     guide.arrowMesh.material.color.set(col); guide.mark.material.color.set(col); guide.ring.material.color.set(col);
     if (!far) return;
-    var dx = g.x - P.x, dy = g.y - P.y, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d, off = (isFP() ? 2.8 : 2.1) + Math.sin(t * 6) * 0.18;
+    var gv = g.via || g, dx = gv.x - P.x, dy = gv.y - P.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, off = (isFP() ? 2.8 : 2.1) + Math.sin(t * 6) * 0.18;   // v12: 돌아가는 길목 쪽
     guide.arrow.position.set(P.x * U + ux * off, 0.14 + snowAt(P.x, P.y) * 0.45, P.y * U + uy * off);
     guide.arrow.rotation.y = Math.atan2(-ux, -uy);
     guide.arrow.scale.setScalar(isFP() ? 0.8 : 1.15);

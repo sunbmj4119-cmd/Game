@@ -46,6 +46,8 @@
     }
     Object.keys(s.zones).forEach(function (k) { if (!S.ZONES.some(function (Z) { return Z.id === k; })) delete s.zones[k]; });
     s.zones.A = true;
+    // v12: 계급보다 앞서 맡은 구역은 진급하면 다시 맡는다 (v10·v11 저장에서 일병이 진입로까지 맡아 심사에 막히던 것)
+    S.ZONES.forEach(function (Z) { if (s.zones[Z.id] && rankOf(s) < (Z.rank || 0)) { delete s.zones[Z.id]; delete s.fresh[Z.id]; if (s.relays) delete s.relays[Z.id]; } });
     assignZones(s);
     if (s.tool >= S.TOOLS.length) s.tool = S.TOOLS.length - 1;
     if (s.snow && s.snow.length !== Math.ceil(GW * GH / 3) * 4) s.snow = null;
@@ -64,10 +66,22 @@
   function assignZones(save) {
     var got = [];
     S.ZONES.forEach(function (Z) {
-      if (save.zones[Z.id] || (save.merit || 0) < (Z.need || 0)) return;
+      if (save.zones[Z.id] || (save.merit || 0) < (Z.need || 0) || rankOf(save) < (Z.rank || 0)) return;
       save.zones[Z.id] = true; save.fresh[Z.id] = true; save.seen['new' + Z.id] = true; got.push(Z);
     });
     return got;
+  }
+  // 다음에 맡을 구역 (생활관 안내용): 무엇이 모자라는지까지
+  function nextZone(save) {
+    var Z = S.ZONES.filter(function (z) { return !save.zones[z.id]; })[0];
+    if (!Z) return null;
+    return { zone: Z, need: Z.need || 0, rank: Z.rank || 0, rankOk: rankOf(save) >= (Z.rank || 0), meritOk: (save.merit || 0) >= (Z.need || 0) };
+  }
+  // 지시서 기준: 계급마다 + 진급 심사면 +5%p, 함박눈·폭설이면 낮춘다
+  function opGoal(save, wxId, exam) {
+    var g = S.OP.goal[rankOf(save)];
+    if (exam) g = Math.min(S.OP.examMax, g + S.OP.examAdd);
+    return Math.round((g - (S.OP.wx[wxId] || 0)) * 100) / 100;
   }
   function clockOf(t) { return S.OP.start + t / S.DAY_LEN * (S.OP.end - S.OP.start); }   // 작전 시간(초) → 시계(분)
   function timeAt(min) { return (min - S.OP.start) / (S.OP.end - S.OP.start) * S.DAY_LEN; } // 시계(분) → 작전 시간(초)
@@ -335,14 +349,15 @@
   function initOp(w) {
     var save = w.save, r = rankOf(save), exam = !!save.exam && !w.demo;
     var st = !w.demo && save.op && save.op.day === save.day ? save.op : null;
-    var goal = exam ? S.OP.examGoal : S.OP.goal[r], tasks = [];
+    var goal = opGoal(save, w.weather, exam), tasks = [];
     S.ZONES.forEach(function (Z, zi) {
       if (!w.zoneOpen[zi] || !w.zoneTotal[zi]) return;
       var due = Z.due || S.OP.end, done = st && st.done && st.done[Z.id] !== undefined ? st.done[Z.id] : -1;
       tasks.push({ zi: zi, id: Z.id, name: Z.name, why: Z.why || '', goal: goal, due: due, dueT: timeAt(due), done: done, lateSaid: done >= 0 || w.time > timeAt(due) });
     });
     tasks.sort(function (a, b) { return a.due - b.due || a.zi - b.zi; });
-    w.op = { day: save.day, exam: exam, tasks: tasks, jigeok: st ? st.jigeok || 0 : 0, stuck: st ? !!st.stuck : false, carPass: st ? !!st.carPass : false, ready: false, report: false, nag: 0 };
+    w.op = { day: save.day, exam: exam, goal: goal, tasks: tasks, jigeok: st ? st.jigeok || 0 : 0, stuck: st ? !!st.stuck : false, carPass: st ? !!st.carPass : false, ready: false, report: false, nag: 0,
+      bonus: w.demo ? null : pickBonus(w, st && st.bonus) };
     if (st && st.salted) st.salted.forEach(function (k) { if (w.parts[k]) w.parts[k].salted = true; });
     w.parts.forEach(function (P) { if (P.ice && P.total && P.clear / P.total >= S.ALMOST) P.icy = true; });
     checkTasks(w, true);
@@ -350,10 +365,52 @@
   }
   function syncOpSave(w) {
     if (w.demo || !w.op) return;
-    var done = {}, salted = [];
+    var done = {}, salted = [], b = w.op.bonus;
     w.op.tasks.forEach(function (t) { if (t.done >= 0) done[t.id] = t.done; });
     w.parts.forEach(function (P, k) { if (P.salted) salted.push(k); });
-    w.save.op = { day: w.op.day, exam: w.op.exam, done: done, jigeok: w.op.jigeok, stuck: w.op.stuck, carPass: w.op.carPass, salted: salted };
+    w.save.op = { day: w.op.day, exam: w.op.exam, done: done, jigeok: w.op.jigeok, stuck: w.op.stuck, carPass: w.op.carPass, salted: salted,
+      bonus: b ? { id: b.id, zone: b.zone, b0: b.b0, done: b.done, comboMax: w.comboMax || 0 } : null };
+  }
+
+  /* ── v12: 오늘의 특명 (작전마다 하나, 날짜로 정해져 생활관에서 미리 보인다) ── */
+  function previewBonus(save) {
+    if (save.day < 2) return null;   // 첫 작전은 배우는 날
+    var list = S.BONUS.filter(function (B) { return !B.needZone || save.zones[B.needZone]; });
+    var R = mulberry(save.seed * 5 + save.day * 313), B = list[(R() * list.length) | 0];
+    if (!B) return null;
+    var zid = null;
+    if (B.zone) { var open = S.ZONES.filter(function (Z) { return save.zones[Z.id]; }); zid = open[(R() * open.length) | 0].id; }
+    return { def: B, zone: zid, text: B.text.replace('{zone}', zid ? zoneById(zid).name : ''), how: B.how, dia: B.dia || 1, box: B.box || null };
+  }
+  function pickBonus(w, keep) {
+    var save = w.save, pv = keep ? null : previewBonus(save);
+    var B = keep ? S.BONUS.filter(function (x) { return x.id === keep.id; })[0] : pv && pv.def;
+    if (!B) return null;
+    var zid = keep ? keep.zone : pv.zone;
+    var b0 = keep ? keep.b0 : (B.stat ? (save.stats[B.stat] || 0) : 0);
+    if (keep && keep.comboMax) w.comboMax = keep.comboMax;
+    return { id: B.id, def: B, zone: zid, b0: b0, done: !!(keep && keep.done), text: B.text.replace('{zone}', zid ? zoneById(zid).name : ''), how: B.how };
+  }
+  function bonusProg(w) {
+    var b = w.op && w.op.bonus; if (!b) return null;
+    var B = b.def, save = w.save, cur = 0, goal = 1;
+    if (B.stat) { cur = (save.stats[B.stat] || 0) - b.b0; goal = B.goal; }
+    else if (B.combo) { cur = w.comboMax || 0; goal = B.combo; }
+    else if (B.zone) { var zi = zoneIndex(b.zone); cur = w.zoneTotal[zi] ? w.zoneClear[zi] / w.zoneTotal[zi] : 0; goal = 1; }
+    else if (B.end === 'early') { cur = w.op.report && clockOf(w.time) <= B.at ? 1 : 0; }
+    else if (B.end === 'clean') { cur = !w.op.jigeok && !w.parts.some(function (P) { return P.icy && !P.salted; }) ? 1 : 0; }
+    return { cur: Math.min(cur, goal), goal: goal, done: b.done, end: !!B.end };
+  }
+  function bonusCheck(w, final) {
+    var b = w.op && w.op.bonus; if (!b || b.done || w.demo) return;
+    if (b.def.end && !final) return;
+    var pg = bonusProg(w);
+    if (pg.cur < pg.goal) return;
+    b.done = true; stat(w, 'bonus');
+    gainDia(w, b.def.dia || 1, 'bonus');
+    if (b.def.box) w.save.boxes.push(b.def.box);
+    w.fx.push({ t: 'bonus', text: b.text, dia: b.def.dia || 1, box: b.def.box || null });
+    syncOpSave(w);
   }
   function taskPct(w, t) { return w.zoneTotal[t.zi] ? w.zoneClear[t.zi] / w.zoneTotal[t.zi] : 1; }
   // 지시서 한 줄씩: 기준을 넘으면 완료(+작업 수당), 마감이 지나면 경고. 다 끝나면 '보고하러 와라'
@@ -377,12 +434,15 @@
     });
     if (all && !op.ready) { op.ready = true; if (!silent) { w.fx.push({ t: 'opReady' }); say(w, 'ready', true); } }
     if (changed) syncOpSave(w);
+    if (!silent) bonusCheck(w, false);
   }
   function opStatus(w) {
     var op = w.op; if (!op) return null;
     var tasks = op.tasks.map(function (t) { return { id: t.id, name: t.name, why: t.why, goal: t.goal, pct: taskPct(w, t), due: t.due, dueT: t.dueT, done: t.done >= 0, late: t.done >= 0 ? t.done > t.dueT + 0.01 : w.time > t.dueT, left: t.dueT - w.time }; });
     var icy = w.parts.filter(function (P) { return P.icy && !P.salted; }).map(function (P) { return P.name; });
-    return { clock: clockOf(w.time), tasks: tasks, done: tasks.filter(function (t) { return t.done; }).length, ready: op.ready, exam: op.exam, jigeok: op.jigeok, stuck: op.stuck, icy: icy, left: w.dayLen - w.time };
+    var b = op.bonus, bp = bonusProg(w);
+    return { clock: clockOf(w.time), tasks: tasks, done: tasks.filter(function (t) { return t.done; }).length, ready: op.ready, exam: op.exam, jigeok: op.jigeok, stuck: op.stuck, icy: icy, left: w.dayLen - w.time ,
+      goal: op.goal, bonus: b ? { text: b.text, how: b.how, done: b.done, cur: bp.cur, goal: bp.goal, end: bp.end, dia: b.def.dia || 1 } : null };
   }
   // 등급: 지시서 이행(마감 지킨 구역은 두 배 무게) − 지적(경례 안 함) − 차 빠짐 − 빙판 방치 + 보고·완벽
   function gradeOp(w) {
@@ -402,17 +462,21 @@
   function endOp(w, why) {
     if (w.opEnd) return w.opEnd;
     if (why === 'report') w.op.report = true;
-    var save = w.save, g = gradeOp(w), r0 = rankOf(save), exam = w.op.exam;
+    bonusCheck(w, true);
+    var save = w.save, g = gradeOp(w), r0 = rankOf(save), exam = w.op.exam, ob = w.op.bonus;
     var base = 0; w.op.tasks.forEach(function (t) { base += w.zoneTotal[t.zi] * S.ZONES[t.zi].value; });
     var left = Math.max(0, w.dayLen - w.time) / w.dayLen;
     var pie = Math.round(base * 0.15 * w.mult * [0, 0.6, 1, 1.6][g.stars]), early = why === 'report' ? Math.round(base * 0.3 * left * w.mult) : 0;
     var dia = g.stars === 3 ? 2 : g.stars === 2 ? 1 : 0, pass = exam && g.stars >= 2, promoted = false;
     var res = { why: why, day: save.day, stars: g.stars, score: g.score, base: g.base, lines: g.lines, icy: g.icy, jigeok: g.jigeok, stuck: g.stuck, report: g.report, early: g.early, carPass: g.carPass,
-      pie: pie, earlyPie: early, earned: Math.round(save.today + pie + early), dia: dia, merit0: save.merit || 0, exam: exam, pass: pass, rank0: r0, box: null, zones: [] };
+      pie: pie, earlyPie: early, earned: Math.round(save.today + pie + early), dia: dia, merit0: save.merit || 0, exam: exam, pass: pass, rank0: r0, box: null, zones: [],
+      goal: w.op.goal, bonus: ob ? { text: ob.text, done: ob.done, dia: ob.def.dia || 1, box: ob.def.box || null } : null, weather: w.weather };
     if (!w.demo) {
       pay(w, pie + early, 'op');
       save.merit = (save.merit || 0) + g.stars;
-      if (pass) { save.rank = r0 + 1; save.exam = false; promoted = true; dia += 2; stat(w, 'exams'); }
+      if (pass) { save.rank = r0 + 1; save.exam = false; promoted = true; dia += 2; stat(w, 'exams'); save.examFail = 0; }
+      // 심사에서 떨어지면 다음 작전에 재심사. 두 번째부터는 행보관이 대대 지원을 붙여 준다 (영원히 막히지 않게)
+      else if (exam) { save.examFail = (save.examFail || 0) + 1; res.examFail = save.examFail; if (save.examFail >= 2) { save.prep = save.prep || {}; save.prep.support = 1; res.help = true; } }
       if (dia) gainDia(w, dia, 'op');
       res.dia = dia;
       if (g.stars === 3) { save.boxes.push(pass ? 'rare' : 'common'); res.box = pass ? 'rare' : 'common'; stat(w, 'star3'); }
@@ -421,6 +485,8 @@
       if (!save.exam && examDue(save)) save.exam = true;
       res.zones = assignZones(save).map(function (Z) { return Z.name; });
       res.promoted = promoted; res.rank = rankOf(save); res.merit = save.merit; res.examNext = !!save.exam;
+      // 이번 작전으로 단 훈장은 결과 화면에서 같이 보여 준다 (다음 작전 시작에 뜨지 않게)
+      res.ach = JY.SnowMeta ? JY.SnowMeta.check(w).map(function (A) { return { name: A.name, dia: A.dia, box: A.box || null }; }) : [];
       // 다음 날: 밤새 눈이 다시 온다 (구역 전부 새로), 분대원은 자고 나면 사기 회복
       var mor = w.crew.length ? w.crew.reduce(function (a, e) { return a + e.mor; }, 0) / w.crew.length : save.mor || 80;
       if (w.crewT > 20) save.crewRate = w.crewEarned / w.crewT;
@@ -569,6 +635,8 @@
     if (src === 'crew') w.crewEarned += amount;
   }
   // 조각을 한 칸도 없이 100% 치우면 띵! + 다이아 (하루에 한 번). 구역 전체 100%면 구역 완벽, 부대 전체면 조기 퇴근
+  // v12: 조각·구역 완벽 상점은 작전당 4개까지 (구역 8곳이면 작전마다 10개 넘게 쌓여 상점이 수백 개가 됐다). 전 구역 100%는 따로
+  function perfDia(w, n, why) { var left = 4 - (w.today.perfDia || 0); n = Math.min(n, left); if (n <= 0) return 0; w.today.perfDia = (w.today.perfDia || 0) + n; return gainDia(w, n, why); }
   function partClear(w, p) {
     var P = w.parts[p];
     P.clear++;
@@ -576,19 +644,21 @@
     // 그늘·비탈·배식구 앞: 눈을 걷어 내면 바닥이 언다 → 염화칼슘을 뿌려야 한다
     if (P.ice && !P.icy && !P.salted && P.total && P.clear / P.total >= S.ALMOST) {
       P.icy = true;
-      if (!w.demo) { w.fx.push({ t: 'icy', p: p, name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2 }); say(w, 'icy', true); }
+      // v12: 염화칼슘 살포기를 가졌으면 미리 뿌려 두니까 얼지 않는다 (도구 설명 그대로)
+      if (toolOf(w.save).aura && !w.demo) { P.salted = true; w.fx.push({ t: 'salted', p: p, name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, auto: true }); syncOpSave(w); }
+      else if (!w.demo) { w.fx.push({ t: 'icy', p: p, name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2 }); say(w, 'icy', true); }
     }
     if (!P.done && P.total && P.clear >= P.total) {
       P.done = true;
       var mine = w.lastSrc === 'player', first = !w.perfect[p], bonus = Math.round(P.total * S.ZONES[P.zi].value * (first ? 0.3 : 0.05) * w.mult);
       w.earned += bonus; pay(w, bonus, 'part');
-      if (first) { w.perfect[p] = true; w.today.perfect++; if (mine) { stat(w, 'perfect'); gainDia(w, 1, 'perfect'); } }
+      if (first) { w.perfect[p] = true; w.today.perfect++; if (mine) { stat(w, 'perfect'); perfDia(w, 1, 'perfect'); } }
       w.fx.push({ t: 'part', name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, bonus: bonus, p: p, perfect: true, first: first, mine: mine });
       var zi = P.zi;
       if (!w.zonePerf[zi] && w.zoneClear[zi] >= w.zoneTotal[zi]) {
         w.zonePerf[zi] = true; w.today.zonePerfect++; stat(w, 'zonePerfect');
         var Z = S.ZONES[zi], zb = Math.round(w.zoneTotal[zi] * Z.value * 0.3 * w.mult);
-        w.earned += zb; pay(w, zb, 'zone'); if (mine) gainDia(w, 2, 'zone');
+        w.earned += zb; pay(w, zb, 'zone'); if (mine) perfDia(w, 2, 'zone');
         w.fx.push({ t: 'zonePerfect', zone: Z.id, name: Z.name, x: Z.x + Z.w / 2, y: Z.y + Z.h / 2, bonus: zb, mine: mine });
         say(w, 'zonePerfect', true);
       }
@@ -694,10 +764,23 @@
     return { x: (idx % GW) * CELL + 5, y: ((idx / GW) | 0) * CELL + 5 };
   }
 
+  // v12: 담당 구역 지시서가 끝났으면 마감이 가장 급한 (안 끝난) 구역 — 예전엔 거기 서서 쉬었다
+  function helpZone(w, e) {
+    if (!w.op || !e.post || !e.def) return -1;
+    var mine = w.op.tasks.filter(function (t) { return t.id === e.post; })[0];
+    if (mine && mine.done < 0) return -1;
+    var t = w.op.tasks.filter(function (x) { return x.done < 0; })[0];
+    return t ? t.zi : -1;
+  }
   function pickTarget(w, e) {
     var R = w.rand, best = -1, bs = 1e9, list = w.cells, post = e.post;
-    // 인력은 자기 담당 구역만 치운다 (다 치우면 거기서 쉰다). 담당이 없으면(소대장 등) 전체
+    // 인력은 자기 담당 구역부터 치운다. 담당이 없으면(소대장 등) 전체
     if (post) { var pz = zoneIndex(post); if (pz >= 0 && w.zoneOpen[pz] && w.zoneCells[pz]) list = w.zoneCells[pz]; }
+    var hz = helpZone(w, e);
+    if (hz >= 0 && w.zoneCells[hz]) {
+      list = w.zoneCells[hz];
+      if (e.helping !== hz && !w.demo) { e.helping = hz; w.fx.push({ t: 'help', e: e, zone: S.ZONES[hz].id, name: S.ZONES[hz].name }); }
+    } else e.helping = -1;
     var n = list.length;
     if (!n) return;
     for (var k = 0; k < 16; k++) {
@@ -942,7 +1025,7 @@
       if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
         var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
         if (clearAt(w, cx, cy, P.r * (w.fever > 0 ? S.FEVER.range : 1), P.p, 'player', P)) {
-          P.swing = 1; w.combo++; w.comboT = 2;
+          P.swing = 1; w.combo++; w.comboT = 2; if (w.combo > (w.comboMax || 0)) w.comboMax = w.combo;
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
           // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배
@@ -973,8 +1056,9 @@
       var rc = w.recruits[ri], rd = Math.hypot(P.x - rc.x, P.y - rc.y);
       rc.walk = rc.walk || 0;
       if (rc.state === 'follow') {
-        if (rd > 32) steer(rc, P.x - P.dir.x * 28, P.y - P.dir.y * 28, S.SPEED * 1.05, dt, 6); else rc.moving = false;
-        if (rd > 260) { rc.x = P.x - P.dir.x * 12; rc.y = P.y - P.dir.y * 12; if (blocked(rc.x, rc.y, 6)) { rc.x = P.x; rc.y = P.y; } }
+        // v12: 내 쪽으로 다가와 28px 앞에 멈춘다 (예전엔 내 '등 뒤'로 돌아가려다 나를 밀어냈다)
+        if (rd > 32) steer(rc, P.x + (rc.x - P.x) / rd * 28, P.y + (rc.y - P.y) / rd * 28, S.SPEED * 1.05, dt, 6); else rc.moving = false;
+        if (rd > 260) { rc.x = P.x + (rc.x - P.x) / rd * 30; rc.y = P.y + (rc.y - P.y) / rd * 30; if (blocked(rc.x, rc.y, 6)) { rc.x = P.x; rc.y = P.y; } }
       } else { rc.moving = false; if (rd < 80) { rc.dir.x = (P.x - rc.x) / (rd || 1); rc.dir.y = (P.y - rc.y) / (rd || 1); } }
     }
 
@@ -985,8 +1069,8 @@
       if (e.off) { e.moving = false; continue; }
       if (e.state === 'follow') {   // 따라와 → 새 구역으로 데려간다
         var fd = Math.hypot(P.x - e.x, P.y - e.y);
-        if (fd > 32) steer(e, P.x - P.dir.x * 28, P.y - P.dir.y * 28, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
-        if (fd > 260) { e.x = P.x - P.dir.x * 14; e.y = P.y - P.dir.y * 14; if (blocked(e.x, e.y, 6)) { e.x = P.x; e.y = P.y; } }
+        if (fd > 32) steer(e, P.x + (e.x - P.x) / fd * 28, P.y + (e.y - P.y) / fd * 28, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
+        if (fd > 260) { e.x = P.x + (e.x - P.x) / fd * 30; e.y = P.y + (e.y - P.y) / fd * 30; if (blocked(e.x, e.y, 6)) { e.x = P.x; e.y = P.y; } }
         continue;
       }
       if (e.noFuel) { e.moving = false; continue; }
@@ -1071,7 +1155,7 @@
     return Math.floor(save.crewRate * sec * 0.1);
   }
 
-  JY.SnowSim = {
+  JY.SnowSim = { previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,

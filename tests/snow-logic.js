@@ -68,8 +68,8 @@ ok(!G.buy(s6, 'zone', 'B').ok && G.offers(s6).zone.every(function (z) { return !
 s6.merit = 8; G.assignZones(s6); ok(s6.zones.B && !s6.zones.C, '이병: ★이 쌓여도 족구장까지만 (v12: 구역은 계급만큼)');
 s6.rank = 1; G.assignZones(s6); ok(s6.zones.B && s6.zones.C && !s6.zones.D, '일병 + ★8 → 연병장도 맡는다');
 var o6 = G.offers(s6).factory;
-ok(o6.some(function (x) { return x.kind === 'relay' && x.id === 'B'; }) && !o6.some(function (x) { return x.kind === 'relay' && x.id === 'D'; }), '릴레이는 연 구역에만');
-ok(G.buy(s6, 'relay', 'B').ok && G.dumpsOf(s6).length === 2, '양동이 릴레이: 붓는 곳이 하나 더');
+ok(!o6.some(function (x) { return x.kind === 'relay'; }), 'v15 릴레이는 사지 않는다 (상점 목록에 없다)');
+ok(G.dumpsOf(s6).length === 1 + Object.keys(s6.zones).filter(function (z) { return G.zoneById(z).relay; }).length, 'v15 맡은 구역마다 옆에 집하장이 저절로 생긴다', G.dumpsOf(s6).length);
 ok(!G.buy(s6, 'proc', 'sculpt').ok, '조각 작업장은 압축기 Lv3부터');
 var m0 = G.incomeMult(s6); G.buy(s6, 'proc', 'press'); ok(Math.abs(G.incomeMult(s6) / m0 - 1.3) < 1e-9, '압축기: 보상 +30%', G.incomeMult(s6) / m0);
 var w6 = G.createWorld(s6);

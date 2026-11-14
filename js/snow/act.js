@@ -270,7 +270,7 @@
     var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
     if (urgent) return { kind: 'salute', x: urgent.x, y: urgent.y, text: OFF[urgent.id].title + '께 경례!', sub: '아래 큰 버튼', tone: 'red' };
     if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
-    if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return { kind: 'dump', x: d.x, y: d.y, text: '가득 찼다! 집하장에 붓기', sub: '노란 원으로', tone: 'gold' }; }
+    if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return { kind: 'dump', x: d.x, y: d.y, text: '가득 찼다! 집하장에 붓기', sub: d.main ? '노란 원으로' : '가까운 집하장 (노란 원)', tone: 'gold' }; }
     var icy = w.parts.filter(function (q) { return q.icy && !q.salted; });
     if (icy.length && a.hand === 'salt') { var ip = near(icy.map(function (q) { return { x: q.x + q.w / 2, y: q.y + q.h / 2, q: q }; })); return { kind: 'spread', x: ip.x, y: ip.y, text: '빙판에 염화칼슘', sub: ip.q.name + '에 들어가면 뿌린다', tone: 'blue' }; }
     if (icy.length && !a.hand) { var sb = near(S.PROPS.filter(function (p) { return p.id === 'saltbox'; }).map(function (p) { return { x: p.ux, y: p.uy }; })); return { kind: 'salt', x: sb.x, y: sb.y, text: '빙판! 제설함에서 염화칼슘', sub: icy[0].name + ' · 초록 상자로', tone: 'blue' }; }
@@ -290,7 +290,7 @@
         for (var k = 0; k < cells.length; k += 3) { var idx = cells[k]; if (!w.depth[idx]) continue; var cx = (idx % S.GW) * S.CELL + 5, cy = ((idx / S.GW) | 0) * S.CELL + 5, dd = Math.hypot(cx - P.x, cy - P.y); if (dd < bd2) { bd2 = dd; best = idx; } }
         if (best >= 0) { tx = (best % S.GW) * S.CELL + 5; ty = ((best / S.GW) | 0) * S.CELL + 5; }
       }
-      return { kind: 'task', x: tx, y: ty, text: Z.name + ' 치우기', sub: Math.floor(pct * 100) + '% / ' + Math.round(t.goal * 100) + '% · ' + G.clockText(t.due) + '까지', pct: Math.min(1, pct / t.goal), tone: t.lateSaid ? 'red' : 'navy', inZone: inZone };
+      return { kind: 'task', x: tx, y: ty, text: Z.name + ' 치우기', sub: Math.floor(pct * 100) + '% / ' + Math.round(t.goal * 100) + '%' + (t.late ? ' · 늦었다!' : G.timeAt(t.due) - w.time < 40 ? ' · 곧 마감!' : ''), pct: Math.min(1, pct / t.goal), tone: t.lateSaid ? 'red' : 'navy', inZone: inZone };
     }
     return { kind: 'free', x: P.x, y: P.y, text: '남은 눈 마저 치우기', sub: '다 하면 보고', tone: 'navy', here: true };
   }
@@ -845,7 +845,7 @@
     var best = save.stats.pullBest || 0, extra = 0;
     n = Math.max(0, Math.min(40, n | 0));
     if (n > best) save.stats.pullBest = n;
-    save.stats.pull = (save.stats.pull || 0) + 1;
+    save.stats.pull = (save.stats.pull || 0) + 1; save.daily.pull = save.day;   // v15: 오늘은 했다 (생활관 버튼이 숨는다)
     if (n >= 3) save.prep.power = Math.max(save.prep.power || 0, n);
     if (n >= 15 && save.daily.pullDia !== save.day) { save.daily.pullDia = save.day; save.dia += 1; save.diaLife += 1; extra = 1; }
     return { n: n, best: n > best, dia: extra };

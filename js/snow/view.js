@@ -498,7 +498,7 @@
       c.fillStyle = 'rgba(138,106,68,.35)'; c.beginPath(); c.arc(d.x, d.y, d.r, 0, 7); c.fill();
       c.strokeStyle = '#8a6a44'; c.lineWidth = 3; c.stroke();
       c.fillStyle = '#f7fafd'; c.beginPath(); c.ellipse(d.x, d.y - 4, d.r * 0.55, d.r * 0.38, 0, 0, 7); c.fill();
-      c.fillStyle = '#2f3a25'; c.font = '700 9px ' + FONT; c.textAlign = 'center'; c.fillText(d.main ? '눈 집하장' : '릴레이', d.x, d.y - d.r - 4); } }); });
+      c.fillStyle = '#2f3a25'; c.font = '700 9px ' + FONT; c.textAlign = 'center'; c.fillText(d.main ? '눈 집하장' : '집하장', d.x, d.y - d.r - 4); } }); });
     if (world.player.load >= world.player.cap * 0.6) { var Pp = world.player, nd = G.nearestDump(world, Pp.x, Pp.y), an = Math.atan2(nd.y - Pp.y, nd.x - Pp.x);
       if (Math.hypot(nd.x - Pp.x, nd.y - Pp.y) > 40) list.push({ y: 1e9, f: function () { c.save(); c.translate(Pp.x + Math.cos(an) * 30, Pp.y - 10 + Math.sin(an) * 30); c.rotate(an); c.fillStyle = '#ff6a55'; c.beginPath(); c.moveTo(10, 0); c.lineTo(-6, -7); c.lineTo(-6, 7); c.closePath(); c.fill(); c.restore(); } }); }
     // 상호작용 물건: 내 눈사람, 족구공, 트랙터, 눈덩이, 고른 것

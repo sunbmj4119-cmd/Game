@@ -72,8 +72,9 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   var ov0 = await overflow(); ok('로비 넘침 없음', !ov0.length, ov0);
 
   // ── v13: 처음 출동하면 교범 없이 바로 짧은 장면 (교범은 로비 버튼) ──
-  await page.click('[data-hub="help"]');
-  ok('로비 교범 버튼: 4장 (끌기·쌓기·원·★)', await waitFor(function () { return !!document.querySelector('#modal .m-help'); }, 3000) && /끌어서 걷는다/.test(await txt('modal')));
+  ok('v15 로비에 교범 버튼은 없다 (설정 안으로)', !(await vis('[data-hub="help"]')));
+  await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]');
+  ok('설정 → 교범: 4장 (끌기·쌓기·원·★)', await waitFor(function () { return !!document.querySelector('#modal .m-help'); }, 3000) && /끌어서 걷는다/.test(await txt('modal')));
   await shot('01a-help');
   for (var hp = 0; hp < 4; hp++) { await page.click('#modal [data-h="next"]'); await sleep(150); }
   await page.click('#t-start');
@@ -88,7 +89,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
 
   // ── 작전 화면: 시계 · '지금 할 일' · 지시서 ──
   await sleep(700);
-  ok('v13 작전 HUD: 시계 05:3x · 구역 1곳이면 지시서 카드 없음 (위 한 줄이 같은 말)', /^05:3\d$/.test(await txt('h-day')) && !(await vis('#h-op')));
+  ok('v15 작전 HUD: 남은 시간(3:xx) · 구역 1곳이면 지시서 카드 없음 (위 한 줄이 같은 말)', /^[34]:\d\d$/.test(await txt('h-day')) && /남음/.test(await txt('h-wx')) && !(await vis('#h-op')));
   ok('화면 위 "지금 할 일" 한 줄: 생활관 앞 길 치우기 + 막대', await goalIs('/생활관 앞 길 치우기/') && await page.evaluate(function () { return document.getElementById('goal').classList.contains('has-bar'); }));
   ok('작전 중엔 보급 버튼·눈덩이 버튼이 없다 (집중)', !(await vis('#h-shop')) && !(await page.$('#ball-btn')) && !(await page.$('#h-heat')));
   ok('할 게 없으면 행동 버튼이 숨는다', await page.evaluate(function () { return document.getElementById('acts').classList.contains('off'); }));
@@ -222,7 +223,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   var ov3 = await overflow(); ok('로비 넘침 없음', !ov3.length, ov3);
   // v13: 첫 작전 뒤 로비 — 열린 것만 (PX·체력단련·휴가는 일병부터), 새로 열린 버튼엔 N
   var gate13 = await page.evaluate(function () { function h(k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return !b || b.hidden; } var sh = document.querySelector('.lb-side [data-hub="shop"]'); return { px: h('px'), pull: h('pull'), leave: h('leave'), shop: !h('shop'), help: !h('help'), newShop: sh && sh.classList.contains('new') }; });
-  ok('v13 첫 작전 뒤 로비: 보급 열림(N), PX·체력단련·휴가는 아직', gate13.shop && gate13.help && gate13.newShop && gate13.px && gate13.pull && gate13.leave, gate13);
+  ok('v13 첫 작전 뒤 로비: 보급 열림(N), PX·체력단련·휴가는 아직 · v15 교범은 설정 안', gate13.shop && !gate13.help && gate13.newShop && gate13.px && gate13.pull && gate13.leave, gate13);
   await page.evaluate(function () { __SNOW.save().rank = 1; __SNOW.renderHub(); });
   ok('v13 일병이 되면 PX·체력단련·휴가가 열린다', await page.evaluate(function () { return ['px', 'pull', 'leave'].every(function (k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return b && !b.hidden && b.classList.contains('new'); }); }));
   // PX: 내일 작전 준비물
@@ -248,39 +249,39 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await sleep(700); await page.click('#pull-go'); await sleep(200);
   // 휴가 (상점 모자라면 안내)
   await page.evaluate(function () { __SNOW.save().dia = 3; __SNOW.renderHub(); });
-  await page.click('[data-hub="leave"]'); await sleep(200);
-  ok('휴가: 상점이 모자라면 안내만', await vis('#toast') && /상점/.test(await txt('toast')));
+  ok('v15 휴가 버튼은 상점이 모일 때만 보인다', !(await vis('[data-hub="leave"]')));
+  await page.evaluate(function () { __SNOW.save().dia = 12; __SNOW.renderHub(); });
+  ok('v15 상점 10개가 모이면 휴가 버튼', await vis('[data-hub="leave"]'));
+  await page.evaluate(function () { __SNOW.save().dia = 3; __SNOW.renderHub(); });
   await page.evaluate(function () { __SNOW.save().rank = 0; __SNOW.renderHub(); });
   // 보급·인원
   await page.click('[data-hub="shop"]'); await sleep(400);
-  ok('보급 화면 (장비·인원·개인 장비·시설·구역…)', await vis('#shop .item') && /인원/.test(await txt('s-tabs')));
+  ok('v15 보급 화면: 탭은 장비·인원(·강화)뿐', await vis('#shop .item') && /인원/.test(await txt('s-tabs')) && await page.evaluate(function () { return document.querySelectorAll('#s-tabs [data-tab]').length <= 3 && !/구역|꾸미기|수첩/.test(document.getElementById('s-tabs').textContent); }));
   await shot('11-shop');
   await page.click('#s-tabs [data-tab="crew"]'); await sleep(150);
   await page.click('#s-list .item.can .buy[data-kind="crew"]'); await sleep(150);
   var hire = await page.evaluate(function () { var s = __SNOW.save(); return { pend: s.pend.length, crew: s.crew.hoobae || 0, more: !!document.querySelector('#s-list .item.can .buy[data-kind="crew"]') }; });
   ok('후임 전입 요청 (다음 작전 아침, 이병 정원 1명)', hire.pend === 1 && hire.crew === 0 && !hire.more, hire);
-  await page.click('#s-tabs [data-tab="zone"]'); await sleep(150);
-  ok('구역 탭: 사는 게 아니라 ★으로 맡는다', !(await page.$('#s-list .item.can')) && /근무평정/.test(await txt('s-list')));
+  ok('v15 인원 탭: 잠긴 것은 하나만 보이고 나머지는 접혀 있다', await page.evaluate(function () { var l = document.getElementById('s-list'), top = [].filter.call(l.children, function (e) { return e.classList.contains('item') && e.classList.contains('s-lock'); }).length; return top <= 1 && !!l.querySelector('details.more-items'); }));
+  ok('v15 카드 글자가 두세 글자씩 꺾이지 않는다 (설명 칸이 버튼보다 넓다)', await page.evaluate(function () { return [].every.call(document.querySelectorAll('#s-list .item'), function (r) { var i = r.querySelector('.info'), b = r.querySelector('.buy'); return !i || !b || b.getBoundingClientRect().width === 0 || i.getBoundingClientRect().width > b.getBoundingClientRect().width; }); }));
   var ov4 = await overflow(); ok('보급 화면 넘침 없음', !ov4.length, ov4);
   await page.click('#s-go'); await sleep(400);
   ok('보급 닫으면 로비', await vis('#hub'));
-  // 왼쪽 버튼: 훈장 · 수첩 · 꾸미기 · 교범 · 설정
-  await page.click('[data-hub="medal"]'); await sleep(300);
-  ok('훈장 버튼 → 훈장 탭', await vis('#shop') && await page.evaluate(function () { return document.querySelector('#s-tabs [aria-selected="true"]').getAttribute('data-tab') === 'medal'; }));
-  await page.click('#s-back'); await sleep(300);
+  // 왼쪽 버튼 (v15): 수첩(훈장 포함) · 꾸미기 · 설정
+  ok('v15 훈장 버튼은 따로 없다 (수첩 안)', !(await vis('[data-hub="medal"]')));
   await page.click('[data-hub="look"]'); await sleep(300);
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="story"]'); await sleep(300);
-  ok('v14 수첩 → 발견 10칸 (못 찾은 건 ??? + 힌트)', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return /발견 \(\d+\/10\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 10 && /\?\?\?/.test(t); }));
+  ok('v14 수첩 → 발견 10칸 (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/10\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 10 && /\?\?\?/.test(t); }));
   await page.click('#s-back'); await sleep(300);
-  await page.click('[data-hub="help"]'); await sleep(200);
-  ok('교범 버튼 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
+  await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]'); await sleep(200);
+  ok('설정 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
   await page.click('#modal [data-h="skip"]'); await sleep(200);
 
   // ── 브리핑 → 두 번째 작전 (족구장 추가, 핫팩, 신병) ──
   await page.click('#t-start');
-  ok('출동 → 제설 비상 브리핑 (지시하는 사람·지시서·특이사항)', await waitFor(function () { return !!document.querySelector('#modal .m-brief'); }, 3000) && await page.evaluate(function () { var m = document.getElementById('modal').textContent; return /05:30 제설 비상/.test(m) && /족구장/.test(m) && /생활관 앞 길/.test(m) && /핫팩/.test(m) && document.querySelectorAll('.brief-list li').length === 2; }));
+  ok('출동 → 제설 비상 브리핑 (지시하는 사람·지시서·특이사항)', await waitFor(function () { return !!document.querySelector('#modal .m-brief'); }, 3000) && await page.evaluate(function () { var m = document.getElementById('modal').textContent; return /제설 비상/.test(m) && !/\d\d:\d\d/.test(m) && /족구장/.test(m) && /생활관 앞 길/.test(m) && /핫팩/.test(m) && document.querySelectorAll('.brief-list li').length === 2; }));
   await shot('12-brief');
   var ov5 = await overflow(); ok('브리핑 넘침 없음', !ov5.length, ov5);
   ok('v13 브리핑: 새로 생김 (족구장 → 간부 순찰·콤보·분대원) · 이병은 특명 없음', await vis('#modal .brief-new') && /간부 순찰/.test(await page.evaluate(function () { return document.querySelector('#modal .brief-new').textContent; })) && !(await vis('#modal .brief-bonus')));
@@ -301,6 +302,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.evaluate(function () { var w = __SNOW.view().world(), r = w.recruits[0]; __SNOW.view()._teleport(150, 200); r.x = 160; r.y = 190; });
   ok('구역에서 1초 멈춰 서면 배치 → 후임이 된다', await waitFor(function () { var w = __SNOW.view().world(); return w.crew.length === 1 && w.crew[0].post === 'A' && __SNOW.save().crew.hoobae === 1; }, 4000));
   await talkThrough();
+  if (is3) ok('v15 작전 중에 배치한 새 후임이 바로 보인다 (3D 모델이 생긴다)', await waitFor(function () { var V = __SNOW.view(); return V._crewShown && V._crewShown() === V.world().crew.length && V.world().crew.length >= 1; }, 2000));
   // ── v14 눈덩이: 근처에 고라니가 오면 버튼이 생기고, 누르면 알아서 조준해 던진다 ──
   await page.evaluate(function () { var w = __SNOW.view().world(); w.deer.push({ x: w.player.x + 70, y: w.player.y + 10, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }); });
   ok('v14 고라니가 근처에 오면 눈덩이 버튼 ("고라니!")', await waitFor(function () { var b = document.getElementById('throw-btn'); return !b.hidden && /고라니/.test(b.textContent); }, 3000));
@@ -312,7 +314,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   // ── 저장하고 다시 열어도 작전이 이어진다 ──
   var before = await page.evaluate(function () { var w = __SNOW.view().world(); w.time = 50; __SNOW.persist(); return { clear: w.clear, t: w.time, day: __SNOW.save().day }; });
   await page.reload({ timeout: 20000 }); await sleep(1300); await enter(); await closeModal();
-  ok('다시 열면 "작전 이어하기 · 시각부터 계속"', /작전 이어하기/.test(await txt('t-start-b')) && /0[5-6]:\d\d부터 계속/.test(await txt('t-start-s')));
+  ok('다시 열면 "작전 이어하기 · 시각부터 계속"', /작전 이어하기/.test(await txt('t-start-b')) && /하던 데서 계속/.test(await txt('t-start-s')));
   await page.click('#t-start'); await sleep(800); await talkThrough();
   var resumed = await page.evaluate(function () { var w = __SNOW.view().world(); return { clear: w.clear, t: w.time, day: __SNOW.save().day, brief: !!document.querySelector('#modal .m-brief') }; });
   ok('치운 곳·시계 그대로 (브리핑 없이 바로)', Math.abs(resumed.clear - before.clear) < 40 && Math.abs(resumed.t - before.t) < 3 && resumed.day === before.day && !resumed.brief, [before, resumed]);
@@ -376,7 +378,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('#h-speed');
   await shot('17-late');
   var late = await page.evaluate(function () { var w = __SNOW.view().world(); return { crew: w.crew.length, dumps: w.dumps.length, tasks: w.op.tasks.length }; });
-  ok('후반: 분대원 16명 + 집하장 5곳 + 지시서 8줄', late.crew === 16 && late.dumps === 5 && late.tasks === 8, late);
+  ok('후반: 분대원 16명 + 집하장 8곳(v15 구역마다) + 지시서 8줄', late.crew === 16 && late.dumps === 8 && late.tasks === 8, late);
   var fps = await page.evaluate(function () { return new Promise(function (res) { var n = 0, t0 = performance.now(); function f() { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(Math.round(n / ((performance.now() - t0) / 1000))); } requestAnimationFrame(f); }); });
   ok('후반 프레임 (소프트웨어 렌더 기준 3fps 이상)', fps >= 3, fps);
   var simT = await page.evaluate(function () { var w = __SNOW.view().world(), t0 = w.time; return new Promise(function (res) { setTimeout(function () { res(w.time - t0); }, 2000); }); });

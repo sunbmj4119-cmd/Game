@@ -145,7 +145,7 @@
     S.CREW.forEach(function (C) {
       var n = crewN(save, C.id) + pendN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0, full = total >= cap;
       out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max, pend: pendN(save, C.id),
-        state: lock ? 'lock' : n >= C.max ? 'max' : full ? 'lock' : 'buy', lockText: lock ? S.RANKS[C.rank].name + '부터' : '정원 ' + cap + '명 (진급하면 늘어남)', ok: !lock && !full && n < C.max && save.bank >= cost && save.dia >= dia });
+        state: lock ? 'lock' : n >= C.max ? 'max' : full ? 'lock' : 'buy', lockText: lock ? S.RANKS[C.rank].name + '부터' : '정원 꽉 참', ok: !lock && !full && n < C.max && save.bank >= cost && save.dia >= dia });
     });
     var st = save.toolStar || 0, sd = S.DIA.star[st];
     out.tool.push({ kind: 'star', id: 'star', name: '도구 강화 ' + '★★★★★'.slice(0, st) + '☆☆☆☆☆'.slice(0, 5 - st), desc: '정비병이 손봐 준다. 지금 도구 범위 +10% (강화는 도구를 바꿔도 남는다)',
@@ -158,12 +158,6 @@
       var l = procLvl(save, P.id), cost = perkCost(P, l), need = P.need && procLvl(save, P.need[0]) < P.need[1];
       out.factory.push({ kind: 'proc', id: P.id, name: P.name, desc: P.desc, cost: cost, n: l, max: P.max,
         state: need ? 'lock' : l >= P.max ? 'max' : 'buy', lockText: need ? '압축기 Lv' + P.need[1] + '부터' : '', ok: !need && l < P.max && save.bank >= cost });
-    });
-    S.ZONES.forEach(function (Z) {
-      if (!Z.relay || !save.zones[Z.id]) return;
-      var has = !!save.relays[Z.id], cost = relayCost(Z);
-      out.factory.push({ kind: 'relay', id: Z.id, name: '양동이 릴레이 · ' + Z.name, desc: '후임들이 줄 서서 집하장까지 나른다. 이 구역 옆에 붓는 곳이 생긴다', cost: cost, n: has ? 1 : 0, max: 1,
-        state: has ? 'max' : 'buy', ok: !has && save.bank >= cost });
     });
     // 구역은 사지 않는다: 근무평정이 쌓이면 맡는다 (목록은 보여 주기만)
     S.ZONES.forEach(function (Z) {
@@ -283,7 +277,8 @@
 
   function dumpsOf(save) {
     var list = [{ x: S.DUMP.x, y: S.DUMP.y, r: S.DUMP.r, main: true, zone: 'A' }];
-    S.ZONES.forEach(function (Z) { if (Z.relay && save.zones[Z.id] && save.relays[Z.id]) list.push({ x: Z.relay[0], y: Z.relay[1], r: 20, main: false, zone: Z.id }); });
+    // v15: 구역을 맡으면 그 구역 옆 집하장이 저절로 생긴다 (예전엔 '양동이 릴레이'를 사야 했다 → 구역이 늘수록 먼 왕복이 비효율적)
+    S.ZONES.forEach(function (Z) { if (Z.relay && save.zones[Z.id]) list.push({ x: Z.relay[0], y: Z.relay[1], r: 22, main: false, zone: Z.id }); });
     return list;
   }
 

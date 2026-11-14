@@ -63,7 +63,7 @@ function scan() {
     await sleep(700); await closeAll(); await check('hub');
     await page.click('[data-hub="settings"]'); await sleep(300); await check('settings');
     await closeAll();
-    await page.click('[data-hub="help"]'); await sleep(300); await check('help');
+    await page.click('[data-hub="settings"]'); await sleep(300); await page.click('#modal [data-set="help"]'); await sleep(300); await check('help');   // v15: 교범은 설정 안
     await closeAll();
     // 상병 브리핑 (조원 배치까지 있는 가장 긴 브리핑)
     await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
@@ -112,11 +112,17 @@ function scan() {
     await closeAll(); await sleep(500); await closeAll();
     // 상점 탭들 (생활관에서)
     await page.click('[data-hub="shop"]'); await sleep(300);
-    for (var t of ['tool', 'crew', 'perk', 'factory', 'zone', 'look', 'story', 'medal', 'dis']) {
+    for (var t of ['tool', 'crew', 'up']) {
       var tb = await page.$('#s-tabs [data-tab="' + t + '"]'); if (!tb) continue;
-      await tb.click(); await sleep(t === 'look' ? 900 : 250); await check('shop-' + t);
+      await tb.click(); await sleep(250); await check('shop-' + t);
     }
     await page.click('#s-go'); await sleep(400); await closeAll();
+    // v15: 꾸미기·수첩은 생활관 버튼에서 따로
+    for (var hb of ['look', 'story']) {
+      var bb = await page.$('[data-hub="' + hb + '"]:not([hidden])'); if (!bb) continue;
+      await bb.click(); await sleep(hb === 'look' ? 900 : 300); await check('page-' + hb);
+      await page.click('#s-go'); await sleep(400); await closeAll();
+    }
     // PX · 상자 · 대사
     await page.click('[data-hub="px"]'); await sleep(400); await check('px');
     var cl = await page.$('#modal [data-m]'); if (cl) await cl.click(); await sleep(300);

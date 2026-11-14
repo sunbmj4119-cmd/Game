@@ -114,7 +114,7 @@
     if (V.lobby) V.lobby(save); else V.demo(save);
     var on = started(), mid = midOp();
     $('t-start-b').textContent = !on ? '전입 신고' : mid ? '작전 이어하기' : save.exam ? '진급 심사 출동' : '제설 출동';
-    $('t-start-s').textContent = !on ? '이병 · 싸리비 하나로 시작' : mid ? G.clockText(G.clockOf(save.dayT)) + '부터 계속' : save.day + '일차 · 05:30 제설 비상';
+    $('t-start-s').textContent = !on ? '이병 · 싸리비 하나로 시작' : mid ? '하던 데서 계속 · ' + mmss(S.DAY_LEN - (save.dayT || 0)) + ' 남음' : save.day + '일차 · ' + S.WEATHER[G.weatherFor(save).id].name;
     $('t-start').classList.toggle('exam', !!save.exam && !mid);
     document.body.classList.toggle('fresh', !on);
     renderHub();
@@ -154,8 +154,12 @@
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
     var GATE = { shop: 'lobby', px: 'px', phone: 'phone', pull: 'pull', leave: 'leave', look: 'look', medal: 'box', story: 'lobby' };
+    // v15: 버튼 줄이기 — 교범은 설정 안으로, 훈장은 수첩 안으로, 전화·체력단련은 오늘 할 수 있을 때만, 휴가는 상점이 모였을 때만
+    var HIDE = { help: true, medal: true, phone: save.daily.call === save.day, pull: save.daily.pull === save.day, leave: save.dia < S.LEAVE.cost };
     document.querySelectorAll('.lb-side [data-hub]').forEach(function (b) {
-      var k = b.getAttribute('data-hub'), f = GATE[k]; if (!f) return;
+      var k = b.getAttribute('data-hub'), f = GATE[k];
+      if (HIDE[k]) { b.hidden = true; return; }
+      if (!f) return;
       var open = G.feat(save, f); b.hidden = !open;
       b.classList.toggle('new', open && on && !save.seen['hub:' + k]);
     });
@@ -252,16 +256,16 @@
     if (exam) notes.push('<li class="exam">진급 심사 ' + Math.round(goal * 100) + '% · ★★면 ' + G.nextRank(save).name + (save.examFail ? ' (재심사)' : '') + '</li>');
     if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' · 기준 −' + Math.round(wxCut * 100) + '%p</li>');
     if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 바로 경례</li>');
-    if (save.zones.E) notes.push('<li>07:30 출근 차량 — 진입로 먼저</li>');
+    if (save.zones.E) notes.push('<li>출근 차량이 온다 — 진입로 먼저</li>');
     var nf = G.newFeatures(save, true).slice(0, 3);
     var prep = Object.keys(save.prep || {}).map(function (k) { var it = S.PREP.filter(function (p) { return p.id === k; })[0]; return it ? it.name : k === 'support' ? '대대 지원' : k === 'morale' ? '전원 초코파이' : k === 'power' ? '체력단련' : ''; }).filter(Boolean);
     if (prep.length) notes.push('<li class="good">챙긴 것: ' + esc(prep.join(', ')) + '</li>');
     var crewRows = r >= 2 && G.crewCount(save) ? crewPlan() : '';
     modal('<div class="m-brief">' +
-      '<p class="kicker">' + save.day + '일차 · 05:30 제설 비상</p>' +
+      '<p class="kicker">' + save.day + '일차 제설 비상 · 위에서부터 순서대로</p>' +
       '<div class="brief-who"><div class="m-face">' + portrait(B.who) + '</div><p>' + esc(line) + '</p></div>' +
       (nf.length ? '<div class="brief-new"><b>새로 생김</b>' + nf.map(function (F) { return '<p><span>' + esc(F.name) + '</span> ' + esc(F.line) + '</p>'; }).join('') + '</div>' : '') +
-      '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b><span>' + G.clockText(Z.due || 480) + (zs.length > 2 ? '' : '까지 · ' + esc(Z.why || '')) + '</span></li>'; }).join('') + '</ol>' +
+      '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b>' + (zs.length > 2 ? '' : '<span>' + esc(Z.why || '') + '</span>') + '</li>'; }).join('') + '</ol>' +
       (notes.length ? '<ul class="brief-notes">' + notes.join('') + '</ul>' : '') +
       (bo ? '<div class="brief-bonus"><b>특명</b><span>' + esc(bo.text) + '</span><small>' + dia() + '+' + bo.dia + '</small></div>' : '') + crewRows +
       '<button class="btn big" data-m="go">' + (exam ? '심사 받으러 출동!' : '출동!') + '</button></div>', function (k) { if (k === 'go') play(false); });
@@ -305,7 +309,7 @@
     if (X) X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2);
     if (!resume) {
       var op = w.op || {};
-      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', '05:30 · ' + S.WEATHER[w.weather].name, 2000);
+      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', S.WEATHER[w.weather].name + ' · 제한 시간 ' + Math.round(S.DAY_LEN / 60) + '분', 2000);
       if (op.exam || w.weather === 'heavy' || w.weather === 'blizzard') setTimeout(function () { say(op.exam ? 'exam' : 'heavy'); }, 900);
       if (X) X.whistle(false);
     }
@@ -320,10 +324,12 @@
       setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」', 2600); }, resume ? 400 : 2300);
     }
   }
+  // v15: 시각(05:30·07:00) 대신 '남은 시간' 하나만 — 실제 초로 센다 (작전 4분)
+  function mmss(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
   function dayLabel(w) {
     hud.clock = null;
-    $('h-day').textContent = G.clockText(G.clockOf(w.time));
-    $('h-wx').textContent = S.WEATHER[w.weather].name + (w.op && w.op.exam ? ' · 심사' : w.inspect ? ' · 순시' : '');
+    $('h-day').textContent = mmss(w.dayLen - w.time);
+    $('h-wx').textContent = '남음 · ' + S.WEATHER[w.weather].name + (w.op && w.op.exam ? ' · 심사' : '');
   }
 
   function onEvent(f) {
@@ -344,7 +350,7 @@
   // v10 작전 사건: 지시서 완료·지연, 보고, 빙판, 출근 차량, 처마 눈, 지적, 끝
   function onOpEvent(f) {
     if (f.t === 'task') { banner(f.late ? '늦었지만 완료' : '작업 완료!', f.task.name + ' ' + Math.round(f.task.goal * 100) + '% · +' + fmt(f.pay), 2000); if (X) { X.stamp(); X.coin(); } vibrate([30, 30, 60]); hud.op = null; return true; }
-    if (f.t === 'taskLate') { chip('마감 지났다: ' + f.task.name + ' (' + G.clockText(f.task.due) + ')', 'bad'); if (X) X.deny(); hud.op = null; return true; }
+    if (f.t === 'taskLate') { chip('마감 지났다: ' + f.task.name, 'bad'); if (X) X.deny(); hud.op = null; return true; }
     if (f.t === 'bonus') { banner('특명 완료!', '상점 +' + f.dia, 2200); if (X) X.fanfare(); vibrate([40, 30, 80]); hud.op = null; return true; }
     if (f.t === 'help') { if (!hud.helpSaid) { hud.helpSaid = true; chip(f.e.def.name + ' → ' + f.name + ' 지원', 'good'); } return true; }
     if (f.t === 'opReady') { banner('지시서 다 했다!', '보고 원으로', 2400); if (X) X.fanfare(); hud.op = null; return true; }
@@ -405,7 +411,7 @@
       $('h-carry').classList.toggle('full', full); $('h-carry').classList.toggle('mid', !full && P.load > P.cap * 0.6);
     }
     if (!save.seen.tut && P.moving && P.load > 0) { save.seen.tut = true; $('hint').hidden = true; }
-    var ck = G.clockText(G.clockOf(w.time));
+    var ck = mmss(w.dayLen - w.time);
     if (hud.clock !== ck) { hud.clock = ck; $('h-day').textContent = ck; var late = w.dayLen - w.time < 30; $('h-day').classList.toggle('late', late); }
     // 알림 줄은 HUD(지금 할 일·진행 막대) 바로 아래에서 시작한다
     if (nowP - (hud.stackAt || 0) > 150) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; document.body.style.setProperty('--hudb', Math.round(hb) + 'px'); } }
@@ -459,10 +465,10 @@
     var tip = '';
     if (res.stars < 3) {
       var miss = res.lines.filter(function (l) { return !l.done; }).sort(function (a, b) { return a.due - b.due; })[0], lateL = res.lines.filter(function (l) { return l.late; })[0];
-      tip = res.icy ? '빙판을 그냥 두면 감점 — 제설함 염화칼슘부터' : res.jigeok ? '경례를 놓치면 지적 — 간부가 오면 바로 큰 경례 버튼' : res.stuck ? '07:30 전에 진입로 가운데를 먼저 치워 두면 차가 안 빠진다'
-        : miss ? miss.name + ' ' + Math.floor(miss.pct * 100) + '% — 분대원을 그쪽에 배치하거나, 마감 순서대로' : lateL ? lateL.name + ' 마감(' + G.clockText(lateL.due) + ')을 넘겼다 — 마감 빠른 줄부터' : '';
+      tip = res.icy ? '빙판을 그냥 두면 감점 — 제설함 염화칼슘부터' : res.jigeok ? '경례를 놓치면 지적 — 간부가 오면 바로 큰 경례 버튼' : res.stuck ? '차가 오기 전에 진입로 가운데를 먼저 치워 두면 안 빠진다'
+        : miss ? miss.name + ' ' + Math.floor(miss.pct * 100) + '% — 분대원을 그쪽에 배치하거나, 마감 순서대로' : lateL ? lateL.name + ' 마감을 넘겼다 — 마감 빠른 줄부터' : '';
     }
-    modal('<div class="m-res' + (res.exam ? ' exam' : '') + '"><p class="kicker">' + res.day + '일차 제설 작전 · 행보관 검열' + (res.why === 'report' ? ' (보고 ' + G.clockText(G.clockOf(V.world().time)) + ')' : ' (08:00)') + '</p>' +
+    modal('<div class="m-res' + (res.exam ? ' exam' : '') + '"><p class="kicker">' + res.day + '일차 제설 작전 · 행보관 검열' + (res.why === 'report' ? ' · ' + mmss(V.world().dayLen - V.world().time) + ' 남기고 보고' : ' · 시간 끝') + '</p>' +
       '<div class="res-stars s' + res.stars + '">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= res.stars ? 'on' : '') + '" style="animation-delay:' + (0.25 + i * 0.28) + 's">★</i>'; }).join('') + '</div>' +
       '<h3>' + head + '</h3><p class="res-who">' + esc(who) + '</p>' + (tip ? '<p class="res-tip">다음엔: ' + esc(tip) + '</p>' : '') +
       // v13: 줄은 4개까지만 보이고, 나머지는 '자세히'를 눌러야 펼쳐진다
@@ -509,7 +515,9 @@
   }
 
   /* ── 보급·인력·공장 ── */
-  var TABS = [['tool', '장비'], ['crew', '인원'], ['perk', '개인 장비'], ['factory', '시설'], ['zone', '구역'], ['look', '꾸미기'], ['story', '수첩'], ['medal', '훈장'], ['dis', '전역']];
+  // v15: 보급 탭은 셋만 (장비 · 인원 · 강화). 꾸미기·수첩(훈장 포함)·전역은 생활관 버튼에서 따로 연다 (탭 줄 없이)
+  var TABS = [['tool', '장비'], ['crew', '인원'], ['up', '강화']];
+  var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역' };
   var PERK_ICON = {
     eisen: '<path d="M5 6h7v6l6 2a3 3 0 0 1 3 3v1H5z" fill="#3b3f33"/><path d="M6 19l1 3M10 19l1 3M14 19l1 3M18 19l1 3" stroke="#9aa3ab" stroke-width="1.6" stroke-linecap="round"/>',
     back: '<path d="M6 7c0-3 12-3 12 0l1 12c0 2-14 2-14 0z" fill="#8a7a52"/><path d="M8 7c1-2 7-2 8 0" stroke="#5a4c2c" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="6" rx="5" ry="1.6" fill="#fbfdff"/>',
@@ -582,30 +590,37 @@
 
   function renderShop() {
     $('s-bank').textContent = fmt(save.bank);
-    var showDis = G.rankOf(save) >= 3 || save.discharges > 0, all = G.offers(save);
-    var TGATE = { crew: 'crew', perk: 'perk', factory: 'factory', look: 'look', story: 'lobby', medal: 'box' };
-    if (TGATE[tab] && !G.feat(save, TGATE[tab])) tab = 'tool';
-    $('s-tabs').innerHTML = TABS.filter(function (t) { return (t[0] !== 'dis' || showDis) && (!TGATE[t[0]] || G.feat(save, TGATE[t[0]])); }).map(function (t) {
+    var all = G.offers(save);
+    all.up = (G.feat(save, 'perk') ? all.perk : []).concat(G.feat(save, 'factory') ? all.factory : []);
+    var TGATE = { crew: 'crew', up: function () { return G.feat(save, 'perk') || G.feat(save, 'factory'); }, look: 'look', story: 'lobby', medal: 'lobby' };
+    function gate(k) { var g = TGATE[k]; return !g || (typeof g === 'function' ? g() : G.feat(save, g)); }
+    if (tab === 'perk' || tab === 'factory' || tab === 'zone') tab = 'up';
+    if (!gate(tab)) tab = 'tool';
+    var solo = SOLO[tab];
+    document.querySelector('.shop-head h2').textContent = solo || '보급';
+    $('s-tabs').hidden = !!solo;
+    $('s-tabs').innerHTML = solo ? '' : TABS.filter(function (t) { return gate(t[0]); }).map(function (t) {
       var o = all[t[0]] || [], n = o.filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
     if (tab === 'dis') { renderDischarge(list); return; }
-    if (tab === 'medal') { renderMedals(list); return; }
     if (tab === 'look') { renderLook(list); return; }
-    if (tab === 'story') { renderStory(list); return; }
+    if (tab === 'story' || tab === 'medal') { renderStory(list); if (G.feat(save, 'box')) renderMedals(list); return; }
     if (tab === 'crew') crewHead(list);
-    if (tab === 'factory') {
+    if (tab === 'up' && G.feat(save, 'factory') && G.procLvl(save, 'press')) {
       var mk = save.made, pm = G.procMult(save);
       var head = document.createElement('div'); head.className = 'fac-head';
       head.innerHTML = '<b>눈 집하장 가공 라인</b><span>부은 눈 값 ×' + pm.toFixed(1) + '</span>' + (mk.brick >= 1 || mk.snowman >= 1 ? '<small>지금까지 눈벽돌 ' + fmt(mk.brick) + '장 · 환영 눈사람 ' + fmt(mk.snowman) + '개</small>' : '<small>압축기를 들이면 부은 눈이 눈벽돌이 된다</small>');
       list.appendChild(head);
     }
-    if (tab === 'zone') list.insertAdjacentHTML('beforeend', '<p class="info-note">구역은 사는 게 아니다. 작전에서 받은 <b>★(근무평정)</b>이 쌓이면 중대에서 더 맡긴다. 지금 ★' + (save.merit || 0) + '</p>');
-    if (tab === 'tool') list.insertAdjacentHTML('beforeend', '<p class="info-note">작전 중에도 <b>행보관</b> 앞에서 "요청"으로 바로 받을 수 있다. 좋은 장비는 계급 순서.</p>');
-    var items = all[tab];
+    var items = all[tab] || [];
     if (!items.length) { list.insertAdjacentHTML('beforeend', '<p class="empty">살 것이 없다.</p>'); return; }
-    items.forEach(function (o) {
+    // v15: 지금 살 수 있거나 가진 것만 펼쳐 두고, 잠긴 것은 첫 하나만 — 나머지는 '잠긴 것 더 보기'
+    var open = items.filter(function (o) { return o.state !== 'lock' && o.state !== 'later'; }), shut = items.filter(function (o) { return o.state === 'lock' || o.state === 'later'; });
+    var more = null;
+    if (shut.length > 1) { more = document.createElement('details'); more.className = 'more-items'; more.innerHTML = '<summary>잠긴 것 ' + (shut.length - 1) + '개 더 보기</summary>'; }
+    open.concat(shut).forEach(function (o, idx) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
       var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
@@ -625,8 +640,9 @@
       if (o.state === 'buy' && !o.ok) btn.classList.add('short');
       btn.setAttribute('data-kind', o.kind); btn.setAttribute('data-id', o.id);
       row.appendChild(btn);
-      list.appendChild(row);
+      (more && idx > open.length ? more : list).appendChild(row);
     });
+    if (more) list.appendChild(more);
   }
 
   function renderDischarge(list) {
@@ -791,13 +807,12 @@
     }, 900);
   }
   function crewHead(list) {
-    var mor = Math.round(save.mor || 80), n = G.crewCount(save), pr = save.prep || {};
-    var head = document.createElement('div'); head.className = 'crew-head';
-    head.innerHTML = '<div class="row"><b>분대원 ' + n + '명 · 사기 ' + (n ? mor : '-') + '</b><small>사기가 바닥나면 짱박힌다</small></div>' +
-      (n ? '<div class="row"><div class="morbar"><i style="width:' + mor + '%"></i></div></div>' : '') +
-      '<p class="info">정원 <b>' + (n + G.pendN(save)) + '/' + G.crewCap(save) + '명</b> (진급하면 늘어난다)' + (G.pendN(save) ? ' · 전입 대기 <b>' + G.pendN(save) + '명</b>: 다음 작전 아침 생활관 앞' : '') +
-      '<br>분대원은 <b>담당 구역</b>만 치운다. ' + (G.rankOf(save) >= 2 ? '상병부터는 <b>브리핑에서</b> 구역을 나눈다' : '옮기려면 가서 "따라와" → 새 구역에서 "여기 배치"') + '</p>' +
-      '<div class="dia-btns"><button data-dia="morale"' + (save.dia >= S.DIA.morale && n && !pr.morale ? '' : ' disabled') + '>' + (pr.morale ? '요청함 · ' : '') + '전원 초코파이 ' + dia() + S.DIA.morale + '</button><button data-dia="support"' + (save.dia >= S.DIA.support && n && !pr.support ? '' : ' disabled') + '>' + (pr.support ? '요청함 · ' : '') + '대대 지원 ' + dia() + S.DIA.support + '</button></div>';
+    // v15: 한 줄 (분대원 수 · 사기 막대) + 상점으로 부르는 지원은 접어 둔다
+    var mor = Math.round(save.mor || 80), n = G.crewCount(save), pr = save.prep || {}, pend = G.pendN(save);
+    var head = document.createElement('div'); head.className = 'crew-head v15';
+    head.innerHTML = '<div class="row"><b>분대원 ' + n + '명' + (pend ? ' <small>+ 내일 ' + pend + '명</small>' : '') + '</b><span class="cap">정원 ' + (n + pend) + '/' + G.crewCap(save) + '</span></div>' +
+      (n ? '<div class="row"><small>사기</small><div class="morbar"><i style="width:' + mor + '%"></i></div></div>' : '') +
+      (n && save.dia >= S.DIA.morale ? '<details class="dia-more"><summary>상점으로 지원 부르기</summary><div class="dia-btns"><button data-dia="morale"' + (save.dia >= S.DIA.morale && !pr.morale ? '' : ' disabled') + '>' + (pr.morale ? '요청함 · ' : '') + '전원 초코파이 ' + dia() + S.DIA.morale + '</button><button data-dia="support"' + (save.dia >= S.DIA.support && !pr.support ? '' : ' disabled') + '>' + (pr.support ? '요청함 · ' : '') + '대대 지원 ' + dia() + S.DIA.support + '</button></div></details>' : '');
     list.appendChild(head);
   }
   function renderMedals(list) {
@@ -941,7 +956,7 @@
       var mins = Math.max(0, Math.ceil(t.left / S.DAY_LEN * (S.OP.end - S.OP.start)));
       var cls = t.done ? 'done' : t === cur ? 'cur' + (t.late ? ' late' : mins <= 15 ? ' soon' : '') : t.late ? 'late' : '';
       var pct = t.done ? '✔' : Math.floor(t.pct * 100) + '%';
-      return '<li class="' + cls + '"><span>' + esc(t.name) + '</span><em>' + pct + '</em>' + (t === cur ? '<small>' + (t.late ? '늦음' : G.clockText(t.due)) + '</small><i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>' : '') + '</li>';
+      return '<li class="' + cls + '"><span>' + esc(t.name) + '</span><em>' + pct + '</em>' + (t === cur ? (t.late || mins <= 15 ? '<small>' + (t.late ? '늦음' : '곧 마감') + '</small>' : '') + '<i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>' : '') + '</li>';
     }).join('');
     $('op-warn').hidden = true; $('op-tip').hidden = true;
     $('op-bonus').hidden = !bo;

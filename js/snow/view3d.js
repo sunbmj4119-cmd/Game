@@ -435,13 +435,13 @@
       for (var a = 0; a < 16; a++) { var an = a / 16 * Math.PI * 2; parts.push([box(0.7, 0.35, 0.18, { ry: -an, x: x + Math.cos(an) * r, y: 0.17, z: z + Math.sin(an) * r }), a % 2 ? '#8a6a44' : '#a07c50']); }
       parts.push([cyl(0.07, 0.07, 2.2, { x: x - r - 0.3, y: 1.1, z: z + r * 0.4 }), '#6b4a32']);
       dumpGroup.add(mesh(merge(parts)));
-      var ring = new T.Mesh(new T.RingGeometry(r * 0.92, r * 1.05, 40), new T.MeshBasicMaterial({ color: d.main ? '#ffd24a' : '#9fd3ff', transparent: true, opacity: 0.7, depthWrite: false }));
+      var ring = new T.Mesh(new T.RingGeometry(r * 0.92, r * 1.05, 40), new T.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.7, depthWrite: false }));
       ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.05, z); dumpGroup.add(ring); dumpRings.push(ring);
-      var tt = textTex(d.main ? '눈 집하장' : '양동이 릴레이', { size: 40, bg: d.main ? '#2f3a25' : '#fff6c9', color: d.main ? '#f2ecd8' : '#3a3018', border: d.main ? '#1a2214' : '#6b5a2a' });
+      var tt = textTex(d.main ? '눈 집하장' : '집하장', { size: 40, bg: d.main ? '#2f3a25' : '#fff6c9', color: d.main ? '#f2ecd8' : '#3a3018', border: d.main ? '#1a2214' : '#6b5a2a' });
       var sm = new T.Mesh(new T.PlaneGeometry(tt.image.width / 52, tt.image.height / 52), new T.MeshLambertMaterial({ map: tt })); sm.position.set(x - r - 0.3, 2.3, z + r * 0.4 + 0.06); dumpGroup.add(sm);
       var pile = new T.Mesh(geos.pile || (geos.pile = merge([[sph(1, { s: [1, 0.55, 1] }), '#f7fafd'], [sph(0.6, { s: [1, 0.6, 1], x: 0.5, y: 0.2, z: -0.3 }), '#ffffff'], [sph(0.5, { s: [1, 0.6, 1], x: -0.5, y: 0.15, z: 0.35 }), '#eef3f8']])), matV);
       pile.position.set(x, 0, z); dumpGroup.add(pile); piles[d.main ? 'main' : d.zone] = { m: pile, r: r, main: d.main };
-      if (!d.main) {
+      if (!d.main && false) {   // v15: 구역마다 집하장이 생겨서 장식용 릴레이 병사는 뺐다
         for (var c = 0; c < 3; c++) {
           var o = makePerson({ coat: '#5b6a3a', face: 'hoobae', tool: null, scale: 1.1 });
           o.g.position.set(x + r + 0.6 + c * 1.1, 0, z - 0.4 + c * 0.6); o.body.rotation.y = -0.6; scene.remove(o.g); dumpGroup.add(o.g); relayCrew.push(o);
@@ -689,6 +689,10 @@
     var ring = new T.Mesh(new T.RingGeometry(0.75, 0.95, 24), new T.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; playerObj.g.add(ring); playerObj.ring = ring;
   }
+  function crewObj(e, many) {
+    var C = e.def, o = makePerson({ coat: C.coat, face: C.face, hat: C.hat, tool: C.vehicle ? null : C.id === 'cook' ? 'shovel' : C.id === 'hoobae' ? 'broom' : 'pusher', r: e.r, vehicle: C.vehicle ? 'plow' : null, big: C.vehicle, shadow: !many || C.vehicle });
+    o.ref = e; return o;
+  }
   function buildActors() {
     [haengObj, carObj, heliObj].forEach(removeObj);
     crewObjs.forEach(removeObj); deerObjs.forEach(removeObj); catObjs.forEach(removeObj);
@@ -698,7 +702,7 @@
     faceMat('me', 'stun'); faceMat('haeng', 'shout');
     S.CREW.forEach(function (C) { if (world.save.crew[C.id]) { faceMat(C.face, 'hurt'); faceMat(C.face, 'sleep'); } });
     var many = world.crew.length > 24;
-    world.crew.forEach(function (e) { var C = e.def; crewObjs.push(makePerson({ coat: C.coat, face: C.face, hat: C.hat, tool: C.vehicle ? null : C.id === 'cook' ? 'shovel' : C.id === 'hoobae' ? 'broom' : 'pusher', r: e.r, vehicle: C.vehicle ? 'plow' : null, big: C.vehicle, shadow: !many || C.vehicle })); });
+    world.crew.forEach(function (e) { crewObjs.push(crewObj(e, many)); });
     world.cats.forEach(function () {
       var g = new T.Group(), m = new T.Mesh(catGeo(), matV); m.castShadow = true; g.add(m); g.scale.setScalar(1.3); scene.add(g); catObjs.push(g);
     });
@@ -980,6 +984,13 @@
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
     placePerson(haengObj, w.haeng);
     setExpr(haengObj, w.haeng.chasing ? 'shout' : 'normal');
+    // v15: 작전 중에 들어온 사람(신병 배치·분대원 전입)도 바로 모델을 만든다 (예전엔 작전 시작 때만 만들어서 새 후임이 안 보였다)
+    if (crewObjs.length !== w.crew.length || crewObjs.some(function (o, i) { return o.ref !== w.crew[i]; })) {
+      var keep = [];
+      w.crew.forEach(function (e, i) { var o = null; for (var k = 0; k < crewObjs.length; k++) if (crewObjs[k] && crewObjs[k].ref === e) { o = crewObjs[k]; crewObjs[k] = null; break; } keep[i] = o || crewObj(e, w.crew.length > 24); });
+      crewObjs.forEach(function (o) { if (o) removeObj(o); });
+      crewObjs = keep;
+    }
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
       o.g.visible = !e.off;
@@ -1914,6 +1925,7 @@
     _setLook: function (yaw, pitch) { fpYaw = yaw; if (pitch !== undefined) fpPitch = pitch; },
     _screenToWorld: function (x, y) { return screenToWorld(x, y); },
     focusZone: function (id, sec) { var Z = G.zoneById(id); if (!Z) return; focus = { x: (Z.x + Z.w / 2) * U, z: (Z.y + Z.h / 2) * U - 3, t: 0, life: sec || 2.6 }; },
+    _crewShown: function () { return crewObjs.filter(function (o) { return o && o.g.visible && o.g.parent; }).length; },
     _teleport: function (x, y) { if (world) { world.player.x = x; world.player.y = y; camera3(0, true); } },
     _stats: function () { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles }; }
   };

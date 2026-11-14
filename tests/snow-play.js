@@ -97,8 +97,9 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('첫 조작 안내 한 줄 (끌어서 걷기)', await waitFor(function () { var e = document.getElementById('hint'); return !e.hidden && e.getBoundingClientRect().height > 0; }, 4000) && /끌어서 걷기/.test(await txt('hint')));
   var is3 = await page.evaluate(function () { return !!__SNOW.view().is3D; });
   var cam0 = await page.evaluate(function () { var V = __SNOW.view(); return V.camMode ? V.camMode() : 'none'; });
-  ok('처음 시점은 위에서 내려다보기 (조준점 없음)', !is3 || (cam0 === 'near' && await page.evaluate(function () { return document.getElementById('xhair').hidden; })), cam0);
+  ok('처음 시점은 뒤에서 비스듬히 보는 3인칭 (조준점 없음)', !is3 || (cam0 === 'near' && await page.evaluate(function () { return document.getElementById('xhair').hidden; })), cam0);
   await shot('02-start');
+  await page.evaluate(function () { __SNOW.view().world().treas = []; });   // 분실물이 나오면 초코파이가 들어와서 아래 확인이 흔들린다
   var p0 = await W();
   await touchDrag(size[0] * 0.5, size[1] * 0.55, size[0] * 0.5, size[1] * 0.55 - 60, 1500);
   var p1 = await W();
@@ -270,6 +271,9 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.click('[data-hub="look"]'); await sleep(300);
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
+  await page.click('[data-hub="story"]'); await sleep(300);
+  ok('v14 수첩 → 발견 10칸 (못 찾은 건 ??? + 힌트)', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return /발견 \(\d+\/10\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 10 && /\?\?\?/.test(t); }));
+  await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="help"]'); await sleep(200);
   ok('교범 버튼 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
   await page.click('#modal [data-h="skip"]'); await sleep(200);
@@ -297,6 +301,13 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await page.evaluate(function () { var w = __SNOW.view().world(), r = w.recruits[0]; __SNOW.view()._teleport(150, 200); r.x = 160; r.y = 190; });
   ok('구역에서 1초 멈춰 서면 배치 → 후임이 된다', await waitFor(function () { var w = __SNOW.view().world(); return w.crew.length === 1 && w.crew[0].post === 'A' && __SNOW.save().crew.hoobae === 1; }, 4000));
   await talkThrough();
+  // ── v14 눈덩이: 근처에 고라니가 오면 버튼이 생기고, 누르면 알아서 조준해 던진다 ──
+  await page.evaluate(function () { var w = __SNOW.view().world(); w.deer.push({ x: w.player.x + 70, y: w.player.y + 10, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }); });
+  ok('v14 고라니가 근처에 오면 눈덩이 버튼 ("고라니!")', await waitFor(function () { var b = document.getElementById('throw-btn'); return !b.hidden && /고라니/.test(b.textContent); }, 3000));
+  await page.click('#throw-btn');
+  ok('v14 누르면 눈덩이가 날아간다 → "발견! 첫 눈덩이" (상점 +1)', await waitFor(function () { var w = __SNOW.view().world(); return !!(w.save.fun && w.save.fun.throw); }, 2500));
+  await page.evaluate(function () { __SNOW.view().world().deer = []; });
+  ok('v14 고라니가 없으면 버튼도 없다 (분대원·행보관이 멀면)', await waitFor(function () { var w = __SNOW.view().world(); return document.getElementById('throw-btn').hidden || !!JY.SnowAct.throwTarget(w); }, 2000));
 
   // ── 저장하고 다시 열어도 작전이 이어진다 ──
   var before = await page.evaluate(function () { var w = __SNOW.view().world(); w.time = 50; __SNOW.persist(); return { clear: w.clear, t: w.time, day: __SNOW.save().day }; });

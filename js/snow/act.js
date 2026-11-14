@@ -19,7 +19,8 @@
   var FLAG = { x: 520, y: 298 };
   var DECOR_MAN = { x: 470, y: 120 };
   var SNOWMAN_COST = 25;
-  var RIDE = {};                          // 직접 모는 차는 없다 (운전은 운전병이)
+  var RIDE = {};                          // v14: 탈것은 S.RIDES (리어카·사륜바이크·트랙터) — 아래 rideDef
+  var BALL = { cd: 0.4, speed: 300, g: 520 };
 
   var BUFF = {
     praise: { name: '칭찬', desc: '초코파이 +20%' },
@@ -71,7 +72,8 @@
     var save = w.save;
     save.snowmen = save.snowmen || []; save.daily = save.daily || {}; save.stats = save.stats || {}; save.prep = save.prep || {};
     var a = w.act = { buffs: {}, heat: 0, shoutT: 0, balls: [], ride: null, mission: null, cool: {}, ball: ballHome(w), n: { shoo: 0, pet: 0, wake: 0 },
-      hand: null, reqs: [], fuelT: 80, pickCd: 0, off: [], offPlan: [], offDay: -1, nagT: 40 };
+      hand: null, reqs: [], fuelT: 80, pickCd: 0, off: [], offPlan: [], offDay: -1, nagT: 40, ballCd: 0, angelT: 0,
+      rides: (S.RIDES || []).map(function (R0) { return { id: R0.id, kind: R0.kind, name: R0.name, x: R0.x, y: R0.y, dir: { x: 0, y: -1 }, fuel: R0.fuel, max: R0.fuel }; }) };
     if (!w.demo) applyPrep(w);
     return a;
   }
@@ -113,6 +115,9 @@
   function candidates(w) {
     var a = init(w), P = w.player, out = [], op = w.op || {};
     function add(k, ref, x, y, r, name, verb, extra) { var o = { k: k, ref: ref, x: x, y: y, r: r, name: name, verb: verb }; if (extra) Object.keys(extra).forEach(function (q) { o[q] = extra[q]; }); out.push(o); }
+    // v14 탈것: 옆에 서면 '타기', 타고 있으면 (다른 할 일이 없을 때) '내리기'
+    if (a.ride) add('exit', a.ride, P.x, P.y, 999, a.ride.name, '내리기', { behind: true, soft: true, ask: a.ride.max ? '기름 ' + Math.ceil(a.ride.fuel) + '초' : '' });
+    else a.rides.forEach(function (rd) { if (G.feat(w.save, rd.id)) add('ride', rd, rd.x, rd.y, 30, rd.name, rd.max && rd.fuel <= 0 ? '기름 없음' : '타기', { ask: rideDef(rd).desc }); });
     (a.off || []).forEach(function (o) {
       var verb = !o.saluted ? '경례' : !o.done.report && o.id !== 'lt' ? '보고하기' : o.id === 'lt' && !o.done.help ? '같이 하시죠' : '경례';
       add('officer', o, o.x, o.y, o.saluted ? 40 : 60, OFF[o.id].title, verb, { urgent: !o.saluted && !o.missed });
@@ -179,7 +184,11 @@
       if (a.pushT <= 0) { a.pushT = 0.45; me(w, pick(['영차!', '하나 둘 셋, 영차!', '밀어!!'])); fx(w, { t: 'push', x: car.x, y: car.y, push: car.push }); }
     }
     // 고라니: 가까이 가면 도망간다
-    w.deer.forEach(function (d) { if (!d.leaving && Math.hypot(d.x - P.x, d.y - P.y) < 34) { shoo(w, d, true); me(w, '훠이! 훠이!'); } });
+    w.deer.forEach(function (d) {
+      var dd = Math.hypot(d.x - P.x, d.y - P.y);
+      if (d.down > 0) { if (dd < 30 && !d.petted) { d.petted = true; bubble(w, d, pick(['…(눈을 꿈뻑)', '끼잉…', '(코를 킁킁)'])); me(w, '괜찮아? 미안하다…'); stat(w, 'deerPet'); fun(w, 'deerPet'); } return; }
+      if (!d.leaving && dd < 34) { shoo(w, d, true); me(w, '훠이! 훠이!'); }
+    });
     // 자거나 짱박힌 분대원: 지나가면 깨운다
     w.crew.forEach(function (e) {
       if (e.off || !(e.asleep || e.slack) || Math.hypot(e.x - P.x, e.y - P.y) > 28) return;
@@ -353,6 +362,8 @@
         e.boost = 20; e.naggedT = 25; e.mor = Math.min(100, e.mor + 10); me(w, pick(L.nag)); bubble(w, e, pick(L.nagReply)); stat(w, 'nag');
         return { ok: true };
       case 'officer': return actOfficer(w, t.ref);
+      case 'ride': return startRide(w, t.ref);
+      case 'exit': endRide(w, true); return { ok: true };
       case 'car':
         var car = t.ref; if (!car.stuck) return { ok: false };
         car.push += S.HAZ.car.push; car.mine = true; me(w, pick(['영차!', '하나 둘 셋, 영차!', '밀어!!']));
@@ -372,7 +383,7 @@
         shoo(w, t.ref, true); me(w, '훠이! 훠이!');
         return { ok: true };
       case 'cat':
-        e = t.ref; e.pet = 3; e.moving = false; stat(w, 'pet'); fx(w, { t: 'pet' });
+        e = t.ref; e.pet = 3; e.moving = false; stat(w, 'pet'); fx(w, { t: 'pet' }); fun(w, 'cat');
         bubble(w, e, pick(['냐앙~', '그르릉…', '(배를 보여 준다)', '(눈 위에 발자국 콕콕)']));
         return { ok: true };
       case 'garage':
@@ -403,17 +414,213 @@
 
   // 도구·버프로 지금 능력치를 다시 계산
   function applyStats(w) {
-    var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs;
-    P.r = G.toolR(save); P.p = T.p; P.aura = !!T.aura; P.noClear = false;
-    P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1));
+    var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? rideDef(a.ride) : null;
+    P.r = rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save); P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
+    P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1) * (rd ? rd.capMul : 1));
+    P.body = rd ? rd.body : 6;
     var m = w.mod;
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1);
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed : 1);
     m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1);
     m.stun = b.hotpack > 0 ? 0.5 : 1;
     w.mult = G.incomeMult(save) * (b.praise > 0 ? 1.2 : 1);
   }
-  function endRide() { /* 직접 모는 차는 없다 */ }
+  /* ── v14 탈것: 넓게·많이·빨리 대신 덩치 (좁은 틈 못 지나감) ── */
+  function rideDef(rd) { for (var i = 0; i < S.RIDES.length; i++) if (S.RIDES[i].id === rd.id) return S.RIDES[i]; return S.RIDES[0]; }
+  function startRide(w, rd) {
+    var a = init(w), P = w.player;
+    if (a.ride || !G.feat(w.save, rd.id)) return { ok: false };
+    if (rd.max && rd.fuel <= 0) { me(w, '기름이 없다… 정비고 앞에 세워 두면 찬다'); return { ok: false, why: 'fuel' }; }
+    a.ride = rd; P.x = rd.x; P.y = rd.y; P.dir.x = rd.dir.x; P.dir.y = rd.dir.y; P.stun = 0;
+    applyStats(w);
+    fx(w, { t: 'ride', kind: rd.kind, name: rd.name, on: true });
+    me(w, rd.kind === 'cart' ? pick(['리어카 출동!', '이거면 세 배다.']) : pick(['부릉부릉~', '이게 바로 문명이다!', '비켜, 비켜!']));
+    stat(w, 'ride'); fun(w, 'ride');
+    return { ok: true, ui: 'ride' };
+  }
+  function endRide(w, byHand) {
+    var a = w.act, P = w.player, rd = a && a.ride;
+    if (!rd) return;
+    a.ride = null; rd.x = P.x; rd.y = P.y; rd.dir = { x: P.dir.x, y: P.dir.y };
+    // 내 자리: 탈것 옆 빈 곳
+    var D = rideDef(rd), off = D.body + 8, spots = [[-P.dir.y * off, P.dir.x * off], [P.dir.y * off, -P.dir.x * off], [-P.dir.x * off, -P.dir.y * off], [0, 0]];
+    for (var i = 0; i < spots.length; i++) if (!G.blocked(P.x + spots[i][0], P.y + spots[i][1], 6)) { P.x += spots[i][0]; P.y += spots[i][1]; break; }
+    applyStats(w);
+    fx(w, { t: 'ride', kind: rd.kind, name: rd.name, on: false, hand: !!byHand });
+    if (!byHand) me(w, '기름 떨어졌다! 여기 두고 간다');
+  }
+  function stepRides(w, dt) {
+    var a = w.act, P = w.player, rd = a.ride, gd = door('garage');
+    a.rides.forEach(function (r) { if (r !== rd && r.max && r.fuel < r.max && Math.hypot(r.x - gd.x, r.y - gd.y) < 70) r.fuel = r.max; });   // 정비고 앞에 세우면 가득
+    if (!rd) return;
+    rd.x = P.x; rd.y = P.y;
+    if (rd.max) {
+      if (Math.hypot(P.x - gd.x, P.y - gd.y) < 60 && rd.fuel < rd.max) { rd.fuel = rd.max; bubble(w, gd, '정비병: 가득 넣었다. 긁지 마라.'); }
+      if (P.moving) rd.fuel -= dt;
+      if (rd.fuel <= 0) { rd.fuel = 0; endRide(w, false); return; }
+    }
+    // 사륜바이크로 빙판: 미끄덩 한 바퀴 (빙판 드리프트)
+    if (rd.kind === 'atv' && P.moving && P.stun <= 0 && icyPartHere(w) && w.rand() < 1.4 * dt) {
+      P.stun = 0.5; fx(w, { t: 'drift', x: P.x, y: P.y }); me(w, pick(['우와아아악!', '드리프트!!', '미끄덩~']));
+      if (fun(w, 'drift')) give(w, 30 * (1 + rank(w)) * w.mult, 'drift');
+    }
+  }
+
+  /* ── v14 발견: 처음 해 보면 '발견!' + 상점 1 ── */
+  function fun(w, id) {
+    if (w.demo) return false;
+    var save = w.save; save.fun = save.fun || {};
+    if (save.fun[id]) return false;
+    var F = null; (S.FUN || []).forEach(function (q) { if (q.id === id) F = q; });
+    if (!F) return false;
+    save.fun[id] = 1; save.dia += 1; save.diaLife = (save.diaLife || 0) + 1; if (w.today) w.today.dia = (w.today.dia || 0) + 1;
+    fx(w, { t: 'fun', id: id, name: F.name, dia: 1, n: Object.keys(save.fun).length, of: S.FUN.length });
+    return true;
+  }
+
+  /* ── v14 눈덩이: 근처에 누가 있으면 버튼 하나 — 알아서 조준 (움직이는 고라니는 앞을 보고 던진다) ── */
+  function throwTarget(w) {
+    if (w.demo || !G.feat(w.save, 'snowball')) return null;
+    var a = init(w), P = w.player, best = null, bs = 1e9;
+    if (a.ride && a.ride.kind !== 'cart') return null;
+    function consider(k, ref, x, y, range, pri, name) {
+      var d = Math.hypot(x - P.x, y - P.y);
+      if (d > range || d < 10) return;
+      var sc = d + pri; if (sc < bs) { bs = sc; best = { k: k, ref: ref, x: x, y: y, name: name }; }
+    }
+    w.deer.forEach(function (d) { if (!d.down && d.x > 0 && d.x < S.W && d.y > 0 && d.y < S.H) consider('deer', d, d.x, d.y, 150, -1000, '고라니'); });
+    w.crew.forEach(function (e) { if (!e.off && !e.def.vehicle && e.state !== 'follow') consider('crew', e, e.x, e.y, 100, 0, e.def.name); });
+    var H = w.haeng; if (!(w.op && w.op.ready)) consider('haeng', H, H.x, H.y, 85, 150, '행보관');
+    return best;
+  }
+  function throwBall(w) {
+    var a = init(w), P = w.player, t = throwTarget(w);
+    if (!t || a.ballCd > 0 || P.stun > 0) return { ok: false };
+    var vx = 0, vy = 0, R0 = t.ref;
+    if (t.k === 'deer') { var sp = S.HAZ.deer.speed * (R0.leaving ? 1.3 : 1) * (R0.slowT > 0 ? 0.3 : 1); vx = Math.cos(R0.heading) * sp; vy = Math.sin(R0.heading) * sp; }
+    var ax = t.x, ay = t.y, tf = 0;
+    for (var it = 0; it < 2; it++) { tf = Math.hypot(ax - P.x, ay - P.y) / BALL.speed; ax = t.x + vx * tf; ay = t.y + vy * tf; }
+    var dx = ax - P.x, dy = ay - P.y, dd = Math.hypot(dx, dy) || 1;
+    tf = Math.max(0.12, dd / BALL.speed);
+    var h0 = 20, vh = (14 - h0 + 0.5 * BALL.g * tf * tf) / tf;
+    var b = { x: P.x + dx / dd * 6, y: P.y + dy / dd * 6, h: h0, vx: dx / tf, vy: dy / tf, vh: vh, from: 'me', t: 0, aim: t.k, tgt: R0, T: tf };
+    a.balls.push(b); a.ballCd = BALL.cd; P.dir.x = dx / dd; P.dir.y = dy / dd; P.swing = 1;
+    stat(w, 'throw'); fx(w, { t: 'throw', b: b }); fun(w, 'throw');
+    return { ok: true, b: b, target: t.k };
+  }
+  function throwAt(w, from, to) {
+    var a = w.act, dx = to.x - from.x, dy = to.y - from.y, d = Math.hypot(dx, dy) || 1, tf = Math.max(0.15, d / 240);
+    a.balls.push({ x: from.x, y: from.y, h: 20, vx: dx / tf, vy: dy / tf, vh: (14 - 20 + 0.5 * BALL.g * tf * tf) / tf, from: 'crew', t: 0, src: from });
+    fx(w, { t: 'throw', b: a.balls[a.balls.length - 1], npc: true });
+  }
+  function stepBalls(w, dt) {
+    var a = w.act, P = w.player, H = w.haeng;
+    for (var i = a.balls.length - 1; i >= 0; i--) {
+      var b = a.balls[i], hit = null, j;
+      b.t += dt; b.vh -= BALL.g * dt;
+      // 조준 보조: 날아가는 동안 목표 쪽으로 살짝 휜다 (모바일에서 던지는 맛이 나게)
+      if (b.tgt && b.t < b.T) { var rem = Math.max(0.06, b.T - b.t), hk = Math.min(1, dt * 9); b.vx += ((b.tgt.x - b.x) / rem - b.vx) * hk; b.vy += ((b.tgt.y - b.y) / rem - b.vy) * hk; }
+      var ox = b.x, oy = b.y, oh = b.h;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.h += b.vh * dt;
+      // 이번 틱에 지나간 선분으로 맞았는지 본다 (화면이 느려 한 번에 많이 날아가도 안 빠져나간다)
+      var near = function (tx, ty, r) { var sx = b.x - ox, sy = b.y - oy, L2 = sx * sx + sy * sy, u = L2 ? Math.max(0, Math.min(1, ((tx - ox) * sx + (ty - oy) * sy) / L2)) : 1; return Math.hypot(ox + sx * u - tx, oy + sy * u - ty) < r; };
+      var low = b.h <= 34 || oh <= 34, gone = b.h <= 0 || b.t > 3 || (b.h < 30 && G.blocked(b.x, b.y, 1));
+      if (b.from === 'me' && low) {
+        for (j = 0; !hit && j < w.deer.length; j++) if (!w.deer[j].down && near(w.deer[j].x, w.deer[j].y, 17)) hit = w.deer[j];
+        if (!hit && near(H.x, H.y, 12)) hit = 'haeng';
+        for (j = 0; !hit && j < w.crew.length; j++) { var e = w.crew[j]; if (!e.off && !e.def.vehicle && near(e.x, e.y, 12)) hit = e; }
+      }
+      if (!hit && !(b.from !== 'me' && low && near(P.x, P.y, 11))) {
+        if (gone) { fx(w, { t: 'splat', x: b.x, y: b.y, h: Math.max(0, b.h) }); a.balls.splice(i, 1); }
+        continue;
+      }
+      if (b.from === 'me') {
+        fx(w, { t: 'splat', x: b.x, y: b.y, h: b.h, hit: true });
+        a.balls.splice(i, 1);
+        if (hit === 'haeng') {
+          H.hold = 1.6; bubble(w, H, pick(['어떤 놈이야!!', '눈덩이를 던져?! 이 녀석이!', '…너 이따 행정반으로 와.']));
+          delete a.buffs.praise; stat(w, 'hitHaeng'); fun(w, 'haeng');
+        } else if (w.deer.indexOf(hit) >= 0) hitDeer(w, hit);
+        else {
+          stat(w, 'hit'); hit.hitByMe = true;
+          if (hit.fought) { stat(w, 'fight'); if (fun(w, 'fight')) give(w, 20 * (1 + rank(w)) * w.mult, 'fight'); }
+          if (hit.asleep) { hit.asleep = false; hit.sleepT = 10; stat(w, 'wake'); bubble(w, hit, '으악! 누구야!! …아 깼다'); fx(w, { t: 'wake', e: hit }); }
+          else { bubble(w, hit, pick(['아 누구야!!', '야 이씨…', '눈싸움 하자는 거지?!', '어? 지금 던진 거야?'])); hit.mor = Math.min(100, (hit.mor || 50) + 3); }
+          if (w.rand() < 0.6) hit.throwT = 0.6;   // 받아친다 → 눈싸움
+        }
+      } else {
+        a.balls.splice(i, 1);
+        P.stun = Math.max(P.stun, 0.25 * w.mod.stun);
+        fx(w, { t: 'snowball', from: 'crew' }); fx(w, { t: 'splat', x: b.x, y: b.y, h: b.h, hit: true, me: true });
+        if (b.src && b.src.hitByMe) { stat(w, 'fight'); if (fun(w, 'fight')) give(w, 20 * (1 + rank(w)) * w.mult, 'fight'); }
+      }
+    }
+    w.crew.forEach(function (e) {
+      if (!(e.throwT > 0)) return;
+      e.throwT -= dt;
+      if (e.throwT <= 0) { e.fought = true; bubble(w, e, pick(['받아라!!', '복수다!', '이병이 감히?!', '눈싸움이면 안 지지!'])); throwAt(w, e, P); }
+    });
+  }
+  // 선임 장난: 근처 분대원이 눈덩이를 던진다 (보이게) → 받아치면 눈싸움
+  function prank(w) {
+    var P = w.player, e = null, bd = 160;
+    w.crew.forEach(function (c) { var d = Math.hypot(c.x - P.x, c.y - P.y); if (!c.off && !c.def.vehicle && c.state !== 'follow' && d < bd) { bd = d; e = c; } });
+    if (!e || !G.feat(w.save, 'snowball')) return false;
+    e.fought = true; bubble(w, e, pick(['야 이병! 받아라!', '방심했지?', '눈 맞고 정신 차려라~'])); throwAt(w, e, P);
+    return true;
+  }
+  function hitDeer(w, d) {
+    d.hp = (d.hp === undefined ? 2 : d.hp) - 1; stat(w, 'deerHit');
+    if (d.hp > 0) { bubble(w, d, '꾸엑?! (비틀)'); d.heading = Math.atan2(d.y - w.player.y, d.x - w.player.x); d.turnT = 1.6; d.slowT = 1.6; fx(w, { t: 'deerHit1', e: d, x: d.x, y: d.y }); return; }
+    // 두 방: 벌러덩 (3.5초 누워 있다가 비틀비틀 도망)
+    d.down = 3.5; d.moving = false; stat(w, 'deerDown'); bubble(w, d, '꾸에에엑…@_@');
+    var g = give(w, (25 + 10 * rank(w)) * w.mult, 'deerDown');
+    fx(w, { t: 'deerDown', e: d, x: d.x, y: d.y, pay: g });
+    fun(w, 'deerDown');
+    w.crew.slice(0, 3).forEach(function (c) { if (!c.off && Math.hypot(c.x - d.x, c.y - d.y) < 160) bubble(w, c, pick(['나이스 샷!!', '와 명중!', '저격수 출신?'])); });
+  }
+
+  /* ── v14 족구공: 몸으로 밀면 굴러간다. 네트를 넘기면 한 골 ── */
+  function stepKick(w, dt) {
+    var a = w.act, B = a.ball, P = w.player;
+    if (!B || !G.feat(w.save, 'kick')) return;
+    var d = Math.hypot(B.x - P.x, B.y - P.y);
+    if (d < (P.body || 6) + 6 && P.moving && !(B.kickT > 0)) {
+      var ux = (B.x - P.x) / (d || 1), uy = (B.y - P.y) / (d || 1), pw = 230 * (a.ride ? 1.3 : 1);
+      B.vx = (ux * 0.6 + P.dir.x * 0.6) * pw; B.vy = (uy * 0.6 + P.dir.y * 0.6) * pw; B.h = 6; B.kickT = 0.3;
+      fx(w, { t: 'kick', x: B.x, y: B.y }); stat(w, 'kick');
+    }
+    B.kickT = (B.kickT || 0) - dt;
+    var sp = Math.hypot(B.vx, B.vy);
+    if (sp < 2) { B.vx = B.vy = 0; B.h = 0; return; }
+    var nx = B.x + B.vx * dt, ny = B.y + B.vy * dt;
+    if (G.blocked(nx, B.y, 5)) { B.vx = -B.vx * 0.6; nx = B.x; }
+    if (G.blocked(B.x, ny, 5)) { B.vy = -B.vy * 0.6; ny = B.y; }
+    B.x = nx; B.y = ny;
+    var k = Math.exp(-1.4 * dt); B.vx *= k; B.vy *= k; B.h = Math.max(0, B.h - dt * 20);
+    B.roll = (B.roll || 0) + sp * dt * 0.12;
+    // 족구장 가운데 네트(x 630)를 세게 넘기면 한 골
+    var Z = G.zoneById('B');
+    if (w.save.zones.B && B.y > Z.y && B.y < Z.y + Z.h) {
+      var side = B.x < Z.x + Z.w / 2 ? -1 : 1;
+      if (B.side && side !== B.side && sp > 90 && !(B.goalT > 0)) {
+        B.goalT = 4; stat(w, 'goal'); var gp = give(w, 25 * (1 + rank(w)) * w.mult, 'goal');
+        fx(w, { t: 'goal', x: B.x, y: B.y, pay: gp }); fun(w, 'goal');
+        w.crew.slice(0, 3).forEach(function (c) { if (!c.off) bubble(w, c, pick(['나이스!!', '족구 국가대표?', '한 판 더!'])); });
+      }
+      B.side = side;
+    }
+    B.goalT = (B.goalT || 0) - dt;
+  }
+
+  /* ── v14 눈천사: 아무도 안 밟은 깊은 눈 위에서 3초 가만히 → 벌러덩 ── */
+  function stepAngel(w, dt) {
+    var a = w.act, P = w.player;
+    if (P.angel > 0) { P.angel -= dt; if (P.moving) P.angel = 0; }   // 누워 있는 모습만 (끌면 바로 일어난다)
+    if (a.angelDone || a.ride || P.moving || P.stun > 0 || !(w.save.stats.ops >= 2)) { a.angelT = 0; return; }
+    a.angelT += dt;
+    if (a.angelT > 5) { a.angelDone = true; P.angel = 2.5; fx(w, { t: 'angel', x: P.x, y: P.y }); me(w, pick(['(벌러덩) …하늘 예쁘다', '눈천사 완성!', '(팔다리 휘적휘적)'])); stat(w, 'angel'); fun(w, 'angel'); }
+  }
 
   /* ── 매 틱 ── */
   function step(w, dt) {
@@ -425,6 +632,9 @@
     // 다 끝냈으면 행보관이 보고 원(작전 지휘소)에 가서 기다린다
     if (w.op && w.op.ready && !(H.hold > 0)) { H.tx = S.PADS.report.x + 14; H.ty = S.PADS.report.y - 22; H.wait = 1; }
     if (!w.demo) auto(w, dt);
+    if (w.opEnd) return;
+    a.ballCd -= dt;
+    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); }
     if (w.opEnd) return;
     // 이병 때는 선임이 가끔 잔소리 (상병부터는 내가 하는 쪽)
     a.nagT -= dt;
@@ -648,7 +858,8 @@
     var mor = w.crew.length ? w.crew.reduce(function (q, e) { return q + e.mor; }, 0) / w.crew.length : 0, slack = w.crew.filter(function (e) { return e.slack; }).length;
     var reqs = a.reqs.map(function (q) { return { who: '제설차', item: q.item, want: ITEM[q.item].want, from: ITEM[q.item].from, t: q.t, max: q.max, ref: q.who }; });
     return { hand: a.hand ? { id: a.hand, name: ITEM[a.hand].name } : null, reqs: reqs, recruits: (w.recruits || []).length, heat: 0, buffs: list, mission: null,
-      salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack, ride: null,
+      salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack,
+      ride: a.ride ? { name: a.ride.name, kind: a.ride.kind, fuel: a.ride.fuel, max: a.ride.max } : null, throwT: throwTarget(w), ballCd: Math.max(0, a.ballCd || 0),
       op: G.opStatus(w), car: w.car && w.car.stuck ? { push: w.car.push } : null,
       pads: pads(w).map(function (p) { var t = a.padT && a.padT[p.id] > 0 ? a.padT[p.id] : 0; p.prog = Math.min(1, t / p.dwell); return p; }),
       goal: objective(w), assign: Math.min(1, (a.assignT || 0) / 1), fever: w.fever || 0, surge: w.surge || 0 };
@@ -656,7 +867,7 @@
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
-    canThrow: function () { return false; }, throwBall: function () { return { ok: false }; },
+    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
     prepItems: prepItems, prepBuy: prepBuy, pullDone: pullDone, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,

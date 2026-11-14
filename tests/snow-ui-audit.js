@@ -21,7 +21,7 @@ function scan() {
     var cs = getComputedStyle(el);
     if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el));
   });
-  var HUD = ['.hud-top', '#goal', '.prog', '.hud-btns', '#combo', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span'];
+  var HUD = ['.hud-top', '#goal', '.prog', '.hud-btns', '#combo', '#say', '#chip', '#banner', '#hint', '#acts', '#side', '#salute', '#sub', '#xhair span', '#throw-btn'];
   var rs = HUD.map(function (q) { var el = document.querySelector(q); return shown(el) ? { q: q, r: el.getBoundingClientRect() } : null; }).filter(Boolean);
   for (var i = 0; i < rs.length; i++) for (var j = i + 1; j < rs.length; j++) {
     var a = rs[i].r, b = rs[j].r, ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -51,7 +51,7 @@ function scan() {
     await page.click('#splash'); await sleep(600);
     var rc = await page.$('#modal:not([hidden]) [data-m]'); if (rc) { await rc.click(); await sleep(300); }
     await check('lobby-new');
-    await page.click('#t-start'); await sleep(1200); await check('prologue');
+    await page.click('#t-start'); await sleep(1200); await page.waitForFunction(function () { var b = document.querySelector('.talk-box'); return !b || b.getBoundingClientRect().bottom <= innerHeight + 1; }, null, { timeout: 3000 }).catch(function () {}); await check('prologue');
     async function closeAll() { for (var i = 0; i < 8; i++) { if (await page.evaluate(function () { return !document.getElementById('talk').hidden; })) { if (await page.evaluate(function () { return !document.getElementById('talk-name').hidden; })) { await page.click('#talk-ok'); await sleep(120); continue; } await page.click('.talk-box'); await sleep(120); continue; } var m = await page.$('#modal:not([hidden]) [data-m]') || await page.$('#modal:not([hidden]) [data-h="skip"]') || await page.$('#modal:not([hidden]) [data-h="next"]'); if (!m) return; await m.click(); await sleep(250); } }
     // 생활관 (진행된 저장: 일병, 분대원 3명, 상점·상자)
     await page.evaluate(function () {
@@ -99,6 +99,9 @@ function scan() {
     // 1인칭 (시점 버튼)
     await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('fp'); });
     await sleep(700); await check('play-fp');
+    // v14: 리어카를 타고, 근처에 고라니 (눈덩이 버튼 + 내리기 + '타고 있다')
+    await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('near'); var w = __SNOW.view().world(), A = JY.SnowAct, r = w.act.rides[0]; w.act.off = []; w.act.hand = null; __SNOW.view()._teleport(r.x, r.y); A.startRide(w, r); w.deer.push({ x: r.x + 80, y: r.y + 10, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }); });
+    await sleep(800); await check('play-ride');
     // 검열 결과 (가장 긴 경우) → 진급 신고
     await page.evaluate(function () {
       var lines = JY.SNOW.ZONES.slice(0, 7).map(function (Z, i) { return { name: Z.name, due: Z.due, done: i % 3 !== 2, late: i === 1, pct: 0.7 }; });

@@ -323,5 +323,86 @@ ok(followArrow(w, 25, function () { var z = G.zoneAt(w, w.player.x, w.player.y);
 var wV2 = fresh(); away(wV2); wV2.player.x = 200; wV2.player.y = 200; var oV = A.objective(wV2);
 ok(!oV || !oV.via, '곧장 갈 수 있으면 돌아가지 않는다');
 
+
+// ── v14 재미: 눈덩이 · 고라니 벌러덩 · 눈싸움 · 족구 · 눈천사 · 탈것 · 발견 ──
+function v14(fn) { return fresh(function (s) { s.day = 8; s.rank = 1; s.merit = 14; s.stats.ops = 7; G.assignZones(s); if (fn) fn(s); }); }
+function deerAt(w, x, y) { var d = { x: x, y: y, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }; w.deer.push(d); return d; }
+var w14 = fresh(function (s) { s.stats.ops = 3; }); away(w14); w14.act.offPlan = []; w14.act.off = [];
+w14.player.x = 270; w14.player.y = 470; deerAt(w14, 360, 470);
+ok(!A.throwTarget(w14), 'v14 눈덩이는 족구장(구역 B)부터 — 처음엔 버튼이 없다');
+w14 = v14(); away(w14); w14.act.offPlan = []; w14.act.off = [];
+w14.player.x = 270; w14.player.y = 470; var dr = deerAt(w14, 370, 470);
+w14.crew = [];
+var tg = A.throwTarget(w14);
+ok(tg && tg.k === 'deer', 'v14 고라니가 150 안이면 눈덩이 버튼 (조준은 알아서)', tg && tg.k);
+var thrown = 0;
+for (var ti = 0; ti < 12 && !(dr.down > 0); ti++) {
+  if (w14.deer.indexOf(dr) < 0) break;
+  w14.player.x = Math.max(20, dr.x - 90); w14.player.y = dr.y;   // 쫓아가서 던진다
+  if (A.throwBall(w14).ok) thrown++;
+  run(w14, 0.5);
+}
+ok(dr.down > 0 && thrown === 2, 'v14 고라니는 두 방이면 벌러덩 (한 방 맞으면 비틀거려서 두 번째도 맞힐 수 있다)', [dr.down, dr.hp, thrown]);
+ok(w14.save.fun.deerDown && w14.save.fun.throw && w14.save.stats.deerDown === 1, 'v14 발견: 첫 눈덩이 · 고라니 벌러덩 (수첩)', w14.save.fun);
+var dX = dr.x; run(w14, 1); ok(Math.abs(dr.x - dX) < 0.5, 'v14 벌러덩한 고라니는 누워 있다 (안 움직인다)');
+w14.player.x = dr.x - 20; w14.player.y = dr.y; run(w14, 0.2);
+ok(w14.save.fun.deerPet && dr.petted, 'v14 누운 고라니 옆에 가면 쓰담쓰담 (도망 보상 대신)');
+run(w14, 4); ok(!(dr.down > 0) && dr.leaving, 'v14 3.5초 뒤 일어나 비틀비틀 도망간다');
+var dia0 = w14.save.dia; ok(A.fun(w14, 'throw') === false && w14.save.dia === dia0, 'v14 발견 보상은 한 번만');
+// 행보관 맞히기 / 분대원 눈싸움
+var wh = v14(); wh.act.offPlan = []; wh.act.off = []; wh.crew = []; wh.deer = []; wh.haeng.x = 330; wh.haeng.y = 470; wh.haeng.hold = 99; wh.player.x = 270; wh.player.y = 470;
+A.applyStats(wh); wh.act.buffs.praise = 30;
+ok(A.throwTarget(wh) && A.throwTarget(wh).k === 'haeng', 'v14 행보관도 맞힐 수 있다 (아무도 없을 때만 고른다)');
+A.throwBall(wh); run(wh, 0.6);
+ok(wh.save.fun.haeng && !wh.act.buffs.praise, 'v14 행보관 명중 → "간 큰 놈" 발견, 칭찬 버프는 날아간다');
+var wc = v14(function (s) { s.crew = { hoobae: 1 }; }); wc.act.offPlan = []; wc.act.off = []; away(wc);
+run(wc, 0.1); var cm = wc.crew[0]; cm.x = 320; cm.y = 470; cm.retarget = 99; cm.speed = 0; wc.player.x = 250; wc.player.y = 470; wc.deer = [];
+ok(A.prank(wc) && wc.act.balls.length === 1 && cm.fought, 'v14 선임 장난: 근처 분대원이 보이게 던진다');
+run(wc, 0.8); A.throwBall(wc); run(wc, 0.8);
+ok(wc.save.fun.fight, 'v14 받아치면 눈싸움 발견', wc.save.fun);
+// 족구: 공을 몸으로 밀어 네트를 넘기면 한 골
+var wk = v14(); away(wk); wk.act.offPlan = []; wk.act.off = []; wk.deer = []; var ZB = G.zoneById('B'), B = wk.act.ball;
+B.x = ZB.x + ZB.w / 2 - 30; B.y = ZB.y + ZB.h / 2; B.vx = 0; B.vy = 0; B.side = -1;
+wk.player.x = B.x - 14; wk.player.y = B.y;
+run(wk, 1.2, { x: 1, y: 0 });
+ok(wk.save.fun.goal && (wk.save.stats.goal || 0) >= 1, 'v14 족구공을 밀고 가서 네트 너머로 → 한 골', [Math.round(B.x), wk.save.stats.goal]);
+// 눈천사: 깊은 눈 위에서 가만히 4초 (한 작전에 한 번, 움직이면 바로 일어난다)
+var wa = v14(); away(wa); wa.act.offPlan = []; wa.act.off = []; wa.deer = []; wa.crew = [];
+var ci = -1, ZC = G.zoneById('C'); for (var yy = ZC.y + 40; ci < 0 && yy < ZC.y + ZC.h - 40; yy += S.CELL) for (var xx = ZC.x + 40; xx < ZC.x + ZC.w - 40; xx += S.CELL) { var ii = G.cellIndex(xx, yy); if (wa.depth[ii] >= 2 && !G.blocked(xx, yy, 6)) { ci = ii; break; } }
+wa.player.x = (ci % S.GW) * S.CELL + S.CELL / 2; wa.player.y = Math.floor(ci / S.GW) * S.CELL + S.CELL / 2; wa.player.load = 0;
+run(wa, 5.5);
+ok(wa.save.fun.angel && wa.player.angel > 0 && wa.player.stun <= 0, 'v14 눈천사: 5초 가만히 → 누운 모습만 (기절 아님)');
+run(wa, 0.2, { x: 1, y: 0 }); ok(!(wa.player.angel > 0), 'v14 끌면 바로 일어난다');
+// 탈것: 크기·간섭
+var wr = v14(function (s) { s.zones.D = true; }); away(wr); wr.act.offPlan = []; wr.act.off = []; wr.deer = [];
+var cart = wr.act.rides[0], atv = wr.act.rides[1], trac = wr.act.rides[2];
+wr.player.x = cart.x + 12; wr.player.y = cart.y;
+var rc = A.candidates(wr).filter(function (q) { return q.k === 'ride'; }).map(function (q) { return q.ref.id; });
+ok(rc.indexOf('cart') >= 0 && rc.indexOf('tractor') < 0, 'v14 일병: 리어카·사륜바이크는 탈 수 있고 트랙터는 상병부터', rc);
+A.applyStats(wr); var cap0 = wr.player.cap, sp0 = wr.mod.speed;
+ok(A.act(wr, { k: 'ride', ref: cart }, wr.player.dir).ok && wr.act.ride === cart, 'v14 리어카 타기');
+A.applyStats(wr);
+ok(wr.player.cap === cap0 * 3 && wr.mod.speed < sp0 && wr.player.body === 11, 'v14 리어카: 세 배 싣고, 느리고, 덩치가 크다', [cap0, wr.player.cap, wr.mod.speed, wr.player.body]);
+var ex = A.best(wr, wr.player.dir, false); ok(ex && ex.k === 'exit', 'v14 타고 있으면 행동 버튼이 "내리기"', ex && ex.k);
+A.act(wr, ex, wr.player.dir); A.applyStats(wr);
+ok(!wr.act.ride && wr.player.cap === cap0 && wr.player.body === 6 && Math.hypot(cart.x - wr.player.x, cart.y - wr.player.y) > 10, 'v14 내리면 원래대로, 리어카는 그 자리에 남는다');
+// 덩치: 걸어서는 지나가는 틈을 트랙터는 못 지나간다
+var foot = { x: 180, y: 284 }, big = { x: 180, y: 284 };
+G.moveEnt(foot, 12, 0, 6); G.moveEnt(big, 12, 0, 16);
+ok(foot.x > 190 && big.x < 185, 'v14 몸집: 구령대 옆 틈은 걸어서는 지나가고 트랙터는 못 지나간다', [foot.x, big.x]);
+// 사륜바이크: 빠르고 넓게, 기름 떨어지면 내린다, 정비고 앞에 세우면 가득
+wr.player.x = atv.x + 10; wr.player.y = atv.y; A.startRide(wr, atv); A.applyStats(wr);
+ok(wr.mod.speed > 1.5 && wr.player.r >= 24, 'v14 사륜바이크: 1.6배 빠르고 앞날 폭 24', [wr.mod.speed, wr.player.r]);
+atv.fuel = 0.2; run(wr, 0.5, { x: -1, y: 0 });
+ok(!wr.act.ride && atv.fuel === 0 && fxs(wr, 'ride').some(function (f) { return !f.on && !f.hand; }), 'v14 기름이 떨어지면 저절로 내린다');
+ok(A.startRide(wr, atv).ok === false, 'v14 기름 없으면 못 탄다');
+var gd = A.door('garage'); atv.x = gd.x + 20; atv.y = gd.y + 10; run(wr, 0.1);
+ok(atv.fuel === atv.max, 'v14 정비고 앞에 세워 두면 기름이 찬다');
+// 고라니가 탈것에 부딪히면 튕겨 나간다 (나는 안 넘어진다)
+var wd = v14(function (s) { s.zones.D = true; }); away(wd); wd.act.offPlan = []; wd.act.off = []; wd.crew = [];
+var a2 = wd.act.rides[1]; wd.player.x = a2.x; wd.player.y = a2.y; A.startRide(wd, a2); A.applyStats(wd);
+var dd = deerAt(wd, wd.player.x + 6, wd.player.y); dd.turnT = 9; run(wd, 0.2);
+ok(wd.player.stun <= 0, 'v14 탈것에 타면 고라니에 받혀도 안 넘어진다');
+
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

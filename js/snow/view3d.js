@@ -325,6 +325,7 @@
     }
     var im = new T.InstancedMesh(treeGeo(), matV, list.length), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
     list.forEach(function (t, k) { e.set(0, hash(k, 9) * 6, 0); q.setFromEuler(e); m.compose(new T.Vector3(t[0], 0, t[1]), q, new T.Vector3(t[2], t[2], t[2])); im.setMatrixAt(k, m); });
+    treeIM = { im: im, list: list, rot: list.map(function (_, k) { return hash(k, 9) * 6; }), low: [] };
     return im;
   }
   function flagTex() {
@@ -540,7 +541,19 @@
   function vehicleGeo(kind) {
     var k = 'veh:' + kind; if (geos[k]) return geos[k];
     var parts;
-    if (kind === 'heli') {
+    if (kind === 'atv') {
+      // v14 제설 사륜바이크: 빨간 몸통 + 앞 삽날
+      parts = [[box(1.1, 0.5, 1.9, { y: 0.78 }), '#c8402e'], [box(0.72, 0.26, 0.95, { y: 1.12, z: -0.25 }), '#26282b'], [box(1.0, 0.14, 0.55, { y: 1.08, z: 0.72 }), '#c8402e'],
+        [cyl(0.04, 0.04, 1.15, { rz: Math.PI / 2, y: 1.42, z: 0.55 }), '#333'], [cyl(0.05, 0.05, 0.5, { y: 1.2, z: 0.6 }), '#333'], [sph(0.13, { y: 1.0, z: 0.98 }), '#fff6c0'],
+        [box(2.3, 0.6, 0.12, { y: 0.42, z: 1.4, rx: -0.15 }), '#f0b429'], [box(0.12, 0.1, 0.6, { x: -0.5, y: 0.5, z: 1.05 }), '#555'], [box(0.12, 0.1, 0.6, { x: 0.5, y: 0.5, z: 1.05 }), '#555']];
+      [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (p) { parts.push([cyl(0.38, 0.38, 0.32, { rz: Math.PI / 2, x: p[0] * 0.66, y: 0.38, z: p[1] * 0.62 }, 12), '#1d1d1b']); });
+    } else if (kind === 'cart') {
+      // v14 리어카: 바퀴 둘 + 짐칸 + 손잡이 (사람은 뒤에서 민다)
+      parts = [[box(1.5, 0.12, 1.7, { y: 0.75 }), '#6b7d4a'], [box(0.08, 0.5, 1.7, { x: -0.72, y: 1.0 }), '#6b7d4a'], [box(0.08, 0.5, 1.7, { x: 0.72, y: 1.0 }), '#6b7d4a'],
+        [box(1.5, 0.5, 0.08, { y: 1.0, z: 0.82 }), '#6b7d4a'], [box(1.5, 0.5, 0.08, { y: 1.0, z: -0.82 }), '#6b7d4a'],
+        [cyl(0.04, 0.04, 1.2, { rx: Math.PI / 2, x: -0.55, y: 0.95, z: -1.35 }), '#444'], [cyl(0.04, 0.04, 1.2, { rx: Math.PI / 2, x: 0.55, y: 0.95, z: -1.35 }), '#444'], [cyl(0.04, 0.04, 1.15, { rz: Math.PI / 2, y: 0.95, z: -1.95 }), '#444'],
+        [cyl(0.45, 0.45, 0.14, { rz: Math.PI / 2, x: -0.86, y: 0.45 }, 14), '#1d1d1b'], [cyl(0.45, 0.45, 0.14, { rz: Math.PI / 2, x: 0.86, y: 0.45 }, 14), '#1d1d1b'], [cyl(0.2, 0.2, 0.16, { rz: Math.PI / 2, x: -0.86, y: 0.45 }, 10), '#8a8f94'], [cyl(0.2, 0.2, 0.16, { rz: Math.PI / 2, x: 0.86, y: 0.45 }, 10), '#8a8f94']];
+    } else if (kind === 'heli') {
       parts = [[sph(1.3, { s: [1, 0.75, 1.5], y: 1.3 }), '#4c5a35'], [sph(0.85, { s: [1, 0.8, 1], y: 1.5, z: 1.0 }), '#9cc3dc'], [cyl(0.18, 0.12, 3.2, { rx: Math.PI / 2, y: 1.6, z: -2.6 }), '#4c5a35'],
         [box(0.1, 0.9, 0.6, { y: 1.9, z: -4.1 }), '#4c5a35'], [box(0.12, 0.08, 3.2, { x: -0.9, y: 0.2 }), '#333'], [box(0.12, 0.08, 3.2, { x: 0.9, y: 0.2 }), '#333'],
         [cyl(0.05, 0.05, 0.7, { x: -0.9, y: 0.55 }), '#333'], [cyl(0.05, 0.05, 0.7, { x: 0.9, y: 0.55 }), '#333'], [cyl(0.08, 0.08, 0.5, { y: 2.45 }), '#222'], [box(6.5, 0.05, 0.28, { y: 2.7 }), '#2a2a2a'], [box(0.28, 0.05, 6.5, { y: 2.72 }), '#2a2a2a']];
@@ -637,7 +650,7 @@
     var tool = null;
     if (o.tool) { tool = new T.Mesh(toolGeo(o.tool, o.r || 10, o.toolColor), matV); if (o.shadow) tool.castShadow = true; body.add(tool); }
     g.add(body);
-    if (!o.vehicle) g.scale.setScalar(o.scale || 1.25);
+    if (!o.vehicle) g.scale.setScalar(o.scale || 1.25); else if (o.vehicle === 'atv') g.scale.setScalar(1.4);   // v14: 사륜바이크는 사람 크기에 맞춘다
     scene.add(g);
     return { g: g, body: body, tool: tool, head: faceMesh, shadow: sh, face: o.face, expr: 'normal', vehicle: o.vehicle, lie: 0 };
   }
@@ -669,7 +682,7 @@
   function playerKey() { var rd = world.act && world.act.ride, Tl = G.toolOf(world.save); return (rd ? 'ride:' + rd.kind : Tl.id) + '#' + (MM() ? MM().lookKey(world.save) : ''); }
   function buildPlayer() {
     removeObj(playerObj);
-    var Tl = G.toolOf(world.save), rd = world.act && world.act.ride, veh = rd ? rd.kind : Tl.vehicle ? Tl.id : null;
+    var Tl = G.toolOf(world.save), rd = world.act && world.act.ride, veh = rd && rd.kind !== 'cart' ? rd.kind : Tl.vehicle ? Tl.id : null;
     playerKind = playerKey();
     var L = world.save.look || {};
     playerObj = makePerson({ coat: lookCol('coat', '#5b6a3a'), face: 'me', hat: L.hat || 'beanie', toolColor: lookCol('tool', '#e7ae2f'), tool: veh ? null : Tl.aura ? 'salt' : Tl.id === 'broom' ? 'broom' : Tl.id === 'twin' ? 'twin' : Tl.id === 'cart' ? 'cart' : 'pusher', r: Tl.r, vehicle: veh, big: !!veh, shadow: true });
@@ -915,6 +928,16 @@
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
       else if (f.t === 'hand') { vmPlay('act', 0.5); if (sfx) sfx.pop(); }
+      else if (f.t === 'deerDown') {
+        for (k = 0; k < 26; k++) emit(f.x * U, 1.2, f.y * U, rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1.1), [1, 0.95, 0.5]);
+        var od2 = addOv('벌러덩!<span>+' + fmt(f.pay) + '</span>', 'ov-dump', f.x, f.y, 3.6, 1.6); od2.rise = 1.2; shake = Math.max(shake, 0.5);
+        addOv('@_@', 'ov-chat ov-dizzy', 0, 0, 2.4, 3.4, f.e);
+        if (sfx) { sfx.thud(); sfx.deer(); }
+      }
+      else if (f.t === 'deerUp') addOv('비틀비틀…', 'ov-chat', 0, 0, 4, 1.4, f.e);
+      else if (f.t === 'drift') { for (k = 0; k < 30; k++) emit(f.x * U + rnd(-1, 1), 0.4, f.y * U + rnd(-1, 1), rnd(-6, 6), rnd(1, 4), rnd(-6, 6), rnd(0.4, 0.8)); if (sfx) sfx.whoosh(); }
+      else if (f.t === 'angel') { for (k = 0; k < 24; k++) emit(f.x * U + rnd(-0.8, 0.8), 0.3, f.y * U + rnd(-0.8, 0.8), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), rnd(0.5, 0.9)); if (sfx) sfx.thud(); }
+      else if (f.t === 'fun') { if (sfx) sfx.found(); }
       else if (f.t === 'goal') { for (k = 0; k < 50; k++) emit(f.x * U, 1, f.y * U, rnd(-4, 4), rnd(4, 9), rnd(-4, 4), rnd(0.8, 1.4), [[1, 0.84, 0.3], [0.6, 0.9, 1], [1, 0.5, 0.5]][k % 3]); }
       else if (f.t === 'warm') { for (k = 0; k < 20; k++) emit(f.x * U + rnd(-0.4, 0.4), 1.2, f.y * U + rnd(-0.4, 0.4), rnd(-0.6, 0.6), rnd(1, 3), rnd(-0.6, 0.6), rnd(0.5, 0.9), [1, 0.6, 0.2]); vmPlay('act', 0.6); }
       else if (f.t === 'assigned') { addOv('담당: ' + esc((G.zoneById(f.zone) || {}).name || ''), 'ov-new', 0, 0, 4.4, 2, f.e); if (sfx) sfx.salute(); }
@@ -940,7 +963,7 @@
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
       else if (f.t === 'help') { if (f.e) addOv(f.name + ' 도우러 갑니다!', 'ov-chat', 0, 0, 3.6, 2, f.e); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -951,7 +974,7 @@
     if (playerKey() !== playerKind) buildPlayer();
     playerObj.g.visible = !isFP();
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
-    placePerson(playerObj, P, { lie: P.stun > 0.6 && !playerObj.vehicle });
+    placePerson(playerObj, P, { lie: (P.stun > 0.6 || P.angel > 0) && !playerObj.vehicle });
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
     stackOn(playerObj, P);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
@@ -970,6 +993,9 @@
     w.deer.forEach(function (d, i) {
       var o = deerObjs[i];
       o.g.position.set(d.x * U, snowAt(d.x, d.y) * 0.4, d.y * U);
+      // v14: 눈덩이 두 방 → 옆으로 벌러덩 (다리 버둥버둥)
+      if (d.down > 0) { o.body.rotation.z += (1.4 - o.body.rotation.z) * Math.min(1, dt * 10); o.body.position.y = 0.3; o.body.rotation.x = 0; o.legs.forEach(function (l, k) { l.rotation.x = Math.sin(t * 18 + k) * 0.35; }); return; }
+      o.body.rotation.z *= 0.85;
       o.body.rotation.y = Math.atan2(d.dir.x, d.dir.y);
       o.body.position.y = Math.abs(Math.sin(d.walk * 1.6)) * 0.35;
       o.body.rotation.x = Math.sin(d.walk * 1.6) * 0.12;
@@ -1001,7 +1027,7 @@
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 1.06, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 0.6, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
   // v11: 처음엔 위에서 비스듬히 내려다보는 3인칭 (한 손가락으로 끌어서 이동). 1인칭은 시점 버튼으로
   try { var cm0 = localStorage.getItem('jeseol-cam3'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
   // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
@@ -1048,9 +1074,10 @@
       scene.fog.near = 26; scene.fog.far = 300;
       sr = 30; sun.target.position.set(ex + fx0 * 13, 0, ez + fz0 * 13);
     } else if (c === 'near') {
-      var a0 = vw / vh, tn = Math.tan(FOVN * Math.PI / 360), wn = WIDN[world.save.tool] || 16, dn = a0 < 1 ? (wn / 2) / (tn * a0) : (wn * 0.6 / 2) / tn, ly = 1.3;
+      var a0 = vw / vh, tn = Math.tan(FOVN * Math.PI / 360), wn = WIDN[world.save.tool] || 16, dn = (a0 < 1 ? (wn / 2) / (tn * a0) : (wn * 0.6 / 2) / tn) * 1.05, ly = 1.3;
       camDn += (dn - camDn) * (snap ? 1 : Math.min(1, dt * 2));
-      var ahead = camDn * 0.1;   // v11: 거의 위에서 내려다본다 (화면 위 = 북쪽, 끄는 방향 그대로 걷는다)
+      // v14: 뒤에서 비스듬히 보는 3인칭 (약 34°). 화면 위 = 북쪽은 그대로라 끄는 방향 그대로 걷는다. 내 캐릭터는 화면 아래쪽 가운데
+      var ahead = camDn * 0.13;
       camera.up.set(0, 1, 0);
       camera.position.set(camT.x + sx, ly + Math.sin(PITCHN) * camDn, camT.z + Math.cos(PITCHN) * camDn + sz);
       camera.lookAt(camT.x + sx, ly, camT.z - ahead + sz);
@@ -1089,10 +1116,24 @@
     sunSprite.material.opacity = 0.75 + k * 0.25;
   }
   // 앞을 가리는 건물은 반투명
-  var bld3 = [], fadeN = 0;
+  var bld3 = [], fadeN = 0, treeIM = null;
+  // v14: 비스듬한 3인칭이라 내 앞(카메라 쪽) 나무가 나를 가린다 → 그 나무만 낮게 눌러 둔다
+  function sinkTrees(P) {
+    if (!treeIM) return;
+    var px = P.x * U, pz = P.y * U, near = cm() === 'near', m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), ch = false;
+    for (var k = 0; k < S.TREES.length; k++) {
+      var t = treeIM.list[k], low = near && Math.abs(t[0] - px) < 2.6 && t[1] > pz - 0.5 && t[1] - pz < 9;
+      if (!!treeIM.low[k] === low) continue;
+      treeIM.low[k] = low; ch = true;
+      e.set(0, treeIM.rot[k], 0); q.setFromEuler(e);
+      m.compose(new T.Vector3(t[0], 0, t[1]), q, new T.Vector3(t[2], t[2] * (low ? 0.22 : 1), t[2])); treeIM.im.setMatrixAt(k, m);
+    }
+    if (ch) treeIM.im.instanceMatrix.needsUpdate = true;
+  }
   function fadeBuildings() {
     if (++fadeN % 4 || !world) return;
     var P = world.player;
+    sinkTrees(P);
     bld3.forEach(function (o) {
       var b = o.b, block = cm() === 'near' && P.y < b.y + 4 && P.y > b.y - 170 && P.x > b.x - 30 && P.x < b.x + b.w + 30;
       var target = block ? 0.28 : 1;
@@ -1355,9 +1396,31 @@
       el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)';
     });
   }
+  // v14 탈것: 세워 둔 자리에 그린다. 타고 있으면 사람 모델이 차가 되고, 리어카는 내 앞에서 같이 간다
+  var rideObjs = {};
+  function syncRides(a) {
+    var list = a && a.rides && (mode === 'play' || mode === 'paused') ? a.rides : [];
+    Object.keys(rideObjs).forEach(function (k) { rideObjs[k].visible = false; });
+    list.forEach(function (r) {
+      if (!G.feat(world.save, r.id)) return;
+      var o = rideObjs[r.id];
+      if (!o) { o = rideObjs[r.id] = new T.Group(); var m = new T.Mesh(vehicleGeo(r.kind), matV); m.castShadow = true; o.add(m); if (r.kind !== 'tractor') o.scale.setScalar(r.kind === 'atv' ? 1.4 : 1.25); scene.add(o); }
+      var riding = a.ride === r, P = world.player;
+      if (riding && r.kind !== 'cart') return;
+      o.visible = true;
+      var x = riding ? P.x + P.dir.x * 15 : r.x, y = riding ? P.y + P.dir.y * 15 : r.y, d = riding ? P.dir : r.dir;
+      o.position.set(x * U, snowAt(x, y) * 0.3, y * U); o.rotation.y = Math.atan2(d.x, d.y);
+      // 리어카 짐칸: 실은 만큼 눈이 쌓여 보인다
+      if (r.kind === 'cart') {
+        if (!o.pile) { o.pile = new T.Mesh(new T.BoxGeometry(1.36, 0.6, 1.56), new T.MeshLambertMaterial({ color: '#f4f8fc' })); o.pile.position.y = 0.95; o.add(o.pile); }
+        var k = riding ? Math.min(1, P.load / Math.max(1, P.cap)) : 0; o.pile.visible = k > 0.02; o.pile.scale.y = Math.max(0.05, k * 1.6); o.pile.position.y = 0.8 + 0.3 * k * 1.6;
+      }
+    });
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
-    if (tractorObj) tractorObj.visible = !(a && a.ride && a.ride.kind === 'tractor');
+    if (tractorObj) tractorObj.visible = !G.feat(world.save, 'tractor');   // v14: 트랙터를 탈 수 있으면 아래 탈것이 대신 그린다
+    syncRides(a);
     syncOfficers(a); stepSparkles(dt); syncRecruits(); syncReqs(a); stepProps(dt);
     if (!a) { if (kickBall) kickBall.visible = false; return; }
     while (actBalls.length < a.balls.length) {
@@ -1656,7 +1719,8 @@
       o.stack = new T.Group(); o.stack.position.set(0, 1.0, -0.6); o.body.add(o.stack); o.stackBoxes = [];
       for (var i = 0; i < 12; i++) { var m = new T.Mesh(stackGeo, stackMat); m.position.set((hash(i, 3) - 0.5) * 0.09, i * 0.255, (hash(i, 5) - 0.5) * 0.06); m.rotation.y = (hash(i, 7) - 0.5) * 0.45; m.castShadow = true; m.visible = false; o.stack.add(m); o.stackBoxes.push(m); }
     }
-    var n = P.load > 0 ? Math.max(1, Math.round(P.load / P.cap * 12)) : 0, k = n / 12;
+    var cartOn = o === playerObj && world.act && world.act.ride && world.act.ride.kind === 'cart';   // v14: 리어카면 등이 아니라 짐칸에 쌓인다
+    var n = P.load > 0 && !cartOn ? Math.max(1, Math.round(P.load / P.cap * 12)) : 0, k = n / 12;
     o.stackBoxes.forEach(function (m, i) { m.visible = i < n; });
     o.stack.rotation.x = P.moving ? Math.sin((P.walk || 0) * 2) * 0.05 * k : 0;
     o.stack.rotation.z = P.moving ? Math.sin(P.walk || 0) * 0.06 * k : 0;

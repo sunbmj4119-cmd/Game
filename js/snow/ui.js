@@ -107,6 +107,7 @@
   function started() { return !!(save.stats.ops || save.snow || save.discharges || save.day > 1); }
   function midOp() { return !!(save.snow && save.dayT > 0 && save.op && save.op.day === save.day); }
   function title() {
+    document.body.style.removeProperty('--hudb'); hud.hb = 0; $('throw-btn').hidden = true; hudA.tk = null;
     // 이야기 장면이 열린 채 생활관으로 오면 닫는다 (장면은 다음에 다시 나온다)
     if (talking) { $('talk').hidden = true; talking = false; document.querySelector('.talk-box').onclick = null; }
     show('title');
@@ -330,6 +331,11 @@
     if (onV6Event(f)) return;
     if (onOpEvent(f)) return;
     if (f.t === 'deer') { vibrate(80); }
+    else if (f.t === 'fun') { banner('발견! ' + f.name, '상점 +' + f.dia + ' · 수첩 ' + f.n + '/' + f.of, 2400); vibrate([30, 30, 60]); }
+    else if (f.t === 'deerDown') vibrate([40, 30, 90]);
+    else if (f.t === 'goal') { if (!(save.fun && save.fun.goal && hud.goalSaid)) chip('족구 한 골! +' + fmt(f.pay), 'good'); hud.goalSaid = 1; if (X) X.fanfare(); }
+    else if (f.t === 'ride') { if (f.on) chip(f.name + ' 탑승!', 'good'); else if (!f.hand) chip('기름 떨어짐 · 정비고 앞에 세우면 찬다', 'warn'); }
+    else if (f.t === 'drift') vibrate([30, 20, 30, 20, 30]);
     else if (f.t === 'meHit') { chip('고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
     else if (f.t === 'snowball') { splat(); vibrate(50); }
     else if (f.t === 'car') chip('출근 차량 온다 · 진입로', 'warn');
@@ -350,7 +356,7 @@
     if (f.t === 'carFree') { chip('영차! 차가 빠져나왔다', 'good'); if (X) X.ding(); return true; }
     if (f.t === 'carPass') { chip('차가 한 번에 올라갔다 · 상점 +1', 'good'); if (X) X.perfect(); return true; }
     if (f.t === 'push') { vibrate(15); return true; }
-    if (f.t === 'roofWarn') { chip('처마 눈! 피해', 'warn'); vibrate([20, 20, 20]); return true; }
+    if (f.t === 'roofWarn') { var Pw = V.world && V.world() && V.world().player; if (Pw && Math.hypot(Pw.x - (f.x + f.w / 2), Pw.y - f.y) > 100) return true; chip('처마 눈! 피해', 'warn'); vibrate([20, 20, 20]); return true; }   // v14: 근처일 때만
     if (f.t === 'roof') return true;
     if (f.t === 'jigeok') { chip('지적 ' + f.n + '건 (경례 놓침)', 'bad'); vibrate([80, 40, 80]); hud.op = null; return true; }
     if (f.t === 'nag') return true;
@@ -402,7 +408,7 @@
     var ck = G.clockText(G.clockOf(w.time));
     if (hud.clock !== ck) { hud.clock = ck; $('h-day').textContent = ck; var late = w.dayLen - w.time < 30; $('h-day').classList.toggle('late', late); }
     // 알림 줄은 HUD(지금 할 일·진행 막대) 바로 아래에서 시작한다
-    if (nowP - (hud.stackAt || 0) > 150) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; } }
+    if (nowP - (hud.stackAt || 0) > 150) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; document.body.style.setProperty('--hudb', Math.round(hb) + 'px'); } }
     if (Date.now() - lastSave > 5000) persist();
   }
 
@@ -428,6 +434,7 @@
     if (talking || !$('modal').hidden) { if (V.pause) V.pause(true); setTimeout(function () { results(res); }, 400); return; }   // 대사·다른 창이 끝난 뒤에
     if (V.pause) V.pause(true);
     if (V.setSpeed) V.setSpeed(1);
+    $('throw-btn').hidden = true; hudA.tk = null;
     persistRaw();
     var r = res.rank, nr = S.RANKS[r + 1], R0 = S.RANKS[r];
     // v13: 읽을 게 적게 — 지시서는 '완료 N/M' 한 줄 + 못 한 줄·늦은 줄만 (최대 3)
@@ -853,8 +860,14 @@
     saluteHud(st);
     opHud(w, st);
     goalHud(st); twistHud(st);
-    var hk = st.hand ? st.hand.name : '';
-    if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand; $('h-hand-n').textContent = hk; }
+    // v14: 탈것을 타고 있으면 같은 자리에 '탄 것 · 기름' (누르면 내린다)
+    var hk = st.ride ? st.ride.name + (st.ride.max ? ' · 기름 ' + Math.ceil(st.ride.fuel) : '') : st.hand ? st.hand.name : '';
+    if (hudA.hand !== hk) { hudA.hand = hk; $('h-hand').hidden = !st.hand && !st.ride; $('h-hand-n').textContent = hk; $('h-hand').classList.toggle('ride', !!st.ride); $('h-hand').querySelector('span').textContent = st.ride ? '타고 있다' : '손에 든 것'; }
+    // v14 눈덩이 버튼: 던질 사람(고라니·분대원·행보관)이 근처에 있을 때만
+    var tt = st.throwT, tk = tt ? tt.k + (tt.k === 'deer' ? '!' : '') : '';
+    if (hudA.tk !== tk) { hudA.tk = tk; $('throw-btn').hidden = !tt; $('throw-btn').classList.toggle('deer', !!tt && tt.k === 'deer'); $('throw-n').textContent = tt ? (tt.k === 'deer' ? '고라니!' : tt.name) : ''; }
+    $('throw-btn').classList.toggle('cd', st.ballCd > 0);
+    $('throw-btn').classList.toggle('up', !$('act2-btn').hidden && !$('acts').classList.contains('off'));   // 행동 버튼에 두 번째 줄이 있으면 그 위로
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
     if (hudA.rk !== rk) {
       hudA.rk = rk;
@@ -1163,6 +1176,11 @@
   var WHEN = { start: '처음', dump1: '처음 집하장에 부으면', perfect1: '처음 완벽 제설하면', crew1: '첫 분대원이 오면', inspect: '사단장님 순시 날', canDischarge: '전역할 때', op1: '첫 작전이 끝나면', exam: '첫 진급 심사' };
   function whenText(w) { if (WHEN[w]) return WHEN[w]; if (w.indexOf('zone:') === 0) return josa((G.zoneById(w.slice(5)) || {}).name || '', '을', '를') + ' 맡으면'; if (w.indexOf('rank:') === 0) return S.RANKS[+w.slice(5)].name + ' 진급'; return ''; }
   function renderStory(list) {
+    // v14 발견: "아 이런 것도 되네" — 못 찾은 건 힌트만
+    var FN = S.FUN || [], fs = save.fun || {};
+    list.insertAdjacentHTML('beforeend', '<p class="sec-t">발견 (' + FN.filter(function (q) { return fs[q.id]; }).length + '/' + FN.length + ') <small>처음 하면 상점 +1</small></p><div class="fun-grid">' + FN.map(function (q) {
+      return '<div class="fun-c' + (fs[q.id] ? ' on' : '') + '"><b>' + (fs[q.id] ? esc(q.name) : '???') + '</b><small>' + esc(q.hint) + '</small></div>';
+    }).join('') + '</div>');
     list.insertAdjacentHTML('beforeend', '<p class="sec-t">제설 수첩 (' + S.STORY.filter(function (c) { return save.story[c.id]; }).length + '/' + S.STORY.length + ')</p>' + S.STORY.map(function (c, i) {
       var done = !!save.story[c.id];
       return '<div class="story-row' + (done ? '' : ' lock') + '"><div class="n">' + (i + 1) + '</div><div><b>' + (done ? esc(M.fill(c.title, save)) : '???') + '</b><small>' + esc(whenText(c.when)) + (c.reward ? ' · 보상 있음' : '') + '</small></div>' + (done ? '<button data-replay="' + c.id + '">다시 보기</button>' : '<span></span>') + '</div>';
@@ -1210,7 +1228,12 @@
     });
     function press(id, fn) { var b = $(id); b.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); fn(); }); b.addEventListener('click', function (e) { if (e.detail === 0) fn(); }); }
     press('act-btn', function () { doAct(false); }); press('act2-btn', function () { doAct(true); });
-    press('h-hand', function () { var w = V.world(); if (A && w && V.mode() === 'play' && A.drop(w)) { if (X) X.pop(); hudA.hand = null; } });
+    press('h-hand', function () {
+      var w = V.world(); if (!A || !w || V.mode() !== 'play') return;
+      if (w.act && w.act.ride) { A.act(w, { k: 'exit' }, w.player.dir); if (X) X.pop(); hudA.hand = null; return; }
+      if (A.drop(w)) { if (X) X.pop(); hudA.hand = null; }
+    });
+    press('throw-btn', function () { var w = V.world(); if (A && w && V.mode() === 'play') { var r = A.throwBall(w); if (r.ok) vibrate(15); } });
     document.addEventListener('visibilitychange', function () { if (document.hidden) { persist(); if (V.mode() === 'play') pause(); } });
     window.addEventListener('pagehide', persist);
     var off = G.offline(save, Date.now());

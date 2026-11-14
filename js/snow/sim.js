@@ -25,7 +25,7 @@
       look: { name: '', eyes: 'derp', mouth: 'wavy', brows: 'worried', head: 'round', skin: '#f6c79c', extras: ['snot', 'blush'], hat: 'beanie', coat: 'olive', glove: 'olive', tool: 'yellow' },
       story: {}, unlocked: {}, quest: 0,
       // v10: 계급(진급 심사로만 오른다), 근무평정(★ 합), 지금 작전 상태, 다음 작전 준비물(PX), 포상휴가, 지난 작전 결과
-      rank: 0, merit: 0, op: null, prep: {}, leave: 0, lastOp: null, exam: false };
+      rank: 0, merit: 0, op: null, prep: {}, leave: 0, lastOp: null, exam: false, fun: {} };
   }
   function migrate(s) {
     var d = newSave();
@@ -194,7 +194,7 @@
     var gain = medalGain(save);
     var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits,
       dia: save.dia, diaLife: save.diaLife, found: save.found, ach: save.ach, stats: save.stats, roll: save.roll, boxes: save.boxes, bestCombo: save.bestCombo,
-      look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest, leave: save.leave };
+      look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest, leave: save.leave, fun: save.fun || {} };
     var fresh = newSave();
     Object.keys(fresh).forEach(function (k) { save[k] = fresh[k]; });
     Object.keys(keep).forEach(function (k) { save[k] = keep[k]; });
@@ -836,8 +836,9 @@
       say(w, 'deer', true);
       w.fx.push({ t: 'deer', e: w.deer[w.deer.length - 1] });
     } else if (k === 'snowball') {
-      w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun * w.mod.stun);
-      w.fx.push({ t: 'snowball' }); say(w, 'snowball', true);
+      // v14: 근처에 분대원이 있으면 그 사람이 보이게 던진다 (받아칠 수 있다). 없으면 예전처럼 어디선가 날아온다
+      if (!(JY.SnowAct && JY.SnowAct.prank && JY.SnowAct.prank(w))) { w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun * w.mod.stun); w.fx.push({ t: 'snowball' }); }
+      say(w, 'snowball', true);
     } else if (k === 'car') {
       // 07:30 중대장님 출근: 위병소에서 진입로를 따라 올라온다. 눈이 깊은 데서는 바퀴가 헛돈다(빠진다)
       if (w.car) return;
@@ -853,7 +854,7 @@
       if (!cand.length) return;
       var b = cand[(R() * cand.length) | 0], segW = 60 + R() * 70, sx = b.x + R() * Math.max(1, b.w - segW), sy = b.y + b.h + 18;
       w.roofs.push({ b: b, sx: sx, sy: sy, segW: segW, t: HAZ.roof.warn });
-      w.fx.push({ t: 'roofWarn', x: sx, y: b.y + b.h, w: segW, b: b.id }); say(w, 'roofWarn', true);
+      w.fx.push({ t: 'roofWarn', x: sx, y: b.y + b.h, w: segW, b: b.id }); if (Math.hypot(w.player.x - (sx + segW / 2), w.player.y - (b.y + b.h)) < 100) say(w, 'roofWarn', true);
     } else if (k === 'surge') {
       if (w.demo) return;
       w.surge = S.TWIST.surge.sec; w.fx.push({ t: 'surge', on: true, sec: w.surge }); say(w, 'surge', true);
@@ -891,6 +892,12 @@
     for (i = w.roofs.length - 1; i >= 0; i--) { w.roofs[i].t -= dt; if (w.roofs[i].t <= 0) roofFall(w, w.roofs.splice(i, 1)[0]); }
     for (i = w.deer.length - 1; i >= 0; i--) {
       var d = w.deer[i];
+      // v14: 눈덩이 두 방이면 벌러덩 — 잠깐 누워 있다가 비틀비틀 도망간다 (누워 있는 동안은 아무 데도 안 간다)
+      if (d.down > 0) {
+        d.down -= dt; d.moving = false;
+        if (d.down <= 0) { d.down = 0; d.leaving = true; d.dazed = 1; d.heading = d.x < S.W / 2 ? Math.PI : 0; d.t = Math.max(d.t, d.life); w.fx.push({ t: 'deerUp', e: d, x: d.x, y: d.y }); }
+        continue;
+      }
       d.t += dt; d.turnT -= dt; d.hitT -= dt; d.kickT -= dt;
       if (d.t > d.life && !d.leaving) { d.leaving = true; d.heading = d.x < S.W / 2 ? Math.PI : 0; }
       if (d.turnT <= 0 && !d.leaving) {
@@ -900,7 +907,8 @@
         else if (R() < 0.45) { var tg = randomOpenPoint(w); d.heading = Math.atan2(tg.y - d.y, tg.x - d.x); }
         else d.heading += (R() - 0.5) * 2.2;
       }
-      var sp = HAZ.deer.speed * (d.leaving ? 1.3 : 1), vx = Math.cos(d.heading) * sp * dt, vy = Math.sin(d.heading) * sp * dt;
+      if (d.slowT > 0) d.slowT -= dt;
+      var sp = HAZ.deer.speed * (d.leaving ? 1.3 : 1) * (d.slowT > 0 ? 0.3 : 1), vx = Math.cos(d.heading) * sp * dt, vy = Math.sin(d.heading) * sp * dt;
       if (d.leaving) { d.x += vx; d.y += vy; }
       else if (moveEnt(d, vx, vy, 5) < Math.abs(vx) * 0.3 + Math.abs(vy) * 0.3) d.heading += Math.PI * (0.6 + R() * 0.8);
       d.dir.x = Math.cos(d.heading); d.dir.y = Math.sin(d.heading); d.walk += sp * dt * 0.25;
@@ -917,7 +925,8 @@
           w.fx.push({ t: 'deerHit', e: c, x: c.x, y: c.y }); say(w, 'deerHit', true); break;
         }
       }
-      if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr) {
+      if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr && (P.body || 6) > 9) { d.hitT = 1; d.heading += Math.PI * 0.8; }   // v14: 탈것에 타면 고라니가 튕겨 나간다
+      else if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr) {
         P.stun = HAZ.deer.stun * (1 - 0.1 * medic) * w.mod.stun; d.hitT = 1; d.heading += Math.PI * 0.8; w.hits++;
         w.fx.push({ t: 'meHit', x: P.x, y: P.y, spilled: 0 }); say(w, 'meHit', true);
       }
@@ -1024,7 +1033,7 @@
     P.reach = (input && input.reach) || 0;
     if (face && P.stun <= 0) { var fm = Math.hypot(face.x, face.y) || 1; P.dir.x = face.x / fm; P.dir.y = face.y / fm; }
     if (mag > 0.08) {
-      var moved = moveEnt(P, ix * speed * dt, iy * speed * dt, 6);
+      var moved = moveEnt(P, ix * speed * dt, iy * speed * dt, P.body || 6);   // v14: 탈것을 타면 몸집이 커진다 (좁은 틈은 못 지나간다)
       // 출입 통제 테이프에 막히면 알려 준다
       if (moved < speed * dt * mag * 0.3 && w.lockT <= 0) { var lk = lockAt(P.x + ix * 12, P.y + iy * 12, 6); if (lk) { w.lockT = 3; w.fx.push({ t: 'locked', zone: lk.id, name: lk.name, cost: lk.cost, x: P.x + ix * 14, y: P.y + iy * 14 }); } }
       if (!face) {

@@ -385,7 +385,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|angel|drift)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -487,6 +487,7 @@
       c.fillStyle = '#111'; c.beginPath(); c.arc(tk.x + tk.w * 0.39, tk.y + tk.h * 0.47, 1.8, 0, 7); c.arc(tk.x + tk.w * 0.56, tk.y + tk.h * 0.42, 1.5, 0, 7); c.fill(); } }); });
     world.deer.forEach(function (d) { list.push({ y: d.y, f: function () {
       c.save(); c.translate(d.x, d.y - 8); c.rotate(Math.atan2(d.dir.y, d.dir.x));
+      if (d.down > 0) { c.scale(1, 0.55); c.rotate(0.3); }   // v14: 벌러덩
       c.fillStyle = '#9b7653'; c.beginPath(); c.ellipse(0, 0, 11, 6, 0, 0, 7); c.fill(); c.beginPath(); c.arc(11, 0, 4.5, 0, 7); c.fill();
       c.fillStyle = '#fffdf0'; c.fillRect(13, 1.5, 1.2, 3); c.fillStyle = '#111'; c.beginPath(); c.arc(13, -1.5, 1.2, 0, 7); c.fill(); c.restore(); } }); });
     world.cats.forEach(function (k) { list.push({ y: k.y, f: function () { c.fillStyle = '#e8913a'; c.beginPath(); c.arc(k.x, k.y - 5, 5, 0, 7); c.fill(); c.beginPath(); c.arc(k.x + 4, k.y - 10, 3.5, 0, 7); c.fill(); } }); });
@@ -503,7 +504,17 @@
     // 상호작용 물건: 내 눈사람, 족구공, 트랙터, 눈덩이, 고른 것
     (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
-    if (TR && !(ac && ac.ride && ac.ride.kind === 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    if (TR && !G.feat(world.save, 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    // v14 탈것 (세워 둔 것). 타고 있으면 내 자리에 그린다
+    if (ac && ac.rides) ac.rides.forEach(function (rd) {
+      if (!G.feat(world.save, rd.id)) return;
+      var on = ac.ride === rd, P0 = world.player, e = on ? { x: P0.x + (rd.kind === 'cart' ? P0.dir.x * 14 : 0), y: P0.y + (rd.kind === 'cart' ? P0.dir.y * 14 : 0), dir: P0.dir } : rd;
+      list.push({ y: e.y + (on && rd.kind !== 'cart' ? -0.1 : 0), f: function () {
+        if (rd.kind === 'cart') { c.save(); c.translate(e.x, e.y - 6); c.rotate(Math.atan2(e.dir.y, e.dir.x)); c.fillStyle = '#6b7d4a'; c.fillRect(-8, -8, 16, 16); c.fillStyle = '#222'; c.fillRect(-4, -10, 8, 2); c.fillRect(-4, 8, 8, 2); if (on && P0.load > 0) { c.fillStyle = '#f7fafd'; c.fillRect(-6, -6, 12, 12 * Math.min(1, P0.load / P0.cap)); } c.restore(); }
+        else drawVehicle(c, e, { kind: rd.kind === 'atv' ? 'plow' : 'tractor', r: rd.kind === 'atv' ? 20 : 34, scale: rd.kind === 'atv' ? 0.75 : 1 });
+        if (!on) { c.fillStyle = '#2f3a25'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(rd.name, e.x, e.y - 24); }
+      } });
+    });
     (S.PROPS || []).forEach(function (pr) { list.push({ y: pr.y, f: function () {
       var col = pr.id === 'phone' ? '#c8402e' : pr.id === 'vend' ? '#2b5fd1' : pr.id === 'stove' ? '#4a4d52' : pr.id === 'saltbox' ? '#3f7a3c' : '#6b4a32';
       c.fillStyle = col; if (pr.id === 'bar') { c.fillRect(pr.x - 9, pr.y - 22, 2, 22); c.fillRect(pr.x + 7, pr.y - 22, 2, 22); c.fillRect(pr.x - 9, pr.y - 23, 18, 2); } else rr(c, pr.x - 5, pr.y - 16, 10, 16, 2), c.fill();

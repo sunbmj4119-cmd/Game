@@ -156,6 +156,27 @@
   var OP = { start: 330, end: 480, goal: [0.85, 0.88, 0.92, 0.95], examAdd: 0.05, examMax: 0.95, wx: { light: 0, normal: 0, heavy: 0.1, blizzard: 0.2 }, pay: 0.35, star: [0.5, 0.8, 0.97] };
   // v13: 단계별 공개 — 처음엔 걷기·쓸기·붓기·보급 원·보고만. 구역을 새로 맡거나 진급할 때마다 하나씩 열린다.
   // when: zone(그 구역을 맡으면) / rank(그 계급부터) / ops(작전 몇 번 뒤). 처음 열린 작전 브리핑에 한 줄 소개 (name · line)
+  // v14 탈것: 넓게(폭)·많이(적재)·빨리(속도) 대신 몸집(body)이 커서 좁은 틈은 못 지나간다 — Moon Sweepers 차량처럼 '크기'가 장단점
+  // r: 눈 치우는 폭(도구보다 넓을 때만), capMul: 적재 배수, speed: 이동 배수, body: 부딪히는 반지름(사람 6), fuel: 기름(움직인 초)
+  var RIDES = [
+    { id: 'cart', name: '리어카', kind: 'cart', x: 176, y: 298, r: 0, capMul: 3, speed: 0.8, body: 11, fuel: 0, desc: '세 배 싣는다 · 느리다 · 덩치 큼' },
+    { id: 'atv', name: '사륜바이크', kind: 'atv', x: 522, y: 302, r: 24, capMul: 1.5, speed: 1.6, body: 10, fuel: 70, desc: '빠르다 · 앞날로 넓게 · 빙판 미끄덩' },
+    { id: 'tractor', name: '트랙터', kind: 'tractor', x: 252, y: 1062, r: 44, capMul: 4, speed: 1.0, body: 16, fuel: 100, desc: '아주 넓게 · 네 배 · 좁은 길 못 감' }
+  ];
+  // v14 "아 이런 것도 되네" — 처음 해 보면 '발견!' + 상점 1 (수첩에 모인다)
+  var FUN = [
+    { id: 'throw', name: '첫 눈덩이', hint: '근처에 누가 있으면 오른쪽에 눈덩이 버튼이 생긴다' },
+    { id: 'deerDown', name: '고라니 벌러덩', hint: '도망 다니는 고라니에게 눈덩이 두 방' },
+    { id: 'deerPet', name: '고라니 쓰담쓰담', hint: '벌러덩한 고라니 옆으로 가 보자' },
+    { id: 'fight', name: '눈싸움', hint: '분대원을 맞히면… 받아친다' },
+    { id: 'haeng', name: '간 큰 놈', hint: '행보관님을 맞혀 보면?' },
+    { id: 'goal', name: '족구 한 골', hint: '족구장 공을 몰고 가서 네트 너머로' },
+    { id: 'angel', name: '눈천사', hint: '눈밭에서 5초 동안 가만히 서 있어 보자' },
+    { id: 'ride', name: '첫 운전', hint: '세워 둔 탈것 옆에서 타기' },
+    { id: 'drift', name: '빙판 드리프트', hint: '사륜바이크로 빙판 위를 달려 보자' },
+    { id: 'cat', name: '짬타이거 집사', hint: '고양이를 쓰다듬자' }
+  ];
+
   var FEATURES = [
     { id: 'lobby', when: { ops: 1 }, name: '생활관 보급', line: '작전 사이에 장비·분대원을 산다' },
     { id: 'look', when: { ops: 1 } },
@@ -175,7 +196,13 @@
     { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
     { id: 'cam', when: { zone: 'C' } },
     { id: 'factory', when: { zone: 'C' } },
-    { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' }
+    { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
+    // v14 재미·탈것
+    { id: 'snowball', when: { zone: 'B' }, name: '눈덩이', line: '근처에 누가 있으면 눈덩이 버튼 · 고라니는 두 방이면 벌러덩' },
+    { id: 'kick', when: { zone: 'B' } },
+    { id: 'cart', when: { rank: 1 }, name: '리어카', line: '집하장 옆 리어카에 타면 눈을 세 배 싣는다 (대신 느리고 덩치가 크다)' },
+    { id: 'atv', when: { zone: 'D' }, name: '제설 사륜바이크', line: '빠르고 넓게 민다 · 기름 70초 · 빙판에선 미끄덩' },
+    { id: 'tractor', when: { rank: 2 }, name: '트랙터', line: '아주 넓게 밀고 네 배 싣는다 · 덩치가 커서 좁은 길은 못 간다' }
   ];
   // v12: 오늘의 특명 — 작전마다 하나 (2일차부터). 하면 상점(+보급 상자). 매일 달라서 같은 작전도 다르게 하게 만든다
   // stat: 작전 동안 늘어난 기록 / combo: 작전 중 최고 콤보 / zone: 그 구역 100% / end: 작전이 끝날 때 판정
@@ -216,7 +243,7 @@
     deer: { from: 3, max: 2, speed: 96, life: [9, 13], hitR: 11, injure: 3, stun: 1.0, kick: 0.2 },
     snowball: { from: 2, p: [0.6, 0.3, 0, 0], stun: 0.5 },
     car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 2, push: 0.25, crewPush: 0.18 },
-    roof: { every: 55, warn: 1.6, stun: 1.2, injure: 3 },
+    roof: { every: 95, warn: 1.6, stun: 1.2, injure: 3 },   // v14: 55→95 (작전당 약 4번 → 2번, 방해는 줄이고)
     heli: { zone: 'H', p: 0, r: 60, life: 7 },
     slip: { p: 0.5, cool: 5, stun: 0.7 },
     cats: { zone: 'D', n: 2 }
@@ -470,7 +497,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

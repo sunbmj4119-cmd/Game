@@ -500,6 +500,7 @@
   function planOfficers(w) {
     var a = w.act, save = w.save, R = G.mulberry(save.seed * 7 + save.day * 131), plan = [];
     a.offDay = save.day; a.off = [];
+    if (!G.feat(save, 'officer')) { a.offPlan = []; return; }   // v13: 간부 순찰은 족구장을 맡은 뒤부터
     plan.push({ t: G.timeAt(350 + R() * 30), id: 'lt' });                                   // 05:50~06:20 소대장
     if (save.day >= 2 && !save.zones[S.HAZ.car.zone]) plan.push({ t: G.timeAt(420 + R() * 40), id: 'cpt' });   // 07:00~07:40 (진입로를 맡으면 차로 온다)
     if (w.inspect) plan.push({ t: G.timeAt(400 + R() * 20), id: 'gen' });                  // 06:40~07:00 사단장님 순시

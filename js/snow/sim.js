@@ -71,6 +71,22 @@
     });
     return got;
   }
+  // v13: 단계별 공개 — 이 기능이 열렸나 (구역·계급·작전 횟수). 데모 화면은 다 보여 준다
+  function feat(save, id) {
+    var F = null; for (var i = 0; i < S.FEATURES.length; i++) if (S.FEATURES[i].id === id) { F = S.FEATURES[i]; break; }
+    if (!F) return true;
+    var c = F.when || {};
+    if (c.zone && !(save.zones && save.zones[c.zone])) return false;
+    if (c.rank && rankOf(save) < c.rank) return false;
+    if (c.ops && ((save.stats && save.stats.ops) || 0) < c.ops && !save.discharges) return false;
+    return true;
+  }
+  // 아직 소개하지 않은 새 기능 (브리핑에 한 줄씩). see=true면 본 것으로 적는다
+  function newFeatures(save, see) {
+    var out = S.FEATURES.filter(function (F) { return F.name && feat(save, F.id) && !(save.seen && save.seen['f:' + F.id]); });
+    if (see) out.forEach(function (F) { save.seen['f:' + F.id] = 1; });
+    return out;
+  }
   // 다음에 맡을 구역 (생활관 안내용): 무엇이 모자라는지까지
   function nextZone(save) {
     var Z = S.ZONES.filter(function (z) { return !save.zones[z.id]; })[0];
@@ -244,19 +260,20 @@
   function schedule(w, save, from) {
     var R = w.rand, dl = S.DAY_LEN, ev = [], day = save.day, i;
     function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
-    if (day >= HAZ.deer.from) {
+    if (day >= HAZ.deer.from && feat(save, 'deer')) {
       var n = Math.round(Math.min(HAZ.deer.max, 1 + (day - HAZ.deer.from) / 6) * (1 - 0.25 * lvl(save, 'gong')));
       for (i = 0; i < n; i++) at(20 + R() * (dl - 40), 'deer');
     }
     // 선임 눈덩이 장난: 이병은 자주, 일병은 가끔, 상병부터는 없다 (짬이 차면 편해진다)
     var sbp = HAZ.snowball.p[rankOf(save)] || 0;
-    if (day >= HAZ.snowball.from && R() < sbp) at(15 + R() * (dl - 30), 'snowball');
+    if (day >= HAZ.snowball.from && feat(save, 'officer') && R() < sbp) at(15 + R() * (dl - 30), 'snowball');
     // 07:30 중대장님 출근 차량 (진입로를 맡은 뒤부터)
     if (save.zones[HAZ.car.zone]) at(timeAt(HAZ.car.at), 'car');
-    if (day >= 2) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
+    if (day >= 2 && feat(save, 'roof')) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
     if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) at(20 + R() * (dl - 40), 'heli');
     // v11 돌발: 폭설 경보(날씨가 나쁠수록 자주), 공병대 제설차 지원(좋은 반전), 사단장님 불시 방문
     var TW = S.TWIST, wxi = ['light', 'normal', 'heavy', 'blizzard'].indexOf(weatherFor(save).id);
+    if (!feat(save, 'twist')) { ev.sort(function (a, b) { return a.t - b.t; }); return ev; }
     if (day >= TW.surge.from && R() < TW.surge.p[Math.max(0, wxi)]) at(dl * (0.3 + R() * 0.3), 'surge');
     if (day >= TW.support.from && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');
     if (day >= TW.surprise.from && day % 7 && R() < TW.surprise.p) at(dl * (0.35 + R() * 0.25), 'surprise');
@@ -359,7 +376,7 @@
     w.op = { day: save.day, exam: exam, goal: goal, tasks: tasks, jigeok: st ? st.jigeok || 0 : 0, stuck: st ? !!st.stuck : false, carPass: st ? !!st.carPass : false, ready: false, report: false, nag: 0,
       bonus: w.demo ? null : pickBonus(w, st && st.bonus) };
     if (st && st.salted) st.salted.forEach(function (k) { if (w.parts[k]) w.parts[k].salted = true; });
-    w.parts.forEach(function (P) { if (P.ice && P.total && P.clear / P.total >= S.ALMOST) P.icy = true; });
+    if (feat(save, 'ice')) w.parts.forEach(function (P) { if (P.ice && P.total && P.clear / P.total >= S.ALMOST) P.icy = true; });
     checkTasks(w, true);
     if (!w.demo) syncOpSave(w);
   }
@@ -374,7 +391,7 @@
 
   /* ── v12: 오늘의 특명 (작전마다 하나, 날짜로 정해져 생활관에서 미리 보인다) ── */
   function previewBonus(save) {
-    if (save.day < 2) return null;   // 첫 작전은 배우는 날
+    if (save.day < 2 || !feat(save, 'bonus')) return null;   // 일병부터 (v13)
     var list = S.BONUS.filter(function (B) { return !B.needZone || save.zones[B.needZone]; });
     var R = mulberry(save.seed * 5 + save.day * 313), B = list[(R() * list.length) | 0];
     if (!B) return null;
@@ -642,7 +659,7 @@
     P.clear++;
     if (P.total && !P.almost && P.clear / P.total >= S.ALMOST) { P.almost = true; w.fx.push({ t: 'almost', p: p, name: P.name }); }
     // 그늘·비탈·배식구 앞: 눈을 걷어 내면 바닥이 언다 → 염화칼슘을 뿌려야 한다
-    if (P.ice && !P.icy && !P.salted && P.total && P.clear / P.total >= S.ALMOST) {
+    if (P.ice && !P.icy && !P.salted && P.total && P.clear / P.total >= S.ALMOST && feat(w.save, 'ice')) {
       P.icy = true;
       // v12: 염화칼슘 살포기를 가졌으면 미리 뿌려 두니까 얼지 않는다 (도구 설명 그대로)
       if (toolOf(w.save).aura && !w.demo) { P.salted = true; w.fx.push({ t: 'salted', p: p, name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, auto: true }); syncOpSave(w); }
@@ -710,7 +727,7 @@
     return removed;
   }
 
-  function comboMult(w) { return 1 + Math.min(0.5, w.combo / 300); }
+  function comboMult(w) { return w.demo || feat(w.save, 'combo') ? 1 + Math.min(0.5, w.combo / 300) : 1; }
   // 집하장에 붓기 (가득 채워 오면 만재 보너스 +10%)
   function deposit(w, who, src, dump) {
     if (!who.load) return 0;
@@ -1029,7 +1046,7 @@
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
           // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배
-          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
+          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo && feat(save, 'combo')) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
         }
       }
     }
@@ -1155,7 +1172,7 @@
     return Math.floor(save.crewRate * sec * 0.1);
   }
 
-  JY.SnowSim = { previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
+  JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,

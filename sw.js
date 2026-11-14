@@ -1,5 +1,5 @@
 /* 오프라인 캐시: 한 번 접속하면 비행기 모드에서도 플레이 가능 */
-var CACHE = 'jeonyeok-v10';   // v10: 제설각 v12 (길목 화살표·오늘의 특명·결과 조언·진급 균형) — 예전 캐시를 비운다
+var CACHE = 'jeonyeok-v11';   // v11: 제설각 v13 (단계별 공개·덜 읽기·폰 화면 점검) — 예전 캐시를 비운다
 var ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/art.js', './js/data/chars.js', './js/data/cards.js', './js/data/cards2.js', './js/data/cards3.js', './js/data/cards4.js', './js/data/cards5.js', './js/data/cards6.js', './js/data/cards7.js', './js/data/cards8.js', './js/data/items.js',

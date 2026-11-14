@@ -867,7 +867,7 @@
         if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
         if (dm && hooks.event) hooks.event(f);
       } else if (f.t === 'full') {
-        addOv('가득!', 'ov-full', 0, 0, 4.4, 1.6, world.player);
+        // v13: '가득!'은 위 짐 고리가 말한다 (내 머리 위 글자는 캐릭터를 가렸다)
         if (sfx) sfx.deny();
         if (hooks.event) hooks.event(f);
       } else if (f.t === 'inspect') {
@@ -910,8 +910,8 @@
       } else if (f.t === 'found') {
         var rcc = new T.Color(S.RARITY[f.item.r].color);
         for (k = 0; k < (f.item.r === 'c' ? 24 : 70); k++) emit(f.x * U + rnd(-0.4, 0.4), 0.5, f.y * U + rnd(-0.4, 0.4), rnd(-2.5, 2.5), rnd(5, 10), rnd(-2.5, 2.5), rnd(0.8, 1.4), [rcc.r, rcc.g, rcc.b]);
-        var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 상점 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
-        of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5;
+        if (f.item.r === 'r' || f.item.r === 'l') { var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 상점 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
+        of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5; }   // v13: 흔한 분실물은 반짝임만 (글자가 캐릭터를 가렸다)
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
       else if (f.t === 'hand') { vmPlay('act', 0.5); if (sfx) sfx.pop(); }

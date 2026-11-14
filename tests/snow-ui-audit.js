@@ -51,9 +51,8 @@ function scan() {
     await page.click('#splash'); await sleep(600);
     var rc = await page.$('#modal:not([hidden]) [data-m]'); if (rc) { await rc.click(); await sleep(300); }
     await check('lobby-new');
-    await page.click('#t-start'); await sleep(400); await check('help');
-    await page.evaluate(function () { document.getElementById('modal').hidden = true; });   // 교범만 보고 닫는다 (프롤로그는 건너뜀)
-    async function closeAll() { for (var i = 0; i < 8; i++) { if (await page.evaluate(function () { return !document.getElementById('talk').hidden; })) { await page.click('.talk-box'); await sleep(120); continue; } var m = await page.$('#modal:not([hidden]) [data-m]'); if (!m) return; await m.click(); await sleep(250); } }
+    await page.click('#t-start'); await sleep(1200); await check('prologue');
+    async function closeAll() { for (var i = 0; i < 8; i++) { if (await page.evaluate(function () { return !document.getElementById('talk').hidden; })) { if (await page.evaluate(function () { return !document.getElementById('talk-name').hidden; })) { await page.click('#talk-ok'); await sleep(120); continue; } await page.click('.talk-box'); await sleep(120); continue; } var m = await page.$('#modal:not([hidden]) [data-m]') || await page.$('#modal:not([hidden]) [data-h="skip"]') || await page.$('#modal:not([hidden]) [data-h="next"]'); if (!m) return; await m.click(); await sleep(250); } }
     // 생활관 (진행된 저장: 일병, 분대원 3명, 상점·상자)
     await page.evaluate(function () {
       var s = JY.SnowSim.newSave(); s.day = 9; s.bank = 123456; s.life = 60000; s.dia = 27; s.tool = 3; s.rank = 1; s.merit = 13; JY.SnowSim.assignZones(s);
@@ -63,6 +62,8 @@ function scan() {
     });
     await sleep(700); await closeAll(); await check('hub');
     await page.click('[data-hub="settings"]'); await sleep(300); await check('settings');
+    await closeAll();
+    await page.click('[data-hub="help"]'); await sleep(300); await check('help');
     await closeAll();
     // 상병 브리핑 (조원 배치까지 있는 가장 긴 브리핑)
     await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
@@ -81,7 +82,7 @@ function scan() {
     await sleep(900);
     await check('play-busy');
     // 사람 앞: 긴 행동 이름 + 두 번째 버튼
-    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; JY.SnowAct.init(w).hand = null; e.x = 300; e.y = 230; e.speed = 0; e.retarget = 99; e.state = 'follow'; __SNOW.view()._teleport(300, 205); __SNOW.view()._setLook && __SNOW.view()._setLook(0, -0.1); });
+    await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; JY.SnowAct.init(w).hand = null; if (__SNOW.view().focusZone) __SNOW.view().focusZone('A', 0.01); e.x = 300; e.y = 230; e.speed = 0; e.retarget = 99; e.state = 'follow'; __SNOW.view()._teleport(300, 205); __SNOW.view()._setLook && __SNOW.view()._setLook(0, -0.1); });
     await sleep(600); await check('play-follow');
     await page.evaluate(function () { var w = __SNOW.view().world(), e = w.crew[0]; e.state = 'work'; e.mor = 30; });
     await sleep(600); await check('play-crew');

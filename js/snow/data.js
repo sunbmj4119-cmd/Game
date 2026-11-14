@@ -154,6 +154,29 @@
   // 05:30 제설 비상 → 08:00 아침 식사. 시계 1분 = 실제 1.6초 (작전 4분)
   // v12: 진급 심사 = 평소 기준 + 5%p (예전엔 맡은 구역 전부 95%), 함박눈·폭설 날은 기준을 낮춘다. 상병·병장 기준은 올렸다 (후반이 너무 쉬웠다)
   var OP = { start: 330, end: 480, goal: [0.85, 0.88, 0.92, 0.95], examAdd: 0.05, examMax: 0.95, wx: { light: 0, normal: 0, heavy: 0.1, blizzard: 0.2 }, pay: 0.35, star: [0.5, 0.8, 0.97] };
+  // v13: 단계별 공개 — 처음엔 걷기·쓸기·붓기·보급 원·보고만. 구역을 새로 맡거나 진급할 때마다 하나씩 열린다.
+  // when: zone(그 구역을 맡으면) / rank(그 계급부터) / ops(작전 몇 번 뒤). 처음 열린 작전 브리핑에 한 줄 소개 (name · line)
+  var FEATURES = [
+    { id: 'lobby', when: { ops: 1 }, name: '생활관 보급', line: '작전 사이에 장비·분대원을 산다' },
+    { id: 'look', when: { ops: 1 } },
+    { id: 'officer', when: { zone: 'B' }, name: '간부 순찰', line: '간부가 오면 큰 경례 버튼 (늦으면 지적)' },
+    { id: 'combo', when: { zone: 'B' }, name: '콤보 · 폭풍 제설', line: '쉬지 않고 쓸면 콤보 → 40이면 폭풍 제설' },
+    { id: 'crew', when: { zone: 'B' }, name: '분대원', line: '생활관 보급에서 후임 전입 요청' },
+    { id: 'phone', when: { zone: 'B' } },
+    { id: 'box', when: { zone: 'B' } },
+    { id: 'scan', when: { zone: 'B' }, name: '남은 눈 보기', line: '돋보기 버튼: 남은 눈이 반짝인다' },
+    { id: 'ice', when: { rank: 1 }, name: '빙판', line: '그늘은 치우면 언다 → 제설함 지나가며 염화칼슘' },
+    { id: 'bonus', when: { rank: 1 }, name: '오늘의 특명', line: '작전마다 하나, 성공하면 상점' },
+    { id: 'roof', when: { rank: 1 } },
+    { id: 'px', when: { rank: 1 } },
+    { id: 'pull', when: { rank: 1 } },
+    { id: 'leave', when: { rank: 1 } },
+    { id: 'perk', when: { rank: 1 } },
+    { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
+    { id: 'cam', when: { zone: 'C' } },
+    { id: 'factory', when: { zone: 'C' } },
+    { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' }
+  ];
   // v12: 오늘의 특명 — 작전마다 하나 (2일차부터). 하면 상점(+보급 상자). 매일 달라서 같은 작전도 다르게 하게 만든다
   // stat: 작전 동안 늘어난 기록 / combo: 작전 중 최고 콤보 / zone: 그 구역 100% / end: 작전이 끝날 때 판정
   var BONUS = [
@@ -314,14 +337,11 @@
   // who: narr(내레이션) · me · haeng · malnyeon · lt · captain · hoobae · general · cook · driver
   var STORY = [
     { id: 'prologue', when: 'start', title: '전입 첫날', lines: [
-      ['narr', '강원도 산골, ○○사단 제설중대. 밤새 눈이 허리까지 왔다.'],
-      ['haeng', '어이, 신병. 거기 멍하니 서 있는 너.'],
-      ['haeng', '이름이 뭐냐?', 'name'],
-      ['haeng', '{name}이라… 좋아. 잘 들어라.'],
-      ['haeng', '눈은 하늘에서 내리는 쓰레기다. 그리고 넌 오늘부터 환경미화원이다.'],
-      ['me', '(…싸리비 하나로 이 부대를 다 치우라고?)'],
-      ['haeng', '눈 오는 날은 05:30 제설 비상이다. 08:00 아침 먹기 전까지 지시서대로 치운다.'],
-      ['haeng', '퍼 담고, 집하장에 붓고, 다 하면 나한테 보고. 잘하면 근무평정 ★. ★이 쌓이면 진급이다. 시작!']] },
+      ['narr', '강원도 산골 제설중대. 밤새 눈이 허리까지 왔다.'],
+      ['haeng', '어이, 신병. 이름이 뭐냐?', 'name'],
+      ['haeng', '{name}. 눈은 하늘에서 내리는 쓰레기다.'],
+      ['me', '(…싸리비 하나로 다 치우라고?)'],
+      ['haeng', '쓸고, 집하장에 붓고, 다 하면 보고. 시작!']] },
     { id: 'firstDump', when: 'dump1', title: '첫 초코파이', lines: [
       ['haeng', '오, 집하장에 부을 줄은 아는구만. 옛다, 초코파이.'],
       ['me', '(초코파이가… 화폐라고?)'],
@@ -400,19 +420,20 @@
   // ── 할 일: 처음 30분을 이끄는 안내. 하나씩 하면 바로 보상 ──
   // stat: 저장의 기록 / life / tool / rank / zone / crew / pend / load
   // v10: 작전 흐름을 그대로 따라가는 안내
+  // v13: 열리는 순서대로 (경례는 족구장부터, 빙판은 일병부터). 안내 글은 짧게
   var QUESTS = [
-    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걸으면 빗자루가 알아서 등에 쌓는다', stat: 'load', goal: 20, pie: 20 },
-    { id: 'dump', text: '집하장에 붓기', how: '노란 원(눈 집하장)에 들어가면 와르르', stat: 'dumps', goal: 1, pie: 40 },
-    { id: 'pusher', text: '넉가래 받기', how: '초코파이가 모이면 행보관 옆 노란 보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
-    { id: 'task', text: '지시서 한 줄 끝내기', how: '작업 지시서의 구역을 기준(%)까지 치워라', stat: 'tasks', goal: 1, pie: 60 },
-    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 화면 가운데 빨간 "경례" 버튼', stat: 'salute', goal: 1, pie: 50 },
-    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 초록 보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
-    { id: 'salt', text: '빙판에 염화칼슘', how: '빙판이 생기면 제설함을 지나가며 포대를 줍고, 빙판에 들어가면 저절로 뿌린다', stat: 'salt', goal: 1, pie: 80 },
-    { id: 'perfect', text: '조각 하나 완벽!', how: '위 막대가 금색이면 남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
-    { id: 'hire', text: '후임 전입 요청', how: '생활관 → 보급·인원 → 인원', stat: 'pend', goal: 1, pie: 80 },
-    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 다가가면 따라온다 → 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
-    { id: 'rank1', text: '일병 진급', how: '★ 6개를 모으면 다음 작전이 진급 심사', stat: 'rank', goal: 1, dia: 3 },
-    { id: 'star3', text: '★★★ 받기', how: '마감 전에 다 끝내고, 경례 빠짐없이, 빙판 없이', stat: 'star3', goal: 1, dia: 2 }
+    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걷기', stat: 'load', goal: 20, pie: 20 },
+    { id: 'dump', text: '집하장에 붓기', how: '노란 원으로', stat: 'dumps', goal: 1, pie: 40 },
+    { id: 'pusher', text: '넉가래 받기', how: '보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
+    { id: 'task', text: '지시서 끝내기', how: '구역을 기준 %까지', stat: 'tasks', goal: 1, pie: 60 },
+    { id: 'report', text: '작업 완료 보고', how: '보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
+    { id: 'salute', text: '간부에게 경례', how: '빨간 경례 버튼', stat: 'salute', goal: 1, pie: 50 },
+    { id: 'perfect', text: '조각 하나 100%', how: '남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
+    { id: 'hire', text: '후임 전입 요청', how: '생활관 보급 → 인원', stat: 'pend', goal: 1, pie: 80 },
+    { id: 'assign', text: '신병 배치', how: '다가가서 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
+    { id: 'rank1', text: '일병 진급', how: '★ 6개 → 진급 심사', stat: 'rank', goal: 1, dia: 3 },
+    { id: 'salt', text: '빙판에 염화칼슘', how: '제설함 → 빙판', stat: 'salt', goal: 1, pie: 80 },
+    { id: 'star3', text: '★★★ 받기', how: '마감 전에 다, 빠짐없이', stat: 'star3', goal: 1, dia: 2 }
   ];
   // 소품 (지나갈 수 있다). use: 작전 중 상호작용 (전화·철봉·자판기는 생활관 저녁 시간에)
   var PROPS = [
@@ -449,7 +470,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

@@ -110,8 +110,8 @@ var cl0 = wH.clear; G.step(wH, 1 / 30, null);
 var mh = wH.fx.filter(function (f) { return f.t === 'meHit'; })[0];
 ok(wH.player.stun > 0.9 && wH.player.load === 30 && mh && mh.spilled === 0, '고라니에 받히면 잠깐 넘어진다 (짐은 그대로)', [wH.player.stun, mh && mh.spilled]);
 var px0 = wH.player.x; G.step(wH, 0.2, { x: 1, y: 0 }); ok(wH.player.x === px0, '기절 중엔 못 걷는다');
-var sG0 = G.newSave(); sG0.day = 13; var nG0 = G.createWorld(sG0).events.filter(function (e) { return e.k === 'deer'; }).length;
-var sG3 = G.newSave(); sG3.day = 13; sG3.seed = sG0.seed; sG3.perks = { gong: 3 }; var nG3 = G.createWorld(sG3).events.filter(function (e) { return e.k === 'deer'; }).length;
+var sG0 = G.newSave(); sG0.day = 13; sG0.zones.C = true; sG0.rank = 1; var nG0 = G.createWorld(sG0).events.filter(function (e) { return e.k === 'deer'; }).length;
+var sG3 = G.newSave(); sG3.day = 13; sG3.seed = sG0.seed; sG3.zones.C = true; sG3.rank = 1; sG3.perks = { gong: 3 }; var nG3 = G.createWorld(sG3).events.filter(function (e) { return e.k === 'deer'; }).length;
 ok(nG0 === 2 && nG3 === 1, '고라니는 하루 최대 2마리, 깡통 줄 3단계면 1마리', [nG0, nG3]);
 var sC = G.newSave(); sC.seed = 12; ['A', 'B', 'C', 'D', 'E'].forEach(function (z) { sC.zones[z] = true; sC.fresh[z] = true; }); var wC = G.createWorld(sC);
 wC.cells.forEach(function (idx) { if (wC.zone[idx] === 4 && wC.depth[idx]) { wC.depth[idx] = 0; wC.clear++; wC.zoneClear[4]++; } });
@@ -172,7 +172,7 @@ var cF = PF.clear; wF.player.x = 900; for (q6 = 0; q6 < 60 * 30; q6++) G.step(wF
 ok(PF.clear === cF, '다 치운 조각은 낮 눈에 안 덮인다', [cF, PF.clear]);
 
 // ── v6: 콤보 → 값 최대 +50% ──
-var sC = G.newSave(); sC.seed = 8; var wC = G.createWorld(sC); wC.events = []; wC.player.x = 100; wC.player.y = 140; wC.player.cap = 1e6;
+var sC = G.newSave(); sC.seed = 8; sC.zones.B = true; var wC = G.createWorld(sC); wC.events = []; wC.player.x = 100; wC.player.y = 140; wC.player.cap = 1e6;
 for (q6 = 0; q6 < 4 * 30; q6++) G.step(wC, 1 / 30, { x: 1, y: 0.05 });
 ok(wC.combo > 20 && G.comboMult(wC) > 1.06 && sC.bestCombo >= wC.combo, '쉬지 않고 치우면 콤보가 쌓인다', wC.combo);
 for (q6 = 0; q6 < 2 * 30; q6++) G.step(wC, 1 / 30, null);
@@ -274,7 +274,7 @@ sE.tool = 2; ok(G.crewCap(sE) === 3 && G.offers(sE).tool.some(function (o) { ret
 var sT2 = G.newSave(); sT2.bank = 1e9; sT2.tool = 2;
 ok(!G.buy(sT2, 'tool', 'twin').ok && G.offers(sT2).tool.some(function (o) { return o.id === 'twin' && o.state === 'lock'; }), '이병은 돈이 있어도 2인용 넉가래를 못 받는다');
 // 빙판: 그늘 구간을 다 치우면 얼고, 염화칼슘 전엔 미끄럽다. 살포기는 저절로 뿌린다
-var sI = G.newSave(); sI.seed = 35; var wI2 = G.createWorld(sI); wI2.events = [];
+var sI = G.newSave(); sI.seed = 35; sI.rank = 1; var wI2 = G.createWorld(sI); wI2.events = [];
 var iceP = wI2.parts.filter(function (p) { return p.ice; })[0];
 ok(iceP && iceP.name === '생활관 앞 오른쪽' && !iceP.icy, '생활관 앞 오른쪽은 빙판 구간');
 for (var iy = iceP.y; iy < iceP.y + iceP.h; iy += 10) for (var ix = iceP.x; ix < iceP.x + iceP.w; ix += 10) G.clearAt(wI2, ix + 5, iy + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
@@ -304,7 +304,7 @@ G.spawn(wR2, 'roof');
 ok(wR2.fx.some(function (f) { return f.t === 'roofWarn'; }) && !wR2.fx.some(function (f) { return f.t === 'roof'; }), '처마 눈: 먼저 "우두둑" 경고');
 run(wR2, 2); ok(wR2.fx.some(function (f) { return f.t === 'roof'; }), '경고 뒤에 떨어진다');
 // 선임 눈덩이 장난은 짬이 차면 없다
-var sb = [0, 1, 2, 3].map(function (r) { var c = 0; for (var sd = 1; sd <= 40; sd++) { var sv = G.newSave(); sv.seed = sd; sv.day = 5; sv.rank = r; if (G.createWorld(sv, { demo: true }).events.some(function (e) { return e.k === 'snowball'; })) c++; } return c; });
+var sb = [0, 1, 2, 3].map(function (r) { var c = 0; for (var sd = 1; sd <= 40; sd++) { var sv = G.newSave(); sv.seed = sd; sv.day = 5; sv.rank = r; sv.zones.B = true; if (G.createWorld(sv, { demo: true }).events.some(function (e) { return e.k === 'snowball'; })) c++; } return c; });
 ok(sb[0] > sb[1] && sb[1] > 0 && sb[2] === 0 && sb[3] === 0, '선임 눈덩이: 이병 > 일병 > 상병·병장 0', sb);
 // 작전 도중 저장 → 이어하기: 시계·완료한 줄이 그대로
 var sS = G.newSave(); sS.seed = 39; sS.merit = 3; G.assignZones(sS); var wS = G.createWorld(sS); wS.events = []; wS.time = 60;
@@ -340,7 +340,7 @@ ok(wHp.zone[eHp.tidx] === 1 && wHp.fx.some(function (f) { return f.t === 'help' 
 // 오늘의 특명: 첫날은 없고, 둘째 날부터 하나. 하면 상점
 var sB = G.newSave(); ok(!G.createWorld(sB).op.bonus, '첫 작전엔 특명 없음');
 var foundB = null;
-for (var sd = 1; sd < 60 && !foundB; sd++) { var sB2 = G.newSave(); sB2.seed = sd; sB2.day = 2; var pv = G.previewBonus(sB2); if (pv && pv.def.id === 'found') foundB = sB2; }
+for (var sd = 1; sd < 60 && !foundB; sd++) { var sB2 = G.newSave(); sB2.seed = sd; sB2.day = 2; sB2.rank = 1; var pv = G.previewBonus(sB2); if (pv && pv.def.id === 'found') foundB = sB2; }
 ok(!!foundB, '특명 "분실물 2개" 나오는 날이 있다');
 var wB = G.createWorld(foundB), dB = foundB.dia; wB.events = [];
 ok(wB.op.bonus && wB.op.bonus.id === 'found' && G.bonusProg(wB).cur === 0, '작전 시작: 특명 진행 0');
@@ -354,11 +354,23 @@ ok(wX.op.exam && wX.op.goal === 0.9, '진급 심사 기준 90%', wX.op.goal);
 var rX = G.endOp(wX, 'time'); ok(!rX.pass && sX.exam && sX.rank === 0 && sX.examFail === 1 && !rX.help, '불합격 → 다음 작전 재심사');
 var rX2 = G.endOp(G.createWorld(sX), 'time'); ok(!rX2.pass && rX2.help && sX.prep.support, '두 번 떨어지면 행보관이 대대 지원을 붙여 준다');
 // 염화칼슘 살포기: 아예 안 언다
-var sA = G.newSave(); sA.seed = 5; sA.tool = 5; var wA = G.createWorld(sA), iceP = wA.parts.filter(function (p) { return p.ice; })[0];
+var sA = G.newSave(); sA.seed = 5; sA.tool = 5; sA.rank = 2; var wA = G.createWorld(sA), iceP = wA.parts.filter(function (p) { return p.ice; })[0];
 for (var iy = iceP.y; iy < iceP.y + iceP.h; iy += 10) for (var ix = iceP.x; ix < iceP.x + iceP.w; ix += 10) G.clearAt(wA, ix + 5, iy + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
 ok(iceP.icy && iceP.salted && !wA.fx.some(function (f) { return f.t === 'icy'; }), '살포기가 있으면 빙판이 안 생긴다');
 // 작전 끝에 단 훈장은 결과에 같이
 var sAc = G.newSave(); sAc.seed = 2; var wAc = G.createWorld(sAc); wAc.cells.forEach(function (idx) { if (wAc.depth[idx]) G.clearAt(wAc, (idx % S.GW) * 10 + 5, ((idx / S.GW) | 0) * 10 + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 }); });
 G.checkTasks(wAc);
+// ── v13: 단계별 공개 — 처음엔 쓸기·붓기·보급·보고만 ──
+var s13 = G.newSave(); s13.seed = 21;
+ok(!G.feat(s13, 'officer') && !G.feat(s13, 'ice') && !G.feat(s13, 'combo') && !G.feat(s13, 'bonus') && !G.feat(s13, 'deer') && !G.feat(s13, 'twist') && !G.feat(s13, 'lobby'), '처음 작전: 간부·빙판·콤보·특명·고라니·돌발·생활관 보급 모두 아직');
+var w13 = G.createWorld(s13), ip13 = w13.parts.filter(function (p) { return p.ice; })[0];
+for (var y13 = ip13.y; y13 < ip13.y + ip13.h; y13 += 10) for (var x13 = ip13.x; x13 < ip13.x + ip13.w; x13 += 10) G.clearAt(w13, x13 + 5, y13 + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
+ok(!ip13.icy && !w13.events.some(function (e) { return /deer|snowball|roof|surge|support|surprise/.test(e.k); }), '이병 첫 작전: 그늘을 치워도 안 얼고, 사건도 없다');
+w13.combo = 200; ok(G.comboMult(w13) === 1, '콤보 보너스도 아직 없다');
+s13.stats.ops = 1; ok(G.feat(s13, 'lobby') && !G.feat(s13, 'officer'), '작전 1번 뒤: 생활관 보급');
+s13.zones.B = true; ok(G.feat(s13, 'officer') && G.feat(s13, 'combo') && G.feat(s13, 'crew') && !G.feat(s13, 'ice'), '족구장을 맡으면: 간부·콤보·분대원');
+var nf13 = G.newFeatures(s13, true); ok(nf13.length >= 3 && nf13.every(function (F) { return F.name && F.line; }) && !G.newFeatures(s13, false).length, '새로 생긴 것은 한 번만 소개', nf13.map(function (F) { return F.id; }));
+s13.rank = 1; ok(G.feat(s13, 'ice') && G.feat(s13, 'bonus') && G.newFeatures(s13, false).some(function (F) { return F.id === 'ice'; }), '일병: 빙판·특명');
+s13.rank = 2; ok(G.feat(s13, 'twist'), '상병: 돌발 상황');
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

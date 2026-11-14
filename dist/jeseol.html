@@ -983,6 +983,37 @@ body.saluting #side { visibility: hidden; }
 /* v12: 특명 줄로 지시서 카드가 한 줄 길어진다 → 작은 폰에선 지시서를 2줄만, 내 자막은 조금 위로 */
 @media (max-height: 700px) { #op-list li:nth-child(n+3) { display: none; } .op-bonus { font-size: 12px; padding: 2px 6px; } #sub { bottom: calc(env(safe-area-inset-bottom, 0px) + 236px); } }
 
+/* ── v13: 단계별 공개 + 덜 읽기 ── */
+#stack > #hint { width: auto; justify-self: center; padding: 7px 14px; border-radius: 99px; }
+#hint b { font-size: 14.5px; }
+#h-buffs { display: none !important; }                    /* 버프 목록은 숨긴다 (효과는 시작 배너로) */
+.pill.bank.nodia .dia, .pill.bank.nodia .dia-n { display: none; }
+#op-list li { grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; }
+#op-list li small { grid-column: auto; font-size: 11px; margin-left: 4px; }
+#op-list li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opcard > b { font-size: 12px; }
+.lb-side button[hidden] { display: none !important; }
+.lb-side button.new::after { content: "N"; position: absolute; top: -5px; left: -5px; width: 19px; height: 19px; border-radius: 50%; background: #2f8f4e; color: #fff; font-size: 11px; line-height: 19px; text-align: center; font-style: normal; box-shadow: 0 0 0 2px #fff; animation: beat .6s ease-in-out infinite alternate; }
+.brief-new { display: grid; gap: 3px; background: #e9f6ec; border-radius: 12px; padding: 8px 11px; box-shadow: inset 0 0 0 2px #7fcf95; text-align: left; }
+.brief-new b { font-family: var(--f-title); font-weight: 400; font-size: 13px; color: #2f8f4e; }
+.brief-new p { margin: 0; font-size: 13.5px; line-height: 1.3; color: var(--ink); word-break: keep-all; }
+.brief-new p span { color: #1f6a37; font-weight: 700; }
+/* v13: 큰 경례 버튼은 화면 아래쪽 (캐릭터를 가리지 않게), 같은 말을 하는 '경례!' 띠는 숨긴다 */
+#acts.salute { bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); }
+#acts.salute #act-btn { width: 124px; height: 124px; }
+#acts.salute #act-btn b { font-size: 30px; }
+body.saluting #salute { display: none !important; }
+@media (max-height: 700px) { #acts.salute { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); } #acts.salute #act-btn { width: 110px; height: 110px; } #acts.salute #act-btn b { font-size: 26px; } }
+.pill.bank b, .pill.bank .dia-n { white-space: nowrap; }
+#combo span:empty { display: none; }
+
+/* v13: 결과 화면 — 4줄 넘으면 '자세히'로 접는다 */
+.res-more { margin: 2px 0 0; }
+.res-more summary { list-style: none; cursor: pointer; text-align: center; font-size: 13px; color: var(--mute); padding: 4px 0; }
+.res-more summary::-webkit-details-marker { display: none; }
+.res-more summary::after { content: ' ▾'; }
+.res-more[open] summary::after { content: ' ▴'; }
+
 </style>
 </head>
 <body>
@@ -2046,6 +2077,29 @@ body.saluting #side { visibility: hidden; }
   // 05:30 제설 비상 → 08:00 아침 식사. 시계 1분 = 실제 1.6초 (작전 4분)
   // v12: 진급 심사 = 평소 기준 + 5%p (예전엔 맡은 구역 전부 95%), 함박눈·폭설 날은 기준을 낮춘다. 상병·병장 기준은 올렸다 (후반이 너무 쉬웠다)
   var OP = { start: 330, end: 480, goal: [0.85, 0.88, 0.92, 0.95], examAdd: 0.05, examMax: 0.95, wx: { light: 0, normal: 0, heavy: 0.1, blizzard: 0.2 }, pay: 0.35, star: [0.5, 0.8, 0.97] };
+  // v13: 단계별 공개 — 처음엔 걷기·쓸기·붓기·보급 원·보고만. 구역을 새로 맡거나 진급할 때마다 하나씩 열린다.
+  // when: zone(그 구역을 맡으면) / rank(그 계급부터) / ops(작전 몇 번 뒤). 처음 열린 작전 브리핑에 한 줄 소개 (name · line)
+  var FEATURES = [
+    { id: 'lobby', when: { ops: 1 }, name: '생활관 보급', line: '작전 사이에 장비·분대원을 산다' },
+    { id: 'look', when: { ops: 1 } },
+    { id: 'officer', when: { zone: 'B' }, name: '간부 순찰', line: '간부가 오면 큰 경례 버튼 (늦으면 지적)' },
+    { id: 'combo', when: { zone: 'B' }, name: '콤보 · 폭풍 제설', line: '쉬지 않고 쓸면 콤보 → 40이면 폭풍 제설' },
+    { id: 'crew', when: { zone: 'B' }, name: '분대원', line: '생활관 보급에서 후임 전입 요청' },
+    { id: 'phone', when: { zone: 'B' } },
+    { id: 'box', when: { zone: 'B' } },
+    { id: 'scan', when: { zone: 'B' }, name: '남은 눈 보기', line: '돋보기 버튼: 남은 눈이 반짝인다' },
+    { id: 'ice', when: { rank: 1 }, name: '빙판', line: '그늘은 치우면 언다 → 제설함 지나가며 염화칼슘' },
+    { id: 'bonus', when: { rank: 1 }, name: '오늘의 특명', line: '작전마다 하나, 성공하면 상점' },
+    { id: 'roof', when: { rank: 1 } },
+    { id: 'px', when: { rank: 1 } },
+    { id: 'pull', when: { rank: 1 } },
+    { id: 'leave', when: { rank: 1 } },
+    { id: 'perk', when: { rank: 1 } },
+    { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
+    { id: 'cam', when: { zone: 'C' } },
+    { id: 'factory', when: { zone: 'C' } },
+    { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' }
+  ];
   // v12: 오늘의 특명 — 작전마다 하나 (2일차부터). 하면 상점(+보급 상자). 매일 달라서 같은 작전도 다르게 하게 만든다
   // stat: 작전 동안 늘어난 기록 / combo: 작전 중 최고 콤보 / zone: 그 구역 100% / end: 작전이 끝날 때 판정
   var BONUS = [
@@ -2206,14 +2260,11 @@ body.saluting #side { visibility: hidden; }
   // who: narr(내레이션) · me · haeng · malnyeon · lt · captain · hoobae · general · cook · driver
   var STORY = [
     { id: 'prologue', when: 'start', title: '전입 첫날', lines: [
-      ['narr', '강원도 산골, ○○사단 제설중대. 밤새 눈이 허리까지 왔다.'],
-      ['haeng', '어이, 신병. 거기 멍하니 서 있는 너.'],
-      ['haeng', '이름이 뭐냐?', 'name'],
-      ['haeng', '{name}이라… 좋아. 잘 들어라.'],
-      ['haeng', '눈은 하늘에서 내리는 쓰레기다. 그리고 넌 오늘부터 환경미화원이다.'],
-      ['me', '(…싸리비 하나로 이 부대를 다 치우라고?)'],
-      ['haeng', '눈 오는 날은 05:30 제설 비상이다. 08:00 아침 먹기 전까지 지시서대로 치운다.'],
-      ['haeng', '퍼 담고, 집하장에 붓고, 다 하면 나한테 보고. 잘하면 근무평정 ★. ★이 쌓이면 진급이다. 시작!']] },
+      ['narr', '강원도 산골 제설중대. 밤새 눈이 허리까지 왔다.'],
+      ['haeng', '어이, 신병. 이름이 뭐냐?', 'name'],
+      ['haeng', '{name}. 눈은 하늘에서 내리는 쓰레기다.'],
+      ['me', '(…싸리비 하나로 다 치우라고?)'],
+      ['haeng', '쓸고, 집하장에 붓고, 다 하면 보고. 시작!']] },
     { id: 'firstDump', when: 'dump1', title: '첫 초코파이', lines: [
       ['haeng', '오, 집하장에 부을 줄은 아는구만. 옛다, 초코파이.'],
       ['me', '(초코파이가… 화폐라고?)'],
@@ -2292,19 +2343,20 @@ body.saluting #side { visibility: hidden; }
   // ── 할 일: 처음 30분을 이끄는 안내. 하나씩 하면 바로 보상 ──
   // stat: 저장의 기록 / life / tool / rank / zone / crew / pend / load
   // v10: 작전 흐름을 그대로 따라가는 안내
+  // v13: 열리는 순서대로 (경례는 족구장부터, 빙판은 일병부터). 안내 글은 짧게
   var QUESTS = [
-    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걸으면 빗자루가 알아서 등에 쌓는다', stat: 'load', goal: 20, pie: 20 },
-    { id: 'dump', text: '집하장에 붓기', how: '노란 원(눈 집하장)에 들어가면 와르르', stat: 'dumps', goal: 1, pie: 40 },
-    { id: 'pusher', text: '넉가래 받기', how: '초코파이가 모이면 행보관 옆 노란 보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
-    { id: 'task', text: '지시서 한 줄 끝내기', how: '작업 지시서의 구역을 기준(%)까지 치워라', stat: 'tasks', goal: 1, pie: 60 },
-    { id: 'salute', text: '간부에게 경례', how: '간부가 오면 화면 가운데 빨간 "경례" 버튼', stat: 'salute', goal: 1, pie: 50 },
-    { id: 'report', text: '작업 완료 보고', how: '지시서를 다 끝내면 초록 보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
-    { id: 'salt', text: '빙판에 염화칼슘', how: '빙판이 생기면 제설함을 지나가며 포대를 줍고, 빙판에 들어가면 저절로 뿌린다', stat: 'salt', goal: 1, pie: 80 },
-    { id: 'perfect', text: '조각 하나 완벽!', how: '위 막대가 금색이면 남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
-    { id: 'hire', text: '후임 전입 요청', how: '생활관 → 보급·인원 → 인원', stat: 'pend', goal: 1, pie: 80 },
-    { id: 'assign', text: '신병 인솔해서 배치', how: '다음 작전 아침, 생활관 앞 신병에게 다가가면 따라온다 → 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
-    { id: 'rank1', text: '일병 진급', how: '★ 6개를 모으면 다음 작전이 진급 심사', stat: 'rank', goal: 1, dia: 3 },
-    { id: 'star3', text: '★★★ 받기', how: '마감 전에 다 끝내고, 경례 빠짐없이, 빙판 없이', stat: 'star3', goal: 1, dia: 2 }
+    { id: 'scoop', text: '눈 퍼 담기', how: '끌어서 걷기', stat: 'load', goal: 20, pie: 20 },
+    { id: 'dump', text: '집하장에 붓기', how: '노란 원으로', stat: 'dumps', goal: 1, pie: 40 },
+    { id: 'pusher', text: '넉가래 받기', how: '보급 원 위에 서 있기', stat: 'tool', goal: 1, dia: 1 },
+    { id: 'task', text: '지시서 끝내기', how: '구역을 기준 %까지', stat: 'tasks', goal: 1, pie: 60 },
+    { id: 'report', text: '작업 완료 보고', how: '보고 원 위에 서 있기', stat: 'opReport', goal: 1, dia: 1 },
+    { id: 'salute', text: '간부에게 경례', how: '빨간 경례 버튼', stat: 'salute', goal: 1, pie: 50 },
+    { id: 'perfect', text: '조각 하나 100%', how: '남은 칸이 반짝인다', stat: 'perfect', goal: 1, dia: 2 },
+    { id: 'hire', text: '후임 전입 요청', how: '생활관 보급 → 인원', stat: 'pend', goal: 1, pie: 80 },
+    { id: 'assign', text: '신병 배치', how: '다가가서 구역에서 멈추기', stat: 'crew', goal: 1, dia: 2 },
+    { id: 'rank1', text: '일병 진급', how: '★ 6개 → 진급 심사', stat: 'rank', goal: 1, dia: 3 },
+    { id: 'salt', text: '빙판에 염화칼슘', how: '제설함 → 빙판', stat: 'salt', goal: 1, pie: 80 },
+    { id: 'star3', text: '★★★ 받기', how: '마감 전에 다, 빠짐없이', stat: 'star3', goal: 1, dia: 2 }
   ];
   // 소품 (지나갈 수 있다). use: 작전 중 상호작용 (전화·철봉·자판기는 생활관 저녁 시간에)
   var PROPS = [
@@ -2341,7 +2393,7 @@ body.saluting #side { visibility: hidden; }
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };
@@ -2420,6 +2472,22 @@ body.saluting #side { visibility: hidden; }
       save.zones[Z.id] = true; save.fresh[Z.id] = true; save.seen['new' + Z.id] = true; got.push(Z);
     });
     return got;
+  }
+  // v13: 단계별 공개 — 이 기능이 열렸나 (구역·계급·작전 횟수). 데모 화면은 다 보여 준다
+  function feat(save, id) {
+    var F = null; for (var i = 0; i < S.FEATURES.length; i++) if (S.FEATURES[i].id === id) { F = S.FEATURES[i]; break; }
+    if (!F) return true;
+    var c = F.when || {};
+    if (c.zone && !(save.zones && save.zones[c.zone])) return false;
+    if (c.rank && rankOf(save) < c.rank) return false;
+    if (c.ops && ((save.stats && save.stats.ops) || 0) < c.ops && !save.discharges) return false;
+    return true;
+  }
+  // 아직 소개하지 않은 새 기능 (브리핑에 한 줄씩). see=true면 본 것으로 적는다
+  function newFeatures(save, see) {
+    var out = S.FEATURES.filter(function (F) { return F.name && feat(save, F.id) && !(save.seen && save.seen['f:' + F.id]); });
+    if (see) out.forEach(function (F) { save.seen['f:' + F.id] = 1; });
+    return out;
   }
   // 다음에 맡을 구역 (생활관 안내용): 무엇이 모자라는지까지
   function nextZone(save) {
@@ -2594,19 +2662,20 @@ body.saluting #side { visibility: hidden; }
   function schedule(w, save, from) {
     var R = w.rand, dl = S.DAY_LEN, ev = [], day = save.day, i;
     function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
-    if (day >= HAZ.deer.from) {
+    if (day >= HAZ.deer.from && feat(save, 'deer')) {
       var n = Math.round(Math.min(HAZ.deer.max, 1 + (day - HAZ.deer.from) / 6) * (1 - 0.25 * lvl(save, 'gong')));
       for (i = 0; i < n; i++) at(20 + R() * (dl - 40), 'deer');
     }
     // 선임 눈덩이 장난: 이병은 자주, 일병은 가끔, 상병부터는 없다 (짬이 차면 편해진다)
     var sbp = HAZ.snowball.p[rankOf(save)] || 0;
-    if (day >= HAZ.snowball.from && R() < sbp) at(15 + R() * (dl - 30), 'snowball');
+    if (day >= HAZ.snowball.from && feat(save, 'officer') && R() < sbp) at(15 + R() * (dl - 30), 'snowball');
     // 07:30 중대장님 출근 차량 (진입로를 맡은 뒤부터)
     if (save.zones[HAZ.car.zone]) at(timeAt(HAZ.car.at), 'car');
-    if (day >= 2) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
+    if (day >= 2 && feat(save, 'roof')) for (var t = 25 + R() * 20; t < dl - 10; t += HAZ.roof.every * (0.7 + R() * 0.6)) at(t, 'roof');
     if (save.zones[HAZ.heli.zone] && R() < HAZ.heli.p) at(20 + R() * (dl - 40), 'heli');
     // v11 돌발: 폭설 경보(날씨가 나쁠수록 자주), 공병대 제설차 지원(좋은 반전), 사단장님 불시 방문
     var TW = S.TWIST, wxi = ['light', 'normal', 'heavy', 'blizzard'].indexOf(weatherFor(save).id);
+    if (!feat(save, 'twist')) { ev.sort(function (a, b) { return a.t - b.t; }); return ev; }
     if (day >= TW.surge.from && R() < TW.surge.p[Math.max(0, wxi)]) at(dl * (0.3 + R() * 0.3), 'surge');
     if (day >= TW.support.from && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');
     if (day >= TW.surprise.from && day % 7 && R() < TW.surprise.p) at(dl * (0.35 + R() * 0.25), 'surprise');
@@ -2709,7 +2778,7 @@ body.saluting #side { visibility: hidden; }
     w.op = { day: save.day, exam: exam, goal: goal, tasks: tasks, jigeok: st ? st.jigeok || 0 : 0, stuck: st ? !!st.stuck : false, carPass: st ? !!st.carPass : false, ready: false, report: false, nag: 0,
       bonus: w.demo ? null : pickBonus(w, st && st.bonus) };
     if (st && st.salted) st.salted.forEach(function (k) { if (w.parts[k]) w.parts[k].salted = true; });
-    w.parts.forEach(function (P) { if (P.ice && P.total && P.clear / P.total >= S.ALMOST) P.icy = true; });
+    if (feat(save, 'ice')) w.parts.forEach(function (P) { if (P.ice && P.total && P.clear / P.total >= S.ALMOST) P.icy = true; });
     checkTasks(w, true);
     if (!w.demo) syncOpSave(w);
   }
@@ -2724,7 +2793,7 @@ body.saluting #side { visibility: hidden; }
 
   /* ── v12: 오늘의 특명 (작전마다 하나, 날짜로 정해져 생활관에서 미리 보인다) ── */
   function previewBonus(save) {
-    if (save.day < 2) return null;   // 첫 작전은 배우는 날
+    if (save.day < 2 || !feat(save, 'bonus')) return null;   // 일병부터 (v13)
     var list = S.BONUS.filter(function (B) { return !B.needZone || save.zones[B.needZone]; });
     var R = mulberry(save.seed * 5 + save.day * 313), B = list[(R() * list.length) | 0];
     if (!B) return null;
@@ -2992,7 +3061,7 @@ body.saluting #side { visibility: hidden; }
     P.clear++;
     if (P.total && !P.almost && P.clear / P.total >= S.ALMOST) { P.almost = true; w.fx.push({ t: 'almost', p: p, name: P.name }); }
     // 그늘·비탈·배식구 앞: 눈을 걷어 내면 바닥이 언다 → 염화칼슘을 뿌려야 한다
-    if (P.ice && !P.icy && !P.salted && P.total && P.clear / P.total >= S.ALMOST) {
+    if (P.ice && !P.icy && !P.salted && P.total && P.clear / P.total >= S.ALMOST && feat(w.save, 'ice')) {
       P.icy = true;
       // v12: 염화칼슘 살포기를 가졌으면 미리 뿌려 두니까 얼지 않는다 (도구 설명 그대로)
       if (toolOf(w.save).aura && !w.demo) { P.salted = true; w.fx.push({ t: 'salted', p: p, name: P.name, x: P.x + P.w / 2, y: P.y + P.h / 2, auto: true }); syncOpSave(w); }
@@ -3060,7 +3129,7 @@ body.saluting #side { visibility: hidden; }
     return removed;
   }
 
-  function comboMult(w) { return 1 + Math.min(0.5, w.combo / 300); }
+  function comboMult(w) { return w.demo || feat(w.save, 'combo') ? 1 + Math.min(0.5, w.combo / 300) : 1; }
   // 집하장에 붓기 (가득 채워 오면 만재 보너스 +10%)
   function deposit(w, who, src, dump) {
     if (!who.load) return 0;
@@ -3379,7 +3448,7 @@ body.saluting #side { visibility: hidden; }
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
           // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배
-          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
+          if (S.FEVER.at.indexOf(w.combo) >= 0 && !w.demo && feat(save, 'combo')) { w.fever = S.FEVER.sec; stat(w, 'fever'); w.fx.push({ t: 'fever', on: true, n: w.combo }); say(w, 'fever', true); }
         }
       }
     }
@@ -3505,7 +3574,7 @@ body.saluting #side { visibility: hidden; }
     return Math.floor(save.crewRate * sec * 0.1);
   }
 
-  JY.SnowSim = { previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
+  JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
@@ -4019,6 +4088,7 @@ body.saluting #side { visibility: hidden; }
   function planOfficers(w) {
     var a = w.act, save = w.save, R = G.mulberry(save.seed * 7 + save.day * 131), plan = [];
     a.offDay = save.day; a.off = [];
+    if (!G.feat(save, 'officer')) { a.offPlan = []; return; }   // v13: 간부 순찰은 족구장을 맡은 뒤부터
     plan.push({ t: G.timeAt(350 + R() * 30), id: 'lt' });                                   // 05:50~06:20 소대장
     if (save.day >= 2 && !save.zones[S.HAZ.car.zone]) plan.push({ t: G.timeAt(420 + R() * 40), id: 'cpt' });   // 07:00~07:40 (진입로를 맡으면 차로 온다)
     if (w.inspect) plan.push({ t: G.timeAt(400 + R() * 20), id: 'gen' });                  // 06:40~07:00 사단장님 순시
@@ -4873,7 +4943,7 @@ body.saluting #side { visibility: hidden; }
         shake = Math.max(shake, 4);
       }
       if (f.t === 'dump' && (f.src === 'player' || Math.random() < 0.3)) { floats.push({ x: f.x, y: f.y - 30, text: '+' + Math.floor(f.pay), t: 0, life: 1.2, color: '#ffd84a', size: 13, pie: true }); if (JY.SnowSfx && f.src === 'player' && mode === 'play') { JY.SnowSfx.pour(1); JY.SnowSfx.coin(); } }
-      if (f.t === 'full') floats.push({ x: 0, y: 0, text: '가득!', t: 0, life: 1.4, color: '#ff6a55', size: 12, follow: world.player });
+      // v13: '가득!'은 위 짐 고리가 말한다 (내 머리 위 글자는 캐릭터를 가렸다)
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
@@ -6090,7 +6160,7 @@ body.saluting #side { visibility: hidden; }
         if (sfx && (dm || crewScrapeT <= 0)) { sfx.pour(dm ? 1 : 0.35); if (dm) sfx.coin(); }
         if (dm && hooks.event) hooks.event(f);
       } else if (f.t === 'full') {
-        addOv('가득!', 'ov-full', 0, 0, 4.4, 1.6, world.player);
+        // v13: '가득!'은 위 짐 고리가 말한다 (내 머리 위 글자는 캐릭터를 가렸다)
         if (sfx) sfx.deny();
         if (hooks.event) hooks.event(f);
       } else if (f.t === 'inspect') {
@@ -6133,8 +6203,8 @@ body.saluting #side { visibility: hidden; }
       } else if (f.t === 'found') {
         var rcc = new T.Color(S.RARITY[f.item.r].color);
         for (k = 0; k < (f.item.r === 'c' ? 24 : 70); k++) emit(f.x * U + rnd(-0.4, 0.4), 0.5, f.y * U + rnd(-0.4, 0.4), rnd(-2.5, 2.5), rnd(5, 10), rnd(-2.5, 2.5), rnd(0.8, 1.4), [rcc.r, rcc.g, rcc.b]);
-        var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 상점 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
-        of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5;
+        if (f.item.r === 'r' || f.item.r === 'l') { var of = addOv('<b>' + esc(f.item.name) + '</b><small>' + (f.pie ? '+' + fmt(f.pie) + ' 초코파이' : '') + (f.item.dia ? ' · 상점 +' + f.item.dia : '') + '</small>', 'ov-found', f.x, f.y, 2.2, 2.8);
+        of.el.style.setProperty('--rc', S.RARITY[f.item.r].color); of.rise = 0.5; }   // v13: 흔한 분실물은 반짝임만 (글자가 캐릭터를 가렸다)
       } else if (f.t === 'dia') { if (!isFP() && f.why !== 'rank') { var od2 = addOv('<i class="dia"></i>+' + f.n, 'ov-dia', 0, 0, 4.6, 1.6, world.player); od2.rise = 0.8; } }
       else if (f.t === 'locked') { addOv('출입 통제', 'ov-lock', f.x, f.y, 1.6, 1.4); }
       else if (f.t === 'hand') { vmPlay('act', 0.5); if (sfx) sfx.pop(); }
@@ -7093,10 +7163,20 @@ body.saluting #side { visibility: hidden; }
   function $(id) { return document.getElementById(id); }
   // v10 저장이 없으면 v8 저장을 읽어서 옮긴다 (계급은 쌓은 초코파이로 이어 준다). v8 저장은 그대로 둔다
   function load() {
+    var s;
     try {
       var raw = localStorage.getItem(KEY) || localStorage.getItem(PREV_KEY);
-      return G.migrate(raw ? JSON.parse(raw) : null);
-    } catch (e) { return G.newSave(); }
+      s = G.migrate(raw ? JSON.parse(raw) : null);
+    } catch (e) { s = G.newSave(); }
+    return seenOld(s);
+  }
+  // v13: 이미 하던 저장이면 지금 열린 기능·버튼은 본 것으로 (갑자기 '새로 생김'·N이 잔뜩 뜨지 않게)
+  function seenOld(s) {
+    if (s.seen && !s.seen.v13) {
+      if ((s.stats && s.stats.ops) >= 1) { G.newFeatures(s, true); ['shop', 'px', 'phone', 'pull', 'leave', 'look', 'medal', 'story'].forEach(function (k) { s.seen['hub:' + k] = 1; }); }
+      s.seen.v13 = 1;
+    }
+    return s;
   }
   function persist() {
     var w = V.world && V.world();
@@ -7178,6 +7258,8 @@ body.saluting #side { visibility: hidden; }
   function started() { return !!(save.stats.ops || save.snow || save.discharges || save.day > 1); }
   function midOp() { return !!(save.snow && save.dayT > 0 && save.op && save.op.day === save.day); }
   function title() {
+    // 이야기 장면이 열린 채 생활관으로 오면 닫는다 (장면은 다음에 다시 나온다)
+    if (talking) { $('talk').hidden = true; talking = false; document.querySelector('.talk-box').onclick = null; }
     show('title');
     if (V.lobby) V.lobby(save); else V.demo(save);
     var on = started(), mid = midOp();
@@ -7214,7 +7296,19 @@ body.saluting #side { visibility: hidden; }
     if (nt) news.push('<li>다음 장비 <b>' + esc(nt.name) + '</b> · ' + (r < (nt.rank || 0) ? S.RANKS[nt.rank].name + '부터' : save.bank >= nt.cost ? '<b class="ok">받을 수 있다! (보급 원)</b>' : pie() + fmt(save.bank) + '/' + fmt(nt.cost)) + '</li>');
     if (tb) news.push('<li>내일 특명 <b>' + esc(tb.text) + '</b> · ' + dia() + '+' + tb.dia + '</li>');
     if (nextZone && on) news.push('<li>★' + nextZone.need + (r < (nextZone.rank || 0) ? ' · ' + S.RANKS[nextZone.rank].name : '') + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
-    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 4).join('') + '</ul>';
+    // v13: 소식은 두 줄만 — 지금 할 일(안내)이 있으면 그게 먼저
+    var q = M && on ? M.questNow(save) : null;
+    if (q) news.unshift('<li class="hl">할 일: <b>' + esc(q.text) + '</b> · ' + esc(q.how) + '</li>');
+    var pri = function (li) { return /data-hub="dis"|class="exam"/.test(li) ? 0 : /할 일:/.test(li) ? 1 : /받을 수 있다/.test(li) ? 2 : /특명/.test(li) ? 3 : 4; };
+    news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
+    $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
+    // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
+    var GATE = { shop: 'lobby', px: 'px', phone: 'phone', pull: 'pull', leave: 'leave', look: 'look', medal: 'box', story: 'lobby' };
+    document.querySelectorAll('.lb-side [data-hub]').forEach(function (b) {
+      var k = b.getAttribute('data-hub'), f = GATE[k]; if (!f) return;
+      var open = G.feat(save, f); b.hidden = !open;
+      b.classList.toggle('new', open && on && !save.seen['hub:' + k]);
+    });
     var any = G.offers(save), n = 0;
     ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
@@ -7225,6 +7319,7 @@ body.saluting #side { visibility: hidden; }
   function hubClick(e) {
     var b = e.target.closest('[data-hub]'); if (!b) return;
     var k = b.getAttribute('data-hub');
+    if (!save.seen['hub:' + k]) { save.seen['hub:' + k] = 1; b.classList.remove('new'); persistRaw(); }
     if (X) { X.unlock(); X.pop(); }
     if (k === 'shop') { tab = 'tool'; openShop(); }
     else if (k === 'px') openPX();
@@ -7293,7 +7388,7 @@ body.saluting #side { visibility: hidden; }
   /* ── 제설 비상 브리핑: 누가 지시하나(계급마다), 날씨, 작업 지시서(마감 시각), 특이사항, 상병부터 조원 배치 ── */
   function startOp() {
     if (X) X.unlock();
-    if (!save.seen.help) { help(startOp); return; }   // v11: 처음 한 번은 교범 4장
+    // v13: 처음 출동 전 교범 4장은 뺐다 (읽을 게 너무 많다) — 화면 위 '지금 할 일' 한 줄과 노란 화살표로 충분. 교범은 로비 버튼
     if (!started() && !save.story.prologue) { play(false); return; }   // 첫 전입: 프롤로그가 이어진다
     if (midOp()) { play(true); return; }
     briefing();
@@ -7303,22 +7398,22 @@ body.saluting #side { visibility: hidden; }
     var zs = S.ZONES.filter(function (Z) { return save.zones[Z.id]; }).sort(function (a, b) { return (a.due || 480) - (b.due || 480); });
     var line = M.fill(pick(B.lines), save).replace('{zone}', zs.map(function (Z) { return Z.name; }).join(', '));
     var notes = [];
-    if (exam) notes.push('<li class="exam">진급 심사: 기준 ' + Math.round(goal * 100) + '%, ★★ 이상이면 ' + G.nextRank(save).name + ' 진급' + (save.examFail ? ' (재심사 ' + (save.examFail + 1) + '번째)' : '') + '</li>');
-    if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' — 오늘은 기준을 ' + Math.round(wxCut * 100) + '%p 낮춰 준다 (이동로부터 뚫어라)</li>');
-    if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 보이면 바로 경례</li>');
-    if (save.zones.E) notes.push('<li>07:30 중대장님 출근 차량 — 진입로 가운데 바퀴 자리를 먼저</li>');
-    if (S.ZONES.some(function (Z) { return save.zones[Z.id] && Z.parts.some(function (p) { return p[5]; }); })) notes.push('<li>그늘·비탈은 치우면 언다 → 제설함 염화칼슘</li>');
-    if (r === 0) notes.push('<li>장비는 행보관에게 요청 (초코파이)</li>');
+    // v13: 특이사항은 오늘만 다른 것만 짧게 (심사·날씨·순시·출근 차량). 늘 같은 설명은 '새로 생김'에서 한 번만
+    if (exam) notes.push('<li class="exam">진급 심사 ' + Math.round(goal * 100) + '% · ★★면 ' + G.nextRank(save).name + (save.examFail ? ' (재심사)' : '') + '</li>');
+    if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' · 기준 −' + Math.round(wxCut * 100) + '%p</li>');
+    if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 바로 경례</li>');
+    if (save.zones.E) notes.push('<li>07:30 출근 차량 — 진입로 먼저</li>');
+    var nf = G.newFeatures(save, true).slice(0, 3);
     var prep = Object.keys(save.prep || {}).map(function (k) { var it = S.PREP.filter(function (p) { return p.id === k; })[0]; return it ? it.name : k === 'support' ? '대대 지원' : k === 'morale' ? '전원 초코파이' : k === 'power' ? '체력단련' : ''; }).filter(Boolean);
-    if (prep.length) notes.push('<li class="good">준비물: ' + esc(prep.join(', ')) + '</li>');
+    if (prep.length) notes.push('<li class="good">챙긴 것: ' + esc(prep.join(', ')) + '</li>');
     var crewRows = r >= 2 && G.crewCount(save) ? crewPlan() : '';
     modal('<div class="m-brief">' +
       '<p class="kicker">' + save.day + '일차 · 05:30 제설 비상</p>' +
       '<div class="brief-who"><div class="m-face">' + portrait(B.who) + '</div><p>' + esc(line) + '</p></div>' +
-      '<p class="brief-wx">' + S.WEATHER[wx.id].name + ' · 08:00 아침 식사 전까지</p>' +
-      '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b><span>' + G.clockText(Z.due || 480) + (zs.length > 3 ? '' : '까지 · ' + esc(Z.why || '')) + '</span></li>'; }).join('') + '</ol>' +
+      (nf.length ? '<div class="brief-new"><b>새로 생김</b>' + nf.map(function (F) { return '<p><span>' + esc(F.name) + '</span> ' + esc(F.line) + '</p>'; }).join('') + '</div>' : '') +
+      '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b><span>' + G.clockText(Z.due || 480) + (zs.length > 2 ? '' : '까지 · ' + esc(Z.why || '')) + '</span></li>'; }).join('') + '</ol>' +
       (notes.length ? '<ul class="brief-notes">' + notes.join('') + '</ul>' : '') +
-      (bo ? '<div class="brief-bonus"><b>오늘의 특명</b><span>' + esc(bo.text) + '</span><small>' + dia() + '상점 +' + bo.dia + (bo.box ? ' · 보급 상자' : '') + ' · ' + esc(bo.how) + '</small></div>' : '') + crewRows +
+      (bo ? '<div class="brief-bonus"><b>특명</b><span>' + esc(bo.text) + '</span><small>' + dia() + '+' + bo.dia + '</small></div>' : '') + crewRows +
       '<button class="btn big" data-m="go">' + (exam ? '심사 받으러 출동!' : '출동!') + '</button></div>', function (k) { if (k === 'go') play(false); });
     var box = $('modal-box'), base = box.onclick;
     box.onclick = function (e) {
@@ -7360,16 +7455,19 @@ body.saluting #side { visibility: hidden; }
     if (X) X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2);
     if (!resume) {
       var op = w.op || {};
-      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', '05:30 · ' + S.WEATHER[w.weather].name + ' · 지시서 ' + (op.tasks || []).length + '개 구역', 2400);
-      setTimeout(function () { say(op.exam ? 'exam' : w.weather === 'heavy' || w.weather === 'blizzard' ? 'heavy' : 'start'); }, 600);
+      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', '05:30 · ' + S.WEATHER[w.weather].name, 2000);
+      if (op.exam || w.weather === 'heavy' || w.weather === 'blizzard') setTimeout(function () { say(op.exam ? 'exam' : 'heavy'); }, 900);
       if (X) X.whistle(false);
     }
     if (!save.seen.tut) { hintText(); $('hint').hidden = false; }
     scanReady = 0; $('h-scan').disabled = !V.scan; $('h-scan').classList.remove('cool');
+    // v13: 버튼도 열린 것만 (처음엔 정지 하나)
+    $('h-scan').hidden = !G.feat(save, 'scan'); $('h-cam').hidden = !V.toggleCam || !G.feat(save, 'cam');
+    document.querySelector('#hud .pill.bank').classList.toggle('nodia', !G.feat(save, 'box'));
     var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
     if (fresh) {
       delete save.seen['new' + fresh.id]; persist();
-      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」 — ' + fresh.reveal, 4200); }, resume ? 400 : 2300);
+      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」', 2600); }, resume ? 400 : 2300);
     }
   }
   function dayLabel(w) {
@@ -7382,33 +7480,33 @@ body.saluting #side { visibility: hidden; }
     if (onActEvent(f)) return;
     if (onV6Event(f)) return;
     if (onOpEvent(f)) return;
-    if (f.t === 'deer') { chip('고라니가 철책 넘어 들어왔다! 쫓아내라', 'warn'); vibrate(80); }
-    else if (f.t === 'meHit') { chip('고라니한테 받혔다! (꾸에에엑)', 'bad'); vibrate([60, 40, 120]); flash(); }
-    else if (f.t === 'snowball') { splat(); vibrate(50); chip('선임들 장난이다. 이병은 참는다', ''); }
-    else if (f.t === 'car') chip('07:30 중대장님 출근 차량! 진입로로 올라온다', 'warn');
+    if (f.t === 'deer') { vibrate(80); }
+    else if (f.t === 'meHit') { chip('고라니한테 받혔다!', 'bad'); vibrate([60, 40, 120]); flash(); }
+    else if (f.t === 'snowball') { splat(); vibrate(50); }
+    else if (f.t === 'car') chip('출근 차량 온다 · 진입로', 'warn');
     else if (f.t === 'full') vibrate(30);
   }
   // v10 작전 사건: 지시서 완료·지연, 보고, 빙판, 출근 차량, 처마 눈, 지적, 끝
   function onOpEvent(f) {
     if (f.t === 'task') { banner(f.late ? '늦었지만 완료' : '작업 완료!', f.task.name + ' ' + Math.round(f.task.goal * 100) + '% · +' + fmt(f.pay), 2000); if (X) { X.stamp(); X.coin(); } vibrate([30, 30, 60]); hud.op = null; return true; }
     if (f.t === 'taskLate') { chip('마감 지났다: ' + f.task.name + ' (' + G.clockText(f.task.due) + ')', 'bad'); if (X) X.deny(); hud.op = null; return true; }
-    if (f.t === 'bonus') { banner('특명 완료!', f.text + ' · 상점 +' + f.dia + (f.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); vibrate([40, 30, 80]); hud.op = null; return true; }
-    if (f.t === 'help') { if (!hud.helpSaid) { hud.helpSaid = true; chip(f.e.def.name + ': 담당 끝! ' + f.name + ' 도우러 간다', 'good'); } return true; }
-    if (f.t === 'opReady') { banner('지시서 다 했다!', '행보관에게 가서 "작업 완료 보고" — 일찍 보고할수록 수당', 2800); if (X) X.fanfare(); hud.op = null; return true; }
+    if (f.t === 'bonus') { banner('특명 완료!', '상점 +' + f.dia, 2200); if (X) X.fanfare(); vibrate([40, 30, 80]); hud.op = null; return true; }
+    if (f.t === 'help') { if (!hud.helpSaid) { hud.helpSaid = true; chip(f.e.def.name + ' → ' + f.name + ' 지원', 'good'); } return true; }
+    if (f.t === 'opReady') { banner('지시서 다 했다!', '보고 원으로', 2400); if (X) X.fanfare(); hud.op = null; return true; }
     if (f.t === 'opEnd') { setTimeout(function () { results(f.res); }, f.res.why === 'report' ? 300 : 900); if (X) { X.whistle(true); } return true; }
-    if (f.t === 'icy') { chip(f.name + ' 얼었다! 제설함 염화칼슘', 'warn'); vibrate(40); hud.op = null; return true; }
-    if (f.t === 'salted') { chip((f.auto ? '살포기로 ' : '') + f.name + ' 빙판 처리 완료', 'good'); if (X) X.ding(); hud.op = null; return true; }
-    if (f.t === 'slip') { chip('미끄러졌다! 빙판엔 염화칼슘', 'bad'); vibrate([40, 30, 80]); return true; }
-    if (f.t === 'carStuck') { banner('차가 빠졌다!!', '중대장님 차 — 가서 "차 밀기" 연타 (분대원도 와서 민다)', 2600); vibrate([80, 40, 80]); if (X) X.deny(); hud.op = null; return true; }
+    if (f.t === 'icy') { vibrate(40); hud.op = null; return true; }   // v13: '지금 할 일'이 알려 준다
+    if (f.t === 'salted') { if (X) X.ding(); hud.op = null; return true; }
+    if (f.t === 'slip') { chip('미끄덩!', 'bad'); vibrate([40, 30, 80]); return true; }
+    if (f.t === 'carStuck') { banner('차가 빠졌다!!', '차 뒤에 붙어서 밀기', 2400); vibrate([80, 40, 80]); if (X) X.deny(); hud.op = null; return true; }
     if (f.t === 'carFree') { chip('영차! 차가 빠져나왔다', 'good'); if (X) X.ding(); return true; }
-    if (f.t === 'carPass') { chip('중대장님 차가 한 번에 올라갔다 · 상점 +1', 'good'); if (X) X.perfect(); return true; }
+    if (f.t === 'carPass') { chip('차가 한 번에 올라갔다 · 상점 +1', 'good'); if (X) X.perfect(); return true; }
     if (f.t === 'push') { vibrate(15); return true; }
-    if (f.t === 'roofWarn') { chip('우두둑… 처마 눈이 떨어진다! 피해!', 'warn'); vibrate([20, 20, 20]); return true; }
+    if (f.t === 'roofWarn') { chip('처마 눈! 피해', 'warn'); vibrate([20, 20, 20]); return true; }
     if (f.t === 'roof') return true;
-    if (f.t === 'jigeok') { chip('지적 ' + f.n + '건 — 경례 안 했다 (등급 감점)', 'bad'); vibrate([80, 40, 80]); hud.op = null; return true; }
+    if (f.t === 'jigeok') { chip('지적 ' + f.n + '건 (경례 놓침)', 'bad'); vibrate([80, 40, 80]); hud.op = null; return true; }
     if (f.t === 'nag') return true;
-    if (f.t === 'prep') { chip('준비물: ' + f.used.join(', '), 'good'); return true; }
-    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '행보관이 창고에서 꺼내 줬다 · 초코파이 ' + fmt(f.cost), 2200); if (X) X.buy(); if (V.shake) V.shake(2); vibrate([30, 30, 60]); hud.ld = -1; return true; }
+    if (f.t === 'prep') return true;
+    if (f.t === 'toolGet') { banner(f.name + ' 보급!', '', 2000); if (X) X.buy(); if (V.shake) V.shake(2); vibrate([30, 30, 60]); hud.ld = -1; return true; }
     if (f.t === 'fever') { if (f.on) { banner('폭풍 제설!!', '콤보 ' + f.n + ' · ' + S.FEVER.sec + '초 동안 눈 값 ×' + S.FEVER.value + ' · 넉가래 범위 UP', 2000); if (X && X.fever) X.fever(); vibrate([30, 30, 30, 30, 90]); } return true; }
     if (f.t === 'surge') { if (f.on) { banner('폭설 경보!', '눈이 미친 듯이 쏟아진다 · ' + Math.round(f.sec) + '초 버텨라', 2400); if (X) X.whistle(false); vibrate([100, 60, 100]); } else chip('폭설이 잦아들었다. 지금이 기회!', 'good'); return true; }
     if (f.t === 'support') { if (f.on) { banner('공병대 제설차 지원!', f.zone + '을(를) 한 줄 싹 밀고 간다', 2400); if (X) X.bugle(); } return true; }
@@ -7443,7 +7541,7 @@ body.saluting #side { visibility: hidden; }
       cg.classList.remove('bump'); void cg.offsetWidth; cg.classList.add('bump');
     }
     if (hud.dia !== save.dia) { if (hud.dia !== undefined && save.dia > hud.dia) { var bp = document.querySelector('.pill.bank'); bp.classList.remove('flash-dia'); void bp.offsetWidth; bp.classList.add('flash-dia'); } hud.dia = save.dia; $('h-dia').textContent = fmt(save.dia); }
-    var nb = (save.boxes || []).length; if (hud.nb !== nb) { hud.nb = nb; $('h-box').hidden = !nb; $('h-box-n').textContent = nb; }
+    var nb = (save.boxes || []).length; if (hud.nb !== nb) { hud.nb = nb; $('h-box').hidden = !nb || !G.feat(save, 'box'); $('h-box-n').textContent = nb; }
     areaHud(w); comboHud(w);
     if (hud.ld !== ld || hud.cap !== P.cap) {
       hud.ld = ld; hud.cap = P.cap;
@@ -7455,7 +7553,7 @@ body.saluting #side { visibility: hidden; }
     var ck = G.clockText(G.clockOf(w.time));
     if (hud.clock !== ck) { hud.clock = ck; $('h-day').textContent = ck; var late = w.dayLen - w.time < 30; $('h-day').classList.toggle('late', late); }
     // 알림 줄은 HUD(지금 할 일·진행 막대) 바로 아래에서 시작한다
-    if (nowP - (hud.stackAt || 0) > 400) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; } }
+    if (nowP - (hud.stackAt || 0) > 150) { hud.stackAt = nowP; var hb = $('hud').getBoundingClientRect().bottom; if (Math.abs(hb - (hud.hb || 0)) > 2) { hud.hb = hb; $('stack').style.top = Math.round(hb + 8) + 'px'; } }
     if (Date.now() - lastSave > 5000) persist();
   }
 
@@ -7483,18 +7581,19 @@ body.saluting #side { visibility: hidden; }
     if (V.setSpeed) V.setSpeed(1);
     persistRaw();
     var r = res.rank, nr = S.RANKS[r + 1], R0 = S.RANKS[r];
-    var lines = res.lines.map(function (l) {
-      var st = l.done ? (l.late ? '늦음' : '완료') : Math.floor(l.pct * 100) + '%';
-      return '<li class="' + (l.done ? (l.late ? 'late' : 'ok') : 'bad') + '"><span>' + esc(l.name) + ' <small>' + G.clockText(l.due) + '</small></span><b>' + st + '</b></li>';
+    // v13: 읽을 게 적게 — 지시서는 '완료 N/M' 한 줄 + 못 한 줄·늦은 줄만 (최대 3)
+    var okN = res.lines.filter(function (l) { return l.done && !l.late; }).length;
+    var lines = ['<li class="' + (okN === res.lines.length ? 'ok' : '') + '"><span>지시서</span><b>' + okN + '/' + res.lines.length + ' 완료</b></li>'];
+    res.lines.filter(function (l) { return !l.done || l.late; }).slice(0, 3).forEach(function (l) {
+      lines.push('<li class="' + (l.done ? 'late' : 'bad') + '"><span>' + esc(l.name) + '</span><b>' + (l.done ? '늦음' : Math.floor(l.pct * 100) + '%') + '</b></li>');
     });
+    // 특명 결과는 지시서 바로 아래 (작전마다 하나뿐인 목표)
+    if (res.bonus) lines.splice(1, 0, '<li class="' + (res.bonus.done ? 'ok' : 'bad') + '"><span>특명: ' + esc(res.bonus.text) + '</span><b>' + (res.bonus.done ? '성공 · 상점 +' + res.bonus.dia : '실패') + '</b></li>');
     if (res.jigeok) lines.push('<li class="bad"><span>지적 (경례)</span><b>−' + res.jigeok + '건</b></li>');
     if (res.stuck) lines.push('<li class="bad"><span>출근 차량 빠짐</span><b>감점</b></li>');
     if (res.icy) lines.push('<li class="bad"><span>빙판 방치</span><b>' + res.icy + '곳</b></li>');
-    if (res.carPass) lines.push('<li class="ok"><span>출근 차량 한 번에 통과</span><b>상점 +1</b></li>');
-    if (res.report) lines.push('<li class="ok"><span>작업 완료 보고</span><b>가점</b></li>');
-    if (res.early) lines.push('<li class="ok"><span>맡은 구역 전부 100%</span><b>가점</b></li>');
-    (res.ach || []).forEach(function (a) { lines.push('<li class="ok"><span>새 훈장: ' + esc(a.name) + '</span><b>상점 +' + a.dia + (a.box ? ' · 상자' : '') + '</b></li>'); });
-    if (res.bonus) lines.push('<li class="' + (res.bonus.done ? 'ok' : 'bad') + '"><span>특명: ' + esc(res.bonus.text) + '</span><b>' + (res.bonus.done ? '성공 · 상점 +' + res.bonus.dia : '실패') + '</b></li>');
+    if (res.early) lines.push('<li class="ok"><span>전 구역 100%</span><b>가점</b></li>');
+    if ((res.ach || []).length) lines.push('<li class="ok"><span>새 훈장 ' + (res.ach.length > 1 ? res.ach.length + '개' : esc(res.ach[0].name)) + '</span><b>상점 +' + res.ach.reduce(function (a, x) { return a + x.dia; }, 0) + '</b></li>');
     var meritTxt = nr ? '★' + res.merit + ' / ' + nr.merit + ' (' + nr.name + ')' : '★' + res.merit + ' / ' + S.DISCHARGE_MERIT + ' (전역)';
     var prog = nr ? Math.min(1, (res.merit - R0.merit) / (nr.merit - R0.merit)) : Math.min(1, res.merit / S.DISCHARGE_MERIT);
     var head = res.exam ? (res.pass ? '진급 심사 합격!' : '진급 심사 불합격') : ['재작업…', '미흡', '양호', '특급 제설!'][res.stars];
@@ -7510,7 +7609,9 @@ body.saluting #side { visibility: hidden; }
     modal('<div class="m-res' + (res.exam ? ' exam' : '') + '"><p class="kicker">' + res.day + '일차 제설 작전 · 행보관 검열' + (res.why === 'report' ? ' (보고 ' + G.clockText(G.clockOf(V.world().time)) + ')' : ' (08:00)') + '</p>' +
       '<div class="res-stars s' + res.stars + '">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= res.stars ? 'on' : '') + '" style="animation-delay:' + (0.25 + i * 0.28) + 's">★</i>'; }).join('') + '</div>' +
       '<h3>' + head + '</h3><p class="res-who">' + esc(who) + '</p>' + (tip ? '<p class="res-tip">다음엔: ' + esc(tip) + '</p>' : '') +
-      '<ul class="res-lines op">' + lines.join('') + '</ul>' +
+      // v13: 줄은 4개까지만 보이고, 나머지는 '자세히'를 눌러야 펼쳐진다
+      '<ul class="res-lines op">' + lines.slice(0, 4).join('') + '</ul>' +
+      (lines.length > 4 ? '<details class="res-more"><summary>자세히 (' + (lines.length - 4) + ')</summary><ul class="res-lines op">' + lines.slice(4).join('') + '</ul></details>' : '') +
       '<div class="res-pay"><span>' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
       (res.zones.length ? '<p class="res-zone">새 담당 구역: <b>' + esc(res.zones.join(', ')) + '</b></p>' : '') +
@@ -7626,7 +7727,9 @@ body.saluting #side { visibility: hidden; }
   function renderShop() {
     $('s-bank').textContent = fmt(save.bank);
     var showDis = G.rankOf(save) >= 3 || save.discharges > 0, all = G.offers(save);
-    $('s-tabs').innerHTML = TABS.filter(function (t) { return t[0] !== 'dis' || showDis; }).map(function (t) {
+    var TGATE = { crew: 'crew', perk: 'perk', factory: 'factory', look: 'look', story: 'lobby', medal: 'box' };
+    if (TGATE[tab] && !G.feat(save, TGATE[tab])) tab = 'tool';
+    $('s-tabs').innerHTML = TABS.filter(function (t) { return (t[0] !== 'dis' || showDis) && (!TGATE[t[0]] || G.feat(save, TGATE[t[0]])); }).map(function (t) {
       var o = all[t[0]] || [], n = o.filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
@@ -7745,12 +7848,12 @@ body.saluting #side { visibility: hidden; }
   var comboShown = 0;
   function comboHud(w) {
     var n = w.combo || 0, el = $('combo');
-    if (n < 10) { if (!el.hidden) el.hidden = true; comboShown = 0; return; }
+    if (n < 15 || !G.feat(save, 'combo')) { if (!el.hidden) el.hidden = true; comboShown = 0; return; }
     if (n === comboShown) return;
     comboShown = n; el.hidden = false;
     $('combo-n').textContent = '콤보 x' + n;
     var nf = S.FEVER.at.filter(function (a) { return a > n; })[0];
-    $('combo-t').textContent = w.fever > 0 ? '폭풍 제설 중!' : nf && nf - n <= 30 ? '폭풍 제설까지 ' + (nf - n) : '눈 값 +' + Math.round((G.comboMult(w) - 1) * 100) + '%';
+    $('combo-t').textContent = w.fever > 0 ? '폭풍 제설 중!' : nf && nf - n <= 15 ? '폭풍까지 ' + (nf - n) : '';   // v13: 평소엔 숫자만
     el.classList.toggle('hot', n >= 50); el.classList.toggle('fire', n >= 150);
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     if (X && n % 5 === 0) X.combo(n);
@@ -7766,30 +7869,29 @@ body.saluting #side { visibility: hidden; }
   function onV6Event(f) {
     if (f.t === 'dia') { if (X) X.dia(); if (f.why === 'rank') chip('진급 기념 상점 +' + f.n, 'good'); return true; }
     if (f.t === 'found') {
-      var rc = S.RARITY[f.item.r].color;
-      chip((f.src === 'player' ? '' : '후임이 주웠다: ') + f.item.name + ' (' + RAR[f.item.r] + ')' + (f.first ? ' · 도감 등록!' : ''), f.item.r === 'c' ? '' : 'good');
-      if (f.item.r === 'r' || f.item.r === 'l') { banner(f.item.name + '!!', f.item.line + (f.item.dia ? ' · 상점 +' + f.item.dia : ''), 2600); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
-      else { if (f.src === 'player') subtitle(f.item.line); if (X) X.found(); }
+      // v13: 흔한 건 그 자리 글자만, 희귀·전설만 배너
+      if (f.item.r === 'r' || f.item.r === 'l') { banner(f.item.name + '!!', f.item.dia ? '상점 +' + f.item.dia : '', 2400); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
+      else if (X) X.found();
       return true;
     }
-    if (f.t === 'combo') { var msg = { 25: '좋아!', 50: '훌륭해!', 100: '미쳤다!!', 200: '제설의 신!!', 300: '전설의 제설병', 500: '인간 제설차' }[f.n]; if (msg) chip('콤보 ' + f.n + ' — ' + msg, 'good'); return true; }
+    if (f.t === 'combo') return true;
     if (f.t === 'comboEnd') return true;
     if (f.t === 'zonePerfect') { banner(f.name + ' 완벽 제설!', '구역 전체 100% · +' + fmt(f.bonus) + (f.mine ? ' · 상점 +2' : ''), 2600); if (X) X.fanfare(); vibrate([60, 40, 60]); return true; }
     if (f.t === 'allClear') { banner('눈 한 톨 없다!', '맡은 구역 전부 100% · +' + fmt(f.bonus) + ' · 행보관에게 보고하자', 2800); if (X) { X.fanfare(); X.bugle(); } return true; }
-    if (f.t === 'locked') { var LZ = G.zoneById(f.zone); chip('출입 통제 · ' + f.name + ' (★' + (LZ ? LZ.need : 0) + (LZ && G.rankOf(save) < (LZ.rank || 0) ? ' · ' + S.RANKS[LZ.rank].name + '부터' : '') + ' 되면 맡는다)', 'warn'); if (X) X.deny(); vibrate(40); return true; }
+    if (f.t === 'locked') { hud.lockSaid = hud.lockSaid || {}; if (hud.lockSaid[f.zone]) return true; hud.lockSaid[f.zone] = 1; var LZ = G.zoneById(f.zone); chip('출입 통제 · ' + f.name + ' (★' + (LZ ? LZ.need : 0) + (LZ && G.rankOf(save) < (LZ.rank || 0) ? ' · ' + S.RANKS[LZ.rank].name + '부터' : '') + ' 되면 맡는다)', 'warn'); if (X) X.deny(); vibrate(40); return true; }
     if (f.t === 'ach' && V.world && V.world() && V.world().opEnd) return true;   // 결과 화면에 같이 나온다
     if (f.t === 'ach') { banner('훈장: ' + f.ach.name, f.ach.desc + ' · 상점 +' + f.ach.dia + (f.ach.box ? ' · 보급 상자' : ''), 2600); if (X) X.fanfare(); return true; }
     if (f.t === 'officer') {
-      if (f.state === 'arrive') { chip(f.title + ' 순찰 중! 보면 경례!', 'warn'); if (X) X.bugle(); }
+      if (f.state === 'arrive') { if (X) X.bugle(); }
       else if (f.state === 'near') { if (X) X.whistle(false); vibrate([30, 30, 30]); }
       else if (f.state === 'miss') { chip(f.title + '께 경례를 안 했다!' + (f.id === 'lt' ? '' : ' (지적)'), 'bad'); vibrate([80, 40, 80]); }
-      else if (f.state === 'saluted') { chip((f.quick ? '칼경례! ' : '경례 완료 · ') + f.title + (f.pie ? ' · +' + fmt(f.pie) : '') + (f.dia ? ' · 상점 +' + f.dia : ''), 'good'); if (f.quick && X) X.perfect(); }
+      else if (f.state === 'saluted') { chip(f.quick ? '칼경례!' + (f.dia ? ' 상점 +' + f.dia : '') : '경례 완료', 'good'); if (f.quick && X) X.perfect(); }
       else if (f.state === 'report') { chip(f.res === 'good' ? f.title + ' 칭찬! 보고 대성공' : f.res === 'ok' ? '보고 무난 · +' + fmt(f.pie || 0) : '보고했다가 혼났다…', f.res === 'bad' ? 'bad' : 'good'); }
-      else if (f.state === 'help') chip('소대장님이 40초 동안 같이 치운다!', 'good');
+      else if (f.state === 'help') chip('소대장님이 같이 치운다', 'good');
       return true;
     }
     if (f.t === 'quest') {
-      chip('할 일 완료! ' + f.q.text + (f.pie ? ' · +' + fmt(f.pie) : '') + (f.dia ? ' · 상점 +' + f.dia : ''), 'good');
+      chip('✔ ' + f.q.text + (f.dia ? ' · 상점 +' + f.dia : ''), 'good');
       if (X) X.ding(); var qc = $('h-op'); qc.classList.remove('pop'); void qc.offsetWidth; qc.classList.add('pop'); hud.op = null;
       if (!f.next) banner('할 일 끝!', '이제 짬으로 버틴다', 2400);
       return true;
@@ -7875,7 +7977,7 @@ body.saluting #side { visibility: hidden; }
   function hintText() {
     $('hint').innerHTML = fp()
       ? '<b>왼쪽 끌면 걷고, 오른쪽 끌면 둘러본다</b><span>도구는 알아서 쓴다 · 가득 차면 <em>집하장</em> · 사람 앞에선 <em>행동</em> 버튼 (경례·요청·보고)</span>'
-      : '<b>화면 아무 데나 끌면 걷는다</b><span>빗자루는 알아서 민다 · 위의 <em>지금 할 일</em>과 <em>노란 화살표</em>를 따라가라</span>';
+      : '<b>끌어서 걷기 · 노란 화살표를 따라가</b>';
   }
   function look() { return V.look ? V.look() : null; }
   function updAct(w, force) {
@@ -7957,37 +8059,35 @@ body.saluting #side { visibility: hidden; }
     })(i);
   }
   // 작업 지시서 카드: 마감 순서대로 3줄(지금 할 것 ▶), 빙판·차·보고 경고 한 줄, 처음엔 할 일 안내 한 줄
+  // v13 작업 지시서 카드: 구역이 2곳 이상일 때만 (1곳이면 위 '지금 할 일'과 같은 말). 지금 줄 + 다음 줄 하나, 특명 한 줄.
+  // 경고·할 일 안내는 위 '지금 할 일' 한 줄이 맡는다 (같은 말을 두 번 하지 않는다)
   function opHud(w, st) {
-    var o = st.op; if (!o) { $('h-op').hidden = true; return; }
-    var q = M ? M.questNow(save) : null, qp = q ? Math.min(q.goal, M.questProg(save, w, q)) : 0;
+    var o = st.op, bo = o && o.bonus;
+    if (!o || (o.tasks.length < 2 && !bo)) { $('h-op').hidden = true; hud.op = null; return; }
     var todo = o.tasks.filter(function (t) { return !t.done; }), cur = todo[0];
-    var warn = st.car ? '중대장님 차 빠졌다! 진입로로 → 차 밀기 ' + Math.round(st.car.push * 100) + '%' : o.icy.length ? '빙판: ' + o.icy[0] + (o.icy.length > 1 ? ' 외 ' + (o.icy.length - 1) : '') + ' → 제설함 염화칼슘' : o.ready ? '다 했다! 행보관에게 "작업 완료 보고"' : '';
-    var bkey = o.bonus ? (o.bonus.done ? 'D' : Math.floor(o.bonus.cur / o.bonus.goal * 20)) : '';
-    var key = bkey + '|' + o.tasks.map(function (t) { return t.id + (t.done ? 'd' : Math.floor(t.pct * 50)) + (t.late ? 'l' : '') + (t.left < 300 ? Math.ceil(t.left / 10) : ''); }).join(',') + '|' + warn + '|' + (q ? q.id + qp : '') + o.jigeok;
+    var bkey = bo ? (bo.done ? 'D' : Math.floor(bo.cur / bo.goal * 20)) : '';
+    var key = bkey + '|' + o.tasks.map(function (t) { return t.id + (t.done ? 'd' : Math.floor(t.pct * 20)) + (t.late ? 'l' : ''); }).join(',') + (cur && cur.left < 300 ? Math.ceil(cur.left / 10) : '');
     if (hud.op === key) return;
     hud.op = key;
     $('h-op').hidden = false;
-    $('op-title').textContent = o.exam ? '진급 심사 지시서' : '작업 지시서';
+    $('op-title').textContent = o.exam ? '진급 심사' : '지시서';
     $('h-op').classList.toggle('exam', !!o.exam);
     $('op-n').textContent = o.done + '/' + o.tasks.length;
-    var show = o.tasks.filter(function (t) { return !t.done; }).slice(0, 3);
-    if (show.length < 3) show = show.concat(o.tasks.filter(function (t) { return t.done; }).slice(-(3 - show.length)));
+    var show = o.tasks.length < 2 ? [] : todo.slice(0, 2);
+    if (!show.length && o.tasks.length >= 2) show = o.tasks.slice(-1);
     $('op-list').innerHTML = show.map(function (t) {
       var mins = Math.max(0, Math.ceil(t.left / S.DAY_LEN * (S.OP.end - S.OP.start)));
-      var cls = t.done ? 'done' + (t.late ? ' late' : '') : t === cur ? 'cur' + (t.late ? ' late' : mins <= 15 ? ' soon' : '') : t.late ? 'late' : '';
-      var right = t.done ? (t.late ? '늦음' : '✔') : t.late ? '마감 지남' : G.clockText(t.due) + (mins <= 30 ? ' · ' + mins + '분' : '');
-      return '<li class="' + cls + '"><span>' + esc(t.name) + '</span><em>' + (t.done ? '' : Math.floor(t.pct * 100) + '/' + Math.round(t.goal * 100) + '%') + '</em><small>' + right + '</small>' +
-        (t.done ? '' : '<i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>') + '</li>';
+      var cls = t.done ? 'done' : t === cur ? 'cur' + (t.late ? ' late' : mins <= 15 ? ' soon' : '') : t.late ? 'late' : '';
+      var pct = t.done ? '✔' : Math.floor(t.pct * 100) + '%';
+      return '<li class="' + cls + '"><span>' + esc(t.name) + '</span><em>' + pct + '</em>' + (t === cur ? '<small>' + (t.late ? '늦음' : G.clockText(t.due)) + '</small><i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>' : '') + '</li>';
     }).join('');
-    $('op-warn').hidden = !warn; $('op-warn').textContent = warn; $('op-warn').classList.toggle('ok', !!o.ready && !st.car && !o.icy.length);
-    var bo = o.bonus;
+    $('op-warn').hidden = true; $('op-tip').hidden = true;
     $('op-bonus').hidden = !bo;
     if (bo) {
       $('op-bonus').classList.toggle('done', !!bo.done);
-      var bp = bo.done ? '✔ 상점 +' + bo.dia : bo.end ? '' : bo.goal > 1 ? Math.floor(bo.cur) + '/' + bo.goal : bo.cur > 0 && bo.cur < 1 ? Math.floor(bo.cur * 100) + '%' : '';
+      var bp = bo.done ? '✔' : bo.end ? '' : bo.goal > 1 ? Math.floor(bo.cur) + '/' + bo.goal : bo.cur > 0 && bo.cur < 1 ? Math.floor(bo.cur * 100) + '%' : '';
       $('op-bonus').innerHTML = '<b>특명</b> ' + esc(bo.text) + (bp ? ' <em>' + bp + '</em>' : '');
     }
-    $('op-tip').hidden = !q || !!warn; if (q) $('op-tip').textContent = '할 일 ' + ((save.quest || 0) + 1) + '/' + S.QUESTS.length + ' · ' + q.text + (q.goal > 1 ? ' ' + qp + '/' + q.goal : '') + ' — ' + q.how;
   }
   function doAct(alt) {
     var w = V.world && V.world();
@@ -8009,10 +8109,10 @@ body.saluting #side { visibility: hidden; }
   }
   function stars(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
   function onActEvent(f) {
-    if (f.t === 'me') { subtitle(f.text); return true; }
-    if (f.t === 'buff') { chip(f.name + ': ' + f.desc + ' (' + f.sec + '초)', 'good'); return true; }
+    if (f.t === 'me') { if (/충성/.test(f.text)) subtitle(f.text); return true; }   // v13: 내 자막은 경례·보고 때만
+    if (f.t === 'buff') return true;
     if (f.t === 'buffEnd') return true;
-    if (f.t === 'hand') { if (f.item) toast(josa(f.name, '을', '를') + ' 들었다'); hud.op = null; return true; }
+    if (f.t === 'hand') { hud.op = null; return true; }
     return false;
   }
   // PX (생활관 저녁): 다음 작전 준비물. 사 두면 작전 시작부터 효과
@@ -8147,7 +8247,7 @@ body.saluting #side { visibility: hidden; }
     storyAt = Date.now();
     if (V.mode() !== 'play' || !$('modal').hidden || w.opEnd) return;
     var ch = M.storyNext(save, w);
-    if (ch) playStory(ch, false);
+    if (ch && ch.id === 'prologue') playStory(ch, false);   // v13: 나머지 장면은 작전이 끝나고 생활관에서
   }
   function lookChanged() {
     if (JY.SNOW && M) JY.SNOW.FACES.me = M.lookSpec(save);
@@ -8229,7 +8329,8 @@ body.saluting #side { visibility: hidden; }
 
   /* ── 시작 ── */
   function boot() {
-    var hooks = { say: function (k) { say(k); }, tick: tick, event: onEvent };
+    var SAY_OK = { exam: 1, heavy: 1, deer: 1, car: 1, carStuck: 1, roofWarn: 1, sleep: 1, slack: 1, surge: 1, surprise: 1, support: 1 };
+    var hooks = { say: function (k) { if (SAY_OK[k]) say(k); }, tick: tick, event: onEvent };
     try { V.init($('cv'), hooks); } catch (e) { V = V2; V.init($('cv'), hooks); }
     document.body.classList.toggle('is3d', !!V.is3D);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { V.rebuildArt(); });
@@ -8297,7 +8398,7 @@ body.saluting #side { visibility: hidden; }
   window.__SNOW = {
     view: function () { return V; },
     save: function () { return save; },
-    setSave: function (s) { save = G.migrate(s); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
+    setSave: function (s) { save = seenOld(G.migrate(s)); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
     play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, help: help, settings: settings, renderHub: renderHub, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     openPX: openPX, phone: phoneCall, pullUp: pullUp, leave: goLeave, results: results,
     autopilot: function (b) { V.setAutopilot(b); },

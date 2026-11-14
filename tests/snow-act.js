@@ -117,8 +117,8 @@ var wP2 = fresh(function (s) { s.merit = 22; s.rank = 2; G.assignZones(s); }); a
 var push0 = wP2.car.push;
 ok(wP2.car.stuck && push0 === 0, '혼자면 아무도 안 민다');
 
-// ── 제설함 → 염화칼슘 포대 → 빙판 (지나가면 줍고, 들어가면 뿌린다) ──
-w = fresh(); away(w);
+// ── 제설함 → 염화칼슘 포대 → 빙판 (지나가면 줍고, 들어가면 뿌린다) — v13: 일병부터 ──
+w = fresh(function (s) { s.rank = 1; }); away(w);
 var ip = w.parts.filter(function (p) { return p.ice; })[0];
 for (var iy = ip.y; iy < ip.y + ip.h; iy += 10) for (var ix = ip.x; ix < ip.x + ip.w; ix += 10) G.clearAt(w, ix + 5, iy + 5, 3, 9, 'player', { cap: 1e9, load: 0, val: 0 });
 ok(ip.icy && !ip.salted, '그늘 구간이 얼었다');

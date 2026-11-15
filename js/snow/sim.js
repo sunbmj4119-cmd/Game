@@ -176,10 +176,14 @@
         stat: '범위 ' + T.r + ' · 적재 ' + T.cap + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
     });
     var cap = crewCap(save), total = crewCount(save) + pendN(save);
-    S.CREW.forEach(function (C) {
+    S.CREW.forEach(function (C, ci) {
       var n = crewN(save, C.id) + pendN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0, full = total >= cap;
+      // v21: 앞 인원을 다 뽑아야 열린다 (후임 → 동기 → 취사병 → …)
+      var P = ci > 0 ? S.CREW[ci - 1] : null, prevN = P ? crewN(save, P.id) + pendN(save, P.id) : 0, chain = !!P && prevN < P.max;
       out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max, pend: pendN(save, C.id),
-        state: lock ? 'lock' : n >= C.max ? 'max' : full ? 'lock' : 'buy', lockText: lock ? S.RANKS[C.rank].name + '부터' : '정원 꽉 참', ok: !lock && !full && n < C.max && save.bank >= cost && save.dia >= dia });
+        state: n >= C.max ? 'max' : lock || chain || full ? 'lock' : 'buy',
+        lockText: lock ? S.RANKS[C.rank].name + '부터' : chain ? P.name + ' 먼저' : '정원 꽉 참', chain: chain, after: chain ? P.name + ' ' + P.max + '명을 다 뽑으면 열린다' : '',
+        ok: !lock && !chain && !full && n < C.max && save.bank >= cost && save.dia >= dia });
     });
     var st = save.toolStar || 0, sd = S.DIA.star[st];
     out.tool.push({ kind: 'star', id: 'star', name: '도구 강화 ' + '★★★★★'.slice(0, st) + '☆☆☆☆☆'.slice(0, 5 - st), desc: '정비병이 손봐 준다. 지금 도구 범위 +10% (강화는 도구를 바꿔도 남는다)',

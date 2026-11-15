@@ -212,14 +212,20 @@ ok(eN && sN.crew.hoobae === 1 && !sN.pend.length && wN.crew.length === 1 && eN.p
 G.serialize(wN); var wN2 = G.createWorld(sN);
 ok(wN2.crew.length === 1 && wN2.crew[0].post === 'B', '담당 구역은 저장된다');
 // 정원
-var sK = G.newSave(); sK.bank = 1e9; sK.rank = 1; G.buy(sK, 'crew', 'hoobae'); G.buy(sK, 'crew', 'hoobae'); G.buy(sK, 'crew', 'donggi');
-ok(sK.pend.length === 3 && !G.buy(sK, 'crew', 'hoobae').ok, '일병 정원 3명 (대기 중인 신병 포함)');
+var sK = G.newSave(); sK.bank = 1e9; sK.rank = 1; G.buy(sK, 'crew', 'hoobae'); G.buy(sK, 'crew', 'hoobae');
+var dg0 = G.offers(sK).crew.filter(function (o) { return o.id === 'donggi'; })[0];
+ok(!G.buy(sK, 'crew', 'donggi').ok && dg0.state === 'lock' && dg0.lockText === '후임 먼저' && /후임 3명을 다 뽑으면/.test(dg0.after), 'v21 후임 3명을 다 뽑아야 동기가 열린다 (버튼 "후임 먼저")', [dg0.lockText, dg0.after]);
+G.buy(sK, 'crew', 'hoobae');
+ok(sK.pend.length === 3 && !G.buy(sK, 'crew', 'hoobae').ok && !G.buy(sK, 'crew', 'donggi').ok, '일병 정원 3명 (대기 중인 신병 포함) — 후임 3명이면 꽉');
+var sK2 = G.newSave(); sK2.bank = 1e12; sK2.dia = 999; sK2.rank = 3; var order = [];
+for (var kq = 0; kq < 20; kq++) { var nx = G.offers(sK2).crew.filter(function (o) { return o.ok; })[0]; if (!nx) break; G.buy(sK2, 'crew', nx.id); order.push(nx.id); }
+ok(order.join(',') === 'hoobae,hoobae,hoobae,donggi,donggi,cook,malnyeon,admin,reserve,plow' && sK2.pend.length === S.CREW_CAP[3], 'v21 병장 정원 10명 = 위에서부터 차례로 하나씩 다 (제설차까지)', order.join(','));
 // 옛 저장: 인력이 넘치면 전출 + 환불
 var oldC = G.migrate({ v: 3, zones: { A: true }, crew: { hoobae: 10, plow: 2 }, bank: 0 });
-ok(oldC.crew.hoobae === 4 && oldC.crew.plow === 1 && oldC.bank > 0 && oldC.v === 10, '넘치는 인력은 전출, 절반 환불', [oldC.crew, oldC.bank]);
+ok(oldC.crew.hoobae === S.CREW[0].max && oldC.crew.plow === 1 && oldC.bank > 0 && oldC.v === 10, '넘치는 인력은 전출, 절반 환불', [oldC.crew, oldC.bank]);
 
 // ── v6: 다이아 상점 ──
-var sD = G.newSave(); sD.bank = 1e9; sD.rank = 1; sD.dia = 0;
+var sD = G.newSave(); sD.bank = 1e9; sD.rank = 2; sD.dia = 0; sD.crew = { hoobae: 3, donggi: 2 };   // v21: 취사병은 동기 다음
 ok(!G.buy(sD, 'crew', 'cook').ok, '취사병은 상점이 있어야 뽑는다');
 sD.dia = 3; ok(G.buy(sD, 'crew', 'cook').ok && sD.dia === 2, '상점 1 + 초코파이로 취사병');
 ok(!G.buy(sD, 'star', 'star').ok && sD.toolStar === 0, '장비 정비는 상점 3부터 (2개로는 못 한다)');

@@ -89,18 +89,20 @@
   ];
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
+  // v21: 인원은 위에서부터 차례로 — 앞 인원을 다 뽑아야 다음 인원이 열린다. 정원(이병 1·일병 3·상병 6·병장 10)에 딱 맞게
+  //      후임 3 (일병이면 꽉) → 동기 2 · 취사병 1 (상병이면 꽉) → 말년 병장 · 행정병 · 예비군 · 제설차 각 1 (병장이면 꽉)
   var CREW = [
-    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 250, grow: 1.6, dia: 0, max: 4, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
+    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 250, grow: 1.6, dia: 0, max: 3, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
       desc: '초코파이 하나면 영혼까지 갈아 넣는다.', lines: ['넵!', '알겠습니다!', '이거 언제 끝납니까…', '손이 안 느껴집니다…', '초코파이 감사합니다!'] },
-    { id: 'donggi', cap: 48, name: '동기', tag: '일병', rank: 1, cost: 3500, grow: 1.65, dia: 0, max: 3, r: 15, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
+    { id: 'donggi', cap: 48, name: '동기', tag: '일병', rank: 1, cost: 3500, grow: 1.65, dia: 0, max: 2, r: 15, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
-    { id: 'cook', cap: 60, name: '취사병', tag: '일병', rank: 1, cost: 15000, grow: 1.7, dia: 1, max: 2, r: 14, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
+    { id: 'cook', cap: 60, name: '취사병', tag: '일병', rank: 1, cost: 15000, grow: 1.7, dia: 1, max: 1, r: 14, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
       desc: '아침 배식 끝나고 바로 끌려왔다. 국자 대신 삽.', lines: ['점심 준비해야 하는데…', '국자가 그립다', '오늘 점심 짜장이다'] },
-    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 120000, grow: 1.75, dia: 1, max: 2, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
+    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 120000, grow: 1.75, dia: 1, max: 1, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
       desc: '작업 시간의 40%는 잔다. 깨어 있으면 제일 잘 민다.', lines: ['나 전역 며칠 남았지?', '후임아 여기도', '라떼는 눈이 허리까지 왔어'] },
-    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 350000, grow: 1.75, dia: 2, max: 2, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
+    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 350000, grow: 1.75, dia: 2, max: 1, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
       desc: '키보드만 치던 손이 넉가래를 잡았다. 의외로 빠르다.', lines: ['엑셀로 치우면 안 되나', '결재 올려야 하는데', '이것도 보고서 써야 합니까?'] },
-    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 1100000, grow: 1.8, dia: 2, max: 2, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
+    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 1100000, grow: 1.8, dia: 2, max: 1, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
       desc: '동원훈련 왔다가 끌려왔다. 느리지만 요령이 있다.', lines: ['내가 이걸 또 하네', '요즘 애들은 말이야~', '집에 가고 싶다', '우리 땐 삽 하나로 다 했어'] },
     { id: 'plow', cap: 700, name: '제설차', tag: '운전병', rank: 3, cost: 5000000, grow: 2, dia: 5, max: 1, r: 36, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
       desc: '운전병과 함께 지원 나온 제설차. 빵빵거리며 다 민다.', lines: ['빵빵!', '비켜, 비켜!', '후진합니다~ 후진합니다~'] }

@@ -332,9 +332,9 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 
 /* ── v6: 다이아, 구역 진행, 콤보, 경례 알림, 보급 상자, 훈장 ── */
 /* v10: 다이아 → 상점 (빨간 '상' 휘장. ★은 작전 등급에만 쓴다) */
-.dia { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; margin: 0 2px 0 6px; vertical-align: -3px; border-radius: 4px;
+.dia { display: inline-grid; place-items: center; font-size: 16px; width: 1em; height: 1em; flex: none; margin: 0 2px 0 6px; vertical-align: -.19em; border-radius: .25em;   /* v21: 크기는 font-size 하나로 — 글자가 상자 밖으로 삐져나와 깨져 보이던 것 */
   background: linear-gradient(160deg, #e2564a, #a8281c); box-shadow: 0 0 0 1.5px #fff3d6, 0 1px 2px rgba(0,0,0,.3); font-style: normal; }
-.dia::before { content: "\C0C1"; color: #fff; font-family: var(--f-title); font-size: 10.5px; line-height: 1; }
+.dia::before { content: "\C0C1"; color: #fff; font-family: var(--f-title); font-size: .66em; line-height: 1; }
 .pill.bank .dia-n { color: #bfeaff; font-size: 15px; }
 .pill.bank.flash-dia { animation: diapop .6s ease-out; }
 @keyframes diapop { 30% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(127,216,255,.6); } }
@@ -373,7 +373,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .box-loot { display: grid; gap: 6px; width: 100%; }
 .box-loot div { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border-radius: 12px; padding: 8px 10px; box-shadow: inset 0 0 0 2px var(--line); font-size: 17px; animation: card-in .35s both; }
 .box-loot div:nth-child(2) { animation-delay: .12s; } .box-loot div:nth-child(3) { animation-delay: .24s; }
-.box-loot .dia { width: 15px; height: 15px; }
+.box-loot .dia { font-size: 15px; }
 .tier-common { color: #6b7064; } .tier-rare { color: #2d6cb5; } .tier-legend { color: #c27c00; }
 /* 하루 결산 */
 .sum { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
@@ -403,7 +403,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .found-grid div.got { color: var(--ink); box-shadow: inset 0 0 0 2.5px var(--rc, var(--gold)); }
 .found-grid div b { font-weight: 400; font-size: 18px; }
 .sec-t { font-family: var(--f-title); font-size: 16px; margin: 6px 2px 0; }
-.item .buy .dia { width: 15px; height: 15px; margin-left: 4px; }
+.item .buy .dia { font-size: 15px; margin-left: 4px; }
 /* 화면 위 글자 v6 */
 .ov-perfect { font-family: var(--f-title); font-size: 30px; color: #fff; text-shadow: 0 3px 0 #b8860b, 0 0 14px rgba(255,210,74,.9); display: grid; justify-items: center; }
 .ov-perfect span { font-family: var(--f-body); font-size: 14px; background: rgba(22,35,58,.88); padding: 3px 10px; border-radius: 99px; text-shadow: none; display: inline-flex; align-items: center; gap: 4px; }
@@ -470,7 +470,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .chips button.buy { background: #eaf6ff; box-shadow: inset 0 0 0 2px #7fc4ee; }
 .chips button.lock { opacity: .5; cursor: default; }
 .chips button .sw { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(0,0,0,.25); }
-.chips button .dia { width: 9px; height: 9px; margin: 0 0 0 2px; }
+.chips button .dia { font-size: 12px; margin: 0 1px 0 2px; }
 .story-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; background: var(--card); border-radius: 14px; padding: 8px 10px; box-shadow: inset 0 0 0 2px var(--line); }
 .story-row .n { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--navy); color: var(--gold); font-family: var(--f-title); font-size: 17px; }
 .story-row.lock { opacity: .55; }
@@ -510,7 +510,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .lcard em { font-style: normal; font-size: 11px; color: var(--mute); display: inline-flex; align-items: center; gap: 2px; }
 .lcard em.on { color: var(--olive); }
 .lcard em.cost { color: #1f6fa8; }
-.lcard em.cost .dia { width: 8px; height: 8px; margin: 0 2px 0 0; }
+.lcard em.cost .dia { font-size: 11px; margin: 0 2px 0 0; }
 .lcard em.lock { color: #9a9384; }
 
 /* ── v9: 폰 화면 정리 — 알림은 한 줄기로 쌓고, 왼쪽 아래 카드는 작게, 좁은 폰은 아이콘만 ── */
@@ -743,8 +743,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .lb-c { display: inline-flex; align-items: center; gap: 7px; color: #fff; border-radius: 99px; padding: 5px 15px 5px 6px; background: rgba(8,14,26,.8); box-shadow: inset 0 0 0 2px rgba(255,255,255,.14), 0 4px 10px rgba(0,0,0,.3); }
 .lb-c b { font-family: var(--f-title); font-weight: 400; font-size: 19px; font-variant-numeric: tabular-nums; }
 .lb-c .pie { width: 24px; height: 24px; }
-.lb-c .dia { width: 24px; height: 24px; margin: 0; border-radius: 7px; }
-.lb-c .dia::before { font-size: 15px; }
+.lb-c .dia { font-size: 24px; margin: 0; border-radius: 7px; }
 
 .lb-side { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 104px); display: grid; gap: 10px; }
 .lb-left { left: max(10px, env(safe-area-inset-left, 0px)); }
@@ -1161,7 +1160,8 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .pl-row .got { text-decoration: line-through; opacity: .5; }
 .pl-row .prem-c { color: #8a5a00; }
 .pl-row .prem-c.locked { opacity: .55; }
-.pl-row .pie, .pl-row .dia, .mi-step .pie, .mi-step .dia { width: 13px; height: 13px; }
+.pl-row .pie, .mi-step .pie { width: 13px; height: 13px; }
+.pl-row .dia, .mi-step .dia { font-size: 14px; margin: 0 2px 0 0; vertical-align: middle; }
 .m-chest { display: grid; gap: 10px; text-align: center; }
 .m-chest h3 { margin: 0; }
 .cr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
@@ -1198,6 +1198,9 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .res-svc { margin: 2px 0 0; font-size: 13.5px; color: var(--mute); text-align: center; }
 .res-svc b { color: var(--olive-d, #3b4a20); }
 .res-svc.pay { color: #2f8f5b; font-weight: 700; }
+
+/* v21 복무 패스 '보상 받기'가 흰 바탕에 흰 글씨였다 */
+.pass-btns .btn[data-pclaim] { background: linear-gradient(180deg, #ffd96b, #f0a020); color: #2a2208; box-shadow: 0 3px 0 #a8701a; }
 
 </style>
 </head>
@@ -2199,18 +2202,20 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   ];
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
+  // v21: 인원은 위에서부터 차례로 — 앞 인원을 다 뽑아야 다음 인원이 열린다. 정원(이병 1·일병 3·상병 6·병장 10)에 딱 맞게
+  //      후임 3 (일병이면 꽉) → 동기 2 · 취사병 1 (상병이면 꽉) → 말년 병장 · 행정병 · 예비군 · 제설차 각 1 (병장이면 꽉)
   var CREW = [
-    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 250, grow: 1.6, dia: 0, max: 4, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
+    { id: 'hoobae', cap: 30, name: '후임', tag: '이병', rank: 0, cost: 250, grow: 1.6, dia: 0, max: 3, r: 10, p: 1, hit: 0.24, speed: 46, hat: 'helmet', coat: '#5b6a3a', face: 'hoobae',
       desc: '초코파이 하나면 영혼까지 갈아 넣는다.', lines: ['넵!', '알겠습니다!', '이거 언제 끝납니까…', '손이 안 느껴집니다…', '초코파이 감사합니다!'] },
-    { id: 'donggi', cap: 48, name: '동기', tag: '일병', rank: 1, cost: 3500, grow: 1.65, dia: 0, max: 3, r: 15, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
+    { id: 'donggi', cap: 48, name: '동기', tag: '일병', rank: 1, cost: 3500, grow: 1.65, dia: 0, max: 2, r: 15, p: 1, hit: 0.2, speed: 56, hat: 'beanie', coat: '#566436', face: 'dumb',
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
-    { id: 'cook', cap: 60, name: '취사병', tag: '일병', rank: 1, cost: 15000, grow: 1.7, dia: 1, max: 2, r: 14, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
+    { id: 'cook', cap: 60, name: '취사병', tag: '일병', rank: 1, cost: 15000, grow: 1.7, dia: 1, max: 1, r: 14, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
       desc: '아침 배식 끝나고 바로 끌려왔다. 국자 대신 삽.', lines: ['점심 준비해야 하는데…', '국자가 그립다', '오늘 점심 짜장이다'] },
-    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 120000, grow: 1.75, dia: 1, max: 2, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
+    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 120000, grow: 1.75, dia: 1, max: 1, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
       desc: '작업 시간의 40%는 잔다. 깨어 있으면 제일 잘 민다.', lines: ['나 전역 며칠 남았지?', '후임아 여기도', '라떼는 눈이 허리까지 왔어'] },
-    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 350000, grow: 1.75, dia: 2, max: 2, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
+    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 350000, grow: 1.75, dia: 2, max: 1, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
       desc: '키보드만 치던 손이 넉가래를 잡았다. 의외로 빠르다.', lines: ['엑셀로 치우면 안 되나', '결재 올려야 하는데', '이것도 보고서 써야 합니까?'] },
-    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 1100000, grow: 1.8, dia: 2, max: 2, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
+    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 1100000, grow: 1.8, dia: 2, max: 1, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
       desc: '동원훈련 왔다가 끌려왔다. 느리지만 요령이 있다.', lines: ['내가 이걸 또 하네', '요즘 애들은 말이야~', '집에 가고 싶다', '우리 땐 삽 하나로 다 했어'] },
     { id: 'plow', cap: 700, name: '제설차', tag: '운전병', rank: 3, cost: 5000000, grow: 2, dia: 5, max: 1, r: 36, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
       desc: '운전병과 함께 지원 나온 제설차. 빵빵거리며 다 민다.', lines: ['빵빵!', '비켜, 비켜!', '후진합니다~ 후진합니다~'] }
@@ -2859,10 +2864,14 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
         stat: '범위 ' + T.r + ' · 적재 ' + T.cap + (T.p > 1 ? ' · 힘 ×' + T.p : '') + (T.aura ? ' · 사방' : ''), ok: st === 'buy' && save.bank >= T.cost });
     });
     var cap = crewCap(save), total = crewCount(save) + pendN(save);
-    S.CREW.forEach(function (C) {
+    S.CREW.forEach(function (C, ci) {
       var n = crewN(save, C.id) + pendN(save, C.id), cost = crewCost(C, n), lock = rank < C.rank, dia = C.dia || 0, full = total >= cap;
+      // v21: 앞 인원을 다 뽑아야 열린다 (후임 → 동기 → 취사병 → …)
+      var P = ci > 0 ? S.CREW[ci - 1] : null, prevN = P ? crewN(save, P.id) + pendN(save, P.id) : 0, chain = !!P && prevN < P.max;
       out.crew.push({ kind: 'crew', id: C.id, name: C.name, tag: C.tag, desc: C.desc, cost: cost, dia: dia, n: n, max: C.max, pend: pendN(save, C.id),
-        state: lock ? 'lock' : n >= C.max ? 'max' : full ? 'lock' : 'buy', lockText: lock ? S.RANKS[C.rank].name + '부터' : '정원 꽉 참', ok: !lock && !full && n < C.max && save.bank >= cost && save.dia >= dia });
+        state: n >= C.max ? 'max' : lock || chain || full ? 'lock' : 'buy',
+        lockText: lock ? S.RANKS[C.rank].name + '부터' : chain ? P.name + ' 먼저' : '정원 꽉 참', chain: chain, after: chain ? P.name + ' ' + P.max + '명을 다 뽑으면 열린다' : '',
+        ok: !lock && !chain && !full && n < C.max && save.bank >= cost && save.dia >= dia });
     });
     var st = save.toolStar || 0, sd = S.DIA.star[st];
     out.tool.push({ kind: 'star', id: 'star', name: '도구 강화 ' + '★★★★★'.slice(0, st) + '☆☆☆☆☆'.slice(0, 5 - st), desc: '정비병이 손봐 준다. 지금 도구 범위 +10% (강화는 도구를 바꿔도 남는다)',
@@ -8742,7 +8751,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     open.concat(shut).forEach(function (o, idx) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' || o.kind === 'rideup' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
+      var meta = o.kind === 'crew' ? (o.after && o.state === 'lock' ? o.after : o.tag + ' · ' + o.n + '/' + Math.max(o.n, o.max) + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '')) : o.kind === 'perk' || o.kind === 'proc' || o.kind === 'rideup' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
       var label;
       if (o.state === 'buy') label = (o.kind === 'crew' ? '전입 ' : '') + (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
       else if (o.state === 'own') label = o.kind === 'zone' ? '담당 중' : o.cur ? '사용 중' : '보유';
@@ -8798,7 +8807,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     if (!r) return '';
     var t = [];
     if (r.dia) t.push(dia() + r.dia); if (r.parts) t.push('부품 ' + r.parts); if (r.box) t.push((M.TIER[r.box] || { name: '상자' }).name.replace(' 보급 상자', ' 상자'));
-    if (r.gear) t.push(G2.rarDef(r.gear).name + ' 장구'); if (r.pie) t.push(pie() + '초코파이');
+    if (r.gear) t.push(G2.rarDef(r.gear).name + ' 장구'); if (r.pie) t.push('초코파이');   // v21: 작은 글씨 옆 아이콘이 깨져 보여서 글자로
     return t.join(' · ');
   }
   function renderGear(list) {

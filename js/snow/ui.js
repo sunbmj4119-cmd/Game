@@ -677,7 +677,7 @@
     open.concat(shut).forEach(function (o, idx) {
       var row = document.createElement('div');
       row.className = 'item s-' + o.state + (o.ok ? ' can' : '');
-      var meta = o.kind === 'crew' ? o.tag + ' · ' + o.n + '/' + o.max + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '') : o.kind === 'perk' || o.kind === 'proc' || o.kind === 'rideup' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
+      var meta = o.kind === 'crew' ? (o.after && o.state === 'lock' ? o.after : o.tag + ' · ' + o.n + '/' + Math.max(o.n, o.max) + '명' + (o.pend ? ' (전입 대기 ' + o.pend + ')' : '') + (o.dia ? ' · 상점 ' + o.dia + '개 필요' : '')) : o.kind === 'perk' || o.kind === 'proc' || o.kind === 'rideup' ? 'Lv ' + o.n + '/' + o.max : o.kind === 'tool' || o.kind === 'star' ? o.stat : o.kind === 'zone' ? '눈 한 칸에 초코파이 ' + o.value + '개 · ' + G.clockText(S.ZONES.filter(function (Z) { return Z.id === o.id; })[0].due || 480) + '까지' : '';
       var label;
       if (o.state === 'buy') label = (o.kind === 'crew' ? '전입 ' : '') + (o.cost ? pie() + fmt(o.cost) : '') + (o.dia ? dia() + o.dia : '');
       else if (o.state === 'own') label = o.kind === 'zone' ? '담당 중' : o.cur ? '사용 중' : '보유';
@@ -733,7 +733,7 @@
     if (!r) return '';
     var t = [];
     if (r.dia) t.push(dia() + r.dia); if (r.parts) t.push('부품 ' + r.parts); if (r.box) t.push((M.TIER[r.box] || { name: '상자' }).name.replace(' 보급 상자', ' 상자'));
-    if (r.gear) t.push(G2.rarDef(r.gear).name + ' 장구'); if (r.pie) t.push(pie() + '초코파이');
+    if (r.gear) t.push(G2.rarDef(r.gear).name + ' 장구'); if (r.pie) t.push('초코파이');   // v21: 작은 글씨 옆 아이콘이 깨져 보여서 글자로
     return t.join(' · ');
   }
   function renderGear(list) {

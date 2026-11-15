@@ -320,9 +320,9 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 
 /* ── v6: 다이아, 구역 진행, 콤보, 경례 알림, 보급 상자, 훈장 ── */
 /* v10: 다이아 → 상점 (빨간 '상' 휘장. ★은 작전 등급에만 쓴다) */
-.dia { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; margin: 0 2px 0 6px; vertical-align: -3px; border-radius: 4px;
+.dia { display: inline-grid; place-items: center; font-size: 16px; width: 1em; height: 1em; flex: none; margin: 0 2px 0 6px; vertical-align: -.19em; border-radius: .25em;   /* v21: 크기는 font-size 하나로 — 글자가 상자 밖으로 삐져나와 깨져 보이던 것 */
   background: linear-gradient(160deg, #e2564a, #a8281c); box-shadow: 0 0 0 1.5px #fff3d6, 0 1px 2px rgba(0,0,0,.3); font-style: normal; }
-.dia::before { content: "\C0C1"; color: #fff; font-family: var(--f-title); font-size: 10.5px; line-height: 1; }
+.dia::before { content: "\C0C1"; color: #fff; font-family: var(--f-title); font-size: .66em; line-height: 1; }
 .pill.bank .dia-n { color: #bfeaff; font-size: 15px; }
 .pill.bank.flash-dia { animation: diapop .6s ease-out; }
 @keyframes diapop { 30% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(127,216,255,.6); } }
@@ -361,7 +361,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .box-loot { display: grid; gap: 6px; width: 100%; }
 .box-loot div { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border-radius: 12px; padding: 8px 10px; box-shadow: inset 0 0 0 2px var(--line); font-size: 17px; animation: card-in .35s both; }
 .box-loot div:nth-child(2) { animation-delay: .12s; } .box-loot div:nth-child(3) { animation-delay: .24s; }
-.box-loot .dia { width: 15px; height: 15px; }
+.box-loot .dia { font-size: 15px; }
 .tier-common { color: #6b7064; } .tier-rare { color: #2d6cb5; } .tier-legend { color: #c27c00; }
 /* 하루 결산 */
 .sum { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
@@ -391,7 +391,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .found-grid div.got { color: var(--ink); box-shadow: inset 0 0 0 2.5px var(--rc, var(--gold)); }
 .found-grid div b { font-weight: 400; font-size: 18px; }
 .sec-t { font-family: var(--f-title); font-size: 16px; margin: 6px 2px 0; }
-.item .buy .dia { width: 15px; height: 15px; margin-left: 4px; }
+.item .buy .dia { font-size: 15px; margin-left: 4px; }
 /* 화면 위 글자 v6 */
 .ov-perfect { font-family: var(--f-title); font-size: 30px; color: #fff; text-shadow: 0 3px 0 #b8860b, 0 0 14px rgba(255,210,74,.9); display: grid; justify-items: center; }
 .ov-perfect span { font-family: var(--f-body); font-size: 14px; background: rgba(22,35,58,.88); padding: 3px 10px; border-radius: 99px; text-shadow: none; display: inline-flex; align-items: center; gap: 4px; }
@@ -458,7 +458,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .chips button.buy { background: #eaf6ff; box-shadow: inset 0 0 0 2px #7fc4ee; }
 .chips button.lock { opacity: .5; cursor: default; }
 .chips button .sw { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(0,0,0,.25); }
-.chips button .dia { width: 9px; height: 9px; margin: 0 0 0 2px; }
+.chips button .dia { font-size: 12px; margin: 0 1px 0 2px; }
 .story-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; background: var(--card); border-radius: 14px; padding: 8px 10px; box-shadow: inset 0 0 0 2px var(--line); }
 .story-row .n { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--navy); color: var(--gold); font-family: var(--f-title); font-size: 17px; }
 .story-row.lock { opacity: .55; }
@@ -498,7 +498,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .lcard em { font-style: normal; font-size: 11px; color: var(--mute); display: inline-flex; align-items: center; gap: 2px; }
 .lcard em.on { color: var(--olive); }
 .lcard em.cost { color: #1f6fa8; }
-.lcard em.cost .dia { width: 8px; height: 8px; margin: 0 2px 0 0; }
+.lcard em.cost .dia { font-size: 11px; margin: 0 2px 0 0; }
 .lcard em.lock { color: #9a9384; }
 
 /* ── v9: 폰 화면 정리 — 알림은 한 줄기로 쌓고, 왼쪽 아래 카드는 작게, 좁은 폰은 아이콘만 ── */
@@ -731,8 +731,7 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .lb-c { display: inline-flex; align-items: center; gap: 7px; color: #fff; border-radius: 99px; padding: 5px 15px 5px 6px; background: rgba(8,14,26,.8); box-shadow: inset 0 0 0 2px rgba(255,255,255,.14), 0 4px 10px rgba(0,0,0,.3); }
 .lb-c b { font-family: var(--f-title); font-weight: 400; font-size: 19px; font-variant-numeric: tabular-nums; }
 .lb-c .pie { width: 24px; height: 24px; }
-.lb-c .dia { width: 24px; height: 24px; margin: 0; border-radius: 7px; }
-.lb-c .dia::before { font-size: 15px; }
+.lb-c .dia { font-size: 24px; margin: 0; border-radius: 7px; }
 
 .lb-side { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 104px); display: grid; gap: 10px; }
 .lb-left { left: max(10px, env(safe-area-inset-left, 0px)); }
@@ -1149,7 +1148,8 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .pl-row .got { text-decoration: line-through; opacity: .5; }
 .pl-row .prem-c { color: #8a5a00; }
 .pl-row .prem-c.locked { opacity: .55; }
-.pl-row .pie, .pl-row .dia, .mi-step .pie, .mi-step .dia { width: 13px; height: 13px; }
+.pl-row .pie, .mi-step .pie { width: 13px; height: 13px; }
+.pl-row .dia, .mi-step .dia { font-size: 14px; margin: 0 2px 0 0; vertical-align: middle; }
 .m-chest { display: grid; gap: 10px; text-align: center; }
 .m-chest h3 { margin: 0; }
 .cr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
@@ -1186,3 +1186,6 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .res-svc { margin: 2px 0 0; font-size: 13.5px; color: var(--mute); text-align: center; }
 .res-svc b { color: var(--olive-d, #3b4a20); }
 .res-svc.pay { color: #2f8f5b; font-weight: 700; }
+
+/* v21 복무 패스 '보상 받기'가 흰 바탕에 흰 글씨였다 */
+.pass-btns .btn[data-pclaim] { background: linear-gradient(180deg, #ffd96b, #f0a020); color: #2a2208; box-shadow: 0 3px 0 #a8701a; }

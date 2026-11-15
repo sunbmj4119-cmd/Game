@@ -369,7 +369,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
 
   // ── 병장: 말년 특권 2배속 · 후반 ──
   await page.evaluate(function () {
-    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 60; s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
+    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 100; s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
     s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; JY.SnowSim.assignZones(s); s.seen = { tut: true, dis: true, help: true }; s.px = 160; s.py = 300;
     s.look.name = '홍길동'; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; });

@@ -101,7 +101,7 @@ G.spawn(w, 'car'); ok(!A.candidates(w).some(function (c) { return c.k === 'car';
 ok(A.state(w).heat === 0 && !A.state(w).ride, '행보관 분노·운전 없음');
 
 // ── 빠진 출근 차량: 옆에 붙어 있으면 저절로 민다 (분대원도 와서 민다) ──
-w = fresh(function (s) { s.merit = 22; s.rank = 2; G.assignZones(s); s.crew = { hoobae: 1 }; }); away(w);
+w = fresh(function (s) { s.merit = 30; s.rank = 2; G.assignZones(s); s.crew = { hoobae: 1 }; }); away(w);
 w.player.x = 30; w.player.y = 300; G.spawn(w, 'car'); run(w, 8);
 var car = w.car;
 ok(car && car.stuck && w.op.stuck, '눈 쌓인 진입로 → 차가 빠졌다');
@@ -113,7 +113,7 @@ run(w, 2.5);
 ok(!car.stuck && car.freed && w.save.stats.carPush === 1 && w.fx.some(function (f) { return f.t === 'carFree'; }), '다 밀면 빠져나온다 + 기록');
 run(w, 12);
 ok(!w.car && A.init(w).off.some(function (o) { return o.id === 'cpt'; }), '차가 서면 중대장님이 내려서 순찰한다');
-var wP2 = fresh(function (s) { s.merit = 22; s.rank = 2; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
+var wP2 = fresh(function (s) { s.merit = 30; s.rank = 2; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
 var push0 = wP2.car.push;
 ok(wP2.car.stuck && push0 === 0, '혼자면 아무도 안 민다');
 
@@ -325,7 +325,7 @@ ok(!oV || !oV.via, '곧장 갈 수 있으면 돌아가지 않는다');
 
 
 // ── v14 재미: 눈덩이 · 고라니 벌러덩 · 눈싸움 · 족구 · 눈천사 · 탈것 · 발견 ──
-function v14(fn) { return fresh(function (s) { s.day = 8; s.rank = 1; s.merit = 14; s.stats.ops = 7; G.assignZones(s); if (fn) fn(s); }); }
+function v14(fn) { return fresh(function (s) { s.day = 7; s.rank = 1; s.merit = 14; s.stats.ops = 7; G.assignZones(s); if (fn) fn(s); }); }
 function deerAt(w, x, y) { var d = { x: x, y: y, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }; w.deer.push(d); return d; }
 var w14 = fresh(function (s) { s.stats.ops = 3; }); away(w14); w14.act.offPlan = []; w14.act.off = [];
 w14.player.x = 270; w14.player.y = 470; deerAt(w14, 360, 470);
@@ -446,6 +446,17 @@ A.applyStats(wu); var cu = wu.act.rides[0]; wu.player.x = cu.x; wu.player.y = cu
 A.act(wu, { k: 'exit' }, wu.player.dir); var dB = wu.save.dia; G.buy(wu.save, 'rideup', 'cart:cap'); var dA = wu.save.dia; A.startRide(wu, cu); A.applyStats(wu);
 ok(wu.player.cap === Math.round(capA * 1.25) && dB - dA === 3, 'v16 짐칸 정비 1단계: 적재 +25%', [capA, wu.player.cap, wu.save.dia]);
 ok(!G.offers(wu.save).ride.some(function (o) { return o.id.indexOf('tractor') === 0; }), 'v16 아직 못 타는 탈것은 정비 목록에 없다');
+
+
+// ── v17 이번 주 작전 효과 ──
+function weekW(id, fn) { var ww = v14(fn); ww.week = S.WEEKS.filter(function (q) { return q.id === id; })[0]; away(ww); ww.act.offPlan = []; ww.act.off = []; ww.deer = []; return ww; }
+var wm = weekW('motor', function (s) { s.zones.D = true; }); var at2 = wm.act.rides[1]; wm.player.x = at2.x; wm.player.y = at2.y; A.startRide(wm, at2); A.applyStats(wm);
+var f0 = at2.fuel; run(wm, 1, { x: 1, y: 0 }); ok(at2.fuel === f0 && wm.mod.speed > 1.6 * 1.15, 'v17 정비 주간: 기름이 안 줄고 탈것이 더 빠르다', [f0, at2.fuel, wm.mod.speed]);
+var wsp = weekW('sports'); var ZB3 = G.zoneById('B'), Bc = wsp.act.ball, paid2 = [];
+for (var g2 = 0; g2 < 7; g2++) { var b1 = wsp.save.bank; Bc.x = ZB3.x + ZB3.w / 2 + (g2 % 2 ? 20 : -20); Bc.y = ZB3.y + ZB3.h / 2; Bc.side = g2 % 2 ? 1 : -1; Bc.vx = g2 % 2 ? -200 : 200; Bc.vy = 0; Bc.goalT = 0; run(wsp, 0.4); paid2.push(Math.round(wsp.save.bank - b1)); }
+ok(paid2.slice(0, 6).every(function (p) { return p > 0; }) && paid2[6] === 0, 'v17 체육대회 주간: 족구 골 보상 여섯 골까지', paid2);
+var wc2 = weekW('storm'); A.applyStats(wc2); var wn = v14(); away(wn); A.applyStats(wn);
+ok(Math.abs(wc2.mult / wn.mult - 1.4) < 0.01, 'v17 폭설 주간: 보상 +40%', [wn.mult, wc2.mult]);
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

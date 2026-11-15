@@ -19,20 +19,20 @@
     { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1200, need: 8, rank: 1, due: 480, why: '일과 시작 집합', relay: [200, 618], ground: 'parade',
       parts: [['1소대 자리', 0, 0, 0.5, 0.5], ['2소대 자리', 0.5, 0, 1, 0.5], ['3소대 자리', 0, 0.5, 0.5, 1], ['4소대 자리', 0.5, 0.5, 1, 1]],
       reveal: '구령대 앞 바닥에 "충성". 사열 때 얼어 죽을 뻔한 그곳.' },
-    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, need: 13, rank: 1, due: 420, why: '아침 배식', relay: [520, 440], ground: 'yard',
+    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, need: 15, rank: 1, due: 420, why: '아침 배식', relay: [520, 440], ground: 'yard',
       parts: [['배식구 가는 길', 0, 0, 1, 0.5, true], ['짬통 가는 길', 0, 0.5, 1, 1]],
       reveal: '배식구 앞은 설거지 물이 흘러서 꼭 언다. 짬통 옆엔 짬타이거가 산다.' },
-    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 4, cost: 22000, need: 22, rank: 2, due: 450, why: '간부 출근 차량', relay: [482, 780], ground: 'road',
+    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 3, cost: 22000, need: 30, rank: 2, due: 450, why: '간부 출근 차량', relay: [482, 780], ground: 'road',
       parts: [['진입로 위쪽', 0, 0, 1, 0.34], ['진입로 가운데', 0, 0.34, 1, 0.67], ['진입로 아래쪽', 0, 0.67, 1, 1, true]],
       reveal: '작전 중간에 중대장님 차가 올라온다. 못 치워 두면 차가 빠진다. 아래쪽은 비탈이라 얼기 쉽다.' },
-    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 6, cost: 65000, need: 30, rank: 2, due: 480, why: '전투 장비 점검', relay: [325, 760], ground: 'tank',
+    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 4, cost: 65000, need: 42, rank: 2, due: 480, why: '전투 장비 점검', relay: [325, 760], ground: 'tank',
       parts: [['1호 전차 주변', 0, 0, 1, 0.5], ['2호 전차 주변', 0, 0.5, 1, 1]],
       holes: [[80, 690, 70, 50], [200, 800, 70, 50]],
       reveal: 'K-전차 두 대가 눈을 맞고 있다. 장비 점검 전에 주변을 비워야 한다.' },
-    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 8, cost: 180000, need: 44, rank: 3, due: 450, why: '출근 차량 통과', relay: [100, 1135], ground: 'gate',
+    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 5, cost: 180000, need: 75, rank: 3, due: 450, why: '출근 차량 통과', relay: [100, 1135], ground: 'gate',
       parts: [['위병소 왼쪽', 0, 0, 0.5, 1, true], ['위병소 오른쪽', 0.5, 0, 1, 1]],
       reveal: '부대의 얼굴. 사단장님 차가 여기로 들어온다. 한 톨도 남기면 안 된다.' },
-    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 12, cost: 450000, need: 54, rank: 3, due: 480, why: '응급 후송 대비', relay: [635, 1030], ground: 'pad',
+    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 7, cost: 450000, need: 95, rank: 3, due: 480, why: '응급 후송 대비', relay: [635, 1030], ground: 'pad',
       parts: [['헬기장 북쪽', 0, 0, 1, 0.5], ['헬기장 남쪽', 0, 0.5, 1, 1]],
       reveal: '응급 환자가 생기면 의무후송 헬기가 내린다. 언제든 내릴 수 있게 비워 둔다.' }
   ];
@@ -82,10 +82,10 @@
     { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 150, cap: 110, rank: 0, desc: '군대 제설의 상징. 밀면 밀린다.' },
     { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 800, cap: 200, rank: 0, desc: '창고 구석에 있던 알루미늄 왕넉가래.' },
     { id: 'twin', name: '2인용 넉가래', r: 25, p: 2, cost: 6000, cap: 380, rank: 1, desc: '손잡이가 두 개. 후임이랑 같이 밀면 반은 내 힘.' },
-    { id: 'cart', name: '보행식 제설기', r: 32, p: 2, cost: 50000, cap: 700, rank: 2, desc: '부르릉. 밀고 가면 눈을 퍼 올린다. 장비 교육 이수자만.' },
-    { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 150000, cap: 1200, rank: 2, aura: true, desc: '밀고 다니면 주변이 녹는다. 빙판도 안 생긴다. 군화는 녹슨다.' },
-    { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 500000, cap: 3000, rank: 3, vehicle: true, desc: '부대 트랙터에 삽날을 달았다. 병장쯤 돼야 키를 준다.' },
-    { id: 'truck', name: '군용 제설차', r: 70, p: 3, cost: 1500000, cap: 8000, rank: 3, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차. 수송부에서 지원 나왔다.' }
+    { id: 'cart', name: '보행식 제설기', r: 32, p: 2, cost: 70000, cap: 700, rank: 2, desc: '부르릉. 밀고 가면 눈을 퍼 올린다. 장비 교육 이수자만.' },
+    { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 300000, cap: 1200, rank: 2, aura: true, desc: '밀고 다니면 주변이 녹는다. 빙판도 안 생긴다. 군화는 녹슨다.' },
+    { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 1200000, cap: 3000, rank: 3, vehicle: true, desc: '부대 트랙터에 삽날을 달았다. 병장쯤 돼야 키를 준다.' },
+    { id: 'truck', name: '군용 제설차', r: 70, p: 3, cost: 3500000, cap: 8000, rank: 3, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차. 수송부에서 지원 나왔다.' }
   ];
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
@@ -96,13 +96,13 @@
       desc: '같이 고생하는 사이. 투덜대지만 손은 빠르다.', lines: ['야 이거 끝나긴 하냐', 'PX 가고 싶다', '눈 그만 와라 제발', '너 때문에 나도 나왔잖아'] },
     { id: 'cook', cap: 60, name: '취사병', tag: '일병', rank: 1, cost: 15000, grow: 1.7, dia: 1, max: 2, r: 14, p: 2, hit: 0.26, speed: 50, hat: 'chef', coat: '#e9e6dc', face: 'cook',
       desc: '아침 배식 끝나고 바로 끌려왔다. 국자 대신 삽.', lines: ['점심 준비해야 하는데…', '국자가 그립다', '오늘 점심 짜장이다'] },
-    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 60000, grow: 1.75, dia: 1, max: 2, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
+    { id: 'malnyeon', cap: 100, name: '말년 병장', tag: '병장', rank: 2, cost: 120000, grow: 1.75, dia: 1, max: 2, r: 24, p: 2, hit: 0.2, speed: 40, sleep: 0.4, hat: 'beanie', coat: '#4f5c31', face: 'malnyeon',
       desc: '작업 시간의 40%는 잔다. 깨어 있으면 제일 잘 민다.', lines: ['나 전역 며칠 남았지?', '후임아 여기도', '라떼는 눈이 허리까지 왔어'] },
-    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 160000, grow: 1.75, dia: 2, max: 2, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
+    { id: 'admin', cap: 70, name: '행정병', tag: '상병', rank: 2, cost: 350000, grow: 1.75, dia: 2, max: 2, r: 18, p: 2, hit: 0.17, speed: 64, hat: 'cap', coat: '#5d6b3b', face: 'clerk',
       desc: '키보드만 치던 손이 넉가래를 잡았다. 의외로 빠르다.', lines: ['엑셀로 치우면 안 되나', '결재 올려야 하는데', '이것도 보고서 써야 합니까?'] },
-    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 500000, grow: 1.8, dia: 2, max: 2, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
+    { id: 'reserve', cap: 90, name: '예비군 아저씨', tag: '예비군', rank: 3, cost: 1100000, grow: 1.8, dia: 2, max: 2, r: 20, p: 2, hit: 0.28, speed: 36, hat: 'reserve', coat: '#6b6f4a', face: 'reserve',
       desc: '동원훈련 왔다가 끌려왔다. 느리지만 요령이 있다.', lines: ['내가 이걸 또 하네', '요즘 애들은 말이야~', '집에 가고 싶다', '우리 땐 삽 하나로 다 했어'] },
-    { id: 'plow', cap: 700, name: '제설차', tag: '운전병', rank: 3, cost: 2500000, grow: 2, dia: 5, max: 1, r: 36, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
+    { id: 'plow', cap: 700, name: '제설차', tag: '운전병', rank: 3, cost: 5000000, grow: 2, dia: 5, max: 1, r: 36, p: 3, hit: 0.15, speed: 72, vehicle: true, coat: '#e0a526', face: 'driver',
       desc: '운전병과 함께 지원 나온 제설차. 빵빵거리며 다 민다.', lines: ['빵빵!', '비켜, 비켜!', '후진합니다~ 후진합니다~'] }
   ];
 
@@ -111,17 +111,17 @@
     { id: 'eisen', name: '아이젠', max: 5, cost: 300, grow: 2.3, desc: '군화에 아이젠. 걷는 속도 +12%, 빙판에서 덜 미끄러진다' },
     { id: 'back', name: '큰 마대 자루', max: 5, cost: 400, grow: 2.4, desc: '한 번에 나르는 눈 +30% (분대원 +20%)' },
     { id: 'matsta', name: '사제 방한 장갑', max: 5, cost: 900, grow: 2.6, desc: '손이 덜 얼어서 10% 더 빨리 퍼 담는다' },
-    { id: 'praise', name: '제설 요령', max: 10, cost: 2000, grow: 2.5, desc: '선임한테 배운 요령. 같은 눈도 깔끔하게 (초코파이 +15%)' },
+    { id: 'praise', name: '제설 요령', max: 10, cost: 2000, grow: 2.5, desc: '선임한테 배운 요령. 같은 눈도 깔끔하게 (초코파이 +8%)' },
     { id: 'gong', name: '고라니 깡통 줄', max: 3, cost: 2500, grow: 3, desc: '철책에 깡통을 단다. 고라니가 덜 들어온다 (-25%)' },
-    { id: 'medic', name: '의무병 대기', max: 5, cost: 4000, grow: 2.6, desc: '넘어진 분대원이 15% 빨리 일어난다' },
-    { id: 'song', name: '군가 스피커', max: 5, cost: 6000, grow: 2.7, desc: '군가 틀고 작업. 분대원 이동 +12%, 손 +6%' },
-    { id: 'gear', name: '분대 장비 보급', max: 5, cost: 15000, grow: 2.9, desc: '분대원 전원의 넉가래가 넓어진다 (+15%)' }
+    { id: 'medic', name: '의무병 대기', max: 5, cost: 12000, grow: 2.6, desc: '넘어진 분대원이 15% 빨리 일어난다' },
+    { id: 'song', name: '군가 스피커', max: 5, cost: 18000, grow: 2.7, desc: '군가 틀고 작업. 분대원 이동 +12%, 손 +6%' },
+    { id: 'gear', name: '분대 장비 보급', max: 5, cost: 45000, grow: 2.9, desc: '분대원 전원의 넉가래가 넓어진다 (+15%)' }
   ];
 
   // 공장: 집하장에 부은 눈을 가공해서 값을 올린다
   var PROC = [
     { id: 'press', name: '눈 압축기', max: 5, cost: 1500, grow: 2.6, add: 0.3, desc: '부은 눈을 눈벽돌로 꾹. 보상 +30%' },
-    { id: 'sculpt', name: '눈조각 작업장', max: 5, cost: 25000, grow: 2.8, add: 0.6, need: ['press', 3], desc: '사단장님 환영 눈사람을 만든다. 보상 +60%' }
+    { id: 'sculpt', name: '눈조각 작업장', max: 5, cost: 80000, grow: 2.8, add: 0.6, need: ['press', 3], desc: '사단장님 환영 눈사람을 만든다. 보상 +60%' }
   ];
 
   // 눈 집하장 (처음부터 있다). v15: 구역을 맡으면 그 구역 옆 집하장도 저절로 생긴다
@@ -140,12 +140,12 @@
       easy: [], more: ['싸리비·넉가래 보급', '간부 경례·관등성명'] },
     { name: '일병', merit: 6, role: '일꾼 — 맡은 구역을 알아서 끝낸다',
       easy: ['선임 눈덩이 장난이 줄어든다', '분대원 정원 1 → 3명'], more: ['2인용 넉가래', '동기·취사병 전입', '염화칼슘 살포'] },
-    { name: '상병', merit: 20, role: '조장 — 작업 분담을 정하고 조원을 굴린다',
+    { name: '상병', merit: 24, role: '조장 — 작업 분담을 정하고 조원을 굴린다',
       easy: ['눈덩이 장난 끝', '작전 전에 조원 배치(걸어가서 안 데려와도 된다)', '분대원 정원 6명'], more: ['보행식 제설기·염화칼슘 살포기', '말년 병장·행정병 전입'] },
-    { name: '병장', merit: 42, role: '분대장 — 지휘만 한다. 몸은 난로 옆에',
+    { name: '병장', merit: 60, role: '분대장 — 지휘만 한다. 몸은 난로 옆에',
       easy: ['작업 2배속(말년 특권)', '분대원 정원 10명'], more: ['트랙터·군용 제설차', '예비군·제설차 지원', '전역 신고'] }
   ];
-  var DISCHARGE_MERIT = 75; // 병장 + 근무평정 75 → 전역 신고 가능
+  var DISCHARGE_MERIT = 150; // v17: 75 → 150 (처음은 빠르게, 뒤로 갈수록 오래). 병장 + 근무평정 150 → 전역 신고 가능
   var DISCHARGE_LIFE = 1500000; // (예전 기준, 메달 계산에만 쓴다)
   // 계급별 분대원 정원 (이병 1명 → 병장 16명). 분대원은 '전입 요청' → 다음 작전 아침 생활관 앞 신병 → 인솔해서 구역에 배치
   var CREW_CAP = [1, 3, 6, 10];   // v12: 7 → 6, 16 → 10 (상병부터 작전이 30초 만에 끝나 버려서)
@@ -184,6 +184,15 @@
     { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' }
   ];
 
+  // v17 이번 주 작전: 8일차부터 7일마다 바뀐다 (열린 기능 중에서). 같은 눈 치우기가 질리지 않게 규칙을 한 가지씩 비튼다
+  var WEEKS = [
+    { id: 'cold', name: '혹한기 주간', line: '빙판이 더 잘 생긴다 · 보상 +25%', need: 'ice', mods: { ice: 0.45, pay: 1.25 } },
+    { id: 'brass', name: '사단장 순시 주간', line: '매일 사단장님이 오신다 · 칼경례 상점 두 배', need: 'officer', mods: { officer: true, kal: 2 } },
+    { id: 'deer', name: '고라니 대이동', line: '고라니 세 배 · 벌러덩 보상 두 배', need: 'deer', mods: { deer: 3, deerPay: 2 } },
+    { id: 'storm', name: '폭설 주간', line: '함박눈·폭설만 온다 · 보상 +40%', need: null, mods: { storm: true, pay: 1.4 } },
+    { id: 'sports', name: '체육대회 주간', line: '족구 골 보상 세 배 (여섯 골까지) · 눈싸움하면 분대 사기 +', need: 'kick', mods: { goal: 3, fight: true } },
+    { id: 'motor', name: '정비 주간', line: '탈것 기름 무한 · 탈것 속도 +20%', need: 'cart', mods: { fuelFree: true, rideSpd: 1.2 } }
+  ];
   // v16 진급 특기: 진급할 때 둘 중 하나 (전역하면 다시 고른다). 밸런스 점검에서 '무엇을 사든 결과가 같다'가 나와서 넣은 갈림길
   var SPECS = [
     { rank: 1, opts: [{ id: 'shovel', name: '삽질 장인', line: '내 도구 범위 +25%', tag: '혼자 빠르게' }, { id: 'leader', name: '분대 챙기기', line: '분대원 속도 +40%', tag: '분대와 함께' }] },
@@ -211,6 +220,7 @@
     { id: 'cam', when: { zone: 'C' } },
     { id: 'factory', when: { zone: 'C' } },
     { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
+    { id: 'week', when: { ops: 7 }, name: '이번 주 작전', line: '7일마다 주제가 바뀐다 (폭설 주간·고라니 대이동…)' },
     // v14 재미·탈것
     { id: 'snowball', when: { zone: 'B' }, name: '눈덩이', line: '근처에 누가 있으면 눈덩이 버튼 · 고라니는 두 방이면 벌러덩' },
     { id: 'kick', when: { zone: 'B' } },
@@ -511,7 +521,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

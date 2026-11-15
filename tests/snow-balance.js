@@ -2,10 +2,10 @@
 /* 제설각 밸런스 점검: 가상 플레이어를 전략(보급 사는 순서) × 실력(효율) × 시드로 여러 번 돌려 표로 본다.
  * - 진급·전역까지 몇 분 (작전 시간만), ★ 분포, 심사 불합격, 남는 초코파이·상점, 어디서 벌었나
  * - 서로 다른 선택이 서로 다른 결과를 내는지 (한 전략만 압도적이면 선택이 의미 없다)
- * node tests/snow-balance.js [작전 수=45] [--quick]          (tests/snow-sim.js 를 STRAT/RIDE 환경 변수로 돌린다) */
+ * node tests/snow-balance.js [작전 수=90] [--quick]          (tests/snow-sim.js 를 STRAT/RIDE 환경 변수로 돌린다) */
 'use strict';
 var cp = require('child_process'), path = require('path');
-var OPS = +process.argv[2] || 45, QUICK = process.argv.indexOf('--quick') > 0;
+var OPS = +process.argv[2] || 90, QUICK = process.argv.indexOf('--quick') > 0;
 var STRATS = ['default', 'tool', 'crew', 'perk', 'cheap', 'none'], EFFS = QUICK ? [0.5] : [0.35, 0.5, 0.8], SEEDS = QUICK ? [7] : [7, 11, 23];
 var jobs = [];
 STRATS.forEach(function (st) { EFFS.forEach(function (e) { SEEDS.forEach(function (sd) { jobs.push({ strat: st, eff: e, seed: sd, ride: false }); }); }); });

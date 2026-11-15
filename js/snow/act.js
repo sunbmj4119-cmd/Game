@@ -419,12 +419,13 @@
     P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1) * (rd ? rd.capMul : 1));
     P.body = rd ? rd.body : 6;
     var m = w.mod;
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed : 1);
+    var wk = w.week ? w.week.mods : {};
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1);
     m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1) * (G.spec(save, 'leader') ? 1.4 : 1);
     if (G.spec(save, 'insa')) w.crew.forEach(function (c) { if (c.mor < 75) c.mor = 75; c.slack = false; });   // v16 특기 '인싸'
     m.stun = b.hotpack > 0 ? 0.5 : 1;
-    w.mult = G.incomeMult(save) * (b.praise > 0 ? 1.2 : 1);
+    w.mult = G.incomeMult(save) * (wk.pay || 1) * (b.praise > 0 ? 1.2 : 1);
   }
   /* ── v14 탈것: 넓게·많이·빨리 대신 덩치 (좁은 틈 못 지나감) ── */
   // 정비(상점)로 좋아진 만큼 더해서 돌려준다
@@ -464,7 +465,7 @@
     rd.x = P.x; rd.y = P.y;
     if (rd.max) {
       if (Math.hypot(P.x - gd.x, P.y - gd.y) < 60 && rd.fuel < rd.max) { rd.fuel = rd.max; bubble(w, gd, '정비병: 가득 넣었다. 긁지 마라.'); }
-      if (P.moving) rd.fuel -= dt;
+      if (P.moving && !(w.week && w.week.mods.fuelFree)) rd.fuel -= dt;   // v17 정비 주간: 기름 무한
       if (rd.fuel <= 0) { rd.fuel = 0; endRide(w, false); return; }
     }
     // 사륜바이크로 빙판: 미끄덩 한 바퀴 (빙판 드리프트)
@@ -560,7 +561,7 @@
           stat(w, 'hit'); hit.hitByMe = true;
           if (hit.fought) { stat(w, 'fight'); if (fun(w, 'fight')) give(w, 20 * (1 + rank(w)) * w.mult, 'fight'); }
           if (hit.asleep) { hit.asleep = false; hit.sleepT = 10; stat(w, 'wake'); bubble(w, hit, '으악! 누구야!! …아 깼다'); fx(w, { t: 'wake', e: hit }); }
-          else { bubble(w, hit, pick(['으악! 벌러덩!', '아 누구야!!', '야 이씨…', '눈싸움 하자는 거지?!'])); hit.mor = Math.min(100, (hit.mor || 50) + 3); knock(w, hit, 0.9); }
+          else { bubble(w, hit, pick(['으악! 벌러덩!', '아 누구야!!', '야 이씨…', '눈싸움 하자는 거지?!'])); hit.mor = Math.min(100, (hit.mor || 50) + (w.week && w.week.mods.fight ? 15 : 3)); knock(w, hit, 0.9); }
           if (w.rand() < 0.75) hit.throwT = 1.3;   // 일어나서 받아친다 → 눈싸움
         }
       } else {
@@ -626,7 +627,7 @@
     if (d.hp > 0) { bubble(w, d, '꾸엑?! (비틀)'); d.heading = Math.atan2(d.y - w.player.y, d.x - w.player.x); d.turnT = 1.6; d.slowT = 1.6; fx(w, { t: 'deerHit1', e: d, x: d.x, y: d.y }); return; }
     // 두 방: 벌러덩 (3.5초 누워 있다가 비틀비틀 도망)
     d.down = 3.5; d.moving = false; stat(w, 'deerDown'); bubble(w, d, '꾸에에엑…@_@');
-    var g = give(w, (25 + 10 * rank(w)) * w.mult, 'deerDown');
+    var g = give(w, (25 + 10 * rank(w)) * w.mult * (w.week && w.week.mods.deerPay || 1), 'deerDown');
     fx(w, { t: 'deerDown', e: d, x: d.x, y: d.y, pay: g });
     fun(w, 'deerDown');
     w.crew.slice(0, 3).forEach(function (c) { if (!c.off && Math.hypot(c.x - d.x, c.y - d.y) < 160) bubble(w, c, pick(['나이스 샷!!', '와 명중!', '저격수 출신?'])); });
@@ -657,7 +658,7 @@
       var side = B.x < Z.x + Z.w / 2 ? -1 : 1;
       if (B.side && side !== B.side && sp > 90 && !(B.goalT > 0)) {
         B.goalT = 4; stat(w, 'goal'); a.goals = (a.goals || 0) + 1;
-        var gp = a.goals <= 3 ? give(w, 25 * (1 + rank(w)) * w.mult, 'goal') : 0;   // v16: 돈은 작전당 세 골까지 (공 왔다 갔다로 돈 버는 허점)
+        var gm = w.week && w.week.mods.goal || 1, gp = a.goals <= 3 * (gm > 1 ? 2 : 1) ? give(w, 25 * (1 + rank(w)) * w.mult * gm, 'goal') : 0;   // v17 체육대회 주간: 세 배, 여섯 골까지   // v16: 돈은 작전당 세 골까지 (공 왔다 갔다로 돈 버는 허점)
         fx(w, { t: 'goal', x: B.x, y: B.y, pay: gp }); fun(w, 'goal');
         w.crew.slice(0, 3).forEach(function (c) { if (!c.off) bubble(w, c, pick(['나이스!!', '족구 국가대표?', '한 판 더!'])); });
       }
@@ -759,7 +760,7 @@
     }
   }
 
-  function chocoCost(w) { return Math.round(8 * (1 + rank(w)) * (1 + w.save.day * 0.1)); }
+  function chocoCost(w) { return Math.round(8 * (1 + rank(w)) * (1 + Math.min(w.save.day, 30) * 0.1)); }
 
   /* ── 간부 순찰 (시계 기준) ── */
   function planOfficers(w) {
@@ -829,13 +830,13 @@
     return s / w.op.tasks.length;
   }
   function actOfficer(w, o) {
-    var save = w.save, def = OFF[o.id], r = rank(w), base = (40 + 20 * save.day) * (1 + r) * w.mult;
+    var save = w.save, def = OFF[o.id], r = rank(w), base = (40 + 20 * Math.min(save.day, 25)) * (1 + r) * w.mult;   // v17: 25일차까지만 커진다
     if (!o.saluted) {
       o.saluted = true; var quick = o.salT < 1.2 && !o.missed;
       me(w, '충성!!'); fx(w, { t: 'salute' }); stat(w, 'salute'); if (quick) stat(w, 'kal');
       bubble(w, o, quick ? pick(L.offKal) : o.missed ? '…늦었다. 다음엔 빨리.' : '그래, 수고한다.');
       var pie = o.missed ? 0 : give(w, base * (o.id === 'lt' ? 0.5 : o.id === 'cpt' ? 1 : 2) * (quick ? 1.5 : 1), 'salute');
-      var dia = o.missed ? 0 : (o.id === 'gen' ? 2 : 0) + (quick && o.id !== 'lt' ? 1 : 0);
+      var dia = o.missed ? 0 : (o.id === 'gen' ? 2 : 0) + (quick && o.id !== 'lt' ? (w.week && w.week.mods.kal || 1) : 0);
       if (dia) G.gainDia(w, dia, 'salute');
       if (o.id === 'lt') w.crew.forEach(function (c) { c.mor = Math.min(100, c.mor + 10); });
       fx(w, { t: 'officer', state: 'saluted', id: o.id, title: def.title, quick: quick, pie: pie, dia: dia });

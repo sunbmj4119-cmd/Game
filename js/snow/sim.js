@@ -105,7 +105,7 @@
   function crewCost(C, n) { return Math.round(C.cost * Math.pow(C.grow, n)); }
   function perkCost(P, l) { return Math.round(P.cost * Math.pow(P.grow, l)); }
   function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
-  function incomeMult(save) { return (1 + 0.15 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }
+  function incomeMult(save) { return (1 + 0.08 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }   // v17: 제설 요령 15% → 8% (돈이 너무 빨리 불었다)
   function toolOf(save) { return S.TOOLS[save.tool]; }
   function spec(save, id) { var sp = save.spec || {}; return sp[1] === id || sp[2] === id || sp[3] === id; }
   function specDue(save) { var r = rankOf(save); for (var i = 0; i < S.SPECS.length; i++) if (r >= S.SPECS[i].rank && !(save.spec || {})[S.SPECS[i].rank]) return S.SPECS[i]; return null; }
@@ -132,8 +132,21 @@
     var d = save.day;
     if (d === 1) return { id: 'light', inspect: false };
     if (d <= 3) return { id: 'normal', inspect: false };
-    var r = mulberry(save.seed + d * 7919)();
-    return { id: r < 0.2 ? 'light' : r < 0.62 ? 'normal' : r < 0.88 ? 'heavy' : 'blizzard', inspect: d % 7 === 0 };
+    var r = mulberry(save.seed + d * 7919)(), k = rankOf(save);
+    // v17: 계급이 오를수록 날씨가 험해진다 (처음엔 쉽게, 뒤로 갈수록 어렵게)
+    var L = [0.25, 0.2, 0.12, 0.08][k], N = [0.75, 0.62, 0.5, 0.4][k], Hv = [0.95, 0.88, 0.8, 0.72][k];
+    var wk = weekOf(save);
+    if (wk && wk.mods.storm) return { id: r < 0.65 ? 'heavy' : 'blizzard', inspect: d % 7 === 0 };
+    return { id: r < L ? 'light' : r < N ? 'normal' : r < Hv ? 'heavy' : 'blizzard', inspect: d % 7 === 0 || !!(wk && wk.mods.officer) };
+  }
+
+  /* ── v17 이번 주 작전 (8일차부터 7일마다 바뀐다, 열린 기능 중에서) ── */
+  function weekOf(save) {
+    var d = save.day || 1; if (d < 8 || !S.WEEKS) return null;
+    var list = S.WEEKS.filter(function (W) { return !W.need || feat(save, W.need); });
+    if (!list.length) return null;
+    var wkn = Math.floor((d - 1) / 7);
+    return list[((wkn - 1) + (save.seed % 97)) % list.length];
   }
 
   /* ── 상점 ── */
@@ -269,6 +282,7 @@
     function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
     if (day >= HAZ.deer.from && feat(save, 'deer')) {
       var n = Math.round(Math.min(HAZ.deer.max, 1 + (day - HAZ.deer.from) / 6) * (1 - 0.25 * lvl(save, 'gong')));
+      var wk0 = weekOf(save); if (wk0 && wk0.mods.deer) n = Math.min(6, n * wk0.mods.deer);   // v17 고라니 대이동
       for (i = 0; i < n; i++) at(20 + R() * (dl - 40), 'deer');
     }
     // 선임 눈덩이 장난: 이병은 자주, 일병은 가끔, 상병부터는 없다 (짬이 차면 편해진다)
@@ -302,7 +316,7 @@
       save: save, rand: mulberry(save.seed + save.day * 101 + (opts.salt || 0) + Math.floor(save.dayT)),
       depth: new Uint8Array(GW * GH), zone: new Int8Array(GW * GH).fill(-1), partOf: new Int16Array(GW * GH).fill(-1),
       cells: [], zoneOpen: [], zoneTotal: [], zoneClear: [], parts: [], total: 0, clear: 0, inspected: {},
-      time: save.dayT || 0, dayLen: S.DAY_LEN + (spec(save, 'chill') ? 30 : 0), weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
+      time: save.dayT || 0, dayLen: S.DAY_LEN + (spec(save, 'chill') ? 30 : 0), week: weekOf(save), weather: wxi.id, wx: wx, inspect: wxi.inspect, mult: incomeMult(save),
       earned: 0, crewEarned: 0, crewT: 0, units: 0, hits: 0, fx: [], dirty: [], fallAcc: 0, done: false, flags: {}, demo: !!opts.demo,
       player: null, crew: [], haeng: null, sayT: 0, rank0: rankOf(save), dumps: dumpsOf(save),
       events: [], deer: [], car: null, heli: null, cats: [], mod: { speed: 1, hit: 1, crew: 1, stun: 1 }, dumpedP: 0,
@@ -315,7 +329,7 @@
       var open = !!save.zones[Z.id], isNew = !!save.fresh[Z.id] || !stored;
       w.zoneOpen[zi] = open; w.zoneTotal[zi] = 0; w.zoneClear[zi] = 0;
       var pBase = w.parts.length;
-      if (open) Z.parts.forEach(function (p) { w.parts.push({ zi: zi, name: p[0], x: Z.x + p[1] * Z.w, y: Z.y + p[2] * Z.h, w: (p[3] - p[1]) * Z.w, h: (p[4] - p[2]) * Z.h, total: 0, clear: 0, done: false, ice: !!p[5], icy: false, salted: false }); });
+      if (open) Z.parts.forEach(function (p, pi) { w.parts.push({ zi: zi, name: p[0], x: Z.x + p[1] * Z.w, y: Z.y + p[2] * Z.h, w: (p[3] - p[1]) * Z.w, h: (p[4] - p[2]) * Z.h, total: 0, clear: 0, done: false, ice: !!p[5], icy: false, salted: false }); });
       for (var gy = Z.y / CELL; gy < (Z.y + Z.h) / CELL; gy++) {
         for (var gx = Z.x / CELL; gx < (Z.x + Z.w) / CELL; gx++) {
           var cx = gx * CELL + CELL / 2, cy = gy * CELL + CELL / 2;
@@ -337,6 +351,8 @@
       if (!opts.demo) delete save.fresh[Z.id];
     });
     w.parts.forEach(function (P, k) { P.done = P.total > 0 && P.clear >= P.total; if (P.done) w.perfect[k] = true; });
+    // v17 혹한기 주간: 그늘이 아니던 조각도 얼 수 있다 (날짜로 정해져 같은 날엔 같다)
+    if (w.week && w.week.mods.ice) { var ir = mulberry(save.seed + save.day * 131); w.parts.forEach(function (P) { if (!P.ice && ir() < w.week.mods.ice) P.ice = true; }); }
     S.ZONES.forEach(function (Z, zi) { if (w.zoneTotal[zi] && w.zoneClear[zi] >= w.zoneTotal[zi]) w.zonePerf[zi] = true; });
     w.total = w.cells.length;
     var tool = toolOf(save), px = save.px, py = save.py;
@@ -615,7 +631,7 @@
       w.treas.splice(i, 1);
       var save = w.save, it = t.item, zi = w.zone[idx], Z = S.ZONES[zi] || { value: 1 };
       save.tfound.idx.push(idx);
-      var pie = Math.round((it.pie || 0) * Z.value * w.mult * (1 + save.day * 0.15));
+      var pie = Math.round((it.pie || 0) * Z.value * w.mult * (1 + Math.min(save.day, 25) * 0.1));   // v17: 날짜에 따라 끝없이 커지지 않게 (25일차까지)
       if (!w.demo) { save.found[it.id] = (save.found[it.id] || 0) + 1; stat(w, 'found'); }
       if (pie) { w.earned += pie; pay(w, pie, 'found'); }
       if (it.dia) gainDia(w, it.dia, 'found');
@@ -1187,15 +1203,16 @@
   // 앱을 꺼 둔 동안: 인력 수입 × 시간 × 10% (최대 8시간)
   function offline(save, now) {
     if (!save.last || !save.crewRate) return 0;
-    var sec = Math.min((now - save.last) / 1000, 8 * 3600);
+    // v17: 8시간·10% → 6시간·2.5% (밤새 두면 작전 12번 분량이 들어와서 너무 많았다 → 많아야 작전 2번 남짓)
+    var sec = Math.min((now - save.last) / 1000, 6 * 3600);
     if (sec < 300) return 0;
-    return Math.floor(save.crewRate * sec * 0.1);
+    return Math.floor(save.crewRate * sec * 0.025);
   }
 
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
-    canDischarge: canDischarge, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
+    canDischarge: canDischarge, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
     examDue: examDue, assignZones: assignZones, clockOf: clockOf, timeAt: timeAt, clockText: clockText, initOp: initOp, checkTasks: checkTasks, opStatus: opStatus, gradeOp: gradeOp, endOp: endOp, syncOpSave: syncOpSave, taskPct: taskPct,
     crewCap: crewCap, pendN: pendN, assignRecruit: assignRecruit, setPost: setPost, autoPost: autoPost, zoneAt: zoneAt, arriveRecruits: arriveRecruits, zoneIndex: zoneIndex,

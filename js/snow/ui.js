@@ -139,6 +139,7 @@
     var nextZone = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; })[0], news = [];
     if (!on) news.push('<li class="hl">끌어서 걷고, 눈을 <b>등에 쌓아</b> 집하장에 붓는다</li>', '<li>★이 쌓이면 <b>진급</b> — 계급이 오를수록 편해진다</li>');
     if (G.canDischarge(save)) news.push('<li class="hl" data-hub="dis">전역할 수 있다! <b>전역 신고 ›</b></li>');
+    var wkN = on && G.weekOf(save); if (wkN) news.push('<li class="week' + (save.seen['week:' + Math.floor((save.day - 1) / 7)] ? '' : ' hl') + '">이번 주 <b>' + esc(wkN.name) + '</b> · ' + esc(wkN.line) + '</li>');
     if (save.exam && nr) news.push('<li class="exam">다음 작전 = <b>' + nr.name + ' 진급 심사</b> · ★★ 이상이면 진급</li>');
     if (lo) news.push('<li>지난 작전 <b class="st">' + stars(lo.stars) + '</b>' + (lo.exam ? (lo.pass ? ' · 심사 합격' : ' · 심사 불합격') : '') + '</li>');
     if (on) news.push('<li>내일 새벽 <b>' + S.WEATHER[wx.id].name + '</b>' + (wx.inspect ? ' · <b class="red">사단장님 순시</b>' : '') + '</li>');
@@ -149,7 +150,7 @@
     // v13: 소식은 두 줄만 — 지금 할 일(안내)이 있으면 그게 먼저
     var q = M && on ? M.questNow(save) : null;
     if (q) news.unshift('<li class="hl">할 일: <b>' + esc(q.text) + '</b> · ' + esc(q.how) + '</li>');
-    var pri = function (li) { return /data-hub="dis"|class="exam"/.test(li) ? 0 : /할 일:/.test(li) ? 1 : /받을 수 있다/.test(li) ? 2 : /특명/.test(li) ? 3 : 4; };
+    var pri = function (li) { return /data-hub="dis"|class="exam"/.test(li) ? 0 : /할 일:/.test(li) ? 1 : /class="week hl"/.test(li) ? 1.5 : /받을 수 있다/.test(li) ? 2 : /특명/.test(li) ? 3 : /class="week"/.test(li) ? 3.5 : 4; };
     news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
@@ -260,6 +261,7 @@
     var notes = [];
     // v13: 특이사항은 오늘만 다른 것만 짧게 (심사·날씨·순시·출근 차량). 늘 같은 설명은 '새로 생김'에서 한 번만
     if (exam) notes.push('<li class="exam">진급 심사 ' + Math.round(goal * 100) + '% · ★★면 ' + G.nextRank(save).name + (save.examFail ? ' (재심사)' : '') + '</li>');
+    var wkB = G.weekOf(save); if (wkB) { notes.push('<li class="good">이번 주 ' + esc(wkB.name) + ' — ' + esc(wkB.line) + '</li>'); save.seen['week:' + Math.floor((save.day - 1) / 7)] = 1; }
     if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' · 기준 −' + Math.round(wxCut * 100) + '%p</li>');
     if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 바로 경례</li>');
     if (save.zones.E) notes.push('<li>출근 차량이 온다 — 진입로 먼저</li>');
@@ -315,7 +317,7 @@
     if (X) X.wind({ light: 0.1, normal: 0.25, heavy: 0.55, blizzard: 0.9 }[w.weather] || 0.2);
     if (!resume) {
       var op = w.op || {};
-      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', S.WEATHER[w.weather].name + ' · 제한 시간 ' + Math.round(S.DAY_LEN / 60) + '분', 2000);
+      banner(op.exam ? '진급 심사 작전' : save.day + '일차 제설 작전', (w.week ? w.week.name + ' · ' : '') + S.WEATHER[w.weather].name + ' · 제한 시간 ' + Math.round(w.dayLen / 60 * 10) / 10 + '분', 2000);
       if (op.exam || w.weather === 'heavy' || w.weather === 'blizzard') setTimeout(function () { say(op.exam ? 'exam' : 'heavy'); }, 900);
       if (X) X.whistle(false);
     }
@@ -520,7 +522,7 @@
     modal('<div class="m-rank"><p class="kicker">포상휴가</p><h3>휴가 나갈래?</h3><p>상점 <b>' + S.LEAVE.cost + '개</b>를 포상휴가 1일로 바꾼다. 집에 다녀오면 용돈(초코파이)과 보급 상자, 분대원 사기 100.</p><div class="res-btns"><button class="btn ghost" data-m="no">아직</button><button class="btn big" data-m="yes">충성! 휴가 다녀오겠습니다</button></div></div>', function (k) {
       if (k !== 'yes') return;
       save.dia -= S.LEAVE.cost; save.leave = (save.leave || 0) + 1; save.stats.leave = (save.stats.leave || 0) + 1;
-      var r = G.rankOf(save), money = Math.round((200 + 60 * save.day) * (1 + r) * G.incomeMult(save));
+      var r = G.rankOf(save), money = Math.round((200 + 60 * Math.min(save.day, 25)) * (1 + r) * G.incomeMult(save));
       save.bank += money; save.life += money; save.boxes.push('rare'); save.prep = save.prep || {}; save.prep.morale = 1;
       persistRaw();
       playStory({ id: 'leave', title: '포상휴가', lines: [

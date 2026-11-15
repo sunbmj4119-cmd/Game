@@ -72,7 +72,7 @@ function scan() {
     await page.click('[data-hub="settings"]'); await sleep(300); await page.click('#modal [data-set="help"]'); await sleep(300); await check('help');   // v15: 교범은 설정 안
     await closeAll();
     // 상병 브리핑 (조원 배치까지 있는 가장 긴 브리핑)
-    await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
+    await page.evaluate(function () { var s = __SNOW.save(); s.rank = 2; s.merit = 26; s.spec = { 1: 'shovel', 2: 'mule' }; JY.SnowSim.assignZones(s); s.crew = { hoobae: 4, donggi: 3 }; s.cpost = { hoobae: ['A', 'B', 'C', 'D'], donggi: ['E', 'F', 'A'] }; s.exam = true; __SNOW.title(); });
     await sleep(400); await closeAll();
     await page.click('#t-start'); await sleep(500); await check('brief');
     await page.click('#modal [data-m="go"]'); await sleep(1500); await closeAll();

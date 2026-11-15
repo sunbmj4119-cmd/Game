@@ -133,7 +133,7 @@ var d9 = G.discharge(s9);
 ok(d9 && d9.medals === 5 && s9.tool === 0 && s9.bank === 0 && s9.day === 1 && s9.rank === 0 && s9.merit === 0 && !s9.zones.B && !s9.relays.B && !s9.proc.press && !s9.snow, '전역: 메달만 남고 이병부터', s9);
 ok(G.incomeMult(s9) > 1.39, '메달만큼 보상 증가');
 var s10 = G.newSave(); s10.crewRate = 40; s10.last = 1000;
-ok(G.offline(s10, 1000 + 60 * 1000) === 0 && G.offline(s10, 1000 + 3600 * 1000) === Math.floor(40 * 3600 * 0.1) && G.offline(s10, 1000 + 48 * 3600 * 1000) === Math.floor(40 * 8 * 3600 * 0.1), '쉬는 동안: 5분 이상, 인력 수입의 10%, 최대 8시간');
+ok(G.offline(s10, 1000 + 60 * 1000) === 0 && G.offline(s10, 1000 + 3600 * 1000) === Math.floor(40 * 3600 * 0.025) && G.offline(s10, 1000 + 48 * 3600 * 1000) === Math.floor(40 * 6 * 3600 * 0.025), 'v17 쉬는 동안: 5분 이상, 인력 수입의 2.5%, 최대 6시간 (전: 10%·8시간)');
 // 옛 저장(하루 60초판) 보정
 var old = G.migrate({ v: 2, zones: { A: true, B: true, Z: true }, tool: 99, bank: 77, day: 9 });
 ok(old.v === 10 && !old.zones.Z && !old.zones.B && old.tool === S.TOOLS.length - 1 && old.bank === 77 && old.load === 0 && old.rank === 0, '옛 저장 데이터 보정 (구역은 근무평정만큼 다시)', old);
@@ -288,7 +288,7 @@ ok(iceP3.icy, '다시 열어도 언 구간은 언 채로 (저장)');
 wI3.player.x = iceP3.x + 30; wI3.player.y = iceP3.y + 40; G.step(wI3, 1 / 30, null);
 ok(iceP3.salted && sI.stats.salt === 1 && sI.op.salted.length === 1, '염화칼슘 살포기로 지나가면 저절로 뿌려진다 (저장)');
 // 07:30 출근 차량: 진입로가 깊으면 빠진다 → 다 같이 밀어야 한다. 치워 두면 한 번에 올라가고 상점
-var sV = G.newSave(); sV.seed = 36; sV.merit = 22; sV.rank = 2; G.assignZones(sV); var wV = G.createWorld(sV);
+var sV = G.newSave(); sV.seed = 36; sV.merit = 30; sV.rank = 2; G.assignZones(sV); var wV = G.createWorld(sV);
 ok(wV.events.some(function (e) { return e.k === 'car' && Math.abs(e.t - G.timeAt(450)) < 0.01; }), '진입로를 맡으면 07:30에 중대장님 차가 온다');
 wV.events = []; wV.player.x = 30; wV.player.y = 300; G.spawn(wV, 'car'); run(wV, 8);
 ok(wV.car && wV.car.stuck && wV.op.stuck && wV.fx.some(function (f) { return f.t === 'carStuck'; }), '눈 쌓인 진입로에서 차가 빠진다');
@@ -384,5 +384,24 @@ sp.rank = 3; sp.spec[3] = 'kal'; var gk = G.opGoal(sp, 'normal', false); sp.spec
 ok(Math.abs(G.opGoal(sp, 'normal', false) - gk - 0.05) < 1e-9 && G.createWorld(sp).dayLen === S.DAY_LEN + 30, 'v16 칼각: 기준 −5%p / 말년 여유: 작전 +30초');
 sp.merit = S.DISCHARGE_MERIT; sp.life = 5e6; G.discharge(sp); ok(!Object.keys(sp.spec).length && G.rankOf(sp) === 0, 'v16 전역하면 특기도 처음부터');
 ok(S.SPECS.every(function (g) { return g.opts.length === 2; }) && S.SPECS.length === 3, 'v16 특기는 계급마다 둘 중 하나 (일병·상병·병장)');
+
+// ── v17 진행 곡선 · 이번 주 작전 ──
+ok(S.RANKS[1].merit <= 6 && S.RANKS[2].merit >= 24 && S.RANKS[3].merit >= 60 && S.DISCHARGE_MERIT >= 150, 'v17 처음은 빠르게(일병 ★6), 뒤로 갈수록 오래(상병 24·병장 60·전역 150)');
+ok(G.zoneById('G').need >= 75 && G.zoneById('H').need >= 95 && G.zoneById('E').need >= 30, 'v17 바깥 구역은 늦게 (진입로 ★30 · 위병소 75 · 헬기장 95)');
+var wk = G.newSave(); wk.seed = 5; wk.stats.ops = 9; wk.rank = 1; wk.merit = 14; G.assignZones(wk);
+wk.day = 7; ok(!G.weekOf(wk), 'v17 1주차(7일차까지)는 이번 주 작전 없음');
+wk.day = 8; var w8 = G.weekOf(wk); wk.day = 14; var w14 = G.weekOf(wk); wk.day = 15; var w15 = G.weekOf(wk);
+ok(w8 && w8 === w14 && w15 && w15 !== w8, 'v17 8일차부터 7일마다 바뀐다', [w8 && w8.id, w14 && w14.id, w15 && w15.id]);
+var seenW = {}; for (var dd = 8; dd < 8 + 7 * 12; dd += 7) { wk.day = dd; var ww = G.weekOf(wk); if (ww) seenW[ww.id] = 1; }
+ok(!seenW.cart && Object.keys(seenW).every(function (id) { var W = S.WEEKS.filter(function (q) { return q.id === id; })[0]; return !W.need || G.feat(wk, W.need); }), 'v17 열린 기능 것만 나온다 (정비 주간은 리어카가 열려야)', seenW);
+var stS = G.newSave(); stS.seed = 9; stS.rank = 1; stS.merit = 14; G.assignZones(stS); stS.stats.ops = 20;
+var stormDay = null; for (var d2 = 8; d2 < 8 + 7 * 12 && !stormDay; d2 += 7) { stS.day = d2; if ((G.weekOf(stS) || {}).id === 'storm') stormDay = d2; }
+if (stormDay) { var wxs = {}; for (var d3 = stormDay; d3 < stormDay + 7; d3++) { stS.day = d3; wxs[G.weatherFor(stS).id] = 1; } ok(!wxs.light && !wxs.normal, 'v17 폭설 주간: 함박눈·폭설만', wxs); }
+var dS = G.newSave(); dS.seed = 3; dS.rank = 2; dS.merit = 40; G.assignZones(dS); dS.stats.ops = 30;
+var deerDay = null; for (var d4 = 8; d4 < 8 + 7 * 20 && !deerDay; d4 += 7) { dS.day = d4; if ((G.weekOf(dS) || {}).id === 'deer') deerDay = d4; }
+if (deerDay) { dS.day = deerDay; var wD = G.createWorld(dS); var nD = wD.events.filter(function (e) { return e.k === 'deer'; }).length; dS.day = deerDay - 7; var wD0 = G.createWorld(dS); var nD0 = wD0.events.filter(function (e) { return e.k === 'deer'; }).length; ok(nD > nD0, 'v17 고라니 대이동: 고라니가 더 많이', [nD0, nD]); }
+var rw = { day: 9, rank: 1 }; ok(G.weatherFor({ day: 40, seed: 1, rank: 3, zones: {}, stats: { ops: 1 } }) && true, 'v17 계급별 날씨 (함수 동작)');
+var heavyRate = function (rank) { var n = 0, t = 0; for (var sd = 1; sd < 40; sd++) for (var d5 = 4; d5 < 8; d5++) { var w0 = G.weatherFor({ day: d5, seed: sd, rank: rank, zones: {}, stats: { ops: 1 } }); t++; if (w0.id === 'heavy' || w0.id === 'blizzard') n++; } return n / t; };
+ok(heavyRate(3) > heavyRate(0) + 0.15, 'v17 계급이 오를수록 함박눈·폭설이 잦다', [heavyRate(0).toFixed(2), heavyRate(3).toFixed(2)]);
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

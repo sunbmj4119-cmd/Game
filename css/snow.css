@@ -1077,3 +1077,7 @@ body.saluting .throwb { display: none; }
 /* v16: 긴 이름(5~6자)은 글씨를 줄여 한 줄에 */
 .lc-name.long { font-size: 17px; }
 @media (max-width: 380px) { .lc-name.long { font-size: 15.5px; } .lc-name { font-size: 18px; } }
+
+/* v17 이번 주 작전 */
+.news li.week b { color: #2f6fb8; }
+.news li.week.hl { box-shadow: inset 3px 0 0 #2f6fb8; }

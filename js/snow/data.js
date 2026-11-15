@@ -158,6 +158,10 @@
   // when: zone(그 구역을 맡으면) / rank(그 계급부터) / ops(작전 몇 번 뒤). 처음 열린 작전 브리핑에 한 줄 소개 (name · line)
   // v14 탈것: 넓게(폭)·많이(적재)·빨리(속도) 대신 몸집(body)이 커서 좁은 틈은 못 지나간다 — Moon Sweepers 차량처럼 '크기'가 장단점
   // r: 눈 치우는 폭(도구보다 넓을 때만), capMul: 적재 배수, speed: 이동 배수, body: 부딪히는 반지름(사람 6), fuel: 기름(움직인 초)
+  // v20 호봉·군생활: ★ 진행을 18개월 복무로 본다 (이병 2 · 일병 6 · 상병 6 · 병장 4개월, 한 달 = 1호봉).
+  // 호봉이 오르면 월급날 (초코파이). 진급하면 1호봉부터
+  var SERVICE = { months: [2, 6, 6, 4], pay: [400, 3000, 30000, 120000] };
+  // v20: 운전은 짬 순서 — 리어카(일병, 미는 것) · 사륜바이크(상병) · 트랙터(병장). 일병 짬찌가 제설 차량을 모는 건 이상하다
   var RIDES = [
     { id: 'cart', name: '리어카', kind: 'cart', x: 176, y: 298, r: 0, capMul: 3, speed: 0.95, body: 9, fuel: 0, desc: '세 배 싣는다 · 조금 느리다' },   // v16: 0.8·11이면 시뮬레이션에서 걷는 것보다 손해였다
     { id: 'atv', name: '사륜바이크', kind: 'atv', x: 522, y: 302, r: 24, capMul: 1.5, speed: 1.6, body: 10, fuel: 70, desc: '빠르다 · 앞날로 넓게 · 빙판 미끄덩' },
@@ -272,8 +276,8 @@
     { id: 'snowball', when: { zone: 'B' }, name: '눈덩이', line: '근처에 누가 있으면 눈덩이 버튼 · 고라니는 두 방이면 벌러덩' },
     { id: 'kick', when: { zone: 'B' } },
     { id: 'cart', when: { rank: 1 }, name: '리어카', line: '집하장 옆 리어카에 타면 눈을 세 배 싣는다 (대신 느리고 덩치가 크다)' },
-    { id: 'atv', when: { zone: 'D' }, name: '제설 사륜바이크', line: '빠르고 넓게 민다 · 기름 70초 · 빙판에선 미끄덩' },
-    { id: 'tractor', when: { rank: 2 }, name: '트랙터', line: '아주 넓게 밀고 네 배 싣는다 · 덩치가 커서 좁은 길은 못 간다' }
+    { id: 'atv', when: { rank: 2 }, name: '제설 사륜바이크', line: '빠르고 넓게 민다 · 기름 70초 · 빙판에선 미끄덩' },
+    { id: 'tractor', when: { rank: 3 }, name: '트랙터', line: '아주 넓게 밀고 네 배 싣는다 · 덩치가 커서 좁은 길은 못 간다' }
   ];
   // v12: 오늘의 특명 — 작전마다 하나 (2일차부터). 하면 상점(+보급 상자). 매일 달라서 같은 작전도 다르게 하게 만든다
   // stat: 작전 동안 늘어난 기록 / combo: 작전 중 최고 콤보 / zone: 그 구역 100% / end: 작전이 끝날 때 판정
@@ -560,7 +564,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SNOWLOAD: SNOWLOAD, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

@@ -51,7 +51,7 @@
     $('hud').hidden = id !== 'play';
     $('h-shop').hidden = true;   // v10: 보급은 생활관에서만 (작전 중 장비는 행보관에게 직접 요청)
     ['acts', 'side'].forEach(function (k) { $(k).hidden = id !== 'play' || !A; });
-    if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; } else fpLayout();
+    if (id !== 'play') { $('xhair').hidden = true; $('sub').hidden = true; $('report-btn').hidden = true; $('throw-btn').hidden = true; } else fpLayout();   // v20: 작전 중 보급 화면 위에 눈덩이 버튼이 떠 있었다
     if (id === 'title') $('say').hidden = true;
     $('stack').classList.toggle('low', id === 'shop');
     if (id !== 'play') {
@@ -125,12 +125,12 @@
   function renderHub() {
     var r = G.rankOf(save), nr = G.nextRank(save), m = save.merit || 0, R0 = S.RANKS[r], on = started();
     var lo = save.lastOp, wx = G.weatherFor(save), base = R0.merit, top = nr ? nr.merit : S.DISCHARGE_MERIT;
-    var prog = Math.max(0, Math.min(1, (m - base) / Math.max(1, top - base)));
+    var prog = Math.max(0, Math.min(1, (m - base) / Math.max(1, top - base))), sv = G.service(save);
     $('hub-card').innerHTML =
       '<div class="lc-face">' + (JY.art && M ? JY.art.character(M.lookSpec(save)) : '') + '</div>' +
       '<div class="lc-body"><b class="lc-name' + ((save.look.name || '').length >= 5 ? ' long' : '') + '"><span class="ins">' + insignia(r) + '</span><span>' + R0.name + ' ' + esc(save.look.name || '김제설') + '</span></b>' +
-      '<small class="lc-role">' + esc(specLast() || R0.role.split(' — ')[0]) + ' · 분대원 ' + G.crewCount(save) + '명</small>' +   // 일차는 출동 버튼에
-      '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div></div>';
+      '<small class="lc-role">' + sv.hob + '호봉 · 군생활 <b>' + sv.pct + '%</b>' + (specLast() ? ' · ' + esc(specLast()) : sv.left ? ' · 전역 ' + sv.left + '개월 전' : ' · 전역!') + '</small>' +   // 좁으면 뒤(특기)가 잘린다   // v20 호봉·군생활 (분대원 수는 보급·브리핑에)
+      '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div><div class="lc-svc" aria-hidden="true"><i style="width:' + sv.pct + '%"></i></div></div>';
     $('lb-bank').textContent = save.bank >= 1e7 ? short(save.bank) : fmt(save.bank); $('lb-dia').textContent = fmt(save.dia);
     var steps = S.RANKS.map(function (R, i) { return { name: R.name, need: R.merit, i: i }; }).concat([{ name: '전역', need: S.DISCHARGE_MERIT, i: S.RANKS.length }]);
     var road = '<ol class="road">' + steps.map(function (s) {
@@ -169,7 +169,7 @@
     ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
     if (G2) {   // v18 배지: 장구 = 무료 상자·합성할 것, 임무 = 받을 보상
-      var now0 = Date.now(), gn = (G2.freeIn(save, 'basic', now0) === 0 ? 1 : 0) + G2.mergeable(save).length, mn = G2.missions(save, now0).claim + G2.pass(save, now0).claim;
+      var now0 = Date.now(), gn = (G2.freeIn(save, 'basic', now0) === 0 ? 1 : 0) + G2.mergeable(save).length + (save.boxes || []).length, mn = G2.missions(save, now0).claim + G2.pass(save, now0).claim;
       $('hub-gear-n').hidden = !gn || !G.feat(save, 'gear'); $('hub-gear-n').textContent = gn;
       $('hub-mission-n').hidden = !mn || !G.feat(save, 'mission'); $('hub-mission-n').textContent = mn;
       enPill();
@@ -194,7 +194,7 @@
     if (k === 'shop') { tab = 'tool'; openShop(); }
     else if (k === 'px') openPX();
     else if (k === 'help') help();
-    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k; openShop(); }
+    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k === 'gear' && (save.boxes || []).length ? 'chest' : k; openShop(); }   // v20: 받은 상자가 있으면 상자 탭부터
     else if (k === 'settings') settings();
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
@@ -436,6 +436,16 @@
     }
     if (hud.dia !== save.dia) { if (hud.dia !== undefined && save.dia > hud.dia) { var bp = document.querySelector('.pill.bank'); bp.classList.remove('flash-dia'); void bp.offsetWidth; bp.classList.add('flash-dia'); } hud.dia = save.dia; $('h-dia').textContent = fmt(save.dia); }
     var nb = (save.boxes || []).length; if (hud.nb !== nb) { hud.nb = nb; $('h-box').hidden = !nb || !G.feat(save, 'box'); $('h-box-n').textContent = nb; }
+    // v20: 작전 중 보급 버튼 (지금 살 수 있는 것 수) · 작업 완료 보고 버튼
+    var nowS = Date.now();
+    if (!(hud.supT > nowS)) {
+      hud.supT = nowS + 700; var supOn = G.feat(save, 'lobby'), offs = supOn ? G.offers(save) : {}, sn = 0;
+      ['tool', 'crew', 'perk'].forEach(function (k) { (offs[k] || []).forEach(function (o) { if (o.ok) sn++; }); });
+      $('h-sup').hidden = !supOn; $('h-sup-n').hidden = !sn; $('h-sup-n').textContent = sn;
+    }
+    var rdy = !!(w.op && w.op.ready && !w.opEnd);
+    if (hud.rdy !== rdy) { hud.rdy = rdy; $('report-btn').hidden = !rdy; if (rdy) { vibrate(30); if (X) X.ding(); } }
+    if (rdy) { var pctA = Math.floor(G.pct(w) * 100), rs = pctA >= 100 ? '완벽! 누르면 바로 보고' : '누르면 바로 보고 · 일찍 할수록 수당'; if (hud.rs !== rs) { hud.rs = rs; $('report-s').textContent = rs; } }
     areaHud(w); comboHud(w);
     if (hud.ld !== ld || hud.cap !== P.cap) {
       hud.ld = ld; hud.cap = P.cap;
@@ -510,6 +520,7 @@
       (lines.length > 4 ? '<details class="res-more"><summary>자세히 (' + (lines.length - 4) + ')</summary><ul class="res-lines op">' + lines.slice(4).join('') + '</ul></details>' : '') +
       '<div class="res-pay"><span>' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
       (res.passXp ? '<p class="res-pass">복무 패스 +' + res.passXp + '</p>' : '') +
+      (res.payday ? '<p class="res-svc pay">월급날! ' + S.RANKS[res.rank].name + ' ' + res.payday.hob + '호봉 · ' + pie() + '+' + fmt(res.payday.pie) + '</p>' : res.svc1 !== undefined && res.svc1 > res.svc0 ? '<p class="res-svc">군생활 ' + res.svc0 + '% → <b>' + res.svc1 + '%</b></p>' : '') +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
       (res.zones.length ? '<p class="res-zone">새 담당 구역: <b>' + esc(res.zones.join(', ')) + '</b></p>' : '') +
       '<button class="btn big" data-m="ok">' + (res.promoted ? '진급 신고하러 간다' : '충성! 들어가 보겠습니다') + '</button></div>', function () {
@@ -604,16 +615,25 @@
   }
 
   // 보급·인원은 생활관에서만 연다 (작전 중엔 행보관에게 직접 장비 요청)
+  var opShop = false;   // v20: 작전 중에 연 보급 (닫으면 바로 작전으로)
   function openShop() {
     var w = V.world();
+    opShop = !!(w && V.mode() === 'play' && !w.opEnd && (tab === 'tool' || tab === 'crew' || tab === 'up'));
     if (w && V.mode() === 'play') { G.serialize(w); V.pause(true); }
     dirty = false;
     show('shop');
+    $('s-go').textContent = opShop ? '작전으로 돌아가기' : '생활관으로';
     renderShop();
   }
   function closeShop() {
     persist();
     dirty = false;
+    if (opShop) {
+      opShop = false; var w = V.world();
+      show('play'); if (A && w) A.applyStats(w);
+      hud.bank = -1; hud.nb = -1; hud.supT = 0; hud.rdy = undefined; hud.hb = 0; hudA.tk = null; V.pause(false);   // hb: 알림 줄 위치를 다시 잡는다 (화면을 바꾸면 지워진다)
+      return;
+    }
     title();
   }
 
@@ -630,7 +650,7 @@
     $('s-tabs').hidden = !!solo && !grp;
     var tabList = grp ? grp.tabs : solo ? [] : TABS.filter(function (t) { return gate(t[0]); });
     $('s-tabs').innerHTML = tabList.map(function (t) {
-      var n = grp ? (t[0] === 'chest' ? (G2.freeIn(save, 'basic', Date.now()) === 0 ? 1 : 0) : t[0] === 'gear' ? G2.mergeable(save).length : t[0] === 'mission' ? G2.missions(save, Date.now()).claim : G2.pass(save, Date.now()).claim) : (all[t[0]] || []).filter(function (x) { return x.ok; }).length;
+      var n = grp ? (t[0] === 'chest' ? (G2.freeIn(save, 'basic', Date.now()) === 0 ? 1 : 0) + (save.boxes || []).length : t[0] === 'gear' ? G2.mergeable(save).length : t[0] === 'mission' ? G2.missions(save, Date.now()).claim : G2.pass(save, Date.now()).claim) : (all[t[0]] || []).filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
@@ -734,8 +754,15 @@
     list.insertAdjacentHTML('beforeend', html);
   }
   function renderChest(list) {
-    var now = Date.now();
-    var html = S.CHESTS.map(function (ch) {
+    var now = Date.now(), got = save.boxes || [], html = '';
+    // v20: 받아 둔 상자 (★★★·점호·훈장·패스) — 작전 중에만 열리던 것을 여기서도
+    if (got.length && M) {
+      var cnt = {}; got.forEach(function (t) { cnt[t] = (cnt[t] || 0) + 1; });
+      var tiers = ['legend', 'rare', 'common'].filter(function (t) { return cnt[t]; }).map(function (t) { return (M.TIER[t] ? M.TIER[t].name : t) + ' ' + cnt[t]; }).join(' · ');
+      html += '<div class="chest got"><div class="ch-art">' + BOX_SVG + '</div><div class="ch-info"><b>받은 보급 상자 ' + got.length + '개</b><small>' + esc(tiers) + '</small><small>★★★·아침 점호·훈장·패스로 받은 것</small></div><div class="ch-btns">' +
+        '<button class="btn small free" data-boxone="1">하나 열기</button>' + (got.length > 1 ? '<button class="btn small" data-boxall="1">모두 열기</button>' : '') + '</div></div>';
+    }
+    html += S.CHESTS.map(function (ch) {
       var odds = Object.keys(ch.odds).map(function (k) { return G2.rarDef(k).name + ' ' + ch.odds[k] + '%'; }).join(' · ');
       var free = ch.free ? G2.freeIn(save, ch.id, now) : -1, p = G2.price(save, ch.id, now);
       var pity = ch.pity ? '<small class="pity">' + G2.rarDef(ch.pity.rar).name + ' 확정까지 <b>' + G2.pityLeft(save, ch.id) + '번</b></small>' : '';
@@ -785,6 +812,8 @@
 
   function onShopClick(e) {
     // v18 장구·상자·임무·패스
+    var bx = e.target.closest('[data-boxone],[data-boxall]');
+    if (bx) { if (bx.hasAttribute('data-boxall')) openAllBoxes(); else openBox(); return; }
     var gq = e.target.closest('[data-geq],[data-gup],[data-gmerge],[data-chest],[data-mstep],[data-pclaim],[data-pprem]');
     if (gq && G2) {
       var now = Date.now(), r;
@@ -923,7 +952,7 @@
     if (!M || !save.boxes.length) return;
     var w = V.world(), wasPlay = V.mode() === 'play'; if (wasPlay) V.pause(true);
     var tier = save.boxes[0], T0 = M.TIER[tier];
-    modal('<div class="box-open"><p class="kicker">보급 상자</p><h3 class="tier-' + tier + '">' + T0.name + '</h3><div class="box-art shake" id="box-art"><div class="box-glow" style="background:conic-gradient(from 0deg,transparent,' + T0.color + ',transparent 30%,' + T0.color + ',transparent 60%)"></div>' + BOX_SVG + '</div><div id="box-loot" class="box-loot"></div><button class="btn big" data-m="ok" id="box-ok" disabled>여는 중…</button></div>', function () { if (wasPlay) V.pause(false); if (save.boxes.length) setTimeout(function () { hud.nb = -1; }, 50); });
+    modal('<div class="box-open"><p class="kicker">보급 상자</p><h3 class="tier-' + tier + '">' + T0.name + '</h3><div class="box-art shake" id="box-art"><div class="box-glow" style="background:conic-gradient(from 0deg,transparent,' + T0.color + ',transparent 30%,' + T0.color + ',transparent 60%)"></div>' + BOX_SVG + '</div><div id="box-loot" class="box-loot"></div><button class="btn big" data-m="ok" id="box-ok" disabled>여는 중…</button></div>', function () { if (wasPlay) V.pause(false); if (save.boxes.length) setTimeout(function () { hud.nb = -1; }, 50); if (!$('shop').hidden) renderShop(); else if (!$('title').hidden) renderHub(); });
     if (X) X.drum();
     setTimeout(function () {
       var r = M.openBox(save); persistRaw();
@@ -938,6 +967,23 @@
       if (X) { if (tier === 'legend') X.fanfare(); else X.perfect(); }
       if (w) hud.bank = -1;
     }, 900);
+  }
+  // v20: 받아 둔 상자 한꺼번에 열기 → 한 장으로 정리
+  function openAllBoxes() {
+    if (!M || !save.boxes.length) return;
+    var n = 0, pie0 = 0, dia0 = 0, parts = 0, gear = [], items = [], best = 0;
+    while (save.boxes.length && n < 60) {
+      var r = M.openBox(save); n++; pie0 += r.pie; dia0 += r.dia; parts += r.parts || 0;
+      if (r.gear) { gear.push(r.gear); best = Math.max(best, G2.rarIdx(r.gear.rar)); }
+      if (r.item) items.push(r.item);
+    }
+    persistRaw(); renderShop();
+    gear.sort(function (a, b) { return G2.rarIdx(b.rar) - G2.rarIdx(a.rar); });
+    var cells = gear.map(function (g) { var R = G2.rarDef(g.rar), sl = G2.slotDef(g.slot); return '<div class="cr-it" style="--rc:' + R.color + '">' + gearIcon(sl.id) + '<b>' + R.name + '</b><small>' + sl.name + '</small></div>'; }).join('');
+    if (X) { if (best >= 3) X.fanfare(); else X.perfect(); }
+    modal('<div class="m-chest"><p class="kicker">보급 상자 ' + n + '개</p><h3>' + (best >= 4 ? '전설!!' : best >= 3 ? '영웅!' : '보급 도착') + '</h3><div class="cr-grid many">' + cells + '</div>' +
+      '<p>' + pie() + '+' + fmt(pie0) + (dia0 ? ' · ' + dia() + ' 상점 +' + dia0 : '') + ' · 정비 부품 +' + parts + (items.length ? '<br>분실물 ' + items.length + '개 (' + esc(items.slice(0, 3).map(function (it) { return it.name; }).join(', ')) + (items.length > 3 ? ' …' : '') + ')' : '') +
+      (G2.mergeable(save).length ? '<br><b>합성할 수 있는 장구가 생겼다</b>' : '') + '</p><button class="btn big" data-m="ok">좋다!</button></div>', function () { renderShop(); });
   }
   function crewHead(list) {
     // v15: 한 줄 (분대원 수 · 사기 막대) + 상점으로 부르는 지원은 접어 둔다
@@ -1312,6 +1358,8 @@
     $('h-pause').onclick = pause;
     $('h-scan').onclick = scan;
     $('h-box').onclick = openBox;
+    $('h-sup').onclick = function () { if (X) { X.unlock(); X.pop(); } tab = 'tool'; openShop(); };   // v20: 작전 중에도 보급 화면
+    $('report-btn').onclick = function () { var w = V.world(); if (A && w && A.reportNow(w)) { $('report-btn').hidden = true; if (X) X.pop(); } };
     $('h-cam').hidden = !V.toggleCam;
     if (V.toggleCam) camLabel();
     $('h-cam').onclick = function () { if (!V.toggleCam) return; V.toggleCam(); camLabel(); fpLayout(); hintText(); if (X) X.pop(); };

@@ -60,6 +60,14 @@
   function procLvl(save, id) { return save.proc[id] || 0; }
   // v10: 계급은 진급 심사를 통과해야 오른다 (save.rank). 근무평정(★)이 기준을 넘으면 다음 작전이 심사
   function rankOf(save) { return Math.max(0, Math.min(S.RANKS.length - 1, save.rank || 0)); }
+  // v20 호봉·군생활 %: 계급 안에서 ★가 얼마나 찼나 → 몇 호봉, 18개월 중 몇 달
+  function service(save) {
+    var r = rankOf(save), M = S.SERVICE.months, lo = S.RANKS[r].merit, hi = r < S.RANKS.length - 1 ? S.RANKS[r + 1].merit : S.DISCHARGE_MERIT;
+    var frac = Math.max(0, Math.min(1, ((save.merit || 0) - lo) / Math.max(1, hi - lo)));
+    var total = 0, before = 0; M.forEach(function (m, i) { total += m; if (i < r) before += m; });
+    var served = before + frac * M[r];
+    return { rank: r, hob: Math.min(M[r], 1 + Math.floor(frac * M[r])), maxHob: M[r], served: served, total: total, pct: Math.min(100, Math.floor(served / total * 100)), left: Math.max(0, Math.ceil(total - served - 1e-9)) };
+  }
   function nextRank(save) { return S.RANKS[rankOf(save) + 1] || null; }
   function examDue(save) { var n = nextRank(save); return !!n && (save.merit || 0) >= n.merit; }
   // 근무평정이 쌓이면 중대에서 구역을 더 맡긴다 (사는 게 아니다). 새로 맡은 구역은 다음 작전에서 소개
@@ -516,12 +524,16 @@
       goal: w.op.goal, bonus: ob ? { text: ob.text, done: ob.done, dia: ob.def.dia || 1, box: ob.def.box || null } : null, weather: w.weather };
     if (!w.demo) {
       pay(w, pie + early, 'op');
+      var sv0 = service(save);
       save.merit = (save.merit || 0) + g.stars;
       if (pass) { save.rank = r0 + 1; save.exam = false; promoted = true; dia += 2; stat(w, 'exams'); save.examFail = 0; }
       // 심사에서 떨어지면 다음 작전에 재심사. 두 번째부터는 행보관이 대대 지원을 붙여 준다 (영원히 막히지 않게)
       else if (exam) { save.examFail = (save.examFail || 0) + 1; res.examFail = save.examFail; if (save.examFail >= 2) { save.prep = save.prep || {}; save.prep.support = 1; res.help = true; } }
       if (dia) gainDia(w, dia, 'op');
       res.dia = dia;
+      // v20 호봉이 오르면 월급날 (진급한 날은 진급 보상이 따로 있다)
+      var sv1 = service(save); res.svc0 = sv0.pct; res.svc1 = sv1.pct; res.hob = sv1.hob;
+      if (!promoted && sv1.rank === sv0.rank && sv1.hob > sv0.hob) { var wage = Math.round(S.SERVICE.pay[sv1.rank] * (sv1.hob - sv0.hob) * w.mult); pay(w, wage, 'payday'); res.payday = { hob: sv1.hob, pie: wage }; }
       if (g.stars === 3) { save.boxes.push(pass ? 'rare' : 'common'); res.box = pass ? 'rare' : 'common'; stat(w, 'star3'); }
       else if (pass) { save.boxes.push('rare'); res.box = 'rare'; }
       stat(w, 'ops'); if (why === 'report') stat(w, 'opReport');
@@ -1212,7 +1224,7 @@
   }
 
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
-    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
+    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,

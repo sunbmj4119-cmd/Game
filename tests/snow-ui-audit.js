@@ -102,6 +102,12 @@ function scan() {
     await page.evaluate(function () { var w = __SNOW.view().world(); JY.SnowAct.init(w).off = []; w.fever = 6; w.surge = 10; w.combo = 45; w.comboT = 30; });
     await sleep(700); await check('play-fever');
     await page.evaluate(function () { var w = __SNOW.view().world(); w.fever = 0; w.surge = 0; });
+    // v20: 다 하면 왼쪽 아래 초록 보고 버튼 (지시서 카드·행동 버튼과 겹치면 안 된다) · 작전 중 보급 화면
+    await page.evaluate(function () { var w = __SNOW.view().world(); if (w.op) w.op.ready = true; });
+    await sleep(600); await check('play-report');
+    await page.evaluate(function () { var w = __SNOW.view().world(); if (w.op) w.op.ready = false; });
+    var supB = await page.$('#h-sup:not([hidden])');
+    if (supB) { await supB.click(); await sleep(400); await check('play-shop'); await page.click('#s-go'); await sleep(500); }
     // 1인칭 (시점 버튼)
     await page.evaluate(function () { __SNOW.view().toggleCam && __SNOW.view().toggleCam('fp'); });
     await sleep(700); await check('play-fp');
@@ -144,7 +150,7 @@ function scan() {
     await page.evaluate(function () {
       var s = __SNOW.save(), Q = JY.SnowGear, now = Date.now(); Q.init(s); s.parts = 98765;
       JY.SNOW.GEAR.slots.forEach(function (sl) { JY.SNOW.GEAR.rar.forEach(function (r) { var it = Q.addItem(s, sl.id, r.id); it.lv = r.maxLv; }); Q.addItem(s, sl.id, 'c'); Q.addItem(s, sl.id, 'c'); });
-      Q.passXp(s, now, 99999); s.pass.prem = true; Q.missions(s, now); s.stats.ops = 60; JY.SnowSim.newFeatures(s, true); __SNOW.title();
+      Q.passXp(s, now, 99999); s.pass.prem = true; Q.missions(s, now); s.stats.ops = 60; s.boxes = []; for (var bi = 0; bi < 40; bi++) s.boxes.push(['common', 'rare', 'legend'][bi % 3]); JY.SnowSim.newFeatures(s, true); __SNOW.title();
     });
     await sleep(500); await closeAll(); await check('extreme18-hub');
     for (var hb2 of ['gear', 'mission']) {
@@ -157,6 +163,7 @@ function scan() {
     await page.click('[data-hub="gear"]'); await sleep(300); await page.click('#s-tabs [data-tab="chest"]'); await sleep(300);
     var ten = await page.$('[data-chest="good"][data-how="ten"]:not([disabled])');
     if (ten) { await ten.click(); await sleep(1200); await check('v18-chest-ten'); await closeAll(); }
+    var ball = await page.$('[data-boxall]'); if (ball) { await ball.click(); await sleep(800); await check('v20-box-all'); await closeAll(); }
     await page.click('#s-go'); await sleep(400); await closeAll();
     await page.evaluate(function () { var s = __SNOW.save(); s.energy = { v: 2, t: Date.now() }; s.op = null; s.rank = Math.max(1, s.rank); __SNOW.title(); });
     await sleep(300); await closeAll(); await page.click('#t-start'); await sleep(500); await check('v18-energy-gate'); await closeAll();

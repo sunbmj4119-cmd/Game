@@ -378,7 +378,11 @@ var wr = v14(function (s) { s.zones.D = true; }); away(wr); wr.act.offPlan = [];
 var cart = wr.act.rides[0], atv = wr.act.rides[1], trac = wr.act.rides[2];
 wr.player.x = cart.x + 12; wr.player.y = cart.y;
 var rc = A.candidates(wr).filter(function (q) { return q.k === 'ride'; }).map(function (q) { return q.ref.id; });
-ok(rc.indexOf('cart') >= 0 && rc.indexOf('tractor') < 0, 'v14 일병: 리어카·사륜바이크는 탈 수 있고 트랙터는 상병부터', rc);
+ok(rc.indexOf('cart') >= 0 && rc.indexOf('tractor') < 0, 'v14 일병: 리어카는 탈 수 있고 트랙터는 아직', rc);
+wr.player.x = atv.x + 12; wr.player.y = atv.y; var rcA = A.candidates(wr).filter(function (q) { return q.k === 'ride'; }).map(function (q) { return q.ref.id; });
+ok(rcA.indexOf('atv') < 0 && A.startRide(wr, atv).ok === false, 'v20 일병은 사륜바이크를 못 몬다 (상병부터)', rcA);
+var say0 = wr.fx.length; run(wr, 0.1); ok(wr.fx.slice(say0).some(function (f) { return f.t === 'me' && /상병부터/.test(f.text || ''); }) || wr.act.lockSay > 0, 'v20 못 모는 탈것 옆에 서면 "상병부터" 한마디');
+wr.player.x = cart.x + 12; wr.player.y = cart.y;
 A.applyStats(wr); var cap0 = wr.player.cap, sp0 = wr.mod.speed;
 ok(A.act(wr, { k: 'ride', ref: cart }, wr.player.dir).ok && wr.act.ride === cart, 'v14 리어카 타기');
 A.applyStats(wr);
@@ -391,7 +395,7 @@ var foot = { x: 180, y: 284 }, big = { x: 180, y: 284 };
 G.moveEnt(foot, 12, 0, 6); G.moveEnt(big, 12, 0, 16);
 ok(foot.x > 190 && big.x < 185, 'v14 몸집: 구령대 옆 틈은 걸어서는 지나가고 트랙터는 못 지나간다', [foot.x, big.x]);
 // 사륜바이크: 빠르고 넓게, 기름 떨어지면 내린다, 정비고 앞에 세우면 가득
-wr.player.x = atv.x + 10; wr.player.y = atv.y; A.startRide(wr, atv); A.applyStats(wr);
+wr.save.rank = 2; wr.player.x = atv.x + 10; wr.player.y = atv.y; A.startRide(wr, atv); A.applyStats(wr);   // v20: 사륜바이크는 상병부터
 ok(wr.mod.speed > 1.5 && wr.player.r >= 24, 'v14 사륜바이크: 1.6배 빠르고 앞날 폭 24', [wr.mod.speed, wr.player.r]);
 atv.fuel = 0.2; run(wr, 0.5, { x: -1, y: 0 });
 ok(!wr.act.ride && atv.fuel === 0 && fxs(wr, 'ride').some(function (f) { return !f.on && !f.hand; }), 'v14 기름이 떨어지면 저절로 내린다');
@@ -399,7 +403,7 @@ ok(A.startRide(wr, atv).ok === false, 'v14 기름 없으면 못 탄다');
 var gd = A.door('garage'); atv.x = gd.x + 20; atv.y = gd.y + 10; run(wr, 0.1);
 ok(atv.fuel === atv.max, 'v14 정비고 앞에 세워 두면 기름이 찬다');
 // 고라니가 탈것에 부딪히면 튕겨 나간다 (나는 안 넘어진다)
-var wd = v14(function (s) { s.zones.D = true; }); away(wd); wd.act.offPlan = []; wd.act.off = []; wd.crew = [];
+var wd = v14(function (s) { s.zones.D = true; s.rank = 2; }); away(wd); wd.act.offPlan = []; wd.act.off = []; wd.crew = [];
 var a2 = wd.act.rides[1]; wd.player.x = a2.x; wd.player.y = a2.y; A.startRide(wd, a2); A.applyStats(wd);
 var dd = deerAt(wd, wd.player.x + 6, wd.player.y); dd.turnT = 9; run(wd, 0.2);
 ok(wd.player.stun <= 0, 'v14 탈것에 타면 고라니에 받혀도 안 넘어진다');
@@ -450,7 +454,7 @@ ok(!G.offers(wu.save).ride.some(function (o) { return o.id.indexOf('tractor') ==
 
 // ── v17 이번 주 작전 효과 ──
 function weekW(id, fn) { var ww = v14(fn); ww.week = S.WEEKS.filter(function (q) { return q.id === id; })[0]; away(ww); ww.act.offPlan = []; ww.act.off = []; ww.deer = []; return ww; }
-var wm = weekW('motor', function (s) { s.zones.D = true; }); var at2 = wm.act.rides[1]; wm.player.x = at2.x; wm.player.y = at2.y; A.startRide(wm, at2); A.applyStats(wm);
+var wm = weekW('motor', function (s) { s.zones.D = true; s.rank = 2; }); var at2 = wm.act.rides[1]; wm.player.x = at2.x; wm.player.y = at2.y; A.startRide(wm, at2); A.applyStats(wm);
 var f0 = at2.fuel; run(wm, 1, { x: 1, y: 0 }); ok(at2.fuel === f0 && wm.mod.speed > 1.6 * 1.15, 'v17 정비 주간: 기름이 안 줄고 탈것이 더 빠르다', [f0, at2.fuel, wm.mod.speed]);
 var wsp = weekW('sports'); var ZB3 = G.zoneById('B'), Bc = wsp.act.ball, paid2 = [];
 for (var g2 = 0; g2 < 7; g2++) { var b1 = wsp.save.bank; Bc.x = ZB3.x + ZB3.w / 2 + (g2 % 2 ? 20 : -20); Bc.y = ZB3.y + ZB3.h / 2; Bc.side = g2 % 2 ? 1 : -1; Bc.vx = g2 % 2 ? -200 : 200; Bc.vy = 0; Bc.goalT = 0; run(wsp, 0.4); paid2.push(Math.round(wsp.save.bank - b1)); }

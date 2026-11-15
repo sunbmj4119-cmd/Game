@@ -418,5 +418,17 @@ for (var sd9 = 1; sd9 < 60; sd9++) for (var rk9 = 0; rk9 < 4; rk9++) {
 }
 ok(supOff === 0 && supOn > 0, 'v19 공병대 제설차는 상병부터, 폭설 경보 날에만', [supOff, supOn]);
 ok(S.HIT === 0.2 && S.ENERGY.max / S.ENERGY.cost === 15, 'v19 손 0.2초 · 체력은 작전 15번 분량');
+// ── v20: 호봉·군생활 % ──
+function svOf(rank, merit) { var sv = G.newSave(); sv.rank = rank; sv.merit = merit; return G.service(sv); }
+ok(svOf(0, 0).pct === 0 && svOf(0, 0).hob === 1 && svOf(1, 6).pct === 11 && svOf(2, 24).pct === 44 && svOf(3, 60).pct === 77 && svOf(3, 150).pct === 100 && svOf(3, 150).left === 0, 'v20 군생활 %: 이병 0 · 일병 11 · 상병 44 · 병장 77 · 전역 100', [svOf(1, 6).pct, svOf(2, 24).pct, svOf(3, 60).pct]);
+ok(svOf(1, 9).hob === 2 && svOf(1, 23).hob === 6 && svOf(1, 40).hob === 6 && svOf(2, 24).hob === 1 && svOf(3, 149).hob === 4, 'v20 호봉: 일병 1~6 · 진급 심사를 못 붙으면 6호봉에서 멈춤 · 진급하면 1호봉');
+var sPay = G.newSave(); sPay.seed = 34; sPay.rank = 1; sPay.merit = 7; G.assignZones(sPay); var wPay = G.createWorld(sPay); wPay.events = [];
+wPay.op.tasks.forEach(function (t) { clearZone(wPay, S.ZONES[t.zi].id, 1); }); G.checkTasks(wPay);
+var bk0 = sPay.bank, rPay = G.endOp(wPay, 'report');
+ok(rPay.stars === 3 && rPay.payday && rPay.payday.hob === 2 && rPay.payday.pie > 0 && rPay.svc1 > rPay.svc0, 'v20 호봉이 오르면 월급날 (일병 2호봉)', rPay.payday);
+var sPr = G.newSave(); sPr.seed = 35; sPr.rank = 0; sPr.merit = 5; sPr.exam = true; G.assignZones(sPr); var wPr2 = G.createWorld(sPr); wPr2.events = [];
+wPr2.op.tasks.forEach(function (t) { clearZone(wPr2, S.ZONES[t.zi].id, 1); }); G.checkTasks(wPr2); var rPr = G.endOp(wPr2, 'report');
+ok(rPr.promoted && !rPr.payday && G.service(sPr).hob === 1, 'v20 진급한 날은 월급날 대신 진급 (새 계급 1호봉)', [rPr.promoted, rPr.payday]);
+
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

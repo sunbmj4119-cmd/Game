@@ -1,6 +1,6 @@
 /* 제설각 — 화면 흐름 (v11): 타이틀 → 생활관 로비 → 제설 비상 브리핑 → 작전(05:30~08:00) → 검열 결과(★) → 진급 → 로비
  * v11: 한 손가락 조작 · 빛나는 원 위에 서면 저절로 · 화면 위 '지금 할 일' 한 줄 · 등에 쌓이는 눈 블록 · 폭풍 제설·폭설 경보 같은 반전.
- * 보급·인원·PX·공중전화·체력단련은 로비에서만. 작전 중엔 눈과 사람에만 집중한다. */
+ * 보급·장구·PX는 로비에서만. 작전 중엔 눈과 사람에만 집중한다. */
 (function (JY) {
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
@@ -23,7 +23,7 @@
   // v13: 이미 하던 저장이면 지금 열린 기능·버튼은 본 것으로 (갑자기 '새로 생김'·N이 잔뜩 뜨지 않게)
   function seenOld(s) {
     if (s.seen && !s.seen.v13) {
-      if ((s.stats && s.stats.ops) >= 1) { G.newFeatures(s, true); ['shop', 'px', 'phone', 'pull', 'leave', 'look', 'medal', 'story'].forEach(function (k) { s.seen['hub:' + k] = 1; }); }
+      if ((s.stats && s.stats.ops) >= 1) { G.newFeatures(s, true); ['shop', 'px', 'look', 'medal', 'story'].forEach(function (k) { s.seen['hub:' + k] = 1; }); }
       s.seen.v13 = 1;
     }
     return s;
@@ -104,7 +104,7 @@
     setTimeout(function () { sp.hidden = true; }, 2600);
   }
 
-  /* ── 생활관 (저녁 개인정비 시간): 계급·근무평정·포상휴가·지난 작전 + 출동 / 보급 / PX / 공중전화 / 체력단련 ── */
+  /* ── 생활관 (저녁 개인정비 시간): 계급·근무평정·지난 작전 + 출동 / 보급 / 장구 / PX ── */
   function started() { return !!(save.stats.ops || save.snow || save.discharges || save.day > 1); }
   function midOp() { return !!(save.snow && save.dayT > 0 && save.op && save.op.day === save.day); }
   function title() {
@@ -155,9 +155,9 @@
     news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
-    var GATE = { shop: 'lobby', px: 'px', phone: 'phone', pull: 'pull', leave: 'leave', look: 'look', medal: 'box', story: 'lobby', gear: 'gear', mission: 'mission' };
-    // v15: 버튼 줄이기 — 교범은 설정 안으로, 훈장은 수첩 안으로, 전화·체력단련은 오늘 할 수 있을 때만, 휴가는 상점이 모였을 때만
-    var HIDE = { help: true, medal: true, phone: save.daily.call === save.day, pull: save.daily.pull === save.day, leave: save.dia < S.LEAVE.cost };
+    var GATE = { shop: 'lobby', px: 'px', look: 'look', medal: 'box', story: 'lobby', gear: 'gear', mission: 'mission' };
+    // v15: 교범은 설정 안으로, 훈장은 수첩 안으로 · v19: 공중전화·체력단련·포상휴가는 뺐다 (재미가 없었다)
+    var HIDE = { help: true, medal: true };
     document.querySelectorAll('.lb-side [data-hub]').forEach(function (b) {
       var k = b.getAttribute('data-hub'), f = GATE[k];
       if (HIDE[k]) { b.hidden = true; return; }
@@ -174,8 +174,6 @@
       $('hub-mission-n').hidden = !mn || !G.feat(save, 'mission'); $('hub-mission-n').textContent = mn;
       enPill();
     }
-    $('hub-phone-n').hidden = !on || save.daily.call === save.day;
-    $('hub-leave-n').hidden = save.dia < S.LEAVE.cost;
     $('hub-grid').hidden = !on;
   }
   // v18 생활관 위 체력 (일병부터)
@@ -195,9 +193,6 @@
     if (X) { X.unlock(); X.pop(); }
     if (k === 'shop') { tab = 'tool'; openShop(); }
     else if (k === 'px') openPX();
-    else if (k === 'phone') phoneCall();
-    else if (k === 'pull') pullUp();
-    else if (k === 'leave') { if (save.dia >= S.LEAVE.cost) goLeave(); else toast('포상휴가는 상점 ' + S.LEAVE.cost + '개 (지금 ' + save.dia + '개) · 작전 ★★★·칼경례로 모은다'); }
     else if (k === 'help') help();
     else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k; openShop(); }
     else if (k === 'settings') settings();
@@ -275,7 +270,7 @@
   // v18 출동 체력이 모자라면: 기다리거나 상점으로 채운다
   function energyGate(done) {
     var e = G2.energy(save, Date.now()), p = G2.refillPrice(save, Date.now());
-    modal('<div class="m-rank"><p class="kicker">출동 체력</p><h3>체력이 모자라다</h3><p class="m-big">' + BOLT + ' ' + e.v + ' / ' + e.max + '</p><p>작전 1번에 ' + e.cost + ' · 10분에 1씩 찬다<br>다음 1까지 <b>' + mmss(e.next) + '</b> · 아침 점호 때마다 가득</p>' +
+    modal('<div class="m-rank"><p class="kicker">출동 체력</p><h3>체력이 모자라다</h3><p class="m-big">' + BOLT + ' ' + e.v + ' / ' + e.max + '</p><p>작전 1번에 ' + e.cost + ' · ' + Math.round(S.ENERGY.regen / 60) + '분에 1씩 찬다<br>다음 1까지 <b>' + mmss(e.next) + '</b> · 아침 점호 때마다 가득</p>' +
       '<div class="res-btns"><button class="btn ghost" data-m="wait">기다린다</button><button class="btn big" data-m="refill"' + (save.dia < p ? ' disabled' : '') + '>' + dia() + ' ' + p + '로 가득</button></div></div>', function (k) {
       if (k !== 'refill') return;
       if (G2.refill(save, Date.now())) { persistRaw(); if (X) X.dia(); toast('체력 가득! (상점 -' + p + ')'); renderHub(); if (done) done(); }
@@ -543,29 +538,6 @@
     var ch = M && M.storyNext(save, null);
     if (ch) { playStory(ch, false, function () { renderHub(); afterHub(); }); return; }
     if (G.canDischarge(save) && !save.seen.dis) { save.seen.dis = true; persistRaw(); modal('<div class="m-rank"><p class="kicker">전역 신고 가능</p><h3>이제 전역할 수 있다</h3><p>생활관의 <b>전역 신고</b>를 누르면 처음(이병)부터 다시 시작하지만, 전역 메달로 초코파이 보상이 영원히 늘어난다. 꾸미기·훈장·상점은 남는다.</p><button class="btn big" data-m="ok">알겠다</button></div>'); }
-  }
-
-  /* ── 포상휴가: 상점 10개 → 집에 다녀온다 (가족 장면 + 용돈 + 보급 상자 + 다음 작전 분대 사기 100) ── */
-  function goLeave() {
-    if (save.dia < S.LEAVE.cost) return;
-    modal('<div class="m-rank"><p class="kicker">포상휴가</p><h3>휴가 나갈래?</h3><p>상점 <b>' + S.LEAVE.cost + '개</b>를 포상휴가 1일로 바꾼다. 집에 다녀오면 용돈(초코파이)과 보급 상자, 분대원 사기 100.</p><div class="res-btns"><button class="btn ghost" data-m="no">아직</button><button class="btn big" data-m="yes">충성! 휴가 다녀오겠습니다</button></div></div>', function (k) {
-      if (k !== 'yes') return;
-      save.dia -= S.LEAVE.cost; save.leave = (save.leave || 0) + 1; save.stats.leave = (save.stats.leave || 0) + 1;
-      var r = G.rankOf(save), money = Math.round((200 + 60 * Math.min(save.day, 25)) * (1 + r) * G.incomeMult(save));
-      save.bank += money; save.life += money; save.boxes.push('rare'); save.prep = save.prep || {}; save.prep.morale = 1;
-      persistRaw();
-      playStory({ id: 'leave', title: '포상휴가', lines: [
-        ['narr', '위병소를 나서는 순간, 공기가 다르다.'],
-        ['mom', '아이고 우리 아들! 얼굴이 왜 이렇게 탔어? 눈 치우느라 고생했지?'],
-        ['me', '(엄마 밥… 엄마 밥이다…)'],
-        ['mom', '이거 용돈. 후임들 맛있는 거 사 줘라.'],
-        ['narr', '…휴가는 눈 깜짝할 사이에 끝났다. 복귀하니 눈이 또 와 있다.'],
-        ['malnyeon', '왔냐? 너 없는 동안 우리가 다 치웠다. 사 온 거 내놔.']] }, true, function () {
-        toast('용돈 ' + fmt(money) + ' · 희귀 보급 상자 · 분대 사기 100');
-        if (M) M.check({ save: save, fx: [], demo: false, today: { dia: 0 }, player: { load: 0 } });
-        persistRaw(); renderHub();
-      });
-    });
   }
 
   /* ── 보급·인력·공장 ── */
@@ -1173,58 +1145,6 @@
     render();
   }
 
-  /* ── 생활관 저녁: 공중전화 (하루 한 번) · 체력단련 ── */
-  function phoneCall() {
-    if (save.daily.call === save.day) { toast('오늘은 벌써 통화했다. 줄이 길다…'); return; }
-    save.daily.call = save.day; save.stats.call = (save.stats.call || 0) + 1;
-    var call = S.CALLS[(Math.random() * S.CALLS.length) | 0], rw = call.reward || {}, r = G.rankOf(save);
-    if (rw.pie) { var p = Math.round(rw.pie * (1 + r) * G.incomeMult(save)); save.bank += p; save.life += p; }
-    if (rw.mor) save.mor = Math.min(100, (save.mor || 80) + rw.mor);
-    if (rw.buff) { save.prep = save.prep || {}; save.prep.hotpack = 1; }
-    persistRaw();
-    var C = JY.CHARS && JY.CHARS[call.who], lines = [['narr', '따르릉… 따르릉…']];
-    call.lines.forEach(function (l) { lines.push([call.who, l]); });
-    lines.push(['me', rw.pie || rw.buff ? '(…힘이 난다. 충성!)' : '(…그래도 목소리 들으니 좋다)']);
-    if (rw.buff) lines.push(['narr', '여자친구가 핫팩을 보냈다. (내일 작전: 핫팩)']);
-    playStory({ id: 'call', title: '공중전화 · ' + (C ? C.name : ''), lines: lines }, true, renderHub);
-    if (X) X.ding();
-  }
-  var PULL_SVG = function (up) { return '<svg viewBox="0 0 120 120"><rect x="8" y="16" width="6" height="100" fill="#6b4a32"/><rect x="106" y="16" width="6" height="100" fill="#6b4a32"/><rect x="8" y="16" width="104" height="5" rx="2" fill="#9aa0a5"/>' +
-    '<g transform="translate(0 ' + (up ? 0 : 26) + ')"><path d="M42 19 L50 44 M78 19 L70 44" stroke="#5b6a3a" stroke-width="9" stroke-linecap="round"/><circle cx="42" cy="19" r="5" fill="#2b3020"/><circle cx="78" cy="19" r="5" fill="#2b3020"/>' +
-    '<circle cx="60" cy="' + (up ? 30 : 34) + '" r="13" fill="#f6c79c" stroke="#23281e" stroke-width="2.5"/><path d="M54 ' + (up ? 33 : 38) + ' q6 ' + (up ? 4 : -3) + ' 12 0" stroke="#23281e" stroke-width="2" fill="none"/><circle cx="55" cy="' + (up ? 28 : 32) + '" r="1.8"/><circle cx="65" cy="' + (up ? 28 : 32) + '" r="1.8"/>' +
-    '<rect x="46" y="44" width="28" height="34" rx="8" fill="#5b6a3a" stroke="#23281e" stroke-width="2.5"/><path d="M52 78 v22 M68 78 v22" stroke="#3d4628" stroke-width="8" stroke-linecap="round"/></g></svg>'; };
-  function pullUp() {
-    var taps = 0, T0 = 0, LEN = 5000, done = false, up = false;
-    modal('<div class="pull"><p class="kicker">저녁 체력단련 · 5초 동안 연타!</p><div class="pull-art" id="pull-art">' + PULL_SVG(false) + '</div><div class="pull-n" id="pull-n">0</div><div class="pull-t"><i id="pull-t"></i></div><button class="btn big pull-go" id="pull-go">올려!</button><p style="margin:0;color:var(--mute);font-size:13px">최고 ' + (save.stats.pullBest || 0) + '개 · 3개↑ 내일 적재 +25% · 15개↑ 상점</p></div>', function () { renderHub(); });
-    var go = $('pull-go');
-    function tick() {
-      if (done) return;
-      var left = Math.max(0, LEN - (Date.now() - T0));
-      $('pull-t').style.width = (left / LEN * 100) + '%';
-      if (left <= 0) return finish();
-      requestAnimationFrame(tick);
-    }
-    function finish() {
-      done = true;
-      var n = Math.floor(taps / 2), r = A.pullDone(save, n);
-      $('pull-n').textContent = n + '개!';
-      go.textContent = r.dia ? '특급 전사! 상점 +1' : r.best ? '최고 기록!' : '수고했다';
-      go.setAttribute('data-m', 'ok'); go.disabled = true; setTimeout(function () { go.disabled = false; }, 600);
-      if (X) { if (r.best || r.dia) X.fanfare(); else X.pop(); }
-      persistRaw();
-    }
-    go.addEventListener('pointerdown', function (e) {
-      if (done) return;
-      e.preventDefault();
-      if (!T0) { T0 = Date.now(); requestAnimationFrame(tick); }
-      taps++; up = !up;
-      $('pull-art').innerHTML = PULL_SVG(up);
-      $('pull-n').textContent = Math.floor(taps / 2);
-      if (X && taps % 2 === 0) X.combo(taps * 3);
-      vibrate(8);
-    });
-  }
-
   /* ── v8: 스토리 장면 · 꾸미기 · 수첩 · 처음부터 ── */
   var talking = false;
   function portrait(who) {
@@ -1450,7 +1370,7 @@
     save: function () { return save; },
     setSave: function (s) { save = seenOld(G.migrate(s)); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
     play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, help: help, settings: settings, renderHub: renderHub, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
-    openPX: openPX, phone: phoneCall, pullUp: pullUp, leave: goLeave, results: results,
+    openPX: openPX, results: results, talk: function (ch) { playStory(ch || S.STORY[1], true, renderHub); },
     autopilot: function (b) { V.setAutopilot(b); },
     act: function (alt) { doAct(alt === true); }, openBox: function () { openBox(); }, target: function () { var w = V.world(); if (w) updAct(w, true); return curT; }
   };

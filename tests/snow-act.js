@@ -220,10 +220,9 @@ ok(A.prepBuy(sp, 'hotpack').ok && sp.prep.hotpack && !A.prepBuy(sp, 'hotpack').o
 ok(A.prepBuy(sp, 'ramen').ok, '컵라면 한 박스');
 sp.dia = 0; ok(!A.useDia(sp, 'support').ok, '상점이 없으면 대대 지원 요청 못 한다');
 sp.dia = 3; ok(A.useDia(sp, 'support').ok && sp.dia === 1 && sp.prep.support && !A.useDia(sp, 'support').ok, '상점 2: 다음 작전 대대 지원 (한 번만)');
-var pd = A.pullDone(sp, 17); ok(pd.n === 17 && pd.best && pd.dia === 1 && sp.prep.power === 17 && sp.stats.pullBest === 17, '턱걸이 17개: 최고 기록 + 상점 + 내일 적재 버프');
 sp.mor = 10; var wPr = G.createWorld(sp); wPr.events = []; G.step(wPr, 1 / 30, null);
 var bIds = A.state(wPr).buffs.map(function (b) { return b.id; });
-ok(bIds.indexOf('hotpack') >= 0 && bIds.indexOf('support') >= 0 && bIds.indexOf('power') >= 0 && wPr.crew[0].mor >= 99 && wPr.mod.stun === 0.5 && wPr.player.cap > G.capOf(sp) && !Object.keys(sp.prep).length, '작전 시작: 핫팩·대대 지원·체력단련·컵라면(사기 100) 적용, 준비물은 다 썼다', bIds);
+ok(bIds.indexOf('hotpack') >= 0 && bIds.indexOf('support') >= 0 && wPr.crew[0].mor >= 99 && wPr.mod.stun === 0.5 && !Object.keys(sp.prep).length, '작전 시작: 핫팩·대대 지원·컵라면(사기 100) 적용, 준비물은 다 썼다', bIds);
 ok(wPr.fx.some(function (f) { return f.t === 'prep'; }), '준비물 알림');
 var wPr2 = G.createWorld(sp); G.step(wPr2, 1 / 30, null); ok(!A.state(wPr2).buffs.some(function (b) { return b.id === 'hotpack'; }), '준비물은 한 번만');
 

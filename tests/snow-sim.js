@@ -7,11 +7,13 @@
 global.window = {};
 ['data', 'sim', 'act', 'meta', 'gear'].forEach(function (f) { require('../js/snow/' + f + '.js'); });
 var JY = window.JY, S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct;
+// 밸런스 실험: TUNE='{"WEATHER.normal.depth":[2,5],"TOOLS.0.r":9}' 처럼 값을 바꿔 돌린다 (게임 코드는 안 바뀜)
+if (process.env.TUNE) { var TU = JSON.parse(process.env.TUNE); Object.keys(TU).forEach(function (k) { var ks = k.split('.'), o = S; for (var i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = TU[k]; }); }
 
 var OPS = +process.argv[2] || 40, SEED = +process.argv[3] || 7, EFF = process.argv[4] ? +process.argv[4] : 0.8, VERBOSE = process.argv.indexOf('-v') > 0;
 // v16 밸런스 점검: STRAT=default|tool|crew|perk|cheap|none (보급 사는 순서), RIDE=1 (리어카 타고 일하기), --json (요약 한 줄)
 var STRAT = process.env.STRAT || 'default', RIDE = process.env.RIDE === '1', JSONOUT = process.argv.indexOf('--json') > 0, SPECI = process.env.SPEC === 'b' ? 1 : 0;   // SPEC=a|b 진급 특기 (앞/뒤)
-var paySum = {}, diaSum = {}, examFail = 0, scores = [];
+var opT = [], opStar = [], paySum = {}, diaSum = {}, examFail = 0, scores = [];
 var rnd = G.mulberry(SEED * 31 + 5);
 Math.random = rnd;   // 같은 시드면 같은 결과
 var save = G.newSave(); save.seed = SEED;
@@ -85,7 +87,7 @@ function runOp() {
     if (w.recruits.length) G.autoPost(w);
     w.fx.length = 0; w.dirty.length = 0;
   }
-  total += t;
+  total += t; opT.push(+t.toFixed(1)); opStar.push(w.opEnd ? w.opEnd.stars : 0);
   Object.keys(w.paySrc || {}).forEach(function (k) { paySum[k] = (paySum[k] || 0) + w.paySrc[k]; });
   Object.keys(w.diaSrc || {}).forEach(function (k) { diaSum[k] = (diaSum[k] || 0) + w.diaSrc[k]; });
   return { res: w.opEnd, t: t, w: w };
@@ -137,6 +139,7 @@ for (var n = 1; n <= OPS; n++) {
     ' ' + '★★★'.slice(0, res.stars).padEnd(3, '☆') + ' ' + String(Math.round(res.score * 100)).padStart(3) + '% ' + G.clockText(G.clockOf(r.t)) + (res.why === 'report' ? ' 보고' : ' 시간') +
     '  구역 ' + res.lines.length + ' 완료 ' + res.lines.filter(function (l) { return l.done; }).length + (res.jigeok ? ' 지적' + res.jigeok : '') + (res.stuck ? ' 차빠짐' : '') + (res.icy ? ' 빙판' + res.icy : '') +
     '  ★' + save.merit + '  ' + S.TOOLS[save.tool].name + ' 분대' + G.crewCount(save) + '  초코 ' + Math.round(save.bank) + ' 상점 ' + save.dia + '  누적 ' + (total / 60).toFixed(1) + '분';
+  if (process.env.SHOWSRC && r.w.paySrc) { var ps = r.w.paySrc, pt = Object.keys(ps).reduce(function (a, k) { return a + ps[k]; }, 0) || 1; line += '  [' + Object.keys(ps).sort(function (a, b) { return ps[b] - ps[a]; }).map(function (k) { return k + ' ' + Math.round(ps[k] / pt * 100) + '%'; }).join(' ') + ']'; }
   log.push(line); if (VERBOSE) console.log(line);
   shop();
   if (G.canDischarge(save) && n > 3) { if (!VERBOSE) console.log(line); console.log('\n전역 가능 — 작전 ' + n + '번째'); break; }
@@ -146,7 +149,7 @@ if (JSONOUT) {
   console.log('SUMMARY ' + JSON.stringify({ strat: STRAT, spec: SPECI ? 'b' : 'a', ride: RIDE, eff: EFF, seed: SEED, ops: n > OPS ? OPS : n, min: +(total / 60).toFixed(1), stars: stars, examFail: examFail,
     score: +(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length).toFixed(3), bank: Math.round(save.bank), life: Math.round(save.life), dia: save.dia, diaLife: save.diaLife,
     tool: save.tool, crew: G.crewCount(save), perks: Object.keys(save.perks).reduce(function (a, k) { return a + save.perks[k]; }, 0), rank: G.rankOf(save), firsts: f,
-    pay: Object.keys(paySum).reduce(function (o, k) { o[k] = Math.round(paySum[k]); return o; }, {}), diaSrc: diaSum }));
+    pay: Object.keys(paySum).reduce(function (o, k) { o[k] = Math.round(paySum[k]); return o; }, {}), diaSrc: diaSum, opT: opT, opStar: opStar }));
   process.exit(0);
 }
 if (!VERBOSE) log.slice(-6).forEach(function (l) { console.log(l); });

@@ -558,14 +558,6 @@ body.fp #hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 266px); 
 .quest.pop { animation: qpop .5s ease-out; }
 @keyframes qpop { 30% { transform: scale(1.06); box-shadow: 0 0 0 4px #ffd24a, 0 4px 16px rgba(255,210,74,.6); } }
 @media (max-height: 700px) { .quest small { display: none; } }
-.pull { display: grid; gap: 8px; justify-items: center; text-align: center; }
-.pull-art { width: 150px; height: 150px; }
-.pull-art svg { width: 100%; height: 100%; }
-.pull-n { font-family: var(--f-title); font-size: 52px; line-height: 1; color: var(--olive-d); }
-.pull-t { width: 100%; height: 10px; border-radius: 5px; background: #e6e0d0; overflow: hidden; }
-.pull-t i { display: block; height: 100%; background: linear-gradient(90deg, #ff6a55, #ffd24a); width: 100%; }
-.pull-go { width: 100%; padding: 22px 10px !important; font-size: 26px !important; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
-.pull-go:active { transform: scale(.97); }
 /* 큰 배너가 떠 있는 동안엔 작은 알림·안내는 잠깐 숨긴다 (쌓여서 화면 가운데까지 내려오지 않게) */
 #stack > #banner:not([hidden]) ~ #chip, #stack > #banner:not([hidden]) ~ #hint { display: none; }
 #stack { top: calc(env(safe-area-inset-top, 0px) + 164px); }

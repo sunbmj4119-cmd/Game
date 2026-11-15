@@ -79,13 +79,13 @@
   // v10: 장비는 행보관이 '보급'해 준다. rank = 그 계급부터 받을 수 있다 (짬이 차야 좋은 장비를 맡긴다)
   var TOOLS = [
     { id: 'broom', name: '싸리비', r: 11, p: 1, cost: 0, cap: 60, rank: 0, desc: '훈련소에서 받은 그 빗자루. 한 번에 한 뼘.' },
-    { id: 'pusher', name: '넉가래', r: 15, p: 1, cost: 150, cap: 110, rank: 0, desc: '군대 제설의 상징. 밀면 밀린다.' },
-    { id: 'pusher2', name: '대형 넉가래', r: 20, p: 1, cost: 800, cap: 200, rank: 0, desc: '창고 구석에 있던 알루미늄 왕넉가래.' },
-    { id: 'twin', name: '2인용 넉가래', r: 25, p: 2, cost: 6000, cap: 380, rank: 1, desc: '손잡이가 두 개. 후임이랑 같이 밀면 반은 내 힘.' },
-    { id: 'cart', name: '보행식 제설기', r: 32, p: 2, cost: 70000, cap: 700, rank: 2, desc: '부르릉. 밀고 가면 눈을 퍼 올린다. 장비 교육 이수자만.' },
-    { id: 'salt', name: '염화칼슘 살포기', r: 40, p: 2, cost: 300000, cap: 1200, rank: 2, aura: true, desc: '밀고 다니면 주변이 녹는다. 빙판도 안 생긴다. 군화는 녹슨다.' },
-    { id: 'tractor', name: '트랙터 제설기', r: 52, p: 3, cost: 1200000, cap: 3000, rank: 3, vehicle: true, desc: '부대 트랙터에 삽날을 달았다. 병장쯤 돼야 키를 준다.' },
-    { id: 'truck', name: '군용 제설차', r: 70, p: 3, cost: 3500000, cap: 8000, rank: 3, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차. 수송부에서 지원 나왔다.' }
+    { id: 'pusher', name: '넉가래', r: 14, p: 1, cost: 150, cap: 110, rank: 0, desc: '군대 제설의 상징. 밀면 밀린다.' },
+    { id: 'pusher2', name: '대형 넉가래', r: 17, p: 1, cost: 800, cap: 200, rank: 0, desc: '창고 구석에 있던 알루미늄 왕넉가래.' },
+    { id: 'twin', name: '2인용 넉가래', r: 20, p: 2, cost: 6000, cap: 380, rank: 1, desc: '손잡이가 두 개. 후임이랑 같이 밀면 반은 내 힘.' },
+    { id: 'cart', name: '보행식 제설기', r: 24, p: 2, cost: 70000, cap: 700, rank: 2, desc: '부르릉. 밀고 가면 눈을 퍼 올린다. 장비 교육 이수자만.' },
+    { id: 'salt', name: '염화칼슘 살포기', r: 28, p: 2, cost: 300000, cap: 1200, rank: 2, aura: true, desc: '밀고 다니면 주변이 녹는다. 빙판도 안 생긴다. 군화는 녹슨다.' },
+    { id: 'tractor', name: '트랙터 제설기', r: 36, p: 3, cost: 1200000, cap: 3000, rank: 3, vehicle: true, desc: '부대 트랙터에 삽날을 달았다. 병장쯤 돼야 키를 준다.' },
+    { id: 'truck', name: '군용 제설차', r: 46, p: 3, cost: 3500000, cap: 8000, rank: 3, vehicle: true, desc: '사단에 딱 한 대 있다는 그 차. 수송부에서 지원 나왔다.' }
   ];
 
   // 인력. rank = 채용 가능한 계급(0 이병 ~ 3 병장), face = 전역각 등장인물 얼굴
@@ -220,8 +220,8 @@
     { id: 'good', name: '고급 보급 상자', dia: 30, odds: { u: 64, r: 31, e: 4.5, l: 0.5 }, pity: { n: 10, rar: 'e' }, parts: [4, 8], ten: 270 },
     { id: 'elite', name: '특급 보급 상자', dia: [90, 85, 80], odds: { r: 70, e: 27, l: 3 }, pity: { n: 15, rar: 'l' }, parts: [10, 18] }
   ];
-  // 출동 체력: 작전 1번 5, 10분에 1씩 찬다, 최대 25 (작전 5번). 이병(신병 기간)은 안 든다. 아침 점호 때 가득
-  var ENERGY = { max: 25, cost: 5, regen: 600, fromRank: 1, refill: [20, 30, 50] };
+  // 출동 체력: 작전 1번 5, 4분에 1씩 찬다, 최대 75 (작전 15번 ≈ 40분~1시간). 이병(신병 기간)은 안 든다. 아침 점호 때 가득
+  var ENERGY = { max: 75, cost: 5, regen: 240, fromRank: 1, refill: [20, 30, 50] };   // v19: 작전 15번(40분~1시간) 하고 나서 기다린다 · 4분에 1 · 5시간이면 가득
   // 일일 임무: 날마다 5개 (열린 기능 중에서). 하나에 20점 → 40·70·100점 보상
   var MISSIONS = [
     { id: 'ops', text: '작전 2번', stat: 'ops', goal: 2 },
@@ -238,7 +238,7 @@
   ];
   var MISSION_DAY = { n: 5, pts: 20, steps: [{ at: 40, parts: 6 }, { at: 70, box: 'common', pie: 1 }, { at: 100, dia: 10, parts: 10 }] };
   // 복무 패스: 28일 시즌, 30단계 (100점마다 한 단계). 무료 줄과 프리미엄 줄(상점 150으로 연다)
-  var PASS = { tiers: 30, xp: 100, season: 28, premium: 150, opStar: 5, mission: 10, roll: 20 };
+  var PASS = { tiers: 30, xp: 100, season: 28, premium: 150, opStar: 4, mission: 10, roll: 20 };
 
   // v16 진급 특기: 진급할 때 둘 중 하나 (전역하면 다시 고른다). 밸런스 점검에서 '무엇을 사든 결과가 같다'가 나와서 넣은 갈림길
   var SPECS = [
@@ -253,15 +253,12 @@
     { id: 'officer', when: { zone: 'B' }, name: '간부 순찰', line: '간부가 오면 큰 경례 버튼 (늦으면 지적)' },
     { id: 'combo', when: { zone: 'B' }, name: '콤보 · 폭풍 제설', line: '쉬지 않고 쓸면 콤보 → 40이면 폭풍 제설' },
     { id: 'crew', when: { zone: 'B' }, name: '분대원', line: '생활관 보급에서 후임 전입 요청' },
-    { id: 'phone', when: { zone: 'B' } },
     { id: 'box', when: { zone: 'B' } },
     { id: 'scan', when: { zone: 'B' }, name: '남은 눈 보기', line: '돋보기 버튼: 남은 눈이 반짝인다' },
     { id: 'ice', when: { rank: 1 }, name: '빙판', line: '그늘은 치우면 언다 → 제설함 지나가며 염화칼슘' },
     { id: 'bonus', when: { rank: 1 }, name: '오늘의 특명', line: '작전마다 하나, 성공하면 상점' },
     { id: 'roof', when: { rank: 1 } },
     { id: 'px', when: { rank: 1 } },
-    { id: 'pull', when: { rank: 1 } },
-    { id: 'leave', when: { rank: 1 } },
     { id: 'perk', when: { rank: 1 } },
     { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
     { id: 'cam', when: { zone: 'C' } },
@@ -270,7 +267,7 @@
     { id: 'week', when: { ops: 7 }, name: '이번 주 작전', line: '7일마다 주제가 바뀐다 (폭설 주간·고라니 대이동…)' },
     { id: 'gear', when: { ops: 1 }, name: '장구류 · 보급 상자', line: '장갑·전투화·넉가래 날… 같은 것 3개면 한 등급 위. 전역해도 남는다' },
     { id: 'mission', when: { ops: 2 }, name: '일일 임무 · 복무 패스', line: '날마다 임무 5개, 작전·임무로 패스가 오른다' },
-    { id: 'energy', when: { rank: 1 }, name: '출동 체력', line: '작전 1번에 5 · 10분에 1씩 찬다 (최대 25)' },
+    { id: 'energy', when: { rank: 1 }, name: '출동 체력', line: '작전 1번에 5 · 4분에 1씩 찬다 (최대 75, 작전 15번)' },
     // v14 재미·탈것
     { id: 'snowball', when: { zone: 'B' }, name: '눈덩이', line: '근처에 누가 있으면 눈덩이 버튼 · 고라니는 두 방이면 벌러덩' },
     { id: 'kick', when: { zone: 'B' } },
@@ -291,8 +288,6 @@
     { id: 'pet', text: '짬타이거 쓰다듬기', how: '취사장 앞 고양이에게 다가가서', stat: 'pet', goal: 1, dia: 1, needZone: 'D' },
     { id: 'fever', text: '폭풍 제설 2번', how: '콤보 40·120에서 터진다', stat: 'fever', goal: 2, dia: 2 }
   ];
-  // 작전 끝 상점(merit 외 보상)과 포상휴가
-  var LEAVE = { cost: 10 };   // 상점 10개 = 포상휴가 1일
   // PX: 저녁에 사 두면 다음 작전 시작부터 효과 (sec = 작전 시작 후 몇 초)
   var PREP = [
     { id: 'hotpack', name: '핫팩', base: 40, sec: 240, desc: '주머니에 넣고 출동. 작전 내내 덜 넘어진다' },
@@ -303,11 +298,14 @@
   ];
 
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
+  // v19 눈 양: 계급이 오를수록 더 깊이 쌓인다 (작전이 1~2분에 끝나서). 눈 한 덩이 값은 그만큼 낮춰 수입은 비슷하게
+  // vis: 깊이 → 그림 단계(2D 덩어리 1~4)
+  var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
   var WEATHER = {
-    light: { name: '잔설', depth: [1, 2], fall: 0.45, dump: 0, night: 0.2, night2: 0, flakes: 25 },
-    normal: { name: '눈', depth: [1, 3], fall: 1, dump: 0, night: 0.35, night2: 0.04, flakes: 70 },
-    heavy: { name: '함박눈', depth: [2, 4], fall: 1.7, dump: 0.2, night: 0.5, night2: 0.15, flakes: 150 },
-    blizzard: { name: '폭설 경보', depth: [3, 4], fall: 2.4, dump: 0.35, night: 0.65, night2: 0.3, flakes: 260 }
+    light: { name: '잔설', depth: [1, 3], fall: 0.45, dump: 0, night: 0.2, night2: 0, flakes: 25 },
+    normal: { name: '눈', depth: [2, 4], fall: 1, dump: 0, night: 0.35, night2: 0.04, flakes: 70 },
+    heavy: { name: '함박눈', depth: [3, 6], fall: 1.7, dump: 0.2, night: 0.5, night2: 0.15, flakes: 150 },
+    blizzard: { name: '폭설 경보', depth: [5, 7], fall: 2.4, dump: 0.35, night: 0.65, night2: 0.3, flakes: 260 }
   };
 
   // 방해꾼과 사건 (v10: 현실에 있을 법한 것만)
@@ -316,7 +314,7 @@
   var HAZ = {
     deer: { from: 3, max: 2, speed: 96, life: [9, 13], hitR: 11, injure: 3, stun: 1.0, kick: 0.2 },
     snowball: { from: 2, p: [0.6, 0.3, 0, 0], stun: 0.5 },
-    car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 2, push: 0.25, crewPush: 0.18 },
+    car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 3, push: 0.25, crewPush: 0.18 },
     roof: { every: 95, warn: 1.6, stun: 1.2, injure: 3 },   // v14: 55→95 (작전당 약 4번 → 2번, 방해는 줄이고)
     heli: { zone: 'H', p: 0, r: 60, life: 7 },
     slip: { p: 0.5, cool: 5, stun: 0.7 },
@@ -423,8 +421,7 @@
     { id: 'shoo10', name: '고라니 몰이꾼', desc: '고라니 10마리 쫓아내기', stat: 'shoo', goal: 10, dia: 3 },
     { id: 'pet10', name: '짬타이거 집사', desc: '짬타이거 10번 쓰다듬기', stat: 'pet', goal: 10, dia: 2 },
     { id: 'crew16', name: '분대 완편', desc: '분대원 정원 10명 꽉 채우기', stat: 'crew', goal: 10, dia: 4 },
-    { id: 'escort5', name: '신병 인솔', desc: '신병 5명 인솔해서 배치', stat: 'assign', goal: 5, dia: 2 },
-    { id: 'leave1', name: '포상휴가', desc: '상점 모아서 포상휴가 다녀오기', stat: 'leave', goal: 1, dia: 2 }
+    { id: 'escort5', name: '신병 인솔', desc: '신병 5명 인솔해서 배치', stat: 'assign', goal: 5, dia: 2 }
   ];
 
   // 상점 쓰는 곳 (v10: 다이아 → 상점. 잘하면 받는 점수. 모아서 포상휴가로 바꾸거나 특별 보급에 쓴다)
@@ -449,8 +446,8 @@
       ['haeng', '모아 오면 내가 넉가래 내준다. 나중엔 사람도 붙여 주고. 그게 군대 보급이다.']], reward: { dia: 1 } },
     { id: 'firstOp', when: 'op1', title: '첫 작전 끝', lines: [
       ['haeng', '첫 작전 치고는 나쁘지 않군.'],
-      ['haeng', '★이 쌓이면 진급 심사를 본다. 상점이 쌓이면 포상휴가고.'],
-      ['me', '(휴가…! 휴가라고 했다!)'],
+      ['haeng', '★이 쌓이면 진급 심사를 본다. 상점이 쌓이면 보급 상자 깐다.'],
+      ['me', '(보급 상자…! 좋은 장구 나와라!)'],
       ['malnyeon', '막내야, 짬이 차면 편해진다. 그때까지 버텨라.']], reward: { dia: 1 } },
     { id: 'exam1', when: 'exam', title: '진급 심사', lines: [
       ['haeng', '{name}. 오늘 작전은 진급 심사다.'],
@@ -545,14 +542,6 @@
     { id: 'saltbox', name: '제설함', x: 174, y: 298, ux: 174, uy: 308, use: true },
     { id: 'saltbox', name: '제설함', x: 488, y: 642, ux: 478, uy: 650, use: true }
   ];
-  // 공중전화: 누가 받느냐 (who는 전역각 얼굴)
-  var CALLS = [
-    { who: 'mom', lines: ['아이고 우리 아들! 밥은 잘 먹고 다니니?', '눈 치운다고? 장갑 꼭 끼고! 엄마가 택배 보냈다.'], reward: { pie: 60, mor: 30 } },
-    { who: 'gf', lines: ['오빠! 보고 싶었어…', '휴가 언제 나와? 나 기다리고 있을게. 화이팅!'], reward: { buff: 'love', sec: 90 } },
-    { who: 'malnyeon', lines: ['(통화 연결음)', '…여보세요? 나 전역한 김말년인데. 거기 아직도 눈 와? 크크크크'], reward: { pie: 20 } },
-    { who: 'mom', lines: ['할머니가 너 주라고 용돈 보내셨다.', '초코파이 사 먹어라, 응?'], reward: { pie: 120 } },
-    { who: 'gf', lines: ['…', '(통화 중 신호만 간다)'], reward: {} }
-  ];
   var VEND = [
     { id: 'matsta', name: '맛스타', w: 30, buff: 'matsta', sec: 45 },
     { id: 'hot6', name: '핫식스', w: 25, buff: 'hotbar', sec: 45 },
@@ -565,14 +554,14 @@
   var PADS = { supply: { x: 398, y: 288, r: 19, dwell: 1.0 }, report: { x: 452, y: 298, r: 19, dwell: 0.6 } };
   // v11: 몰아치기(콤보가 이만큼 되면 8초 동안 넉가래 넓게 + 눈 값 두 배), 돌발 상황
   var FEVER = { at: [40, 120, 240, 400, 600], sec: 8, range: 1.35, value: 2 };
-  var TWIST = { surge: { from: 3, p: [0.15, 0.3, 0.65, 0.8], sec: 18, fall: 5 }, support: { from: 4, p: 0.35, r: 26, speed: 70 }, surprise: { from: 5, p: 0.2 } };
+  var TWIST = { surge: { from: 3, p: [0.15, 0.3, 0.65, 0.8], sec: 18, fall: 5 }, support: { from: 4, p: 0.5, r: 22, speed: 60, rank: 2, wx: 'blizzard' }, surprise: { from: 5, p: 0.2 } };
 
   JY.SNOW = {
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SNOWLOAD: SNOWLOAD, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
-    DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
+    DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };
 })(window.JY = window.JY || {});

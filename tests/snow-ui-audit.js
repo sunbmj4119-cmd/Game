@@ -167,7 +167,7 @@ function scan() {
     await sleep(1500); await check('box');
     var bo = await page.$('#box-ok'); if (bo) await bo.click(); await sleep(300);
     await page.evaluate(function () { var s = __SNOW.save(); s.story = { prologue: true }; s.stats.ops = 1; __SNOW.title(); });
-    await page.click('[data-hub="phone"]'); await sleep(900); await check('talk');
+    await page.evaluate(function () { __SNOW.talk(); }); await sleep(900); await check('talk');   // v19: 공중전화가 빠져서 이야기 장면으로
     await page.close();
   }
   await browser.close();

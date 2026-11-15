@@ -869,7 +869,7 @@
     return { ok: true };
   }
 
-  /* ── 생활관 (작전 밖): PX 준비물 · 상점 쓰기 · 체력단련 ── */
+  /* ── 생활관 (작전 밖): PX 준비물 · 상점 쓰기 ── */
   function prepCost(save, it) { return Math.round(it.base * (1 + G.rankOf(save) * 1.5) + (it.crew ? (save.crewRate || 0) * 12 : 0)); }
   function prepItems(save) {
     save.prep = save.prep || {};
@@ -896,19 +896,6 @@
     save.dia -= cost; save.prep[what] = 1;
     return { ok: true, cost: cost };
   }
-  // 저녁 체력단련(턱걸이): 개수만큼 다음 작전 적재 +25%, 15개 넘으면 하루 한 번 상점
-  function pullDone(save, n) {
-    if (save && save.save) save = save.save;
-    save.stats = save.stats || {}; save.daily = save.daily || {}; save.prep = save.prep || {};
-    var best = save.stats.pullBest || 0, extra = 0;
-    n = Math.max(0, Math.min(40, n | 0));
-    if (n > best) save.stats.pullBest = n;
-    save.stats.pull = (save.stats.pull || 0) + 1; save.daily.pull = save.day;   // v15: 오늘은 했다 (생활관 버튼이 숨는다)
-    if (n >= 3) save.prep.power = Math.max(save.prep.power || 0, n);
-    if (n >= 15 && save.daily.pullDia !== save.day) { save.daily.pullDia = save.day; save.dia += 1; save.diaLife += 1; extra = 1; }
-    return { n: n, best: n > best, dia: extra };
-  }
-
   function state(w) {
     var a = init(w), list = [];
     Object.keys(a.buffs).forEach(function (k) { list.push({ id: k, name: BUFF[k].name, desc: BUFF[k].desc, t: a.buffs[k] }); });
@@ -926,7 +913,7 @@
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
     canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
-    prepItems: prepItems, prepBuy: prepBuy, pullDone: pullDone, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
+    prepItems: prepItems, prepBuy: prepBuy, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
     RIDE: RIDE, BUFF: BUFF, PX: S.PREP, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door

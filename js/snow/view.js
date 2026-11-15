@@ -187,7 +187,7 @@
         for (gx = ax; gx <= bx; gx++) {
           var idx = gy * GW + gx, d = D[idx];
           if (!d || Zm[idx] < 0) continue;
-          var B = BLOB[d];
+          var B = BLOB[S.SNOWLOAD.vis[Math.min(10, d)]]; d = S.SNOWLOAD.vis[Math.min(10, d)];
           if (d === 1) { if (pass === 1) { c.fillStyle = B.c; rr(c, gx * CELL - 0.4, gy * CELL - 0.4, 10.8, 10.8, 2.5); c.fill(); } continue; }
           var jx = (hash(gx, gy) - 0.5) * 2.4, jy = (hash(gy, gx) - 0.5) * 2.4, r = B.r + (hash(gx + 7, gy) - 0.5) * 1.2;
           var cx = gx * CELL + 5 + jx, cy = gy * CELL + 5 + jy;

@@ -23,7 +23,7 @@ function run(OPS, DIA, seed) {
   }
   out.pass = out.passList ? out.passList.slice(1).reduce(function (a, b) { return a + b; }, 0) / Math.max(1, out.passList.length - 1) : 0; out.partsDay = save.parts / 365; return out;
 }
-[[5, 5], [10, 5], [10, 10]].forEach(function (c) {
+[[5, 5], [10, 5], [15, 5], [25, 5]].forEach(function (c) {
   var rs = [1, 2, 3, 4, 5].map(function (s) { return run(c[0], c[1], s * 7919); });
   var avg = function (k) { var v = rs.map(function (x) { return x[k]; }).filter(Boolean); return v.length === rs.length ? (v.reduce(function (a, b) { return a + b; }, 0) / v.length).toFixed(0) : '>365 (' + v.length + '/5)'; };
   console.log('작전 ' + c[0] + '/일 · 상점 ' + c[1] + '/작전 → 5칸 모두 고급 ' + avg('u') + '일 · 희귀 ' + avg('r') + '일 · 영웅 ' + avg('e') + '일 · 전설 ' + avg('l') + '일 · 신화 ' + avg('m') + '일 · 패스 30단계 시즌 ' + avg('pass') + '일째 · 부품 하루 ' + avg('partsDay'));

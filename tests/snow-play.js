@@ -105,7 +105,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await touchDrag(size[0] * 0.5, size[1] * 0.55, size[0] * 0.5, size[1] * 0.55 - 60, 1500);
   var p1 = await W();
   ok('화면 가운데를 위로 끌면 위(북쪽)로 걷는다', Math.hypot(p1.x - p0.x, p1.y - p0.y) > 30 && p1.y < p0.y, [p0, p1]);
-  ok('치우면 돈이 아니라 짐이 된다', p1.load > 0 && p1.clear > p0.clear && p1.bank - p0.bank <= 20, [p0, p1]);
+  ok('치우면 돈이 아니라 짐이 된다', p1.load > p0.load && p1.clear >= p0.clear && p1.bank - p0.bank <= 20, [p0, p1]);
   await page.evaluate(function () { var w = __SNOW.view().world(); if (w.player.load < 21) { w.player.load = 21; w.player.val = 21; } });
   ok('짐 20 → 할 일 완료 알림', await waitFor(function () { return (__SNOW.save().quest || 0) >= 1; }, 3000));
   ok('짐을 지면 안내가 사라진다', !(await vis('#hint')));
@@ -222,10 +222,10 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await shot('09-hub');
   var ov3 = await overflow(); ok('로비 넘침 없음', !ov3.length, ov3);
   // v13: 첫 작전 뒤 로비 — 열린 것만 (PX·체력단련·휴가는 일병부터), 새로 열린 버튼엔 N
-  var gate13 = await page.evaluate(function () { function h(k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return !b || b.hidden; } var sh = document.querySelector('.lb-side [data-hub="shop"]'); return { px: h('px'), pull: h('pull'), leave: h('leave'), shop: !h('shop'), help: !h('help'), newShop: sh && sh.classList.contains('new') }; });
-  ok('v13 첫 작전 뒤 로비: 보급 열림(N), PX·체력단련·휴가는 아직 · v15 교범은 설정 안', gate13.shop && !gate13.help && gate13.newShop && gate13.px && gate13.pull && gate13.leave, gate13);
+  var gate13 = await page.evaluate(function () { function h(k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return !b || b.hidden; } var sh = document.querySelector('.lb-side [data-hub="shop"]'); return { px: h('px'), gone: ['phone', 'pull', 'leave'].every(function (k) { return !document.querySelector('[data-hub="' + k + '"]'); }), shop: !h('shop'), help: !h('help'), newShop: sh && sh.classList.contains('new') }; });
+  ok('v13 첫 작전 뒤 로비: 보급 열림(N), PX는 아직 · v15 교범은 설정 안 · v19 공중전화·체력단련·휴가 버튼은 없다', gate13.shop && !gate13.help && gate13.newShop && gate13.px && gate13.gone, gate13);
   await page.evaluate(function () { __SNOW.save().rank = 1; __SNOW.renderHub(); });
-  ok('v13 일병이 되면 PX·체력단련·휴가가 열린다', await page.evaluate(function () { return ['px', 'pull', 'leave'].every(function (k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return b && !b.hidden && b.classList.contains('new'); }); }));
+  ok('v13 일병이 되면 PX가 열린다', await page.evaluate(function () { return ['px'].every(function (k) { var b = document.querySelector('.lb-side [data-hub="' + k + '"]'); return b && !b.hidden && b.classList.contains('new'); }); }));
   // PX: 내일 작전 준비물
   await page.evaluate(function () { __SNOW.save().bank += 2000; __SNOW.renderHub(); });
   await page.click('[data-hub="px"]'); await sleep(300);
@@ -234,25 +234,6 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('핫팩 챙김', await page.evaluate(function () { return !!__SNOW.save().prep.hotpack && !!document.querySelector('#modal .px-it.on'); }));
   await shot('10-px');
   await page.click('#modal [data-m="close"]'); await sleep(200);
-  // 공중전화 (하루 한 번)
-  ok('공중전화에 "!" 배지', await vis('#hub-phone-n'));
-  await page.click('[data-hub="phone"]');
-  ok('공중전화 → 통화 장면', await waitFor(function () { return !document.getElementById('talk').hidden && /공중전화/.test(document.getElementById('talk-title').textContent); }, 3000));
-  await talkThrough();
-  ok('전화는 하루 한 번 (배지 사라짐)', !(await vis('#hub-phone-n')) && await page.evaluate(function () { return __SNOW.save().daily.call === __SNOW.save().day; }));
-  // 체력단련
-  await page.click('[data-hub="pull"]');
-  ok('체력단련 → 턱걸이 미니게임', await waitFor(function () { return !!document.getElementById('pull-go'); }, 3000));
-  for (var tp = 0; tp < 26; tp++) await page.dispatchEvent('#pull-go', 'pointerdown');
-  await waitFor(function () { return /개!/.test(document.getElementById('pull-n').textContent); }, 7000);
-  ok('턱걸이 → 기록 + 내일 적재 버프', await page.evaluate(function () { var s = __SNOW.save(); return (s.stats.pullBest || 0) >= 10 && s.prep.power >= 10; }));
-  await sleep(700); await page.click('#pull-go'); await sleep(200);
-  // 휴가 (상점 모자라면 안내)
-  await page.evaluate(function () { __SNOW.save().dia = 3; __SNOW.renderHub(); });
-  ok('v15 휴가 버튼은 상점이 모일 때만 보인다', !(await vis('[data-hub="leave"]')));
-  await page.evaluate(function () { __SNOW.save().dia = 12; __SNOW.renderHub(); });
-  ok('v15 상점 10개가 모이면 휴가 버튼', await vis('[data-hub="leave"]'));
-  await page.evaluate(function () { __SNOW.save().dia = 3; __SNOW.renderHub(); });
   await page.evaluate(function () { __SNOW.save().rank = 0; __SNOW.renderHub(); });
   // 보급·인원
   await page.click('[data-hub="shop"]'); await sleep(400);

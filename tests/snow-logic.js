@@ -111,7 +111,8 @@ var cl0 = wH.clear; G.step(wH, 1 / 30, null);
 var mh = wH.fx.filter(function (f) { return f.t === 'meHit'; })[0];
 ok(wH.player.stun > 0.9 && wH.player.load === 30 && mh && mh.spilled === 0, '고라니에 받히면 잠깐 넘어진다 (짐은 그대로)', [wH.player.stun, mh && mh.spilled]);
 var px0 = wH.player.x; G.step(wH, 0.2, { x: 1, y: 0 }); ok(wH.player.x === px0, '기절 중엔 못 걷는다');
-var sG0 = G.newSave(); sG0.day = 13; sG0.zones.C = true; sG0.rank = 1; var nG0 = G.createWorld(sG0).events.filter(function (e) { return e.k === 'deer'; }).length;
+var sG0 = G.newSave(); sG0.day = 13; sG0.zones.C = true; sG0.rank = 1; sG0.seed = 1; while (G.weekOf(sG0) && G.weekOf(sG0).mods.deer) sG0.seed++;   // 고라니 대이동 주간은 빼고 (전엔 시드가 무작위라 가끔 실패)
+var nG0 = G.createWorld(sG0).events.filter(function (e) { return e.k === 'deer'; }).length;
 var sG3 = G.newSave(); sG3.day = 13; sG3.seed = sG0.seed; sG3.zones.C = true; sG3.rank = 1; sG3.perks = { gong: 3 }; var nG3 = G.createWorld(sG3).events.filter(function (e) { return e.k === 'deer'; }).length;
 ok(nG0 === 2 && nG3 === 1, '고라니는 하루 최대 2마리, 깡통 줄 3단계면 1마리', [nG0, nG3]);
 var sC = G.newSave(); sC.seed = 12; ['A', 'B', 'C', 'D', 'E'].forEach(function (z) { sC.zones[z] = true; sC.fresh[z] = true; }); var wC = G.createWorld(sC);
@@ -404,5 +405,18 @@ if (deerDay) { dS.day = deerDay; var wD = G.createWorld(dS); var nD = wD.events.
 var rw = { day: 9, rank: 1 }; ok(G.weatherFor({ day: 40, seed: 1, rank: 3, zones: {}, stats: { ops: 1 } }) && true, 'v17 계급별 날씨 (함수 동작)');
 var heavyRate = function (rank) { var n = 0, t = 0; for (var sd = 1; sd < 40; sd++) for (var d5 = 4; d5 < 8; d5++) { var w0 = G.weatherFor({ day: d5, seed: sd, rank: rank, zones: {}, stats: { ops: 1 } }); t++; if (w0.id === 'heavy' || w0.id === 'blizzard') n++; } return n / t; };
 ok(heavyRate(3) > heavyRate(0) + 0.15, 'v17 계급이 오를수록 함박눈·폭설이 잦다', [heavyRate(0).toFixed(2), heavyRate(3).toFixed(2)]);
+// ── v19: 작전이 1~2분에 끝나서 — 눈이 계급만큼 더 깊고, 한 덩이 값은 낮게, 공병대 제설차는 폭설 날만 ──
+function avgDepth(rank) { var sv = G.newSave(); sv.seed = 3; sv.day = 2; sv.rank = rank; var wv = G.createWorld(sv), sum = 0, n = 0; wv.zoneCells[0].forEach(function (i) { sum += wv.depth[i]; n++; }); return sum / n; }
+var dep0 = avgDepth(0), dep3 = avgDepth(3), sv1 = G.newSave(); sv1.seed = 3; var w1d = G.createWorld(sv1);
+ok(w1d.zoneCells[0].every(function (i) { return w1d.depth[i] >= 1 && w1d.depth[i] <= 2; }), 'v19 첫날(생활관 앞)은 얕게 1~2 (첫 손맛)');
+ok(dep0 >= 2.5 && dep0 <= 3.5 && dep3 >= dep0 + 3.5 && dep3 <= S.SNOWLOAD.maxD, 'v19 같은 날씨(눈)라도 병장은 이병보다 4칸 더 깊다', [dep0.toFixed(2), dep3.toFixed(2)]);
+var supOff = 0, supOn = 0;
+for (var sd9 = 1; sd9 < 60; sd9++) for (var rk9 = 0; rk9 < 4; rk9++) {
+  var s9 = G.newSave(); s9.seed = sd9; s9.day = 10 + sd9 % 7; s9.rank = rk9; s9.stats.ops = 30; G.newFeatures(s9, true);
+  var w9 = G.createWorld(s9), sup = w9.events.some(function (e) { return e.k === 'support'; }), bl = G.weatherFor(s9).id === 'blizzard';
+  if (sup && (!bl || rk9 < S.TWIST.support.rank)) supOff++; if (sup) supOn++;
+}
+ok(supOff === 0 && supOn > 0, 'v19 공병대 제설차는 상병부터, 폭설 경보 날에만', [supOff, supOn]);
+ok(S.HIT === 0.2 && S.ENERGY.max / S.ENERGY.cost === 15, 'v19 손 0.2초 · 체력은 작전 15번 분량');
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '통과 ' + pass + '개');
 process.exit(fail ? 1 : 0);

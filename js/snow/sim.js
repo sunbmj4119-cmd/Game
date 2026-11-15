@@ -298,7 +298,7 @@
     var TW = S.TWIST, wxi = ['light', 'normal', 'heavy', 'blizzard'].indexOf(weatherFor(save).id);
     if (!feat(save, 'twist')) { ev.sort(function (a, b) { return a.t - b.t; }); return ev; }
     if (day >= TW.surge.from && R() < TW.surge.p[Math.max(0, wxi)]) at(dl * (0.3 + R() * 0.3), 'surge');
-    if (day >= TW.support.from && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');
+    if (day >= TW.support.from && rankOf(save) >= TW.support.rank && weatherFor(save).id === TW.support.wx && R() < TW.support.p) at(dl * (0.4 + R() * 0.3), 'support');   // v19: 폭설 경보 날 상병부터만 (너무 쉽게 끝났다)
     if (day >= TW.surprise.from && day % 7 && R() < TW.surprise.p) at(dl * (0.35 + R() * 0.25), 'surprise');
     ev.sort(function (a, b) { return a.t - b.t; });
     return ev;
@@ -340,7 +340,7 @@
           w.zone[idx] = zi;
           if (!open) { w.depth[idx] = 3; continue; }
           // 밤새 온 눈: 날씨만큼 (잔설 1~2 · 눈 1~3 · 함박눈 2~4 · 폭설 3~4). 첫날은 얕게
-          var first = Z.id === 'A' && !save.discharges && save.day <= 1, lo = first ? 1 : wx.depth[0], hi = first ? 3 : wx.depth[1];
+          var first = Z.id === 'A' && !save.discharges && save.day <= 1, ra = S.SNOWLOAD.rankAdd[rankOf(save)] || 0, lo = first ? 1 : Math.min(S.SNOWLOAD.maxD, wx.depth[0] + ra), hi = first ? 2 : Math.min(S.SNOWLOAD.maxD, wx.depth[1] + ra);
           w.depth[idx] = isNew ? Math.min(hi, lo + Math.floor(drift(save.seed + zi * 13, gx, gy) * (hi - lo + 1))) : stored[idx];
           w.cells.push(idx); w.zoneTotal[zi]++; (w.zoneCells[zi] = w.zoneCells[zi] || []).push(idx);
           if (!w.depth[idx]) { w.clear++; w.zoneClear[zi]++; }
@@ -741,7 +741,7 @@
         var d = w.depth[idx];
         if (!d) continue;
         var take = Math.min(d, p, room);
-        removed += take; val += take * S.ZONES[zi].value; room -= take;
+        removed += take; val += take * S.ZONES[zi].value * S.SNOWLOAD.unitVal; room -= take;
         w.lastSrc = src; setDepth(w, idx, d - take);
       }
     }
@@ -1079,7 +1079,7 @@
       if (P.stun <= 0 && P.load < P.cap && !P.noClear && P.r > 0) {
         var ahead = P.r * 0.6 + P.reach, cx = P.aura ? P.x : P.x + P.dir.x * ahead, cy = P.aura ? P.y : P.y + P.dir.y * ahead + 2;
         if (clearAt(w, cx, cy, P.r * (w.fever > 0 ? S.FEVER.range : 1), P.p, 'player', P)) {
-          P.swing = 1; w.combo++; w.comboT = 2; if (w.combo > (w.comboMax || 0)) w.comboMax = w.combo;
+          P.swing = 1; w.combo += 2; w.comboT = 2; if (w.combo > (w.comboMax || 0)) w.comboMax = w.combo;   // v19: 손이 0.1→0.2초라 콤보·폭풍 제설이 예전 속도로 차게 2씩
           if (w.combo > save.bestCombo && !w.demo) save.bestCombo = w.combo;
           if ([25, 50, 100, 200, 300, 500].indexOf(w.combo) >= 0) w.fx.push({ t: 'combo', n: w.combo });
           // 몰아치기: 콤보가 고비를 넘으면 8초 동안 넉가래가 넓어지고 눈 값이 두 배

@@ -6,7 +6,8 @@
   if (!T) return;
   var S = JY.SNOW, G = JY.SnowSim, CELL = S.CELL, GW = S.GW, GH = S.GH, U = 1 / CELL;
   var NX = GW * 2 + 1, NZ = GH * 2 + 1;
-  var DH = [-0.08, 0.22, 0.48, 0.74, 1.0];          // 눈 깊이 → 높이
+  var DH = [-0.08];                                    // 눈 깊이 → 높이 (v19: 깊이 10까지, 7부터 꽉 찬 높이)
+  for (var dh = 1; dh <= 10; dh++) DH.push(0.22 + 0.78 * Math.pow(Math.min(1, (dh - 1) / 6), 0.85));
   var OUT = 0.8;                                    // 구역 밖 눈 높이
   var VIS = [21, 23, 25, 28, 31, 35, 41, 49, 62];  // 도구 단계별로 플레이어 위치에서 보이는 너비
   var PITCH = 0.9, FOV = 34;
@@ -160,7 +161,7 @@
   function cellH(gx, gy) {
     if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return OUT;
     var idx = gy * GW + gx;
-    return world.zone[idx] >= 0 ? DH[world.depth[idx]] : baseH[idx];
+    return world.zone[idx] >= 0 ? DH[Math.min(DH.length - 1, world.depth[idx])] : baseH[idx];
   }
   function vertH(i, j) {
     var oi = i & 1, oj = j & 1;

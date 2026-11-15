@@ -57,10 +57,12 @@ ok(ob.gear && ['r', 'e', 'l'].indexOf(ob.gear.rar) >= 0 && ob.parts >= 10, '예�
 var e = G.newSave(); Q.init(e);
 ok(Q.spend(e, T0) && Q.spend(e, T0) && Q.energy(e, T0).v === S.ENERGY.max, '이병(신병 기간)은 체력이 안 든다');
 e.rank = 1;
-for (k = 0; k < 5; k++) Q.spend(e, T0);
-ok(Q.energy(e, T0).v === 0 && !Q.spend(e, T0) && !Q.energy(e, T0).ok, '일병부터: 작전 1번 5, 다섯 번이면 바닥');
-ok(Q.energy(e, T0 + 10 * 60 * 1000).v === 1 && Q.energy(e, T0 + 50 * 60 * 1000).v === 5 && Q.spend(e, T0 + 50 * 60 * 1000), '10분에 1씩 찬다 (50분이면 한 번 더)');
-ok(Q.energy(e, T0 + 30 * H).v === S.ENERGY.max, '오래 두면 최대(25)까지만');
+var nOps = 0; while (Q.spend(e, T0)) nOps++;
+ok(nOps === 15 && Q.energy(e, T0).v === 0 && !Q.energy(e, T0).ok, 'v19 일병부터: 작전 1번 5, 열다섯 번(40분~1시간)이면 바닥', nOps);
+ok(Q.energy(e, T0 + 4 * 60 * 1000).v === 1 && Q.energy(e, T0 + 20 * 60 * 1000).v === 5 && Q.spend(e, T0 + 20 * 60 * 1000), '4분에 1씩 찬다 (20분이면 한 번 더)');
+var e5 = G.newSave(); e5.rank = 1; Q.init(e5); e5.energy = { v: 0, t: T0 };
+ok(Q.energy(e5, T0 + 5 * H - 1000).v < S.ENERGY.max && Q.energy(e5, T0 + 5 * H + 1000).v === S.ENERGY.max, '바닥에서 가득까지 5시간');
+ok(Q.energy(e, T0 + 30 * H).v === S.ENERGY.max, '오래 두면 최대(75)까지만');
 e.dia = 200; Q.spend(e, T0 + 30 * H);
 var rf1 = Q.refill(e, T0 + 30 * H), rf2 = Q.refill(e, T0 + 30 * H), rf3 = Q.refill(e, T0 + 30 * H), rf4 = Q.refill(e, T0 + 30 * H);
 ok(rf1.cost === 20 && rf2.cost === 30 && rf3.cost === 50 && rf4.cost === 50 && e.energy.v > S.ENERGY.max, '상점으로 채우기: 그날 20 → 30 → 50 (넘쳐도 된다)', [rf1.cost, rf2.cost, rf3.cost, e.energy.v]);
@@ -89,7 +91,7 @@ ok(Q.buyPremium(ps, T0) && ps.dia === 50 && Q.pass(ps, T0).claim === 2, '프리�
 Q.claimPass(ps, T0); ok(ps.dia === 50 + 4 + 4, '프리미엄 보상: 단계마다 상점 4');
 Q.passXp(ps, T0, 1e6); ok(Q.pass(ps, T0).tier === S.PASS.tiers, '패스는 30단계까지');
 var later = T0 + S.PASS.season * 86400000; ok(Q.pass(ps, later).tier === 0 && !Q.pass(ps, later).prem, '28일마다 새 시즌 (단계·프리미엄 초기화)');
-Q.onOpEnd(ps, later, 3); ok(Q.pass(ps, later).xp === 15, '작전 ★3 → 패스 15점');
+Q.onOpEnd(ps, later, 3); ok(Q.pass(ps, later).xp === 12, '작전 ★3 → 패스 12점');
 
 // ── 신화: 전설 3개를 합쳐야만 (상자에서 안 나온다) ──
 var my = G.newSave(); Q.init(my); my.gear.items = []; ['l', 'l', 'l'].forEach(function (r) { Q.addItem(my, 'pack', r); }); my.gear.items[1].lv = 42;

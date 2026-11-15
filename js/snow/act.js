@@ -420,8 +420,9 @@
     P.body = rd ? rd.body : 6;
     var m = w.mod;
     var wk = w.week ? w.week.mods : {};
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1);
-    m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1);
+    var gbn = G.gearBonus(save);   // v18 장구류: 전투화 = 이동, 장갑 = 손 빠르기
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1) * (1 + gbn.move);
+    m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1) / (1 + gbn.hand);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1) * (G.spec(save, 'leader') ? 1.4 : 1);
     if (G.spec(save, 'insa')) w.crew.forEach(function (c) { if (c.mor < 75) c.mor = 75; c.slack = false; });   // v16 특기 '인싸'
     m.stun = b.hotpack > 0 ? 0.5 : 1;

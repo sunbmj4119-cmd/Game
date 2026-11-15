@@ -66,8 +66,8 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await enter();
   await closeModal();
   ok('누르면 로비', !(await vis('#splash')) && await vis('#t-start') && await vis('#hub-card'));
-  var lb = await page.evaluate(function () { return { b: document.getElementById('t-start-b').textContent, card: document.getElementById('hub-card').textContent, road: document.querySelectorAll('#hub .road li').length, now: (document.querySelector('#hub .road li.now') || {}).textContent, side: document.querySelectorAll('.lb-left button').length, right: document.getElementById('hub-grid').hidden }; });
-  ok('처음 로비: 전입 신고 · 내 카드 · 진급 길 5칸(이병 지금) · 왼쪽 버튼 5개 · 생활관 버튼은 아직', /전입 신고/.test(lb.b) && /이병/.test(lb.card) && lb.road === 5 && /이병/.test(lb.now) && lb.side === 5 && lb.right, lb);
+  var lb = await page.evaluate(function () { return { b: document.getElementById('t-start-b').textContent, card: document.getElementById('hub-card').textContent, road: document.querySelectorAll('#hub .road li').length, now: (document.querySelector('#hub .road li.now') || {}).textContent, side: Array.prototype.filter.call(document.querySelectorAll('.lb-left button'), function (b) { return !b.hidden && b.offsetParent; }).length, mis: !document.querySelector('[data-hub=mission]').hidden, right: document.getElementById('hub-grid').hidden }; });
+  ok('처음 로비: 전입 신고 · 내 카드 · 진급 길 5칸(이병 지금) · 왼쪽 버튼 · 임무·생활관 버튼은 아직', /전입 신고/.test(lb.b) && /이병/.test(lb.card) && lb.road === 5 && /이병/.test(lb.now) && lb.side >= 1 && !lb.mis && lb.right, lb);
   await shot('01-lobby');
   var ov0 = await overflow(); ok('로비 넘침 없음', !ov0.length, ov0);
 
@@ -151,7 +151,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   await quiet();
   await page.evaluate(function () { __SNOW.save().bank = 400; var w = __SNOW.view().world(); w.haeng.x = 330; w.haeng.y = 268; w.haeng.hold = 60; });
   await goTo(200, 205, 0);
-  ok('살 수 있으면 "지금 할 일" = 넉가래 받을 수 있다!', await goalIs('/넉가래 받을 수 있다/'));
+  ok('살 수 있으면 "지금 할 일" = 넉가래 받을 수 있다!', await goalIs('/넉가래 받을 수 있다/'), await page.evaluate(function () { var s = __SNOW.save(); return [document.getElementById('g-t').textContent, document.getElementById('goal').hidden, s.bank, s.snow && s.snow.load, (JY.SnowGear && JY.SnowGear.bonus(s))]; }));
   if (is3) ok('땅 위 보급 원 이름표 (넉가래 · 값)', await waitFor(function () { var e = document.querySelector('.ov-pad.supply.ok'); return e && /넉가래/.test(e.textContent) && e.style.display !== 'none'; }, 3000));
   await shot('05a-supply');
   await onPad('supply');

@@ -7,6 +7,7 @@
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v10', PREV_KEY = 'jeseol-v8', OLD_KEYS = ['jeseol-v1'];
   try { OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { /* 저장소 없음 */ }
+  var G2 = JY.SnowGear;   // v18 장구·상자·체력·임무·패스
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
 
   function $(id) { return document.getElementById(id); }
@@ -154,7 +155,7 @@
     news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
-    var GATE = { shop: 'lobby', px: 'px', phone: 'phone', pull: 'pull', leave: 'leave', look: 'look', medal: 'box', story: 'lobby' };
+    var GATE = { shop: 'lobby', px: 'px', phone: 'phone', pull: 'pull', leave: 'leave', look: 'look', medal: 'box', story: 'lobby', gear: 'gear', mission: 'mission' };
     // v15: 버튼 줄이기 — 교범은 설정 안으로, 훈장은 수첩 안으로, 전화·체력단련은 오늘 할 수 있을 때만, 휴가는 상점이 모였을 때만
     var HIDE = { help: true, medal: true, phone: save.daily.call === save.day, pull: save.daily.pull === save.day, leave: save.dia < S.LEAVE.cost };
     document.querySelectorAll('.lb-side [data-hub]').forEach(function (b) {
@@ -167,9 +168,25 @@
     var any = G.offers(save), n = 0;
     ['tool', 'crew', 'factory', 'perk'].forEach(function (k) { (any[k] || []).forEach(function (o) { if (o.ok) n++; }); });
     $('hub-shop-n').hidden = !n; $('hub-shop-n').textContent = n;
+    if (G2) {   // v18 배지: 장구 = 무료 상자·합성할 것, 임무 = 받을 보상
+      var now0 = Date.now(), gn = (G2.freeIn(save, 'basic', now0) === 0 ? 1 : 0) + G2.mergeable(save).length, mn = G2.missions(save, now0).claim + G2.pass(save, now0).claim;
+      $('hub-gear-n').hidden = !gn || !G.feat(save, 'gear'); $('hub-gear-n').textContent = gn;
+      $('hub-mission-n').hidden = !mn || !G.feat(save, 'mission'); $('hub-mission-n').textContent = mn;
+      enPill();
+    }
     $('hub-phone-n').hidden = !on || save.daily.call === save.day;
     $('hub-leave-n').hidden = save.dia < S.LEAVE.cost;
     $('hub-grid').hidden = !on;
+  }
+  // v18 생활관 위 체력 (일병부터)
+  function enPill() {
+    if (!G2) return;
+    var on = G2.needs(save) && !midOp() && started(), e = G2.energy(save, Date.now()), el = $('t-start-en');
+    $('lb-en').hidden = true;   // v18: 체력은 출동 버튼 안에 (오른쪽 버튼과 겹치지 않게)
+    if (!el) { el = document.createElement('em'); el.id = 't-start-en'; $('t-start').appendChild(el); }
+    el.hidden = !on; if (!on) return;
+    el.innerHTML = BOLT + ' ' + e.v + '/' + e.max + (e.v < e.max ? ' <small>' + mmss(e.next) + '</small>' : '');
+    el.classList.toggle('low', e.v < e.cost);
   }
   function hubClick(e) {
     var b = e.target.closest('[data-hub]'); if (!b) return;
@@ -182,7 +199,7 @@
     else if (k === 'pull') pullUp();
     else if (k === 'leave') { if (save.dia >= S.LEAVE.cost) goLeave(); else toast('포상휴가는 상점 ' + S.LEAVE.cost + '개 (지금 ' + save.dia + '개) · 작전 ★★★·칼경례로 모은다'); }
     else if (k === 'help') help();
-    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis') { tab = k; openShop(); }
+    else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k; openShop(); }
     else if (k === 'settings') settings();
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
@@ -252,7 +269,17 @@
     // v13: 처음 출동 전 교범 4장은 뺐다 (읽을 게 너무 많다) — 화면 위 '지금 할 일' 한 줄과 노란 화살표로 충분. 교범은 로비 버튼
     if (!started() && !save.story.prologue) { play(false); return; }   // 첫 전입: 프롤로그가 이어진다
     if (midOp()) { play(true); return; }
+    if (G2 && !G2.energy(save, Date.now()).ok) { energyGate(startOp); return; }   // v18 출동 체력
     briefing();
+  }
+  // v18 출동 체력이 모자라면: 기다리거나 상점으로 채운다
+  function energyGate(done) {
+    var e = G2.energy(save, Date.now()), p = G2.refillPrice(save, Date.now());
+    modal('<div class="m-rank"><p class="kicker">출동 체력</p><h3>체력이 모자라다</h3><p class="m-big">' + BOLT + ' ' + e.v + ' / ' + e.max + '</p><p>작전 1번에 ' + e.cost + ' · 10분에 1씩 찬다<br>다음 1까지 <b>' + mmss(e.next) + '</b> · 아침 점호 때마다 가득</p>' +
+      '<div class="res-btns"><button class="btn ghost" data-m="wait">기다린다</button><button class="btn big" data-m="refill"' + (save.dia < p ? ' disabled' : '') + '>' + dia() + ' ' + p + '로 가득</button></div></div>', function (k) {
+      if (k !== 'refill') return;
+      if (G2.refill(save, Date.now())) { persistRaw(); if (X) X.dia(); toast('체력 가득! (상점 -' + p + ')'); renderHub(); if (done) done(); }
+    });
   }
   function briefing() {
     var r = G.rankOf(save), wx = G.weatherFor(save), B = S.BRIEF[r], exam = !!save.exam, goal = G.opGoal(save, wx.id, exam), wxCut = S.OP.wx[wx.id] || 0, bo = G.previewBonus(save);
@@ -276,7 +303,7 @@
       '<ol class="brief-list' + (zs.length > 3 ? ' many' : '') + '">' + zs.map(function (Z) { return '<li><b>' + esc(Z.name) + ' ' + Math.round(goal * 100) + '%</b>' + (zs.length > 2 ? '' : '<span>' + esc(Z.why || '') + '</span>') + '</li>'; }).join('') + '</ol>' +
       (notes.length ? '<ul class="brief-notes">' + notes.join('') + '</ul>' : '') +
       (bo ? '<div class="brief-bonus"><b>특명</b><span>' + esc(bo.text) + '</span><small>' + dia() + '+' + bo.dia + '</small></div>' : '') + crewRows +
-      '<button class="btn big" data-m="go">' + (exam ? '심사 받으러 출동!' : '출동!') + '</button></div>', function (k) { if (k === 'go') play(false); });
+      '<button class="btn big" data-m="go">' + (exam ? '심사 받으러 출동!' : '출동!') + (G2 && G2.needs(save) ? ' <small class="en-cost">' + BOLT + S.ENERGY.cost + '</small>' : '') + '</button></div>', function (k) { if (k === 'go') { if (G2) { G2.spend(save, Date.now()); persistRaw(); } play(false); } });
     var box = $('modal-box'), base = box.onclick;
     box.onclick = function (e) {
       var c = e.target.closest('[data-post]');
@@ -452,6 +479,7 @@
     if (V.pause) V.pause(true);
     if (V.setSpeed) V.setSpeed(1);
     $('throw-btn').hidden = true; hudA.tk = null;
+    if (G2 && !res.demo) { var px0 = G2.pass(save, Date.now()).xp; G2.onOpEnd(save, Date.now(), res.stars); res.passXp = G2.pass(save, Date.now()).xp - px0; }
     persistRaw();
     var r = res.rank, nr = S.RANKS[r + 1], R0 = S.RANKS[r];
     // v13: 읽을 게 적게 — 지시서는 '완료 N/M' 한 줄 + 못 한 줄·늦은 줄만 (최대 3)
@@ -486,6 +514,7 @@
       '<ul class="res-lines op">' + lines.slice(0, 4).join('') + '</ul>' +
       (lines.length > 4 ? '<details class="res-more"><summary>자세히 (' + (lines.length - 4) + ')</summary><ul class="res-lines op">' + lines.slice(4).join('') + '</ul></details>' : '') +
       '<div class="res-pay"><span>' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
+      (res.passXp ? '<p class="res-pass">복무 패스 +' + res.passXp + '</p>' : '') +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
       (res.zones.length ? '<p class="res-zone">새 담당 구역: <b>' + esc(res.zones.join(', ')) + '</b></p>' : '') +
       '<button class="btn big" data-m="ok">' + (res.promoted ? '진급 신고하러 간다' : '충성! 들어가 보겠습니다') + '</button></div>', function () {
@@ -543,6 +572,8 @@
   // v15: 보급 탭은 셋만 (장비 · 인원 · 강화). 꾸미기·수첩(훈장 포함)·전역은 생활관 버튼에서 따로 연다 (탭 줄 없이)
   var TABS = [['tool', '장비'], ['crew', '인원'], ['up', '강화']];
   var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역' };
+  var GROUP = { gear: { title: '장구류', tabs: [['gear', '장구'], ['chest', '보급 상자']] }, chest: { title: '장구류', tabs: [['gear', '장구'], ['chest', '보급 상자']] },
+    mission: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] }, pass: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] } };
   var PERK_ICON = {
     eisen: '<path d="M5 6h7v6l6 2a3 3 0 0 1 3 3v1H5z" fill="#3b3f33"/><path d="M6 19l1 3M10 19l1 3M14 19l1 3M18 19l1 3" stroke="#9aa3ab" stroke-width="1.6" stroke-linecap="round"/>',
     back: '<path d="M6 7c0-3 12-3 12 0l1 12c0 2-14 2-14 0z" fill="#8a7a52"/><path d="M8 7c1-2 7-2 8 0" stroke="#5a4c2c" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="6" rx="5" ry="1.6" fill="#fbfdff"/>',
@@ -622,14 +653,19 @@
     function gate(k) { var g = TGATE[k]; return !g || (typeof g === 'function' ? g() : G.feat(save, g)); }
     if (tab === 'perk' || tab === 'factory' || tab === 'zone') tab = 'up';
     if (!gate(tab)) tab = 'tool';
-    var solo = SOLO[tab];
-    document.querySelector('.shop-head h2').textContent = solo || '보급';
-    $('s-tabs').hidden = !!solo;
-    $('s-tabs').innerHTML = solo ? '' : TABS.filter(function (t) { return gate(t[0]); }).map(function (t) {
-      var o = all[t[0]] || [], n = o.filter(function (x) { return x.ok; }).length;
+    var solo = SOLO[tab], grp = GROUP[tab];
+    document.querySelector('.shop-head h2').textContent = grp ? grp.title : solo || '보급';
+    $('s-tabs').hidden = !!solo && !grp;
+    var tabList = grp ? grp.tabs : solo ? [] : TABS.filter(function (t) { return gate(t[0]); });
+    $('s-tabs').innerHTML = tabList.map(function (t) {
+      var n = grp ? (t[0] === 'chest' ? (G2.freeIn(save, 'basic', Date.now()) === 0 ? 1 : 0) : t[0] === 'gear' ? G2.mergeable(save).length : t[0] === 'mission' ? G2.missions(save, Date.now()).claim : G2.pass(save, Date.now()).claim) : (all[t[0]] || []).filter(function (x) { return x.ok; }).length;
       return '<button role="tab" aria-selected="' + (tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + (n ? '<i class="dot">' + n + '</i>' : '') + '</button>';
     }).join('');
     var list = $('s-list'); list.innerHTML = '';
+    if (tab === 'gear') { renderGear(list); return; }
+    if (tab === 'chest') { renderChest(list); return; }
+    if (tab === 'mission') { renderMission(list); return; }
+    if (tab === 'pass') { renderPass(list); return; }
     if (tab === 'dis') { renderDischarge(list); return; }
     if (tab === 'look') { renderLook(list); return; }
     if (tab === 'story' || tab === 'medal') { renderStory(list); if (G.feat(save, 'box')) renderMedals(list); return; }
@@ -690,7 +726,105 @@
   }
   function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
 
+  /* ── v18 장구류 · 보급 상자 · 일일 임무 · 복무 패스 ── */
+  var BOLT = '<svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="#ffd24a" stroke="#8a6200" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+  var GEAR_SVG = {
+    glove: '<path d="M7 21v-7l-2-4 2-1 2 3V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v10c0 3-2 6-5 6z" fill="#6b7d4a" stroke="#2c361c" stroke-width="1.2" stroke-linejoin="round"/>',
+    boots: '<path d="M6 3h6v9l6 3c2 1 2 3 2 5v1H4V3z" fill="#2c2a26" stroke="#000" stroke-width="1"/><path d="M4 19h16" stroke="#777" stroke-width="2"/>',
+    blade: '<path d="M11 2h2v12h-2z" fill="#8a5a2b"/><path d="M4 14h16l-2 6H6z" fill="#e7ae2f" stroke="#8a6200" stroke-width="1.2" stroke-linejoin="round"/>',
+    pack: '<rect x="5" y="6" width="14" height="15" rx="3" fill="#6b7d4a" stroke="#2c361c" stroke-width="1.2"/><path d="M9 6V4h6v2" stroke="#2c361c" stroke-width="1.4" fill="none"/><rect x="8" y="12" width="8" height="5" rx="1" fill="#55663a"/>',
+    patch: '<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="#3a5a8c" stroke="#1c2c47" stroke-width="1.2"/><path d="M12 7l1.5 3 3.3.5-2.4 2.3.6 3.2-3-1.6-3 1.6.6-3.2-2.4-2.3 3.3-.5z" fill="#ffd24a"/>'
+  };
+  function gearIcon(slot) { return '<svg class="g-ico" viewBox="0 0 24 24" aria-hidden="true">' + (GEAR_SVG[slot] || '') + '</svg>'; }
+  function pctTxt(x) { return '+' + (Math.round(x * 1000) / 10) + '%'; }
+  function rewardText(r) {
+    if (!r) return '';
+    var t = [];
+    if (r.dia) t.push(dia() + r.dia); if (r.parts) t.push('부품 ' + r.parts); if (r.box) t.push((M.TIER[r.box] || { name: '상자' }).name.replace(' 보급 상자', ' 상자'));
+    if (r.gear) t.push(G2.rarDef(r.gear).name + ' 장구'); if (r.pie) t.push(pie() + '초코파이');
+    return t.join(' · ');
+  }
+  function renderGear(list) {
+    var bn = G2.bonus(save), sum = S.GEAR.slots.map(function (sl) { return sl.unit + ' ' + pctTxt(bn[sl.stat]); }).join(' · ');
+    var html = '<div class="g-eq">' + S.GEAR.slots.map(function (sl) {
+      var it = G2.equipped(save, sl.id), R = it ? G2.rarDef(it.rar) : null;
+      return '<div class="g-slot' + (it ? '' : ' empty') + '" style="--rc:' + (R ? R.color : '#c9c0a6') + '">' + gearIcon(sl.id) + '<b>' + sl.name + '</b>' + (it ? '<small>' + R.name + ' · Lv' + it.lv + '</small><em>' + sl.unit + ' ' + pctTxt(G2.itemStat(it)) + '</em>' : '<small>비어 있음</small>') + '</div>';
+    }).join('') + '</div><p class="g-sum">' + sum + '</p>';
+    var mg = G2.mergeable(save);
+    html += '<div class="gr-bar"><span>정비 부품 <b>' + fmt(save.parts || 0) + '</b></span>' + (mg.length ? '<button class="btn small merge" data-gmerge="1">같은 것 3개 합성 (' + mg.length + ')</button>' : '<small>같은 칸·같은 등급 3개면 한 등급 위로</small>') + '</div>';
+    var items = (save.gear ? save.gear.items : []).slice().sort(function (a, b) { return G2.rarIdx(b.rar) - G2.rarIdx(a.rar) || b.lv - a.lv || (a.slot < b.slot ? -1 : 1); });
+    if (!items.length) html += '<p class="empty">아직 장구가 없다. <b>보급 상자</b>를 열어 보자 (일반 상자는 4시간마다 무료)</p>';
+    html += items.map(function (it) {
+      var sl = G2.slotDef(it.slot), R = G2.rarDef(it.rar), on = save.gear.eq[it.slot] === it.id, c = G2.upCost(it), max = it.lv >= R.maxLv;
+      return '<div class="g-item' + (on ? ' on' : '') + '" style="--rc:' + R.color + '">' + gearIcon(it.slot) + '<div class="gi-info"><b>' + R.name + ' ' + sl.name + ' <small>Lv' + it.lv + '/' + R.maxLv + '</small></b><small>' + sl.unit + ' ' + pctTxt(G2.itemStat(it)) + (on ? ' · 끼는 중' : '') + '</small></div>' +
+        '<div class="gi-btns">' + (on ? '' : '<button class="gi-b" data-geq="' + it.id + '">끼기</button>') + (max ? '<span class="gi-max">최대</span>' : '<button class="gi-b up" data-gup="' + it.id + '"' + (G2.canUp(save, it) ? '' : ' disabled') + '>강화 ' + pie() + short(c.pie) + ' · 부품 ' + c.parts + '</button>') + '</div></div>';
+    }).join('');
+    list.insertAdjacentHTML('beforeend', html);
+  }
+  function renderChest(list) {
+    var now = Date.now();
+    var html = S.CHESTS.map(function (ch) {
+      var odds = Object.keys(ch.odds).map(function (k) { return G2.rarDef(k).name + ' ' + ch.odds[k] + '%'; }).join(' · ');
+      var free = ch.free ? G2.freeIn(save, ch.id, now) : -1, p = G2.price(save, ch.id, now);
+      var pity = ch.pity ? '<small class="pity">' + G2.rarDef(ch.pity.rar).name + ' 확정까지 <b>' + G2.pityLeft(save, ch.id) + '번</b></small>' : '';
+      var btns = (ch.free ? '<button class="btn small' + (free === 0 ? ' free' : '') + '" data-chest="' + ch.id + '" data-how="free"' + (free === 0 ? '' : ' disabled') + '>' + (free === 0 ? '무료로 열기' : '무료 ' + hms(free)) + '</button>' : '') +
+        '<button class="btn small" data-chest="' + ch.id + '" data-how="dia"' + (save.dia >= p ? '' : ' disabled') + '>' + dia() + ' ' + p + '</button>' +
+        (ch.ten ? '<button class="btn small" data-chest="' + ch.id + '" data-how="ten"' + (save.dia >= ch.ten ? '' : ' disabled') + '>10개 ' + dia() + ' ' + ch.ten + '</button>' : '');
+      return '<div class="chest c-' + ch.id + '"><div class="ch-art">' + chestArt(ch.id) + '</div><div class="ch-info"><b>' + ch.name + '</b><small>' + odds + '</small><small>장구 1 + 정비 부품 ' + ch.parts[0] + '~' + ch.parts[1] + (Array.isArray(ch.dia) ? ' · 오늘 살수록 싸진다' : '') + '</small>' + pity + '</div><div class="ch-btns">' + btns + '</div></div>';
+    }).join('');
+    html += '<p class="info-note">상점은 작전 ★★★·칼경례·특명·임무·훈장으로 모은다. 장구·상자·부품은 <b>전역해도 남는다</b>.</p>';
+    list.insertAdjacentHTML('beforeend', html);
+  }
+  function chestArt(id) {
+    var col = id === 'elite' ? ['#3a2a5a', '#ffbf3a'] : id === 'good' ? ['#2a4a7a', '#7fd0ff'] : ['#6b5420', '#e8d9a6'];
+    return '<svg viewBox="0 0 48 40" aria-hidden="true"><rect x="4" y="14" width="40" height="22" rx="3" fill="' + col[0] + '"/><path d="M4 16a20 10 0 0 1 40 0z" fill="' + col[0] + '" stroke="' + col[1] + '" stroke-width="2"/><rect x="21" y="16" width="6" height="8" rx="1.5" fill="' + col[1] + '"/><path d="M4 22h40" stroke="' + col[1] + '" stroke-width="2"/></svg>';
+  }
+  function hms(sec) { var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? h + '시간 ' + m + '분' : m + '분'; }
+  function renderMission(list) {
+    var m = G2.missions(save, Date.now());
+    var html = '<div class="mi-pts"><div class="mi-bar"><i style="width:' + Math.round(m.pts / m.max * 100) + '%"></i></div><b>' + m.pts + '점</b></div><div class="mi-steps">' + m.steps.map(function (st, i) {
+      return '<button class="mi-step' + (st.got ? ' got' : st.can ? ' can' : '') + '" data-mstep="' + i + '"' + (st.can ? '' : ' disabled') + '><b>' + st.at + '점</b><small>' + (st.got ? '받음' : rewardText(st.reward)) + '</small></button>';
+    }).join('') + '</div>';
+    html += m.list.map(function (q) {
+      return '<div class="mi-row' + (q.done ? ' done' : '') + '"><span>' + esc(q.text) + '</span><div class="mi-bar small"><i style="width:' + Math.round(q.prog / q.goal * 100) + '%"></i></div><b>' + (q.done ? '✔ 20점' : q.prog + '/' + q.goal) + '</b></div>';
+    }).join('');
+    html += '<p class="info-note">임무는 날마다 바뀐다. 하나 끝낼 때마다 복무 패스 +' + S.PASS.mission + '</p>';
+    list.insertAdjacentHTML('beforeend', html);
+  }
+  function renderPass(list) {
+    var p = G2.pass(save, Date.now()), html = '<div class="pass-head"><div><b>복무 패스 ' + p.tier + ' / ' + S.PASS.tiers + '단계</b><small>시즌 끝까지 ' + p.days + '일 · 작전 ★마다 +' + S.PASS.opStar + ' · 임무 +' + S.PASS.mission + ' · 점호 +' + S.PASS.roll + '</small></div>' +
+      '<div class="mi-bar"><i style="width:' + (p.tier >= S.PASS.tiers ? 100 : p.into) + '%"></i></div><div class="pass-btns">' +
+      (p.claim ? '<button class="btn small" data-pclaim="1">보상 받기 (' + p.claim + ')</button>' : '') +
+      (p.prem ? '<span class="prem-on">프리미엄 열림</span>' : '<button class="btn small prem" data-pprem="1"' + (save.dia >= S.PASS.premium ? '' : ' disabled') + '>프리미엄 열기 ' + dia() + ' ' + S.PASS.premium + '</button>') + '</div></div>';
+    html += '<div class="pass-list"><div class="pl-h"><span>단계</span><span>무료</span><span>프리미엄</span></div>';
+    for (var t = 1; t <= S.PASS.tiers; t++) {
+      var reach = t <= p.tier, gf = save.pass.got[t], gp = save.pass.gotP[t];
+      html += '<div class="pl-row' + (reach ? ' reach' : '') + (t === p.tier + 1 ? ' next' : '') + '"><b>' + t + '</b><span class="' + (gf ? 'got' : '') + '">' + rewardText(G2.passReward(t, false)) + '</span><span class="prem-c' + (gp ? ' got' : '') + (p.prem ? '' : ' locked') + '">' + rewardText(G2.passReward(t, true)) + '</span></div>';
+    }
+    list.insertAdjacentHTML('beforeend', html + '</div>');
+  }
+  // 상자 연 결과: 장구 카드 + 부품 (+ 합성할 게 생겼으면 알려 준다)
+  function chestReveal(r) {
+    var items = r.got.map(function (g) { var R = G2.rarDef(g.item.rar), sl = G2.slotDef(g.item.slot); return '<div class="cr-it' + (g.pity ? ' pity' : '') + '" style="--rc:' + R.color + '">' + gearIcon(sl.id) + '<b>' + R.name + '</b><small>' + sl.name + '</small></div>'; }).join('');
+    var parts = r.got.reduce(function (a, g) { return a + g.parts; }, 0), best = r.got.reduce(function (a, g) { return Math.max(a, G2.rarIdx(g.item.rar)); }, 0);
+    if (X) { if (best >= 3) X.fanfare(); else X.dia(); }
+    modal('<div class="m-chest"><p class="kicker">' + esc(r.chest.name) + '</p><h3>' + (best >= 4 ? '전설!!' : best >= 3 ? '영웅!' : '보급 도착') + '</h3><div class="cr-grid' + (r.got.length > 1 ? ' many' : '') + '">' + items + '</div><p>정비 부품 +' + parts + (G2.mergeable(save).length ? ' · <b>합성할 수 있는 장구가 생겼다</b>' : '') + '</p><button class="btn big" data-m="ok">좋다!</button></div>', function () { renderShop(); });
+  }
+
   function onShopClick(e) {
+    // v18 장구·상자·임무·패스
+    var gq = e.target.closest('[data-geq],[data-gup],[data-gmerge],[data-chest],[data-mstep],[data-pclaim],[data-pprem]');
+    if (gq && G2) {
+      var now = Date.now(), r;
+      if (gq.hasAttribute('data-geq')) { G2.equip(save, +gq.getAttribute('data-geq')); if (X) X.pop(); }
+      else if (gq.hasAttribute('data-gup')) { r = G2.upgrade(save, +gq.getAttribute('data-gup')); if (r) { if (X) X.buy(); toast(G2.rarDef(r.item.rar).name + ' ' + G2.slotDef(r.item.slot).name + ' Lv' + r.item.lv + '!'); } else { if (X) X.deny(); toast('초코파이나 정비 부품이 모자라다'); } }
+      else if (gq.hasAttribute('data-gmerge')) { r = G2.mergeAll(save); if (r.length) { if (X) X.fanfare(); toast('합성! ' + r.map(function (it) { return G2.rarDef(it.rar).name + ' ' + G2.slotDef(it.slot).name; }).join(', ')); } }
+      else if (gq.hasAttribute('data-chest')) { r = G2.open(save, gq.getAttribute('data-chest'), gq.getAttribute('data-how'), now); if (r) { persistRaw(); renderShop(); chestReveal(r); return; } if (X) X.deny(); toast('상점이 모자라다'); }
+      else if (gq.hasAttribute('data-mstep')) { r = G2.claimStep(save, now, +gq.getAttribute('data-mstep')); if (r) { if (X) X.dia(); toast('임무 보상: ' + r.join(' · ')); } }
+      else if (gq.hasAttribute('data-pclaim')) { r = G2.claimPass(save, now); if (r.length) { if (X) X.fanfare(); toast('패스 보상 ' + r.length + '개: ' + r.slice(0, 3).join(' · ') + (r.length > 3 ? ' …' : '')); } }
+      else if (gq.hasAttribute('data-pprem')) { if (G2.buyPremium(save, now)) { if (X) X.fanfare(); toast('프리미엄 패스 열림! 지난 단계 보상도 받을 수 있다'); } }
+      persistRaw(); renderShop(); return;
+    }
     var lt = e.target.closest('[data-ltab]');
     if (lt) { lookTab = lt.getAttribute('data-ltab'); renderShop(); return; }
     var lk = e.target.closest('[data-look]');
@@ -826,6 +960,7 @@
       var html = '<div>' + pie() + '+' + fmt(r.pie) + '</div>';
       if (r.dia) html += '<div>' + dia() + ' 상점 +' + r.dia + '</div>';
       if (r.item) html += '<div style="color:' + S.RARITY[r.item.r].color + '">' + esc(r.item.name) + ' (' + RAR[r.item.r] + ')</div>';
+      if (r.gear) html += '<div class="loot-gear" style="color:' + G2.rarDef(r.gear.rar).color + '">' + gearIcon(r.gear.slot) + ' ' + G2.rarDef(r.gear.rar).name + ' ' + G2.slotDef(r.gear.slot).name + (r.parts ? ' <small>· 부품 +' + r.parts + '</small>' : '') + '</div>';
       $('box-loot').innerHTML = html;
       var ok = $('box-ok'); ok.disabled = false; ok.textContent = save.boxes.length ? '좋다! (상자 ' + save.boxes.length + '개 남음)' : '좋다!';
       if (X) { if (tier === 'legend') X.fanfare(); else X.perfect(); }
@@ -855,6 +990,7 @@
   function rollCall() {
     if (!M) return false;
     var r = M.rollCall(save, Date.now());
+    if (r && G2) G2.onRollCall(save, Date.now());   // v18: 점호 = 체력 가득 + 패스 +20
     if (!r) return false;
     persistRaw();
     modal('<div class="m-rank"><div class="m-face">' + haengFace() + '</div><p class="kicker">아침 점호</p><h3>출석 ' + r.streak + '일째!</h3><p>' + (r.tier === 'legend' ? '7일 연속! <b>전설 보급 상자</b>다!' : r.tier === 'rare' ? '연속 출석 보상: <b>희귀 보급 상자</b>' : '오늘의 보급 상자 하나. 3일 연속이면 희귀, 7일이면 전설!') + '</p><div class="res-btns"><button class="btn ghost" data-m="later">나중에</button><button class="btn big" data-m="open">바로 열기</button></div></div>', function (k) { if (k === 'open') openBox(); });
@@ -1236,6 +1372,7 @@
   }
 
   /* ── 시작 ── */
+  setInterval(function () { if (G2 && !$('title').hidden) enPill(); }, 1000);   // v18 생활관 체력 시계
   function boot() {
     var SAY_OK = { exam: 1, heavy: 1, deer: 1, car: 1, carStuck: 1, roofWarn: 1, sleep: 1, slack: 1, surge: 1, surprise: 1, support: 1 };
     var hooks = { say: function (k) { if (SAY_OK[k]) say(k); }, tick: tick, event: onEvent };

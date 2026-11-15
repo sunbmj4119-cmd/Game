@@ -1,5 +1,5 @@
 /* 오프라인 캐시: 한 번 접속하면 비행기 모드에서도 플레이 가능 */
-var CACHE = 'jeonyeok-v15';   // v15: 제설각 v17 (진행 곡선·이번 주 작전·부재 보상) — 예전 캐시를 비운다
+var CACHE = 'jeonyeok-v16';   // v16: 제설각 v18 (장구류·보급 상자·출동 체력·임무·복무 패스) — 예전 캐시를 비운다
 var ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/art.js', './js/data/chars.js', './js/data/cards.js', './js/data/cards2.js', './js/data/cards3.js', './js/data/cards4.js', './js/data/cards5.js', './js/data/cards6.js', './js/data/cards7.js', './js/data/cards8.js', './js/data/items.js',

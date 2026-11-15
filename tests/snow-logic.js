@@ -4,6 +4,7 @@
 global.window = {};
 require('../js/snow/data.js');
 require('../js/snow/sim.js');
+require('../js/snow/gear.js');
 var S = window.JY.SNOW, G = window.JY.SnowSim, pass = 0, fail = 0;
 function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }
 function run(w, sec, inp) { for (var t = 0; t < sec; t += 1 / 30) G.step(w, 1 / 30, inp || null); }

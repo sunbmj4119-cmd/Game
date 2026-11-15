@@ -105,11 +105,12 @@
   function crewCost(C, n) { return Math.round(C.cost * Math.pow(C.grow, n)); }
   function perkCost(P, l) { return Math.round(P.cost * Math.pow(P.grow, l)); }
   function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
-  function incomeMult(save) { return (1 + 0.08 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save); }   // v17: 제설 요령 15% → 8% (돈이 너무 빨리 불었다)
+  function incomeMult(save) { return (1 + 0.08 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save) * (1 + gb(save).pay); }   // v17: 제설 요령 15% → 8% (돈이 너무 빨리 불었다)
   function toolOf(save) { return S.TOOLS[save.tool]; }
   function spec(save, id) { var sp = save.spec || {}; return sp[1] === id || sp[2] === id || sp[3] === id; }
   function specDue(save) { var r = rankOf(save); for (var i = 0; i < S.SPECS.length; i++) if (r >= S.SPECS[i].rank && !(save.spec || {})[S.SPECS[i].rank]) return S.SPECS[i]; return null; }
-  function toolR(save) { return Math.round(toolOf(save).r * (1 + 0.1 * (save.toolStar || 0)) * (spec(save, 'shovel') ? 1.25 : 1)); }
+  function gb(save) { return JY.SnowGear && save.gear ? JY.SnowGear.bonus(save) : { hand: 0, move: 0, range: 0, cap: 0, pay: 0 }; }   // v18 장구류
+  function toolR(save) { return Math.round(toolOf(save).r * (1 + 0.1 * (save.toolStar || 0)) * (spec(save, 'shovel') ? 1.25 : 1) * (1 + gb(save).range)); }
   function gainDia(w, n, why) {
     if (w.demo || n <= 0) return 0;
     w.save.dia += n; w.save.diaLife += n; w.today.dia += n;
@@ -119,7 +120,7 @@
   }
   function stat(w, k, n) { if (w.demo) return; var st = w.save.stats; st[k] = (st[k] || 0) + (n || 1); }
   function rideUp(save, rid, uid) { var r = (save.rideUp || {})[rid] || {}; return r[uid] || 0; }
-  function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back')) * (spec(save, 'mule') ? 1.6 : 1)); }
+  function capOf(save) { return Math.round(toolOf(save).cap * (1 + 0.3 * lvl(save, 'back')) * (spec(save, 'mule') ? 1.6 : 1) * (1 + gb(save).cap)); }
   function crewCap(save) { return S.CREW_CAP[rankOf(save)] || 0; }
   function pendN(save, id) { return (save.pend || []).filter(function (p) { return !id || p.id === id; }).length; }
   function crewCount(save) { return S.CREW.reduce(function (a, C) { return a + crewN(save, C.id); }, 0); }
@@ -214,7 +215,8 @@
     var gain = medalGain(save);
     var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits,
       dia: save.dia, diaLife: save.diaLife, found: save.found, ach: save.ach, stats: save.stats, roll: save.roll, boxes: save.boxes, bestCombo: save.bestCombo,
-      look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest, leave: save.leave, fun: save.fun || {} };
+      look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest, leave: save.leave, fun: save.fun || {},
+      gear: save.gear, parts: save.parts || 0, pity: save.pity, chestT: save.chestT, energy: save.energy, pass: save.pass, daily: save.daily };   // v18: 장구·상자·체력·패스·임무는 전역해도 남는다
     var fresh = newSave();
     Object.keys(fresh).forEach(function (k) { save[k] = fresh[k]; });
     Object.keys(keep).forEach(function (k) { save[k] = keep[k]; });
@@ -1212,7 +1214,7 @@
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
     mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
-    canDischarge: canDischarge, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
+    canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
     examDue: examDue, assignZones: assignZones, clockOf: clockOf, timeAt: timeAt, clockText: clockText, initOp: initOp, checkTasks: checkTasks, opStatus: opStatus, gradeOp: gradeOp, endOp: endOp, syncOpSave: syncOpSave, taskPct: taskPct,
     crewCap: crewCap, pendN: pendN, assignRecruit: assignRecruit, setPost: setPost, autoPost: autoPost, zoneAt: zoneAt, arriveRecruits: arriveRecruits, zoneIndex: zoneIndex,

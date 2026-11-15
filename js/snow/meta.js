@@ -36,6 +36,7 @@
     out.pie = Math.round(out.pie);
     save.bank += out.pie; save.life += out.pie; save.dia += out.dia; save.diaLife += out.dia;
     if (out.item) { save.found[out.item.id] = (save.found[out.item.id] || 0) + 1; save.stats.found = (save.stats.found || 0) + 1; }
+    if (JY.SnowGear) { var gr = JY.SnowGear.boxGear(save, tier); out.gear = gr.item; out.parts = gr.parts; }   // v18: 상자마다 장구 하나 + 정비 부품
     return out;
   }
 

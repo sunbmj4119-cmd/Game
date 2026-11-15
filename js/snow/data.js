@@ -193,6 +193,53 @@
     { id: 'sports', name: '체육대회 주간', line: '족구 골 보상 세 배 (여섯 골까지) · 눈싸움하면 분대 사기 +', need: 'kick', mods: { goal: 3, fight: true } },
     { id: 'motor', name: '정비 주간', line: '탈것 기름 무한 · 탈것 속도 +20%', need: 'cart', mods: { fuelFree: true, rideSpd: 1.2 } }
   ];
+  /* ── v18 오래 하는 성장 (궁수의 전설식): 장구류 · 보급 상자 · 출동 체력 · 일일 임무 · 복무 패스 ──
+   * 장구류는 전역해도 남는다 → 복무를 여러 번 돌수록 강해진다 (끝나지 않는 성장) */
+  var GEAR = {
+    slots: [
+      { id: 'glove', name: '방한 장갑', stat: 'hand', base: 0.04, unit: '손 빠르기' },
+      { id: 'boots', name: '전투화', stat: 'move', base: 0.025, unit: '이동' },
+      { id: 'blade', name: '넉가래 날', stat: 'range', base: 0.05, unit: '범위' },
+      { id: 'pack', name: '군장', stat: 'cap', base: 0.07, unit: '적재' },
+      { id: 'patch', name: '부대 마크', stat: 'pay', base: 0.04, unit: '초코파이' }
+    ],
+    // 같은 칸·같은 등급 3개 → 한 등급 위 (레벨은 높은 쪽을 이어받는다)
+    rar: [
+      { id: 'c', name: '보통', mul: 1, maxLv: 10, color: '#aab6c4' },
+      { id: 'u', name: '고급', mul: 1.8, maxLv: 20, color: '#4fb562' },
+      { id: 'r', name: '희귀', mul: 3, maxLv: 30, color: '#3d8de0' },
+      { id: 'e', name: '영웅', mul: 5, maxLv: 40, color: '#9b5de5' },
+      { id: 'l', name: '전설', mul: 8, maxLv: 50, color: '#f08c00' }, { id: 'm', name: '신화', mul: 11, maxLv: 60, color: '#e8484d', fuseOnly: true }
+    ],
+    merge: 3, lvStep: 0.012,
+    upPie: 150, upParts: 1   // 강화: 초코파이 150 × 등급 × 레벨^1.4, 정비 부품 1 + 레벨/5
+  };
+  // 보급 상자: 일반(4시간마다 무료) · 고급(10번째 영웅 확정) · 특급(값이 내려가고 15번째 전설 확정)
+  var CHESTS = [
+    { id: 'basic', name: '일반 보급 상자', dia: 8, free: 4 * 3600, odds: { c: 72, u: 24, r: 4 }, parts: [2, 4] },
+    { id: 'good', name: '고급 보급 상자', dia: 30, odds: { u: 64, r: 31, e: 4.5, l: 0.5 }, pity: { n: 10, rar: 'e' }, parts: [4, 8], ten: 270 },
+    { id: 'elite', name: '특급 보급 상자', dia: [90, 85, 80], odds: { r: 70, e: 27, l: 3 }, pity: { n: 15, rar: 'l' }, parts: [10, 18] }
+  ];
+  // 출동 체력: 작전 1번 5, 10분에 1씩 찬다, 최대 25 (작전 5번). 이병(신병 기간)은 안 든다. 아침 점호 때 가득
+  var ENERGY = { max: 25, cost: 5, regen: 600, fromRank: 1, refill: [20, 30, 50] };
+  // 일일 임무: 날마다 5개 (열린 기능 중에서). 하나에 20점 → 40·70·100점 보상
+  var MISSIONS = [
+    { id: 'ops', text: '작전 2번', stat: 'ops', goal: 2 },
+    { id: 'dumps', text: '집하장에 30번 붓기', stat: 'dumps', goal: 30 },
+    { id: 'perfect', text: '조각 완벽 3번', stat: 'perfect', goal: 3 },
+    { id: 'salute', text: '간부에게 경례 2번', stat: 'salute', goal: 2, need: 'officer' },
+    { id: 'kal', text: '칼경례 1번', stat: 'kal', goal: 1, need: 'officer' },
+    { id: 'throw', text: '눈덩이 5번 던지기', stat: 'throw', goal: 5, need: 'snowball' },
+    { id: 'box', text: '보급 상자 1개 열기', stat: 'boxOpen', goal: 1 },
+    { id: 'gearUp', text: '장구 강화 1번', stat: 'gearUp', goal: 1 },
+    { id: 'shoo', text: '고라니 쫓기 1번', stat: 'shoo', goal: 1, need: 'deer' },
+    { id: 'salt', text: '빙판에 염화칼슘 2번', stat: 'salt', goal: 2, need: 'ice' },
+    { id: 'tasks', text: '지시서 4줄 끝내기', stat: 'tasks', goal: 4 }
+  ];
+  var MISSION_DAY = { n: 5, pts: 20, steps: [{ at: 40, parts: 6 }, { at: 70, box: 'common', pie: 1 }, { at: 100, dia: 10, parts: 10 }] };
+  // 복무 패스: 28일 시즌, 30단계 (100점마다 한 단계). 무료 줄과 프리미엄 줄(상점 150으로 연다)
+  var PASS = { tiers: 30, xp: 100, season: 28, premium: 150, opStar: 5, mission: 10, roll: 20 };
+
   // v16 진급 특기: 진급할 때 둘 중 하나 (전역하면 다시 고른다). 밸런스 점검에서 '무엇을 사든 결과가 같다'가 나와서 넣은 갈림길
   var SPECS = [
     { rank: 1, opts: [{ id: 'shovel', name: '삽질 장인', line: '내 도구 범위 +25%', tag: '혼자 빠르게' }, { id: 'leader', name: '분대 챙기기', line: '분대원 속도 +40%', tag: '분대와 함께' }] },
@@ -221,6 +268,9 @@
     { id: 'factory', when: { zone: 'C' } },
     { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
     { id: 'week', when: { ops: 7 }, name: '이번 주 작전', line: '7일마다 주제가 바뀐다 (폭설 주간·고라니 대이동…)' },
+    { id: 'gear', when: { ops: 1 }, name: '장구류 · 보급 상자', line: '장갑·전투화·넉가래 날… 같은 것 3개면 한 등급 위. 전역해도 남는다' },
+    { id: 'mission', when: { ops: 2 }, name: '일일 임무 · 복무 패스', line: '날마다 임무 5개, 작전·임무로 패스가 오른다' },
+    { id: 'energy', when: { rank: 1 }, name: '출동 체력', line: '작전 1번에 5 · 10분에 1씩 찬다 (최대 25)' },
     // v14 재미·탈것
     { id: 'snowball', when: { zone: 'B' }, name: '눈덩이', line: '근처에 누가 있으면 눈덩이 버튼 · 고라니는 두 방이면 벌러덩' },
     { id: 'kick', when: { zone: 'B' } },
@@ -521,7 +571,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, LEAVE: LEAVE, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, CALLS: CALLS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.1, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

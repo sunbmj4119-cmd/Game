@@ -5,7 +5,7 @@
  * node tests/snow-sim.js [작전 수] [시드] [효율 0~1] [-v] */
 'use strict';
 global.window = {};
-['data', 'sim', 'act', 'meta'].forEach(function (f) { require('../js/snow/' + f + '.js'); });
+['data', 'sim', 'act', 'meta', 'gear'].forEach(function (f) { require('../js/snow/' + f + '.js'); });
 var JY = window.JY, S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct;
 
 var OPS = +process.argv[2] || 40, SEED = +process.argv[3] || 7, EFF = process.argv[4] ? +process.argv[4] : 0.8, VERBOSE = process.argv.indexOf('-v') > 0;

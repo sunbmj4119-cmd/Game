@@ -140,6 +140,26 @@ function scan() {
     for (var t2 of ['tool', 'crew', 'up']) { var tb2 = await page.$('#s-tabs [data-tab="' + t2 + '"]'); if (!tb2) continue; await tb2.click(); await sleep(250); await check('extreme-shop-' + t2); }
     await page.click('#s-go'); await sleep(400); await closeAll();
     await page.click('[data-hub="settings"]'); await sleep(300); await check('extreme-settings'); await closeAll();
+    // v18 극단값: 칸마다 모든 등급 최대 레벨, 부품·상점 많이, 패스 끝까지 → 장구·상자·임무·패스·10개 열기·체력 부족
+    await page.evaluate(function () {
+      var s = __SNOW.save(), Q = JY.SnowGear, now = Date.now(); Q.init(s); s.parts = 98765;
+      JY.SNOW.GEAR.slots.forEach(function (sl) { JY.SNOW.GEAR.rar.forEach(function (r) { var it = Q.addItem(s, sl.id, r.id); it.lv = r.maxLv; }); Q.addItem(s, sl.id, 'c'); Q.addItem(s, sl.id, 'c'); });
+      Q.passXp(s, now, 99999); s.pass.prem = true; Q.missions(s, now); s.stats.ops = 60; JY.SnowSim.newFeatures(s, true); __SNOW.title();
+    });
+    await sleep(500); await closeAll(); await check('extreme18-hub');
+    for (var hb2 of ['gear', 'mission']) {
+      var b18 = await page.$('[data-hub="' + hb2 + '"]:not([hidden])'); if (!b18) { report.push(tag + ' v18 버튼 없음: ' + hb2); problems++; continue; }
+      await b18.click(); await sleep(400);
+      var tabs18 = await page.$$eval('#s-tabs [data-tab]', function (l) { return l.map(function (b) { return b.getAttribute('data-tab'); }); });
+      for (var t18 of tabs18) { await page.click('#s-tabs [data-tab="' + t18 + '"]'); await sleep(300); await check('v18-' + t18); }
+      await page.click('#s-go'); await sleep(400); await closeAll();
+    }
+    await page.click('[data-hub="gear"]'); await sleep(300); await page.click('#s-tabs [data-tab="chest"]'); await sleep(300);
+    var ten = await page.$('[data-chest="good"][data-how="ten"]:not([disabled])');
+    if (ten) { await ten.click(); await sleep(1200); await check('v18-chest-ten'); await closeAll(); }
+    await page.click('#s-go'); await sleep(400); await closeAll();
+    await page.evaluate(function () { var s = __SNOW.save(); s.energy = { v: 2, t: Date.now() }; s.op = null; s.rank = Math.max(1, s.rank); __SNOW.title(); });
+    await sleep(300); await closeAll(); await page.click('#t-start'); await sleep(500); await check('v18-energy-gate'); await closeAll();
     // PX · 상자 · 대사
     await page.click('[data-hub="px"]'); await sleep(400); await check('px');
     var cl = await page.$('#modal [data-m]'); if (cl) await cl.click(); await sleep(300);

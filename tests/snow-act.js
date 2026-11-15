@@ -9,6 +9,7 @@ require('../js/snow/data.js');
 require('../js/snow/sim.js');
 require('../js/snow/act.js');
 require('../js/snow/meta.js');
+require('../js/snow/gear.js');
 var M = window.JY.SnowMeta;
 var S = window.JY.SNOW, G = window.JY.SnowSim, A = window.JY.SnowAct, pass = 0, fail = 0;
 function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }

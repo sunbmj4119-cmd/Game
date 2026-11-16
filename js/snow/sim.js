@@ -119,7 +119,10 @@
   function crewCost(C, n) { return Math.round(C.cost * Math.pow(C.grow, n)); }
   function perkCost(P, l) { return Math.round(P.cost * Math.pow(P.grow, l)); }
   function procMult(save) { return S.PROC.reduce(function (a, P) { return a + P.add * procLvl(save, P.id); }, 1); }
-  function incomeMult(save) { return (1 + 0.08 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save) * (1 + gb(save).pay); }   // v17: 제설 요령 15% → 8% (돈이 너무 빨리 불었다)
+  // v24 멋: 산 꾸미기 등급만큼 점수 → 초코파이 보너스
+  function styleScore(save) { var u = save.unlocked || {}, n = 0; Object.keys(S.LOOK).forEach(function (cat) { S.LOOK[cat].forEach(function (e) { var k = cat + ':' + e[0]; if (e[2] && u[k]) n += S.LOOK_TIER[S.LOOK_RAR[k] || 'c'].pts; }); }); return n; }
+  function styleBonus(save) { return Math.min(S.STYLE.cap, styleScore(save) * S.STYLE.per); }
+  function incomeMult(save) { return (1 + 0.08 * lvl(save, 'praise')) * (1 + 0.1 * save.medals) * procMult(save) * (1 + gb(save).pay) * (1 + styleBonus(save)); }   // v17: 제설 요령 15% → 8% (돈이 너무 빨리 불었다)
   function toolOf(save) { return S.TOOLS[save.tool]; }
   function spec(save, id) { var sp = save.spec || {}; return sp[1] === id || sp[2] === id || sp[3] === id; }
   function specDue(save) { var r = rankOf(save); for (var i = 0; i < S.SPECS.length; i++) if (r >= S.SPECS[i].rank && !(save.spec || {})[S.SPECS[i].rank]) return S.SPECS[i]; return null; }
@@ -992,15 +995,15 @@
         var c = w.crew[j];
         if (c.injured > 0 || c.def.vehicle || c.off) continue;
         if (Math.abs(c.x - d.x) < hr && Math.abs(c.y - d.y) < hr) {
-          // 놀라서 주저앉는다 (짐은 안 쏟는다)
-          c.injured = HAZ.deer.injure * (1 - 0.15 * medic); c.asleep = false; d.hitT = 0.8; d.heading += Math.PI * 0.8; w.hits++;
+          // v24 지나가다 박으면 그냥 벌러덩 넘어진다 — 고라니는 멈추지 않고 그대로 지나간다 (짐은 안 쏟는다)
+          c.injured = HAZ.deer.injure * (1 - 0.15 * medic); c.asleep = false; c.slack = false; d.hitT = 0.45; d.heading += (R() - 0.5) * 0.5; w.hits++;
           w.fx.push({ t: 'deerHit', e: c, x: c.x, y: c.y }); say(w, 'deerHit', true); break;
         }
       }
       if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr && (P.body || 6) > 9) { d.hitT = 1; d.heading += Math.PI * 0.8; }   // v14: 탈것에 타면 고라니가 튕겨 나간다
       else if (d.hitT <= 0 && P.stun <= 0 && Math.abs(P.x - d.x) < hr && Math.abs(P.y - d.y) < hr) {
-        P.stun = HAZ.deer.stun * (1 - 0.1 * medic) * w.mod.stun; d.hitT = 1; d.heading += Math.PI * 0.8; w.hits++;
-        w.fx.push({ t: 'meHit', x: P.x, y: P.y, spilled: 0 }); say(w, 'meHit', true);
+        P.stun = HAZ.deer.stun * (1 - 0.1 * medic) * w.mod.stun; d.hitT = 0.6; d.heading += (R() - 0.5) * 0.5; w.hits++;
+        w.fx.push({ t: 'meHit', x: P.x, y: P.y, spilled: 0, deer: true }); say(w, 'meHit', true);
       }
     }
     var car = w.car;
@@ -1258,7 +1261,7 @@
   }
 
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
-    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
+    mulberry: mulberry, styleScore: styleScore, styleBonus: styleBonus, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,

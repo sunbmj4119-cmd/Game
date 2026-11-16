@@ -1211,3 +1211,42 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .sk-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #8fd36b, #3fae6a); }
 .sk-row small { font-size: 12px; color: var(--mute); }
 .sec-t small { font-weight: 400; font-size: 11.5px; color: var(--mute); margin-left: 4px; }
+/* v24 눈덩이: 그냥 누르면 '끌어서' 안내 — 버튼이 좌우로 흔들린다 */
+@keyframes throw-nudge { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-7px) rotate(-6deg); } 45% { transform: translateX(7px) rotate(6deg); } 70% { transform: translateX(-4px); } }
+.throwb.nudge { animation: throw-nudge .55s ease; }
+.throwb.nudge small { color: #c8402e; font-weight: 800; }
+/* v24 꾸미기: 등급 테두리 · 입어 보기 · 오늘의 특가 · 멋 점수 */
+.tier { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 99px; color: #fff; vertical-align: middle; white-space: nowrap; }
+.tier.t-c { background: #8a96a6; } .tier.t-r { background: #2f80ed; } .tier.t-e { background: #9b51e0; } .tier.t-l { background: linear-gradient(90deg, #e8a400, #ffcf3a, #e8a400); color: #4a3200; }
+.lcard.t-r { box-shadow: inset 0 0 0 2.5px #2f80ed; background: #f1f7ff; }
+.lcard.t-e { box-shadow: inset 0 0 0 2.5px #9b51e0; background: #f7f0ff; }
+.lcard.t-l { box-shadow: inset 0 0 0 3px #e8a400, 0 0 10px rgba(232,164,0,.35); background: linear-gradient(160deg, #fffaf0, #fff1c7); overflow: hidden; }
+.lcard.t-l::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%); transform: translateX(-120%); animation: lk-shine 2.6s ease-in-out infinite; pointer-events: none; }
+@keyframes lk-shine { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.lcard.on { box-shadow: inset 0 0 0 3px var(--olive), 0 3px 0 #c9d2b4; }
+.lcard.trying { box-shadow: inset 0 0 0 3px #ff8a3d, 0 0 0 3px rgba(255,138,61,.25); background: #fff6ee; }
+.lcard em.try { color: #e0661b; font-weight: 700; }
+.lcard em.cost s, .look-deal s { color: #9aa6b5; font-size: 10px; margin-right: 3px; }
+.ltier { position: absolute; top: 4px; left: 4px; font-style: normal; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 6px; color: #fff; background: #8a96a6; z-index: 1; }
+.lcard.t-r .ltier { background: #2f80ed; } .lcard.t-e .ltier { background: #9b51e0; } .lcard.t-l .ltier { background: #e8a400; color: #3d2a00; }
+.lnew { position: absolute; top: 4px; right: 4px; font-style: normal; font-size: 9.5px; font-weight: 900; padding: 1px 5px; border-radius: 6px; color: #fff; background: #ff4d4f; z-index: 1; }
+.lnew.deal { background: #ff8a3d; }
+.look-tabs button { position: relative; }
+.look-tabs .nd { position: absolute; top: -4px; right: -4px; font-style: normal; font-size: 9px; font-weight: 900; width: 16px; height: 16px; line-height: 16px; border-radius: 50%; background: #ff4d4f; color: #fff; text-align: center; }
+.look-try { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; background: #fff3e6; color: #4a2a0a; border-radius: 12px; padding: 8px 10px; box-shadow: inset 0 0 0 2px #ff8a3d; }
+.look-try > span:first-child { font-size: 13.5px; min-width: 0; }
+.look-try b { font-weight: 800; margin-right: 4px; color: #e0661b; }
+.look-try .lt-btns { display: inline-flex; gap: 6px; flex: none; }
+.look-try .btn.sm { padding: 7px 12px; font-size: 14px; min-height: 0; }
+.look-try .btn.gold { background: #ffcf3a; color: #3d2a00; }
+.look-try .btn[disabled] { opacity: .5; }
+.look-style { position: relative; display: grid; gap: 2px; background: rgba(255,255,255,.08); border-radius: 12px; padding: 8px 10px 10px; font-size: 13.5px; color: #e9f0f8; overflow: hidden; }
+.look-style b { color: #ffd34d; }
+.look-style small { font-size: 11.5px; color: #b8c7d9; }
+.look-style i { position: absolute; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #ffd34d, #ff8a3d); border-radius: 0 4px 4px 0; }
+.look-deal { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; border: 0; text-align: left; border-radius: 12px; padding: 6px 10px 6px 6px; background: linear-gradient(90deg, #fff1c7, #ffe0c2); color: #3d2a00; cursor: pointer; box-shadow: inset 0 0 0 2px #ff8a3d; }
+.look-deal .lthumb { width: 56px; height: 56px; }
+.look-deal > span:last-child { display: grid; gap: 1px; min-width: 0; }
+.look-deal small { font-size: 11px; font-weight: 800; color: #e0661b; }
+.look-deal b { font-size: 14.5px; font-weight: 700; }
+.look-deal em { font-style: normal; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; }

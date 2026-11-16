@@ -150,7 +150,7 @@ var wNo = fresh(); ok(!A.candidates(wNo).some(function (c) { return c.k === 'gar
 // ── 고라니 쫓기 · 짬타이거 · 난로 · 구령대(상병부터) ──
 w = fresh(function (s) { s.day = 5; }); away(w); G.spawn(w, 'deer');
 var dr = w.deer[0]; dr.x = w.player.x + 20; dr.y = w.player.y; dr.turnT = 9; dr.hitT = 9; var bD = w.save.bank;
-G.step(w, 1 / 30, null);
+G.step(w, 1 / 30, { x: 1, y: 0 }); G.step(w, 1 / 30, { x: 1, y: 0 });
 ok(dr.leaving && w.save.bank > bD && w.save.stats.shoo === 1, '고라니에게 다가가면 "훠이!" 도망가고 초코파이', [dr.leaving, w.save.bank - bD]);
 var stv = S.PROPS.filter(function (p) { return p.id === 'stove'; })[0]; w.player.x = stv.ux; w.player.y = stv.uy + 12; run(w, 1);
 ok(A.state(w).buffs.some(function (b) { return b.id === 'warm'; }) && w.mod.hit < 1, '드럼통 난로 옆에 서 있으면 몸 녹이기 → 손이 빨라진다');
@@ -283,7 +283,7 @@ var sL = G.newSave(), oL = M.lookOptions(sL);
 ok(oL.hat.filter(function (h) { return h.id === 'beret'; })[0].state === 'lock' && oL.hat.filter(function (h) { return h.id === 'crown'; })[0].state === 'buy', '베레모는 스토리, 왕관은 상점');
 ok(!M.setLook(sL, 'hat', 'crown') && sL.look.hat === 'beanie', '안 가진 건 못 쓴다');
 ok(!M.buyLook(sL, 'hat', 'crown'), '상점이 없으면 못 산다');
-sL.dia = 20; ok(M.buyLook(sL, 'hat', 'crown') && sL.look.hat === 'crown' && sL.dia === 5, '상점 15로 왕관');
+var pcr = M.priceOf(sL, 'hat', 'crown'); sL.dia = pcr + 5; ok(pcr >= 28 && M.buyLook(sL, 'hat', 'crown') && sL.look.hat === 'crown' && sL.dia === 5, 'v24 왕관은 전설 (상점 ' + pcr + ')');
 M.setLook(sL, 'extras', 'glasses'); M.setLook(sL, 'extras', 'sweat');
 ok(sL.look.extras.length === 3 && sL.look.extras.indexOf('snot') < 0, '얼굴 소품은 3개까지 (오래된 것부터 빠짐)', sL.look.extras);
 ok(M.lookSpec(sL).hat === 'crown' && M.lookColor(sL, 'tool') === '#e7ae2f', '모습 → 그림 스펙·색');
@@ -561,6 +561,67 @@ ok((wsk2.save.skill.legs || 0) > 0 && fxs(wsk2, 'skillUp').length >= 0, 'v23 걸
 var sc0 = G.newSave(); sc0.crewXp = { hoobae: 20000 }; ok(G.crewLv(sc0, 'hoobae').lv > 3, 'v23 분대원 숙련: 많이 부을수록 레벨 (후임 20000 → Lv ' + G.crewLv(sc0, 'hoobae').lv + ')');
 var ds = G.newSave(); ds.skill = { shovel: 500 }; ds.crewXp = { hoobae: 900 }; ds.rank = 3; ds.merit = S.DISCHARGE_MERIT; ds.life = 1e7; G.discharge(ds);
 ok(ds.skill.shovel === 500 && ds.crewXp.hoobae === 900, 'v23 숙련은 전역해도 남는다');
+
+// ── v24 고라니가 지나가다 박으면 벌러덩 (나 · 분대원 · 간부 · 행보관) · 후임 폐급짓 ──
+function v24(fn) { var w0 = v23(fn); away(w0); w0.act.off = []; w0.act.offPlan = []; w0.deer = []; w0.act.chaosAt = 1e9; w0.act.pyeAt = 1e9; w0.crew.forEach(function (c) { c.x = 60; c.y = 1150; }); run(w0, 0.1); return w0; }
+var wd = v24(), Pd = wd.player; Pd.dir = { x: 1, y: 0 }; var dd0 = deerAt(wd, Pd.x - 20, Pd.y); dd0.heading = 0; dd0.kickT = 9;
+run(wd, 0.4);
+ok(Pd.stun > 0.6 && dd0.x > Pd.x - 6 && !dd0.leaving, 'v24 가만히 있는데 고라니가 달려오면 들이받혀 벌러덩 (고라니는 그대로 지나간다)', [Pd.stun, dd0.x - Pd.x, dd0.leaving]);
+var wd2 = v24(), cd = wd2.crew[0]; cd.x = 300; cd.y = 400; cd.ctl = null; var dd2 = deerAt(wd2, cd.x - 18, cd.y); dd2.heading = 0; dd2.kickT = 9; wd2.player.x = 600; wd2.player.y = 900;
+run(wd2, 0.3); ok(cd.injured > 0 && fxs(wd2, 'deerHit').length >= 0, 'v24 분대원도 고라니에 박히면 넘어진다', cd.injured);
+var wd3 = v24(), off3 = A.spawnOfficer(wd3, 'cpt'); off3.x = 320; off3.y = 420; off3.phase = 'stay'; off3.stayT = 99; off3.saluted = true; wd3.player.x = 600; wd3.player.y = 900;
+var dd3 = deerAt(wd3, off3.x - 18, off3.y); dd3.heading = 0; dd3.kickT = 9; run(wd3, 0.2);
+ok(off3.downT > 0 && !(off3.chaseT > 0) && wd3.save.fun.deerBoss, 'v24 고라니는 중대장님도 들이받는다 (내 탓 아님 → 안 쫓아옴) · 발견 "고라니의 하극상"', [off3.downT, off3.chaseT]);
+var wd4 = v24(), H4 = wd4.haeng; H4.x = 400; H4.y = 500; H4.hold = 99; wd4.player.x = 600; wd4.player.y = 900; var dd4 = deerAt(wd4, H4.x - 18, H4.y); dd4.heading = 0; dd4.kickT = 9; run(wd4, 0.2);
+ok(H4.downT > 0 && !(H4.chaseT > 0), 'v24 행보관도 고라니에 박히면 벌러덩', H4.downT);
+var wd5 = v24(), P5 = wd5.player; P5.dir = { x: 1, y: 0 }; var dd5 = deerAt(wd5, P5.x + 26, P5.y); dd5.turnT = 9; dd5.hitT = 9; var b5 = wd5.save.bank;
+G.step(wd5, 1 / 30, { x: 1, y: 0 }); G.step(wd5, 1 / 30, { x: 1, y: 0 });
+ok(dd5.leaving && wd5.save.bank > b5, 'v24 내가 다가가면 여전히 "훠이!" 하고 쫓는다');
+
+function pw(fn) { return v24(function (s) { s.crew = { hoobae: 2 }; s.rank = 2; if (fn) fn(s); }); }
+var wp = pw(), jp = wp.crew[0]; jp.x = wp.player.x + 60; jp.y = wp.player.y; A.startPye(wp, A.pyeDef('dump'), jp);
+ok(wp.act.pye && jp.ctl === 'pye' && A.state(wp).marks.some(function (m) { return m.label === '폐급!'; }) && /치운 길에 눈/.test(A.objective(wp).text), 'v24 폐급짓(눈 버리기): 표시 "폐급!" · 할 일 "후임이 치운 길에 눈을 버린다!"', A.objective(wp));
+run(wp, 6); var nDump = wp.act.pye ? wp.act.pye.n : -1;
+ok(nDump >= 1 && fxs(wp, 'pyeDump').length >= 0, 'v24 가만두면 치운 길에 눈을 쏟는다 (' + nDump + '번)', nDump);
+wp.player.x = jp.x + 12; wp.player.y = jp.y; var cp = A.candidates(wp).filter(function (c) { return c.k === 'pye'; })[0];
+ok(cp && cp.verb === '야! 멈춰!', 'v24 옆에 가면 "야! 멈춰!" 버튼', cp && cp.verb);
+var rp = A.act(wp, cp, wp.player.dir); ok(rp.ok && !wp.act.pye && jp.ctl !== 'pye' && wp.save.fun.pye, 'v24 "야! 멈춰!" → 멈추고 집하장으로 · 발견 "폐급 수습"');
+var wp2 = pw(), jp2 = wp2.crew[0]; jp2.x = wp2.player.x + 60; jp2.y = wp2.player.y; A.startPye(wp2, A.pyeDef('dump'), jp2); wp2.player.x = 700; wp2.player.y = 1100; run(wp2, 20);
+ok(!wp2.act.pye && fxs(wp2, 'pyeEnd').length >= 0, 'v24 못 막으면 다섯 번 쏟고 "다 버렸습니다! 잘했지 말입니다?"');
+var wh = pw(), jh = wh.crew[0]; jh.x = wh.player.x + 30; jh.y = wh.player.y; A.startPye(wh, A.pyeDef('hide'), jh); run(wh, 14);
+ok(jh.hidden && /사라졌다/.test(A.objective(wh).text) && A.state(wh).marks.some(function (m) { return m.label === '어디 갔지?'; }), 'v24 짱박히기: 후임이 숨는다 · "후임이 사라졌다!" · 숨은 곳 표시');
+wh.player.x = jh.x + 10; wh.player.y = jh.y + 10; run(wh, 0.2);
+ok(!wh.act.pye && !jh.hidden && wh.act.buffs.relief > 0 && wh.save.fun.pyeHide, 'v24 찾아가면 검거 → 냉동 압수 (이동 +20%) · 발견 "짱박힌 후임 검거"');
+var wh2 = pw(), jh2 = wh2.crew[0]; A.startPye(wh2, A.pyeDef('hide'), jh2); wh2.player.x = 60; wh2.player.y = 1150; var mor0 = jh2.mor; run(wh2, 40);
+ok(!wh2.act.pye && jh2.ctl !== 'pye', 'v24 못 찾으면 행보관이 찾아낸다 (분대원 사기 -8)');
+var wb = pw(), jb = wb.crew[0]; jb.x = wb.player.x + 40; jb.y = wb.player.y; A.startPye(wb, A.pyeDef('broke'), jb); run(wb, 3);
+ok(wb.act.pye && wb.act.pye.phase === 'idle' && jb.broke && jb.moving === false, 'v24 넉가래 부러뜨림: 멍때리며 일을 안 한다');
+wb.player.x = jb.x + 12; wb.player.y = jb.y; var cb = A.candidates(wb).filter(function (c) { return c.k === 'pye'; })[0];
+ok(cb && /새 거/.test(cb.verb), 'v24 옆에 가면 "새 거 가져와!" 버튼', cb && cb.verb);
+A.act(wb, cb, wb.player.dir); run(wb, 14);
+ok(!wb.act.pye && !jb.broke && jb.ctl !== 'pye', 'v24 제설함에서 새 넉가래 들고 와서 다시 일한다');
+var cntP = 0, cntA = 0; for (var sdp = 1; sdp <= 12; sdp++) { var wq = pw(function (s) { s.seed = sdp; }); wq.act.pyeAt = undefined; for (var tq = 0; tq < 200; tq += 1 / 10) { G.step(wq, 1 / 10, null); if (wq.act.pye && !wq.act.pye.cnt) { wq.act.pye.cnt = 1; cntP++; } } cntA++; }
+ok(cntP >= 3, 'v24 폐급짓은 작전마다 가끔 (12판 중 ' + cntP + '번)', cntP);
+var wn = v24(function (s) { s.crew = { donggi: 1 }; s.rank = 1; }); wn.act.pyeAt = 1; run(wn, 3);
+ok(!wn.act.pye, 'v24 폐급짓은 후임만 한다 (동기만 있으면 없음)');
+
+// ── v24 꾸미기: 등급 · 멋 점수 → 초코파이 · 오늘의 특가 · 입어 보다 꺼져도 안전 · 모자 한마디 ──
+var sk24 = G.newSave(), ok24 = M.lookOptions(sk24);
+ok(ok24.hat.length >= 18 && ok24.eyes.length >= 14 && ok24.extras.length >= 15, 'v24 꾸미기가 많아졌다 (모자 ' + ok24.hat.length + ' · 눈 ' + ok24.eyes.length + ' · 얼굴 소품 ' + ok24.extras.length + ')');
+ok(['hat:fakestar', 'hat:afro', 'hat:goldhelm', 'hat:crown'].every(function (k) { var p = k.split(':'); return M.tierOf(p[0], p[1]) === 'l'; }) && M.tierOf('hat', 'beanie') === '', 'v24 등급: 전설 모자 4종 · 기본 모자는 등급 없음');
+var m0s = G.incomeMult(sk24); sk24.unlocked['hat:fakestar'] = true; sk24.unlocked['hat:propeller'] = true;
+ok(G.styleScore(sk24) === 16 && Math.abs(G.incomeMult(sk24) / m0s - 1.032) < 1e-6, 'v24 멋: 전설 10 + 영웅 6 = 16점 → 초코파이 +3.2%', [G.styleScore(sk24), G.incomeMult(sk24) / m0s]);
+var allU = {}; Object.keys(S.LOOK).forEach(function (c) { S.LOOK[c].forEach(function (e) { allU[c + ':' + e[0]] = true; }); }); var skAll = G.newSave(); skAll.unlocked = allU;
+ok(Math.abs(G.styleBonus(skAll) - S.STYLE.cap) < 1e-9, 'v24 멋 보너스는 최대 +' + S.STYLE.cap * 100 + '%');
+var dk24 = M.dealOf(sk24, Date.UTC(2026, 10, 16)), dp24 = dk24.split(':'), full24 = M.lookEntry(dp24[0], dp24[1])[2];
+ok(M.priceOf(sk24, dp24[0], dp24[1], Date.UTC(2026, 10, 16)) === Math.ceil(full24 * 0.7) && M.dealOf(sk24, Date.UTC(2026, 10, 16)) === dk24, 'v24 오늘의 특가: 하루 동안 같은 것 하나 -30% (' + dk24 + ')');
+var deals = {}; for (var dd24 = 1; dd24 <= 20; dd24++) deals[M.dealOf(sk24, Date.UTC(2026, 10, dd24))] = 1;
+ok(Object.keys(deals).length >= 6, 'v24 특가는 날마다 바뀐다 (20일 동안 ' + Object.keys(deals).length + '가지)');
+var sfx24 = G.newSave(); sfx24.look.hat = 'fakestar'; sfx24.look.extras = ['snot', 'camo']; M.fixLook(sfx24);
+ok(sfx24.look.hat === 'beanie' && sfx24.look.extras.join() === 'snot', 'v24 안 가진 꾸미기(입어 보다 꺼진 저장)는 불러올 때 원래대로');
+var wl24 = v24(function (s) { s.unlocked['hat:cone'] = true; s.look.hat = 'cone'; }); wl24.crew.forEach(function (c) { c.x = wl24.player.x + 20; c.y = wl24.player.y; }); var said = 0;
+for (var rr24 = 0; rr24 < 12; rr24++) { var wq24 = v24(function (s) { s.seed = 100 + rr24; s.unlocked['hat:cone'] = true; s.look.hat = 'cone'; }); run(wq24, 5); if (wq24.save.stats.lookLine) said++; }
+ok(said >= 5 && said <= 12, 'v24 라바콘을 쓰고 출동하면 누군가 한마디 한다 (12판 중 ' + said + '번)');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

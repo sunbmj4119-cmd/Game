@@ -265,7 +265,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="story"]'); await sleep(300);
-  ok('v14 수첩 → 발견 21칸 (v22 +3 · v23 +6) (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/21\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 21 && /\?\?\?/.test(t); }));
+  ok('v14 수첩 → 발견 24칸 (v22 +3 · v23 +6 · v24 +3) (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/24\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 24 && /\?\?\?/.test(t); }));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]'); await sleep(200);
   ok('설정 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
@@ -298,8 +298,17 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   // ── v14 눈덩이: 근처에 고라니가 오면 버튼이 생기고, 누르면 알아서 조준해 던진다 ──
   await page.evaluate(function () { var w = __SNOW.view().world(); w.deer.push({ x: w.player.x + 70, y: w.player.y + 10, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }); });
   ok('v14 고라니가 근처에 오면 눈덩이 버튼 ("고라니!")', await waitFor(function () { var b = document.getElementById('throw-btn'); return !b.hidden && /고라니/.test(b.textContent); }, 3000));
-  await page.click('#throw-btn');
-  ok('v14 누르면 눈덩이가 날아간다 → "발견! 첫 눈덩이" (상점 +1)', await waitFor(function () { var w = __SNOW.view().world(); return !!(w.save.fun && w.save.fun.throw); }, 2500));
+  // v24 무조건 수동: 그냥 누르면 안 던지고 '끌어서' 안내, 끌었다 놓아야 날아간다
+  var thr0 = await page.evaluate(function () { return __SNOW.save().stats.throw || 0; });
+  await page.click('#throw-btn'); await sleep(250);
+  ok('v24 그냥 누르면 자동 조준으로 던지지 않는다 (버튼이 흔들리며 안내)', await page.evaluate(function (t0) { var w = __SNOW.view().world(); return (w.save.stats.throw || 0) === t0 && (w.act.balls || []).length === 0 && document.getElementById('throw-btn').classList.contains('nudge'); }, thr0));
+  var thrOk = false;
+  for (var tra = 0; tra < 3 && !thrOk; tra++) {   // 버튼 위치가 배너·행동 버튼 때문에 잠깐 움직일 수 있어 다시 재고 끈다
+    var tbb = await page.$eval('#throw-btn', function (b) { var r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    await page.mouse.move(tbb.x, tbb.y); await page.mouse.down(); await page.mouse.move(tbb.x - 40, tbb.y - 60, { steps: 4 }); await sleep(120); await page.mouse.up();
+    thrOk = await waitFor(function () { var w = __SNOW.view().world(); return !!(w.save.fun && w.save.fun.throw); }, 1500);
+  }
+  ok('v14 끌었다 놓으면 눈덩이가 날아간다 → "발견! 첫 눈덩이" (상점 +1)', thrOk);
   await page.evaluate(function () { __SNOW.view().world().deer = []; });
   ok('v14 고라니가 없으면 버튼도 없다 (분대원·행보관이 멀면)', await waitFor(function () { var w = __SNOW.view().world(); return document.getElementById('throw-btn').hidden || !!JY.SnowAct.throwTarget(w); }, 2000));
 

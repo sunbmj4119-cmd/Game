@@ -176,7 +176,7 @@
   ];
   // v14 "아 이런 것도 되네" — 처음 해 보면 '발견!' + 상점 1 (수첩에 모인다)
   var FUN = [
-    { id: 'throw', name: '첫 눈덩이', hint: '근처에 누가 있으면 오른쪽에 눈덩이 버튼이 생긴다' },
+    { id: 'throw', name: '첫 눈덩이', hint: '오른쪽 눈덩이 버튼을 누른 채 끌었다 놓는다' },
     { id: 'deerDown', name: '고라니 벌러덩', hint: '도망 다니는 고라니에게 눈덩이 두 방' },
     { id: 'deerPet', name: '고라니 쓰담쓰담', hint: '벌러덩한 고라니 옆으로 가 보자' },
     { id: 'fight', name: '눈싸움', hint: '분대원을 맞히면… 받아친다' },
@@ -196,7 +196,11 @@
     { id: 'mapyeon', name: '마음의 편지', hint: '후임을 너무 맞히면…' },
     { id: 'poop', name: '급똥 생존', hint: '배가 아프면 화장실까지 달려라' },
     { id: 'catThief', name: '짬타이거 검거', hint: '초코파이를 훔쳐 간 고양이를 잡아라' },
-    { id: 'scenic', name: '설경 보존', hint: '사단장님이 보고 싶다는 눈은 남겨 둬라' }
+    { id: 'scenic', name: '설경 보존', hint: '사단장님이 보고 싶다는 눈은 남겨 둬라' },
+    // v24
+    { id: 'deerBoss', name: '고라니의 하극상', hint: '고라니는 계급을 모른다' },
+    { id: 'pye', name: '폐급 수습', hint: '후임이 사고를 치면 가서 수습한다' },
+    { id: 'pyeHide', name: '짱박힌 후임 검거', hint: '갑자기 안 보이는 후임은 어딘가에 숨어 있다' }
   ];
 
   // v17 이번 주 작전: 8일차부터 7일마다 바뀐다 (열린 기능 중에서). 같은 눈 치우기가 질리지 않게 규칙을 한 가지씩 비튼다
@@ -347,6 +351,15 @@
       { id: 'scenic', name: '사단장님 설경', w: 20, sec: 35 },
       { id: 'hotwater', name: '뜨거운 물 제설', w: 17, need: 'ice' }
     ] };
+  // v24 후임 폐급짓: 가끔 후임이 일을 망친다 — 치운 길에 눈 버리기 · 짱박히기 · 넉가래 부러뜨리기
+  var PYE = { fromOps: 4, p: 0.55, p2: 0.3, at: [45, 140], gap: 50,
+    spots: [{ x: 720, y: 126, n: 'PX 앞' }, { x: 255, y: 318, n: '구령대 뒤' }, { x: 548, y: 632, n: '취사장 옆' }, { x: 626, y: 1120, n: '위병소 옆' }, { x: 170, y: 1048, n: '정비고 앞' }],
+    spares: [{ x: 174, y: 312 }, { x: 478, y: 654 }],   // 제설함: 예비 넉가래
+    kinds: [
+      { id: 'dump', name: '치운 길에 눈 버리기', w: 40, n: 5, every: 2.4 },
+      { id: 'hide', name: '짱박히기', w: 35, sec: 35 },
+      { id: 'broke', name: '넉가래 부러뜨리기', w: 25, sec: 30 }
+    ] };
   var BIGBALL = { at: [25, 70], r0: 7, rmax: 24, grow: 0.55, push: 0.92, pay: 1.5 };
   var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
   var WEATHER = {
@@ -360,7 +373,7 @@
   // deer: 산골 부대엔 진짜 고라니가 들어온다 / snowball: 선임들 장난 (이병·일병만 당한다)
   // car: 07:30 중대장님 출근 차량 — 진입로를 못 치웠으면 빠진다 / roof: 처마 눈 — 먼저 '우두둑' 소리가 난다
   var HAZ = {
-    deer: { from: 2, max: 4, speed: 96, life: [12, 16], hitR: 11, injure: 3, stun: 1.0, kick: 0.2, near: [170, 210], herd: { from: 5, p: 0.3, n: 4 } },   // v22: 내 근처에서 나타난다 · 작전당 2~4마리 · 고라니 떼
+    deer: { from: 2, max: 4, speed: 96, life: [12, 16], hitR: 11, injure: 2.2, stun: 1.7, kick: 0.2, near: [170, 210], herd: { from: 5, p: 0.3, n: 4 } },   // v22: 내 근처에서 나타난다 · 작전당 2~4마리 · 고라니 떼
     snowball: { from: 2, p: [0.6, 0.3, 0, 0], stun: 0.5 },
     car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 3, push: 0.25, crewPush: 0.18 },
     roof: { every: 95, warn: 1.6, stun: 1.2, injure: 3 },   // v14: 55→95 (작전당 약 4번 → 2번, 방해는 줄이고)
@@ -385,7 +398,7 @@
     proc: ['기계 들어왔다. 눈도 이제 돈이다.', '사단장님 오시면 눈사람 보여 드린다.'],
     deer: ['고라니다!! 피해!', '야 고라니! 고라니 들어왔다!', '저 고라니 또 왔네…', '고라니 잡지 마! 쫓기만 해!'],
     deerHit: ['의무병! 의무병!', '고라니한테 받혔다!', '괜찮나?! …괜찮네. 다시 치워.'],
-    meHit: ['야! 초코파이 떨어뜨렸잖아!', '고라니한테 진 거냐?'],
+    meHit: ['ㅋㅋㅋ 고라니한테 들이받혔어!', '고라니한테 진 거냐?', '방금 날아가는 거 봤냐?'],
     snowball: ['누가 던졌어!!', '선임들 눈싸움 중이다. 못 본 척해.'],
     car: ['중대장님 차 지나가신다! 길 비켜!', '아… 방금 치운 길인데.'],
     roof: ['지붕 눈 떨어진다! 조심!', '우르르… 다시 치워.'],
@@ -550,16 +563,37 @@
 
   // ── 꾸미기: [값, 이름, 다이아 값(없으면 공짜), 잠금 키(스토리로 열림)] ──
   var LOOK = {
-    eyes: [['derp', '멍'], ['happy', '방긋'], ['sleepy', '졸림'], ['smug', '건방'], ['dot', '점눈'], ['wide', '왕눈'], ['worried', '울상'], ['sparkle', '반짝', 3], ['sunglasses', '선글라스', 5]],
-    mouth: [['wavy', '삐뚤'], ['grin', '씨익'], ['smirk', '피식'], ['open', '헤벌레'], ['cat', '고양이'], ['o', '오!'], ['teeth', '이 빠짐', 2]],
-    brows: [['worried', '걱정'], ['thick', '송충이'], ['up', '올라감'], ['angry', '화남'], ['none', '없음']],
+    eyes: [['derp', '멍'], ['happy', '방긋'], ['sleepy', '졸림'], ['smug', '건방'], ['dot', '점눈'], ['wide', '왕눈'], ['worried', '울상'], ['angry', '부릅'], ['sparkle', '반짝', 3], ['teary', '글썽', 2], ['spiral', '빙글빙글', 3], ['cross', '기절', 3], ['sunglasses', '선글라스', 6], ['heart', '하트 뿅', 8], ['star', '별눈', 8]],
+    mouth: [['wavy', '삐뚤'], ['grin', '씨익'], ['smirk', '피식'], ['open', '헤벌레'], ['cat', '고양이'], ['o', '오!'], ['frown', '시무룩'], ['flat', '무표정'], ['teeth', '이 빠짐', 2], ['drool', '침 질질', 2], ['shout', '고함', 3], ['tongue', '메롱', 6], ['buck', '뻐드렁니', 6]],
+    brows: [['worried', '걱정'], ['thick', '송충이'], ['up', '올라감'], ['angry', '화남'], ['none', '없음'], ['uni', '일자 눈썹', 2]],
     head: [['round', '동글'], ['egg', '달걀'], ['square', '각'], ['wide', '넙대대'], ['potato', '감자']],
     skin: [['#ffd9b5', '하얀'], ['#f6c79c', '보통'], ['#eab386', '구릿빛'], ['#d9a06b', '까무잡잡'], ['#9a6440', '진한']],
-    extras: [['snot', '콧물'], ['blush', '홍조'], ['stubble', '수염 자국'], ['glasses', '안경'], ['bandage', '반창고'], ['sweat', '땀'], ['mustache', '콧수염', 3]],
-    hat: [['beanie', '방한모'], ['helmet', '철모'], ['cap', '전투모'], ['none', '맨머리'], ['headband', '머리띠', 4, 'hat:headband'], ['cateears', '고양이 귀', 6], ['beret', '베레모', 0, 'hat:beret'], ['crown', '왕관', 15]],
+    extras: [['snot', '콧물'], ['blush', '홍조'], ['stubble', '수염 자국'], ['glasses', '안경'], ['bandage', '반창고'], ['sweat', '땀'], ['mask', '마스크'], ['mustache', '콧수염', 3], ['tear', '눈물 한 방울', 2], ['bruise', '시퍼런 멍', 2], ['mole', '왕점', 2], ['nosebleed', '코피', 3], ['anger', '빡침', 3], ['scar', '흉터', 6], ['camo', '위장크림', 8], ['sparkles', '반짝반짝', 8]],
+    hat: [['beanie', '방한모'], ['helmet', '철모'], ['cap', '전투모'], ['none', '맨머리'], ['headband', '머리띠', 4, 'hat:headband'], ['beret', '베레모', 0, 'hat:beret'],
+      ['bobble', '방울 털모자', 3], ['earmuff', '핑크 귀마개', 3], ['cateears', '고양이 귀', 8], ['santa', '산타 모자', 10], ['bear', '곰돌이 모자', 10], ['cone', '라바콘', 12], ['bantong', '반합', 12],
+      ['lamp', '헤드랜턴', 20], ['propeller', '프로펠러 모자', 22], ['viking', '바이킹 투구', 25], ['crown', '왕관', 40], ['afro', '무지개 아프로', 45], ['goldhelm', '황금 철모', 50], ['fakestar', '짝퉁 사단장 모자', 60]],
     coat: [['olive', '디지털 군복', 0, '', '#5b6a3a'], ['pink', '핑크 군복', 8, '', '#e57aa3'], ['gold', '황금 군복', 15, '', '#d4a73a']],
     glove: [['olive', '군용 장갑', 0, '', '#2b3020'], ['black', '검정 장갑', 0, '', '#151515'], ['red', '빨간 장갑', 1, '', '#c8402e'], ['pink', '핑크 장갑', 2, '', '#f08cb4'], ['white', '하얀 장갑', 2, '', '#f2f2f2']],
     tool: [['yellow', '노랑', 0, '', '#e7ae2f'], ['red', '빨강', 1, '', '#d23a2a'], ['blue', '파랑', 1, '', '#2b6fd1'], ['pink', '핑크', 2, '', '#f08cb4'], ['gold', '황금', 10, '', '#f5c542'], ['malnyeon', '말년의 넉가래', 0, 'tool:malnyeon', '#8a6a44']]
+  };
+  // v24 꾸미기 등급: 보통 · 희귀 · 영웅 · 전설. 가진 만큼 '멋'이 쌓여 초코파이 보너스 (최대 +12%)
+  var LOOK_TIER = { c: { name: '보통', color: '#8a96a6', pts: 1 }, r: { name: '희귀', color: '#2f80ed', pts: 3 }, e: { name: '영웅', color: '#9b51e0', pts: 6 }, l: { name: '전설', color: '#e8a400', pts: 10 } };
+  var LOOK_RAR = {
+    'eyes:sunglasses': 'r', 'eyes:heart': 'r', 'eyes:star': 'r', 'mouth:tongue': 'r', 'mouth:buck': 'r', 'extras:scar': 'r', 'extras:camo': 'r', 'extras:sparkles': 'r',
+    'hat:cateears': 'r', 'hat:santa': 'r', 'hat:bear': 'r', 'hat:cone': 'r', 'hat:bantong': 'r', 'hat:lamp': 'e', 'hat:propeller': 'e', 'hat:viking': 'e',
+    'hat:crown': 'l', 'hat:afro': 'l', 'hat:goldhelm': 'l', 'hat:fakestar': 'l', 'coat:pink': 'r', 'coat:gold': 'e', 'tool:gold': 'r'
+  };
+  var LOOK_NEW = ['eyes:teary', 'eyes:spiral', 'eyes:cross', 'eyes:heart', 'eyes:star', 'mouth:drool', 'mouth:shout', 'mouth:tongue', 'mouth:buck', 'brows:uni', 'extras:tear', 'extras:bruise', 'extras:mole', 'extras:nosebleed', 'extras:anger', 'extras:scar', 'extras:camo', 'extras:sparkles',
+    'hat:bobble', 'hat:earmuff', 'hat:santa', 'hat:bear', 'hat:cone', 'hat:bantong', 'hat:lamp', 'hat:propeller', 'hat:viking', 'hat:afro', 'hat:goldhelm', 'hat:fakestar'];
+  var STYLE = { per: 0.002, cap: 0.12, deal: 0.3 };   // 멋 1점 = 초코파이 +0.2% (최대 +12%) · 오늘의 특가 30% 할인
+  // 모자를 쓰고 출동하면 누군가 한마디 한다
+  var LOOK_LINES = {
+    bobble: ['방울 귀엽네 ㅋㅋ', '그 방울 행보관님한테 뜯긴다'], earmuff: ['귀마개… 부럽다', '핑크…? 너 핑크 좋아하냐?'],
+    cateears: ['냐옹?', '짬타이거가 동족인 줄 알겠다'], santa: ['산타다! 선물은요?', '행보관: "그 모자 뭐냐… 오늘만 봐준다"'], bear: ['곰돌이다 ㅋㅋㅋ', '귀엽다… 아니 군인이 왜 귀여워'],
+    cone: ['야 라바콘 쓴 놈 누구야?!', '(출근 차들이 너를 피해 간다)'], bantong: ['그거 오늘 점심 반합 아니냐?', '머리에서 짜장 냄새 난다…'],
+    lamp: ['눈부셔!! 불 좀 꺼!', '새벽 제설엔 역시 헤드랜턴이지'], propeller: ['그거… 진짜 날아가냐?', '(프로펠러가 빙글빙글 돈다)'], viking: ['바이킹이 제설하러 왔다!', '뿔에 찔리겠다 조심해'],
+    crown: ['전하… 제설은 저희가 하겠습니다', '(후임들이 고개를 숙인다)'], afro: ['머리 그거 규정 위반 아니냐…?', '(무지개가 제설을 한다)'], goldhelm: ['황금 철모?! 너 뭐 돼?', '번쩍번쩍해서 눈이 녹겠다'],
+    fakestar: ['충…성!? (헷갈렸다)', '행보관: "그 모자 당장 벗어!!!"', '(사단장님인 줄 알고 다들 굳었다)']
   };
   var LOOK_NAMES = { eyes: '눈', mouth: '입', brows: '눈썹', head: '얼굴형', skin: '피부', extras: '얼굴 소품', hat: '모자', coat: '군복', glove: '장갑', tool: '넉가래 색' };
 
@@ -608,7 +642,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, CHAOS: CHAOS, SKILLS: SKILLS, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, CHAOS: CHAOS, PYE: PYE, SKILLS: SKILLS, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, LOOK_TIER: LOOK_TIER, LOOK_RAR: LOOK_RAR, LOOK_NEW: LOOK_NEW, STYLE: STYLE, LOOK_LINES: LOOK_LINES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

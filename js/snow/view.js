@@ -243,6 +243,9 @@
     c.restore();
   }
 
+  function star(c, x, y, r) { c.beginPath(); for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, rr0 = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr0, y + Math.sin(a) * rr0); } c.closePath(); }
+  function myHat() { var L = world && world.save && world.save.look; var h = L && L.hat || 'beanie'; return h === 'cap' ? 'cap' : h === 'helmet' ? 'helmet' : h; }
+  function myCoat() { var M = JY.SnowMeta; return M && world && world.save ? M.lookColor(world.save, 'coat') || '#5b6a3a' : '#5b6a3a'; }
   function drawHat(c, x, y, hat, fx) {
     if (hat === 'helmet') {
       c.fillStyle = '#4e5a33'; circ(c, x, y - 1.5, 7.4); c.fill();
@@ -252,22 +255,42 @@
       c.fillStyle = '#4a5530'; c.beginPath(); c.arc(x, y - 1, 6.6, Math.PI, 0); c.fill();
       c.fillRect(x - 6.6, y - 1.5, 13.2, 2.5);
       c.fillStyle = '#3c4626'; ell(c, x + fx * 3, y + 1.8, 6, 1.8); c.fill();
-    } else if (hat === 'lt' || hat === 'cpt' || hat === 'haeng') {   // v23 간부 모자
-      c.fillStyle = hat === 'haeng' ? '#2f3624' : hat === 'cpt' ? '#3f4a2a' : '#4a5530'; c.beginPath(); c.arc(x, y - 1.5, 7, Math.PI, 0); c.fill(); c.fillRect(x - 7, y - 2, 14, 3);
-      c.fillStyle = '#1f241a'; ell(c, x + fx * 3.4, y + 1.8, 6.4, 1.9); c.fill();
-      if (hat === 'haeng') { c.fillStyle = '#121410'; c.fillRect(x - 7, y - 1, 14, 1.6); c.fillStyle = '#e2b33c'; c.fillRect(x - 2.5, y - 5, 5, 1.6); }
-      else { c.fillStyle = '#e6eaef'; for (var di = 0; di < (hat === 'cpt' ? 3 : 1); di++) { var dx = (di - (hat === 'cpt' ? 1 : 0)) * 3.2; c.beginPath(); c.moveTo(x + dx, y - 6.4); c.lineTo(x + dx + 1.4, y - 5); c.lineTo(x + dx, y - 3.6); c.lineTo(x + dx - 1.4, y - 5); c.fill(); } }
+    } else if (hat === 'lt' || hat === 'cpt' || hat === 'haeng') {   // v24 간부: 빨간 모자 + 큰 계급장
+      c.fillStyle = hat === 'haeng' ? '#8e1f1f' : '#d22f2a'; c.beginPath(); c.arc(x, y - 1.5, 7.4, Math.PI, 0); c.fill(); c.fillRect(x - 7.4, y - 2, 14.8, 3);
+      c.fillStyle = '#1a1a1a'; ell(c, x + fx * 3.4, y + 1.8, 6.6, 1.9); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 0.8; c.beginPath(); c.arc(x, y - 1.5, 7.4, Math.PI, 0); c.stroke();
+      if (hat === 'haeng') { c.strokeStyle = '#ffd24a'; c.lineWidth = 1.3; for (var hc = 0; hc < 3; hc++) { var hy = y - 7.2 + hc * 1.9; c.beginPath(); c.moveTo(x - 3, hy); c.lineTo(x, hy + 1.6); c.lineTo(x + 3, hy); c.stroke(); } }
+      else { c.fillStyle = '#ffffff'; c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 0.6; var nd = hat === 'cpt' ? 3 : 1; for (var di = 0; di < nd; di++) { var dx = (di - (nd - 1) / 2) * 4.2; c.beginPath(); c.moveTo(x + dx, y - 7.6); c.lineTo(x + dx + 2, y - 5.4); c.lineTo(x + dx, y - 3.2); c.lineTo(x + dx - 2, y - 5.4); c.closePath(); c.fill(); c.stroke(); } }
     } else if (hat === 'gen') {
-      c.fillStyle = '#34401f'; rr(c, x - 8.5, y - 9, 17, 8, 3); c.fill(); c.fillStyle = '#e2b33c'; c.fillRect(x - 8, y - 2.5, 16, 2.2);
+      c.fillStyle = '#d22f2a'; rr(c, x - 8.5, y - 9, 17, 8, 3); c.fill(); c.fillStyle = '#e2b33c'; c.fillRect(x - 8, y - 2.5, 16, 2.2);
       c.fillStyle = '#141410'; ell(c, x + fx * 3.6, y + 1.2, 7.4, 2); c.fill();
-      c.fillStyle = '#ffd24a'; [-2.6, 2.6].forEach(function (sx) { c.beginPath(); c.arc(x + sx, y - 5.6, 1.4, 0, 7); c.fill(); });
+      c.fillStyle = '#ffd24a'; c.strokeStyle = 'rgba(0,0,0,.4)'; c.lineWidth = 0.5; [-3.2, 3.2].forEach(function (sx) { star(c, x + sx, y - 5.6, 2.4); c.fill(); c.stroke(); });
     } else if (hat === 'chef') {
       c.fillStyle = '#ffffff'; rr(c, x - 6, y - 12, 12, 11, 4); c.fill(); circ(c, x - 3.5, y - 12, 3.5); c.fill(); circ(c, x + 3.5, y - 12, 3.5); c.fill();
       c.strokeStyle = 'rgba(0,0,0,.12)'; c.lineWidth = 0.8; c.strokeRect(x - 6, y - 3, 12, 2);
     } else if (hat === 'reserve') {
       c.fillStyle = '#6a6c4c'; c.beginPath(); c.arc(x, y - 1, 6.6, Math.PI, 0); c.fill(); c.fillRect(x - 6.6, y - 1.5, 13.2, 2);
       c.fillStyle = '#c9a43a'; c.fillRect(x - 1.5, y - 5, 3, 2.2);
-    } else { // 방한모
+    // v24 꾸미기 모자 (가벼운 화면)
+    } else if (hat === 'bobble') { c.fillStyle = '#e23b3b'; c.beginPath(); c.arc(x, y - 0.5, 7, Math.PI, 0); c.fill(); c.fillStyle = '#fff'; c.fillRect(x - 7.4, y - 1.5, 14.8, 2.6); c.fillRect(x - 5.6, y - 4.6, 11.2, 1.4); circ(c, x, y - 9, 3); c.fill(); }
+    else if (hat === 'earmuff') { c.strokeStyle = '#f07aa8'; c.lineWidth = 1.6; c.beginPath(); c.arc(x, y + 1, 7, Math.PI, 0); c.stroke(); c.fillStyle = '#ffb3d1'; circ(c, x - 7, y + 2, 3.2); c.fill(); circ(c, x + 7, y + 2, 3.2); c.fill(); }
+    else if (hat === 'santa') { c.fillStyle = '#e3342f'; c.beginPath(); c.moveTo(x - 7, y); c.lineTo(x + 5, y - 13); c.lineTo(x + 7, y); c.fill(); c.fillStyle = '#fff'; rr(c, x - 7.6, y - 1.5, 15.2, 3, 1.5); c.fill(); circ(c, x + 5.5, y - 13, 2.2); c.fill(); }
+    else if (hat === 'bear') { c.fillStyle = '#8b5a2b'; circ(c, x - 5.5, y - 6.5, 2.8); c.fill(); circ(c, x + 5.5, y - 6.5, 2.8); c.fill(); c.fillStyle = '#9c6833'; c.beginPath(); c.arc(x, y - 0.5, 7.2, Math.PI, 0); c.fill(); }
+    else if (hat === 'cone') { c.fillStyle = '#2b2b2b'; c.fillRect(x - 6, y - 2, 12, 2.4); c.fillStyle = '#ff7a1a'; c.beginPath(); c.moveTo(x - 4.6, y - 2); c.lineTo(x, y - 17); c.lineTo(x + 4.6, y - 2); c.fill(); c.fillStyle = '#fff'; c.fillRect(x - 3.2, y - 7.5, 6.4, 1.8); c.fillRect(x - 1.8, y - 12, 3.6, 1.5); }
+    else if (hat === 'bantong') { c.fillStyle = '#7d8456'; rr(c, x - 7, y - 7, 14, 7, 2); c.fill(); c.fillStyle = '#5f6640'; c.fillRect(x - 7, y - 1.5, 14, 1.4); c.strokeStyle = '#c9d1d9'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x + 2, y - 7); c.lineTo(x + 5, y - 12); c.stroke(); }
+    else if (hat === 'lamp') { c.fillStyle = 'rgba(255,246,168,.35)'; c.beginPath(); c.moveTo(x, y - 1); c.lineTo(x - 7 + fx * 10, y + 12); c.lineTo(x + 7 + fx * 10, y + 12); c.fill(); c.fillStyle = '#1e1e1e'; c.fillRect(x - 6.6, y - 2.5, 13.2, 1.8); c.fillStyle = '#ffd34d'; circ(c, x + fx * 3, y - 2, 2); c.fill(); }
+    else if (hat === 'propeller') { c.fillStyle = '#2f80ed'; c.beginPath(); c.arc(x, y - 0.5, 7, Math.PI, 0); c.fill(); c.fillStyle = '#e3342f'; c.beginPath(); c.arc(x, y - 0.5, 7, Math.PI, Math.PI * 1.5); c.lineTo(x, y - 0.5); c.fill(); c.fillStyle = '#ffd34d'; c.beginPath(); c.arc(x, y - 0.5, 7, Math.PI * 1.5, 0); c.lineTo(x, y - 0.5); c.fill();
+      var pa = performance.now() / 60; c.strokeStyle = '#2ec27e'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - Math.cos(pa) * 7, y - 9); c.lineTo(x + Math.cos(pa) * 7, y - 9); c.stroke(); }
+    else if (hat === 'viking') { c.fillStyle = '#fffbea'; c.beginPath(); c.moveTo(x - 6, y - 3); c.lineTo(x - 11, y - 11); c.lineTo(x - 4, y - 6); c.fill(); c.beginPath(); c.moveTo(x + 6, y - 3); c.lineTo(x + 11, y - 11); c.lineTo(x + 4, y - 6); c.fill(); c.fillStyle = '#9aa3ad'; c.beginPath(); c.arc(x, y - 0.5, 7.2, Math.PI, 0); c.fill(); c.fillStyle = '#c8a24a'; c.fillRect(x - 7.4, y - 1.8, 14.8, 2.4); }
+    else if (hat === 'afro') { ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff595e', '#ffca3a'].forEach(function (cl, i) { c.fillStyle = cl; circ(c, x + Math.cos(Math.PI + i / 6 * Math.PI) * 6.5, y - 2 + Math.sin(Math.PI + i / 6 * Math.PI) * 6.5, 3.6); c.fill(); }); c.fillStyle = '#ffca3a'; circ(c, x, y - 7, 4.4); c.fill(); }
+    else if (hat === 'goldhelm') { c.fillStyle = '#f2c335'; circ(c, x, y - 1.5, 7.6); c.fill(); c.fillStyle = '#c9971d'; ell(c, x, y + 1.5, 8.4, 2.6); c.fill(); c.fillStyle = '#fff4a3'; star(c, x, y - 4, 2.2); c.fill(); }
+    else if (hat === 'fakestar') { c.fillStyle = '#4a5530'; c.beginPath(); c.arc(x, y - 1.5, 7, Math.PI, 0); c.fill(); c.fillRect(x - 7, y - 2, 14, 3); c.fillStyle = '#ffd24a'; star(c, x - 2.8, y - 5.2, 2.6); c.fill(); star(c, x + 3, y - 4.6, 2.2); c.fill(); }
+    else if (hat === 'crown') { c.fillStyle = '#ffd34d'; c.beginPath(); c.moveTo(x - 6, y - 1); c.lineTo(x - 6, y - 8); c.lineTo(x - 3, y - 4.5); c.lineTo(x, y - 9); c.lineTo(x + 3, y - 4.5); c.lineTo(x + 6, y - 8); c.lineTo(x + 6, y - 1); c.fill(); }
+    else if (hat === 'cateears') { c.fillStyle = '#e8913a'; c.beginPath(); c.moveTo(x - 6.5, y - 2); c.lineTo(x - 5, y - 10); c.lineTo(x - 1.5, y - 4); c.fill(); c.beginPath(); c.moveTo(x + 6.5, y - 2); c.lineTo(x + 5, y - 10); c.lineTo(x + 1.5, y - 4); c.fill(); }
+    else if (hat === 'headband') { c.fillStyle = '#fff'; c.fillRect(x - 6.6, y - 3, 13.2, 2.4); c.fillStyle = '#e3342f'; circ(c, x, y - 1.8, 1.4); c.fill(); }
+    else if (hat === 'beret') { c.fillStyle = '#26331f'; ell(c, x + 1, y - 3, 7.6, 3.4); c.fill(); c.fillStyle = '#d6b54a'; circ(c, x - 3, y - 2.4, 1.2); c.fill(); }
+    else if (hat === 'none') { /* 맨머리 */ }
+    else { // 방한모
       c.fillStyle = '#39422c'; c.beginPath(); c.arc(x, y - 0.5, 6.8, Math.PI * 1.02, -0.02); c.fill();
       rr(c, x - 7.4, y - 1, 3.2, 7, 1.6); c.fill(); rr(c, x + 4.2, y - 1, 3.2, 7, 1.6); c.fill();
       c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(x - 6, y - 3, 12, 1.2);
@@ -336,13 +359,13 @@
     var T = G.toolOf(world.save);
     if (T.vehicle) { drawVehicle(c, P, { kind: T.id, r: T.r, scale: T.id === 'truck' ? 1.25 : 1 }); return; }
     if (T.id === 'cart') {
-      drawPerson(c, P, { me: true, coat: '#5b6a3a', hat: 'beanie', seed: 3, band: true });
+      drawPerson(c, P, { me: true, coat: myCoat(), hat: myHat(), seed: 3, band: true });
       c.save(); c.translate(P.x + P.dir.x * 14, P.y - 6 + P.dir.y * 14); c.rotate(Math.atan2(P.dir.y, P.dir.x));
       c.fillStyle = '#5d6f86'; rr(c, -6, -9, 12, 18, 3); c.fill(); c.fillStyle = '#f0b429'; rr(c, 6, -15, 4, 30, 2); c.fill();
       c.fillStyle = '#222'; rr(c, -5, -11, 6, 3, 1); c.fill(); rr(c, -5, 8, 6, 3, 1); c.fill();
       c.restore(); return;
     }
-    drawPerson(c, P, { me: true, coat: '#5b6a3a', hat: 'beanie', seed: 3, band: true, tool: T.aura ? null : toolKind(T), r: T.r, salt: T.id === 'salt' });
+    drawPerson(c, P, { me: true, coat: myCoat(), hat: myHat(), seed: 3, band: true, tool: T.aura ? null : toolKind(T), r: T.r, salt: T.id === 'salt' });
   }
   function drawCrew(c, e) {
     var C = e.def;
@@ -383,6 +406,8 @@
       } else if (f.t === 'deer') {
         floats.push({ x: 0, y: 0, text: '꾸에에엑!!', t: 0, life: 1.6, color: '#ff6a55', size: 11, follow: f.e });
         if (JY.SnowSfx && mode === 'play') JY.SnowSfx.deer();
+      } else if (f.t === 'pyeDump') {
+        floats.push({ x: f.x, y: f.y - 28, text: '와르르~', t: 0, life: 1.2, color: '#ff6a55', size: 11 });
       } else if (f.t === 'deerHit') {
         floats.push({ x: f.x, y: f.y - 30, text: '의무병!!', t: 0, life: 1.6, color: '#ff6a55', size: 11 }); shake = Math.max(shake, 2);
       } else if (f.t === 'meHit') {
@@ -394,7 +419,7 @@
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
       if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|angel|drift|chase|caught|escaped)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|angel|drift|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }

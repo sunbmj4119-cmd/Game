@@ -112,6 +112,10 @@ function scan() {
     await page.evaluate(function () { var w = __SNOW.view().world(), A = JY.SnowAct; __SNOW.view().setAim && __SNOW.view().setAim(null); w.act.chaos = null; w.act.marks = []; var jr = w.crew.filter(function (e) { return e.def && !e.def.vehicle; })[0]; if (jr) { jr.mapyeon = { t: 0 }; jr.ctl = 'mapyeon'; } });
     await sleep(700); await check('play-mapyeon');
     await page.evaluate(function () { var w = __SNOW.view().world(); w.crew.forEach(function (e) { e.mapyeon = null; e.ctl = null; }); });
+    // v24: 후임 폐급짓 (빨간 할 일 · 이름표)
+    await page.evaluate(function () { var w = __SNOW.view().world(), A = JY.SnowAct, jr = w.crew.filter(function (e) { return e.def && !e.def.vehicle; })[0]; if (jr) { jr.ctl = null; A.startPye(w, A.pyeDef('dump'), jr); } });
+    await sleep(700); await check('play-pye');
+    await page.evaluate(function () { var w = __SNOW.view().world(); if (w.act.pye) { w.act.pye.e.ctl = null; w.act.pye = null; } });
     var supB = await page.$('#h-sup:not([hidden])');
     if (supB) { await supB.click(); await sleep(400); await check('play-shop'); await page.click('#s-go'); await sleep(500); }
     // 1인칭 (시점 버튼)
@@ -139,6 +143,9 @@ function scan() {
     for (var hb of ['look', 'story']) {
       var bb = await page.$('[data-hub="' + hb + '"]:not([hidden])'); if (!bb) continue;
       await bb.click(); await sleep(hb === 'look' ? 900 : 300); await check('page-' + hb);
+      if (hb === 'look') {   // v24 입어 보기 (사기 버튼 줄 · 특가 카드 · 멋 막대)
+        var lc = await page.$('.lcard.buy'); if (lc) { await lc.click(); await sleep(700); await check('page-look-try'); }
+      }
       await page.click('#s-go'); await sleep(400); await closeAll();
     }
     // v16 극단값: 아주 큰 돈·상점, 가장 긴 이름, 분대원 꽉, 특기·탈것 정비 다 → 생활관·보급·결과

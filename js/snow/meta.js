@@ -131,18 +131,36 @@
   function lookEntry(cat, id) { return (S.LOOK[cat] || []).filter(function (e) { return e[0] === id; })[0] || null; }
   function lookName(key) { var p = key.split(':'), e = lookEntry(p[0], p[1]); return e ? S.LOOK_NAMES[p[0]] + ' · ' + e[1] : key; }
   function owns(save, cat, e) { return (!e[2] && !e[3]) || !!save.unlocked[cat + ':' + e[0]] || (e[3] && !!save.unlocked[e[3]]); }
-  function lookOptions(save) {
-    var out = {};
+  // v24 등급 · 오늘의 특가 · 신상
+  function tierOf(cat, id) { var e = lookEntry(cat, id); return !e || !e[2] ? '' : (S.LOOK_RAR[cat + ':' + id] || 'c'); }
+  function dealOf(save, now) {
+    var d = dateStr(now || Date.now()), pool = [], h = 0, i;
+    Object.keys(S.LOOK).forEach(function (cat) { S.LOOK[cat].forEach(function (e) { if (e[2] >= 6 && !owns(save, cat, e)) pool.push(cat + ':' + e[0]); }); });
+    if (!pool.length) return null;
+    var key = d + ':' + (save.seed || 0); for (i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return pool[h % pool.length];
+  }
+  function priceOf(save, cat, id, now) { var e = lookEntry(cat, id); if (!e || !e[2]) return 0; return dealOf(save, now) === cat + ':' + id ? Math.ceil(e[2] * (1 - S.STYLE.deal)) : e[2]; }
+  function lookOptions(save, now) {
+    var out = {}, deal = dealOf(save, now), seen = save.seen || {};
     Object.keys(S.LOOK).forEach(function (cat) {
       var cur = save.look[cat];
       out[cat] = S.LOOK[cat].map(function (e) {
-        var own = owns(save, cat, e), on = cat === 'extras' ? (cur || []).indexOf(e[0]) >= 0 : cur === e[0];
-        return { cat: cat, id: e[0], name: e[1], dia: e[2] || 0, lockKey: e[3] || '', color: e[4] || (cat === 'skin' ? e[0] : ''), own: own, on: on,
-          state: own ? 'own' : e[2] ? 'buy' : 'lock', ok: !own && e[2] && save.dia >= e[2] };
+        var own = owns(save, cat, e), on = cat === 'extras' ? (cur || []).indexOf(e[0]) >= 0 : cur === e[0], key = cat + ':' + e[0], price = priceOf(save, cat, e[0], now);
+        return { cat: cat, id: e[0], name: e[1], dia: price, full: e[2] || 0, deal: deal === key, tier: tierOf(cat, e[0]), isNew: !own && S.LOOK_NEW.indexOf(key) >= 0 && !seen['lk24:' + cat],
+          lockKey: e[3] || '', color: e[4] || (cat === 'skin' ? e[0] : ''), own: own, on: on, state: own ? 'own' : e[2] ? 'buy' : 'lock', ok: !own && e[2] && save.dia >= price };
       });
     });
     return out;
   }
+  // 입어 보기 중이던 것 · 예전 저장의 잘못된 값: 가진 것으로 되돌린다
+  function fixLook(save) {
+    var L = save.look = save.look || {}, D = { eyes: 'derp', mouth: 'wavy', brows: 'worried', head: 'round', skin: '#f6c79c', hat: 'beanie', coat: 'olive', glove: 'olive', tool: 'yellow' };
+    Object.keys(D).forEach(function (cat) { var e = lookEntry(cat, L[cat]); if (L[cat] !== undefined && (!e || !owns(save, cat, e))) L[cat] = D[cat]; });
+    L.extras = (L.extras || []).filter(function (x) { var e = lookEntry('extras', x); return e && owns(save, 'extras', e); });
+    return save;
+  }
+  function styleInfo(save) { var n = G.styleScore(save); return { pts: n, bonus: G.styleBonus(save), cap: S.STYLE.cap, capPts: Math.ceil(S.STYLE.cap / S.STYLE.per) }; }
   // 고르기: 가진 것만. 얼굴 소품은 최대 3개까지 켜고 끈다
   function setLook(save, cat, id) {
     var e = lookEntry(cat, id); if (!e || !owns(save, cat, e)) return false;
@@ -153,12 +171,13 @@
     } else save.look[cat] = id;
     return true;
   }
-  function buyLook(save, cat, id) {
-    var e = lookEntry(cat, id); if (!e || owns(save, cat, e) || !e[2] || save.dia < e[2]) return false;
-    save.dia -= e[2]; save.unlocked[cat + ':' + id] = true; setLook(save, cat, id);
+  function buyLook(save, cat, id, now) {
+    var e = lookEntry(cat, id), pr = priceOf(save, cat, id, now); if (!e || owns(save, cat, e) || !e[2] || save.dia < pr) return false;
+    save.dia -= pr; save.unlocked[cat + ':' + id] = true; setLook(save, cat, id);
     return true;
   }
-  var ART_HAT = { beanie: 'beanie', helmet: 'helmet', cap: 'cap', none: 'none', headband: 'headband', cateears: 'cateears', beret: 'beret', crown: 'crown' };
+  var ART_HAT = { beanie: 'beanie', helmet: 'helmet', cap: 'cap', none: 'none', headband: 'headband', cateears: 'cateears', beret: 'beret', crown: 'crown',
+    bobble: 'bobble', earmuff: 'earmuff', santa: 'santa', bear: 'bear', cone: 'cone', bantong: 'bantong', lamp: 'lamp', propeller: 'propeller', viking: 'viking', afro: 'afro', goldhelm: 'gold', fakestar: 'fakestar' };
   function lookSpec(save) {
     var L = save.look || {};
     return { seed: 'me-snow', name: L.name, eyes: L.eyes, brows: L.brows, mouth: L.mouth, head: L.head, skin: L.skin, extras: (L.extras || []).slice(),
@@ -167,6 +186,6 @@
   function lookColor(save, cat) { var e = lookEntry(cat, (save.look || {})[cat]); return e && e[4] ? e[4] : (lookEntry(cat, S.LOOK[cat][0][0]) || [])[4]; }
   function lookKey(save) { var L = save.look || {}; return [L.eyes, L.mouth, L.brows, L.head, L.skin, (L.extras || []).join('+'), L.hat, L.coat, L.glove, L.tool].join('|'); }
 
-  JY.SnowMeta = { questNow: questNow, questProg: questProg, questCheck: questCheck, storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
+  JY.SnowMeta = { questNow: questNow, questProg: questProg, questCheck: questCheck, storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, tierOf: tierOf, dealOf: dealOf, priceOf: priceOf, fixLook: fixLook, styleInfo: styleInfo, lookEntry: lookEntry, owns: function (save, cat, id) { var e = lookEntry(cat, id); return !!e && owns(save, cat, e); }, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
     TIER: TIER, rollCall: rollCall, openBox: openBox, achList: achList, check: check, statOf: statOf, dateStr: dateStr };
 })(window.JY = window.JY || {});

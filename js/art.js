@@ -84,6 +84,12 @@
       case 'teary':
         g = eye(EL, EY, 13, 14, 0, -2, 6) + eye(ER, EY, 13, 14, 0, -2, 6) +
           '<path class="tear" d="M70 110 Q66 130 70 150 L76 150 Q78 130 78 110Z M122 110 Q120 130 124 150 L130 150 Q134 130 130 110Z" fill="#7cc4f2" opacity=".85"/>'; break;
+      case 'heart': {   // v24 하트 뿅
+        var hh = function (cx) { return '<path d="M' + cx + ' 108 C' + (cx - 22) + ' 94 ' + (cx - 14) + ' 76 ' + cx + ' 88 C' + (cx + 14) + ' 76 ' + (cx + 22) + ' 94 ' + cx + ' 108Z" fill="#ff3b6b" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><circle cx="' + (cx - 6) + '" cy="88" r="3" fill="#fff"/>'; };
+        g = hh(EL) + hh(ER); break;
+      }
+      case 'star':
+        g = star(EL, EY, 15, '#ffd34d').replace('stroke="#7a5a00" stroke-width="1"', 'stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"') + star(ER, EY, 15, '#ffd34d').replace('stroke="#7a5a00" stroke-width="1"', 'stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"'); break;
       case 'spiral':
         g = '<circle cx="' + EL + '" cy="' + EY + '" r="14" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="' + ER + '" cy="' + EY + '" r="14" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
           '<path d="M76 96 m0 -2 a2 2 0 1 1 -2 2 a5 5 0 1 1 5 5 a8 8 0 1 1 -8 -8" fill="none" stroke="' + INK + '" stroke-width="2.4"/>' +
@@ -133,6 +139,10 @@
         return '<path d="M86 134 Q93 143 100 134 Q107 143 114 134" fill="none" ' + st + '/>';
       case 'o':
         return '<circle cx="100" cy="138" r="5" fill="#5c2020" ' + st + '/>';
+      case 'tongue':   // v24 메롱
+        return '<path d="M82 132 Q100 146 118 132" fill="none" ' + st + '/><path d="M94 138 Q93 156 102 157 Q111 156 110 138Z" fill="#ff6f91" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M102 142 L102 152" stroke="#d94a6e" stroke-width="2"/>';
+      case 'buck':   // v24 뻐드렁니
+        return '<path d="M80 130 Q100 140 120 130" fill="none" ' + st + '/><rect x="88" y="131" width="11" height="16" rx="2.5" fill="#fff" stroke="' + INK + '" stroke-width="2.5"/><rect x="101" y="131" width="11" height="16" rx="2.5" fill="#fff" stroke="' + INK + '" stroke-width="2.5"/>';
       default:
         return '<path d="M84 132 Q100 148 116 132" fill="none" ' + st + '/>';
     }
@@ -221,7 +231,8 @@
     dy = dy || 0;
     // 모자 챙이 눈(졸린 눈 눈꺼풀 포함)을 가리지 않게 조금씩 올린다
     if (type === 'helmet' || type === 'helmetBig' || type === 'gold') dy -= 11;
-    if (type === 'cap' || type === 'general' || type === 'jogyo') dy -= 12;
+    if (type === 'cap' || type === 'general' || type === 'jogyo' || type === 'redcap' || type === 'redgen' || type === 'fakestar' || type === 'propeller') dy -= 12;
+    if (type === 'bobble' || type === 'bear' || type === 'bantong' || type === 'santa' || type === 'viking') dy -= 6;
     if (type === 'beanie') dy -= 6;
     var t = function (s) { return dy ? '<g transform="translate(0 ' + dy + ')">' + s + '</g>' : s; };
     switch (type) {
@@ -283,6 +294,60 @@
         for (var i = 0; i < pts.length; i++) a += '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="18" fill="' + cols[i % cols.length] + '" stroke="' + INK + '" stroke-width="2"/>';
         return t(a);
       }
+      // v24 꾸미기 모자
+      case 'bobble':
+        return t('<path d="M40 76 Q40 26 100 22 Q160 26 160 76Z" fill="#e23b3b" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M44 56 Q100 44 156 56 L158 66 Q100 54 42 66Z" fill="#fff"/><path d="M50 38 Q100 28 150 38 L153 46 Q100 36 47 46Z" fill="#fff"/>' +
+          '<rect x="36" y="64" width="128" height="18" rx="8" fill="#fff" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="100" cy="16" r="17" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="94" cy="11" r="5" fill="#eef4fb"/>');
+      case 'earmuff':
+        return '<path d="M38 104 Q34 28 100 22 Q166 28 162 104" fill="none" stroke="#f07aa8" stroke-width="9" stroke-linecap="round"/><path d="M38 104 Q34 28 100 22 Q166 28 162 104" fill="none" stroke="' + INK + '" stroke-width="2" opacity=".35"/>' +
+          '<circle cx="34" cy="108" r="22" fill="#ffb3d1" stroke="' + INK + '" stroke-width="3"/><circle cx="166" cy="108" r="22" fill="#ffb3d1" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="28" cy="100" r="6" fill="#fff" opacity=".7"/><circle cx="160" cy="100" r="6" fill="#fff" opacity=".7"/>';
+      case 'santa':
+        return t('<path d="M42 72 Q52 14 116 12 Q164 14 178 54 L160 62 Q150 36 130 40 Q150 52 158 72Z" fill="#e3342f" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
+          '<rect x="36" y="62" width="128" height="20" rx="10" fill="#fff" stroke="' + INK + '" stroke-width="3"/><circle cx="176" cy="60" r="13" fill="#fff" stroke="' + INK + '" stroke-width="3"/>');
+      case 'bear':
+        return t('<circle cx="52" cy="34" r="18" fill="#8b5a2b" stroke="' + INK + '" stroke-width="3"/><circle cx="148" cy="34" r="18" fill="#8b5a2b" stroke="' + INK + '" stroke-width="3"/>' +
+          '<circle cx="52" cy="34" r="9" fill="#e9b48a"/><circle cx="148" cy="34" r="9" fill="#e9b48a"/>' +
+          '<path d="M38 78 Q36 22 100 20 Q164 22 162 78Z" fill="#9c6833" stroke="' + INK + '" stroke-width="3"/><path d="M38 78 Q100 66 162 78" fill="none" stroke="#6e4520" stroke-width="5"/>');
+      case 'cone':
+        return '<g transform="translate(0 ' + (dy - 4) + ')"><path d="M72 66 L100 -14 L128 66Z" fill="#ff7a1a" stroke="' + INK + '" stroke-width="3.5" stroke-linejoin="round"/>' +
+          '<path d="M86 26 L114 26 L119 40 L81 40Z" fill="#fff"/><path d="M79 48 L121 48 L124 56 L76 56Z" fill="#fff"/>' +
+          '<rect x="54" y="62" width="92" height="14" rx="3" fill="#2b2b2b" stroke="' + INK + '" stroke-width="3"/></g>';
+      case 'bantong':
+        return t('<path d="M46 74 Q44 30 100 28 Q156 30 154 74Z" fill="#7d8456" stroke="' + INK + '" stroke-width="3"/><path d="M50 50 L150 50" stroke="#5f6640" stroke-width="3"/>' +
+          '<path d="M60 36 Q100 24 140 36" fill="none" stroke="#c9ccb0" stroke-width="5" stroke-linecap="round" opacity=".7"/>' +
+          '<path d="M150 46 Q182 44 178 70" fill="none" stroke="#5f6640" stroke-width="5" stroke-linecap="round"/>' +
+          '<path d="M118 32 L136 -2" stroke="#c9d1d9" stroke-width="5" stroke-linecap="round"/><ellipse cx="138" cy="-6" rx="7" ry="10" fill="#c9d1d9" stroke="' + INK + '" stroke-width="2" transform="rotate(30 138 -6)"/>');
+      case 'lamp':
+        return t('<path d="M40 70 Q100 56 160 70 L160 80 Q100 66 40 80Z" fill="#1e1e1e" stroke="' + INK + '" stroke-width="2.5"/>' +
+          '<path d="M100 60 L44 -10 L156 -10Z" fill="#fff6a8" opacity=".45"/>' +
+          '<rect x="84" y="52" width="32" height="24" rx="6" fill="#ffd34d" stroke="' + INK + '" stroke-width="3"/><circle cx="100" cy="64" r="8" fill="#fffbe0" stroke="' + INK + '" stroke-width="2"/>');
+      case 'propeller':
+        return t('<path d="M40 74 Q38 24 100 22 Q162 24 160 74Z" fill="#2f80ed" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M100 22 Q62 26 52 74 L100 74Z" fill="#e3342f"/><path d="M100 22 Q138 26 148 74 L100 74Z" fill="#ffd34d"/><path d="M40 74 Q38 24 100 22 Q162 24 160 74Z" fill="none" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M34 74 Q100 82 166 74" fill="none" stroke="' + INK + '" stroke-width="5"/>' +
+          '<rect x="97" y="4" width="6" height="20" fill="#555"/><path d="M100 6 Q72 -6 54 4 Q72 12 100 6Z" fill="#e3342f" stroke="' + INK + '" stroke-width="2.5"/><path d="M100 6 Q128 -6 146 4 Q128 12 100 6Z" fill="#2ec27e" stroke="' + INK + '" stroke-width="2.5"/><circle cx="100" cy="6" r="5" fill="#ffd34d" stroke="' + INK + '" stroke-width="2"/>');
+      case 'viking':
+        return t('<path d="M44 66 Q30 40 18 8 Q40 20 56 46Z" fill="#fffbea" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M156 66 Q170 40 182 8 Q160 20 144 46Z" fill="#fffbea" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
+          '<path d="M36 80 Q34 24 100 20 Q166 24 164 80Z" fill="#9aa3ad" stroke="' + INK + '" stroke-width="3"/><path d="M96 20 L104 20 L104 80 L96 80Z" fill="#7d8691"/>' +
+          '<rect x="32" y="68" width="136" height="16" rx="5" fill="#c8a24a" stroke="' + INK + '" stroke-width="3"/><circle cx="60" cy="76" r="3" fill="#7a5a00"/><circle cx="100" cy="76" r="3" fill="#7a5a00"/><circle cx="140" cy="76" r="3" fill="#7a5a00"/>');
+      case 'fakestar':
+        return t('<path d="M40 70 Q38 24 100 22 Q162 24 160 70 Z" fill="url(#' + camoId + ')" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M36 70 Q100 80 164 70 L170 78 Q100 96 30 78 Z" fill="#2f3a1e" stroke="' + INK + '" stroke-width="3"/>' +
+          '<g transform="rotate(-12 82 48)">' + star(82, 48, 13, '#ffd34d') + '</g><g transform="rotate(18 120 46)">' + star(120, 46, 11, '#ffd34d') + '</g>' +
+          '<rect x="66" y="58" width="22" height="8" fill="#c8c8c8" opacity=".85" transform="rotate(-8 77 62)"/>');
+      case 'redcap': {   // v24 간부: 빨간 모자 + 큰 계급장
+        var ins = '';
+        if (rank === 'o1' || rank === 'o3') { var k = rank === 'o1' ? 1 : 3; for (var j = 0; j < k; j++) { var cx = 100 + (j - (k - 1) / 2) * 24; ins += '<path d="M' + cx + ' 32 L' + (cx + 10) + ' 46 L' + cx + ' 60 L' + (cx - 10) + ' 46Z" fill="#f4f7fb" stroke="' + INK + '" stroke-width="2.5"/>'; } }
+        else for (var q = 0; q < 3; q++) ins += '<path d="M84 ' + (34 + q * 8) + ' L100 ' + (42 + q * 8) + ' L116 ' + (34 + q * 8) + '" fill="none" stroke="#ffd34d" stroke-width="5" stroke-linecap="round"/>';
+        return t('<path d="M40 70 Q38 24 100 22 Q162 24 160 70 Z" fill="' + (rank === 'nco' ? '#8e1f1f' : '#d22f2a') + '" stroke="' + INK + '" stroke-width="3"/>' +
+          '<path d="M36 70 Q100 80 164 70 L170 78 Q100 96 30 78 Z" fill="#1a1a1a" stroke="' + INK + '" stroke-width="3"/>' + ins);
+      }
+      case 'redgen':
+        return t('<path d="M40 70 Q38 24 100 22 Q162 24 160 70 Z" fill="#d22f2a" stroke="' + INK + '" stroke-width="3"/><rect x="40" y="58" width="120" height="10" fill="#e2b33c"/>' +
+          '<path d="M36 70 Q100 80 164 70 L170 78 Q100 96 30 78 Z" fill="#141410" stroke="' + INK + '" stroke-width="3"/>' + star(82, 42, 11, '#ffd34d') + star(118, 42, 11, '#ffd34d'));
       default: return '';
     }
   }
@@ -405,6 +470,11 @@
     if (has('sparkles')) s += '<g class="spark">' + star(30, 40, 8, '#fff4a3') + star(172, 52, 6, '#fff4a3') + star(160, 22, 5, '#fff4a3') + '</g>';
     if (has('tear')) s += '<path class="tear" d="M66 108 Q62 118 66 124 Q72 128 74 120 Q72 114 66 108Z" fill="#8fd3ff" stroke="#4a9fd0" stroke-width="1.5"/>';
     if (has('bruise')) s += '<ellipse cx="124" cy="96" rx="20" ry="18" fill="#7b5aa6" opacity=".35"/>';
+    // v24 얼굴 소품
+    if (has('camo')) s += '<g opacity=".88"><path d="M44 106 L84 112 L82 122 L46 118Z" fill="#3e5a2a"/><path d="M116 112 L156 106 L154 118 L118 122Z" fill="#3e5a2a"/><path d="M52 126 L80 130 L76 138 L54 134Z" fill="#6b4a2a"/><path d="M120 130 L148 126 L146 134 L124 138Z" fill="#6b4a2a"/><path d="M86 64 L114 62 L112 70 L88 72Z" fill="#20281a"/></g>';
+    if (has('nosebleed')) s += '<path d="M95 120 Q92 132 95 140 Q99 144 101 138 Q101 128 99 120Z" fill="#e3342f" stroke="#a51e1e" stroke-width="1.5"/>';
+    if (has('mole')) s += '<circle cx="124" cy="132" r="6" fill="#2a1d14"/><path d="M124 126 Q128 116 133 120" fill="none" stroke="#2a1d14" stroke-width="1.6"/>';
+    if (has('scar')) s += '<path d="M128 74 L146 120" stroke="#b35a5a" stroke-width="4" stroke-linecap="round"/><path d="M131 84 L141 80 M135 95 L145 91 M139 106 L149 102" stroke="#b35a5a" stroke-width="2.5" stroke-linecap="round"/>';
     return s;
   }
 

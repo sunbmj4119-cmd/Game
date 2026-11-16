@@ -129,6 +129,7 @@
     add('haeng', H, H.x, H.y, op.ready ? 60 : 36, '행보관', op.ready ? '작업 완료 보고' : '경례', { urgent: !!op.ready });
     w.crew.forEach(function (e) {
       if (e.mapyeon && !e.off) { add('soothe', e, e.x, e.y, 34, e.def.name, '달래기', { urgent: true, ask: '초코파이 ' + chocoCost(w) + '개' }); return; }   // v23 마음의 편지 쓰러 가는 후임
+      if (a.pye && a.pye.e === e && !e.off && (a.pye.id === 'dump' || (a.pye.id === 'broke' && a.pye.phase === 'idle'))) { add('pye', e, e.x, e.y, 34, e.def.name, a.pye.id === 'dump' ? '야! 멈춰!' : '새 거 가져와!', { urgent: true, ask: a.pye.id === 'dump' ? '치운 길에 눈을 버리고 있다' : '넉가래가 부러졌다' }); return; }   // v24 폐급짓
       if (e.off || e.state === 'follow' || e.ctl) return;
       var C = e.def, nm = C.vehicle ? '제설차' : C.name, ask = '담당 ' + (G.zoneById(e.post) || { name: '?' }).name;
       if (C.vehicle) { add('plow', e, e.x, e.y, 40, nm, hand === 'fuel' ? '기름 넣기' : e.noFuel ? '기름 없음' : '따라와', { ask: e.noFuel ? '정비고에 가면 기름통' : ask }); return; }
@@ -205,7 +206,8 @@
     w.deer.forEach(function (d) {
       var dd = Math.hypot(d.x - P.x, d.y - P.y);
       if (d.down > 0) { if (dd < 30 && !d.petted) { d.petted = true; bubble(w, d, pick(['…(눈을 꿈뻑)', '끼잉…', '(코를 킁킁)'])); me(w, '괜찮아? 미안하다…'); stat(w, 'deerPet'); fun(w, 'deerPet'); } return; }
-      if (!d.leaving && dd < 34) { shoo(w, d, true); me(w, '훠이! 훠이!'); }
+      // v24: 내가 다가갈 때만 "훠이!" — 가만히 있거나 옆·뒤에서 달려오면 고라니가 그대로 들이받는다 (벌러덩)
+      if (!d.leaving && dd < 34 && P.moving && (d.x - P.x) * P.dir.x + (d.y - P.y) * P.dir.y > dd * 0.5) { shoo(w, d, true); me(w, '훠이! 훠이!'); }
     });
     // 자거나 짱박힌 분대원: 지나가면 깨운다
     w.crew.forEach(function (e) {
@@ -294,6 +296,10 @@
     if (chz && chz.id === 'scenic') return { kind: 'chaos', x: chz.x, y: chz.y, text: '빨간 구역은 치우지 마!', sub: '사단장님 설경 감상 중 · ' + Math.max(0, Math.ceil(chz.sec - chz.t)) + '초', tone: 'red', here: true };
     var mp = w.crew.filter(function (e) { return e.mapyeon; })[0];
     if (mp) return { kind: 'soothe', x: mp.x, y: mp.y, text: '후임 달래기!', sub: '행정반 가기 전에 막아라 · 옆에 가면 달래기 버튼', tone: 'red' };
+    var py = a.pye;   // v24 폐급짓
+    if (py && py.id === 'dump') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 치운 길에 눈을 버린다!', sub: '가서 막아라 · 옆에 가면 "야! 멈춰!" · ' + py.n + '/' + py.max + '번째', tone: 'red' };
+    if (py && py.id === 'hide' && py.phase !== 'back') return { kind: 'pye', x: py.spot.x, y: py.spot.y, text: '후임이 사라졌다! ' + Math.max(0, Math.ceil(py.sec - py.t)) + '초', sub: py.spot.n + ' 쪽에서 봤다는데… 가서 찾아라', tone: 'gold' };
+    if (py && py.id === 'broke' && py.phase === 'idle') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 넉가래를 부러뜨렸다', sub: '가서 제설함에서 새 거 가져오라고 해라 · 안 그러면 계속 멍때린다', tone: 'gold' };
     if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
     // v22 대왕 눈덩이를 밀고 있으면: 가까운 집하장으로
     if (a.big && Math.hypot(a.big.x - P.x, a.big.y - P.y) < a.big.r + 34) { var db = G.nearestDump(w, a.big.x, a.big.y); return { kind: 'big', x: db.x, y: db.y, text: '대왕 눈덩이 → 집하장', sub: '굴려서 넣으면 1.5배 · 지금 눈 ' + Math.round(a.big.load), tone: 'gold' }; }
@@ -390,6 +396,7 @@
         return { ok: true };
       case 'officer': return actOfficer(w, t.ref);
       case 'soothe': return soothe(w, t.ref);
+      case 'pye': return pyeStop(w, t.ref);
       case 'ride': return startRide(w, t.ref);
       case 'exit': endRide(w, true); return { ok: true };
       case 'car':
@@ -618,6 +625,33 @@
   }
   /* ── v16 벌러덩 · 추격 ── */
   // 맞으면 잠깐 쓰러진다 (누운 모습, 그동안 일·이동 멈춤)
+  // v24 고라니는 간부·행보관도 가리지 않는다 — 지나가다 박으면 벌러덩 (내 탓이 아니니 쫓아오지 않는다)
+  // v24 모자를 쓰고 출동하면 누군가 한마디 (작전 시작 4초쯤, 70%)
+  function stepLookLine(w) {
+    var a = w.act; if (a.lookSaid || w.time < 4) return; a.lookSaid = true;
+    var L = S.LOOK_LINES[(w.save.look || {}).hat]; if (!L || w.rand() > 0.7) return;
+    var P = w.player, who = w.crew.filter(function (e) { return !e.off && !e.ctl && !e.def.vehicle; }).sort(function (p, q) { return Math.hypot(p.x - P.x, p.y - P.y) - Math.hypot(q.x - P.x, q.y - P.y); })[0];
+    var line = pick(L), H = w.haeng;
+    if (/^행보관/.test(line)) bubble(w, H, line.replace(/^행보관: /, '').replace(/^"|"$/g, ''));
+    else if (who && Math.hypot(who.x - P.x, who.y - P.y) < 220) bubble(w, who, line);
+    else me(w, line.replace(/^\(|\)$/g, ''));
+    stat(w, 'lookLine');
+  }
+  function stepDeerBump(w, dt) {
+    var a = w.act, H = w.haeng, who = (a.off || []).filter(function (o) { return o.phase !== 'go'; }).concat(H ? [H] : []);
+    who.forEach(function (o) {
+      o.deerCd = (o.deerCd || 0) - dt; if (o.deerCd > 0 || o.downT > 0) return;
+      for (var i = 0; i < w.deer.length; i++) {
+        var d = w.deer[i]; if (d.down > 0 || d.leaving && (d.x < 0 || d.x > S.W)) continue;
+        if (Math.abs(d.x - o.x) < S.HAZ.deer.hitR + 5 && Math.abs(d.y - o.y) < S.HAZ.deer.hitR + 5) {
+          o.deerCd = 3; knock(w, o, 2.2);
+          bubble(w, o, o === H ? pick(['으억?! 이 고라니 새끼가!!', '내 허리…!!', '(행보관님이 날아갔다)']) : pick(['으악?! 고, 고라니?!', '내 모자!! 내 모자 어디 갔어!', '(체통이… 체통이…)']));
+          stat(w, 'deerBoss'); fun(w, 'deerBoss');
+          break;
+        }
+      }
+    });
+  }
   function knock(w, e, sec) { e.downT = Math.max(e.downT || 0, sec); e.moving = false; fx(w, { t: 'knock', e: e, x: e.x, y: e.y }); }
   // 간부·행보관을 맞히면 일어나서 쫓아온다. 8초 안에 잡히면 얼차려 + 벌점, 버티면 '도주 성공'
   var CHASE = { sec: 7, speed: 0.8, catchR: 14 };   // 쫓는 속도 = 내 걸음의 80% → 계속 도망치면 따돌리고, 멈추거나 막히면 잡힌다
@@ -733,6 +767,120 @@
     bubble(w, e, pick(['…감사합니다 (훌쩍)', '초코파이… 잘 먹겠습니다', '…아닙니다! 괜찮습니다!', '(편지를 구겨 주머니에 넣는다)']));
     stat(w, 'soothe'); fun(w, 'soothe'); fx(w, { t: 'soothe', e: e, x: e.x, y: e.y, cost: cc });
     return { ok: true, ui: 'soothe' };
+  }
+
+  /* ── v24 후임 폐급짓: 가끔 일을 망친다. 가서 "야!" 해야 멈춘다 ── */
+  function pyeWho(w) { return w.crew.filter(function (e) { return !e.off && !e.ctl && !e.mapyeon && !e.def.vehicle && relation(w, e) === 'junior' && !(e.injured > 0) && !(e.downT > 0) && e.state !== 'follow'; }); }
+  function pyeDef(id) { for (var i = 0; i < S.PYE.kinds.length; i++) if (S.PYE.kinds[i].id === id) return S.PYE.kinds[i]; return null; }
+  function stepPye(w, dt) {
+    var a = w.act, C = S.PYE, save = w.save;
+    if ((save.stats.ops || 0) < C.fromOps - 1) return;
+    if (a.pyeAt === undefined) { a.pyeAt = w.rand() < C.p ? C.at[0] + w.rand() * (C.at[1] - C.at[0]) : 1e9; a.pyeN = 0; }
+    var pe = a.pye;
+    if (!pe && w.time >= a.pyeAt && !(w.op && w.op.ready)) {
+      if (a.chaos) { a.pyeAt = w.time + 6; return; }   // 돌발과 한꺼번에 겹치지 않게
+      var who = pyeWho(w); if (!who.length) { a.pyeAt = w.time + 12; return; }
+      a.pyeN++; a.pyeAt = a.pyeN < 2 && rank(w) >= 2 && w.rand() < C.p2 ? w.time + C.gap + w.rand() * 40 : 1e9;
+      var tot = 0, r = w.rand(), K = null; C.kinds.forEach(function (k) { tot += k.w; }); r *= tot;
+      for (var i = 0; i < C.kinds.length; i++) { r -= C.kinds[i].w; if (r < 0) { K = C.kinds[i]; break; } }
+      startPye(w, K || C.kinds[0], who[(w.rand() * who.length) | 0]);
+      return;
+    }
+    if (pe) tickPye(w, pe, dt);
+  }
+  function startPye(w, K, e) {
+    var a = w.act, P = w.player, pe = a.pye = { id: K.id, name: K.name, e: e, t: 0, sec: K.sec || 0, n: 0, max: K.n || 0, phase: 'go' };
+    e.ctl = 'pye'; e.moving = false; stat(w, 'pye');
+    if (K.id === 'dump') {
+      var cp = partNear(w, P, 20, 200, 'clear') || partNear(w, e, 0, 260, 'clear'), tx = cp ? cp.x : P.x + 40, ty = cp ? cp.y : P.y;
+      pe.tx = tx; pe.ty = ty; pe.every = K.every; pe.dt = 0.6; e.load = Math.max(e.load || 0, (e.cap || 30) * 0.8);
+      bubble(w, e, pick(['집하장 멀어서 여기다 버리겠습니다!', '여기 버리면 되는 거 아닙니까?', '(치운 길 쪽으로 눈을 들고 간다)']));
+    } else if (K.id === 'hide') {
+      var sp = S.PYE.spots.slice().sort(function (p, q) { return Math.abs(Math.hypot(p.x - P.x, p.y - P.y) - 220) - Math.abs(Math.hypot(q.x - P.x, q.y - P.y) - 220); })[0];
+      pe.spot = sp; pe.tx = sp.x; pe.ty = sp.y;
+      bubble(w, e, pick(['(슬그머니 사라진다)', '…화장실 좀 다녀오겠습니다', '(두리번두리번)']));
+    } else if (K.id === 'broke') {
+      pe.phase = 'idle'; e.broke = true;
+      bubble(w, e, pick(['넉가래가… 부러졌습니다…', '(부러진 손잡이를 들고 멍)', '이게… 왜 부러지지…?']));
+    }
+    fx(w, { t: 'pye', id: K.id, name: K.name, who: e.def.name, e: e, x: e.x, y: e.y, spot: pe.spot ? pe.spot.n : '' });
+  }
+  function endPye(w, ok, extra) {
+    var a = w.act, pe = a.pye; if (!pe) return;
+    a.pye = null; if (pe.e.ctl === 'pye') pe.e.ctl = null; pe.e.hidden = false; pe.e.broke = false; pe.e.tidx = -1; pe.e.retarget = 0;
+    fx(w, Object.assign({ t: 'pyeEnd', id: pe.id, ok: ok, who: pe.e.def.name }, extra || {}));
+  }
+  function tickPye(w, pe, dt) {
+    var e = pe.e, P = w.player, H = w.haeng, save = w.save;
+    pe.t += dt;
+    if (e.off || w.crew.indexOf(e) < 0 || e.mapyeon) return endPye(w, false, { gone: true });
+    if (e.downT > 0 || e.injured > 0) { e.downT = Math.max(0, (e.downT || 0) - dt); if (e.injured > 0) { e.injured -= dt; if (e.injured <= 0) fx(w, { t: 'up', e: e }); } e.moving = false; return; }
+    if (pe.id === 'dump') {
+      if (pe.phase === 'go') { if (G.steer(e, pe.tx, pe.ty, e.speed || 46, dt, 6) < 0.01 || Math.hypot(e.x - pe.tx, e.y - pe.ty) < 10) { pe.phase = 'dump'; pe.dt = 0.3; } return; }
+      e.moving = false; pe.dt -= dt;
+      if (pe.dt <= 0) {
+        pe.dt = pe.every; pe.n++;
+        var nx = e.x + (w.rand() - 0.5) * 30, ny = e.y + (w.rand() - 0.5) * 30;
+        G.dumpAt(w, e.x + e.dir.x * 10, e.y + e.dir.y * 10, 11, 2, 0.85, 4); e.swing = 1; e.load = Math.max(0, (e.load || 0) - (e.cap || 30) * 0.8 / pe.max);
+        fx(w, { t: 'pyeDump', e: e, x: e.x, y: e.y, n: pe.n });
+        if (pe.n === 3) bubble(w, e, pick(['(열심히 쏟는다)', '이쪽도 버리겠습니다!', '(뿌듯)']));
+        if (pe.n >= pe.max) { bubble(w, e, pick(['다 버렸습니다! 잘했지 말입니다?', '(뿌듯한 표정)'])); me(w, '……(할 말을 잃었다)'); return endPye(w, false); }
+        if (!G.blocked(nx, ny, 6)) { e.x = nx * 0.3 + e.x * 0.7; e.y = ny * 0.3 + e.y * 0.7; }
+      }
+    } else if (pe.id === 'hide') {
+      if (pe.phase === 'go') {
+        var dd = Math.hypot(e.x - pe.tx, e.y - pe.ty);
+        if (G.steer(e, pe.tx, pe.ty, (e.speed || 46) * 1.3, dt, 6) < 0.01 || dd < 10) { pe.phase = 'hid'; e.hidden = true; e.moving = false; pe.spot = { x: e.x, y: e.y, n: pe.spot.n }; }
+      } else { e.moving = false; e.hidden = true; }
+      if (Math.hypot(P.x - e.x, P.y - e.y) < 26 && pe.phase === 'hid') {
+        e.hidden = false; buff(w, 'relief', 10); var g = give(w, 20 * (1 + rank(w)) * w.mult, 'pye'); stat(w, 'pyeFound'); fun(w, 'pyeHide'); fun(w, 'pye');
+        me(w, pick(['야!! 여기서 뭐 해!', '찾았다 이 녀석…', '너 지금 냉동 먹고 있었냐?!']));
+        bubble(w, e, pick(['아 들켰다…', '(냉동 먹다 걸림)', '5분만 쉬려고 했는데…', '…충성! (입에 냉동)']));
+        return endPye(w, true, { pay: g });
+      }
+      if (pe.t > pe.sec) {
+        e.hidden = false; e.x = pe.spot.x; e.y = pe.spot.y;
+        bubble(w, H, pick(['야! 너네 후임 PX 뒤에서 냉동 먹고 있더라?!', '분대장 뭐 하나! 후임 관리 똑바로 안 해?!']));
+        w.crew.forEach(function (c) { if (!c.off) c.mor = Math.max(0, c.mor - 8); });
+        return endPye(w, false);
+      }
+    } else if (pe.id === 'broke') {
+      if (pe.phase === 'idle') {
+        e.moving = false;
+        if (pe.t > pe.sec) { bubble(w, H, pick(['거기 후임! 왜 멍때려?!', '분대장! 후임 놀고 있잖아!'])); w.crew.forEach(function (c) { if (!c.off) c.mor = Math.max(0, c.mor - 8); }); pe.phase = 'fetch'; pe.late = true; bubble(w, e, '(혼자 제설함으로 터덜터덜)'); }
+        return;
+      }
+      var Gp = pe.box || (pe.box = S.PYE.spares.slice().sort(function (p, q) { return Math.hypot(p.x - e.x, p.y - e.y) - Math.hypot(q.x - e.x, q.y - e.y); })[0]);
+      var mvb = G.steer(e, Gp.x, Gp.y, (e.speed || 46) * 1.5, dt, 6); pe.stuck = mvb < 0.01 ? (pe.stuck || 0) + dt : 0;
+      if (Math.hypot(e.x - Gp.x, e.y - Gp.y) < 16 || pe.stuck > 1.5 || pe.t > (pe.late ? pe.sec + 12 : 12)) {
+        bubble(w, e, pick(['새 넉가래 찾았습니다!', '이번엔 안 부러뜨리겠습니다!']));
+        return endPye(w, !pe.late);
+      }
+    }
+  }
+  function pyeStop(w, e) {
+    var a = w.act, pe = a.pye; if (!pe || pe.e !== e) return { ok: false };
+    if (pe.id === 'dump') {
+      me(w, pick(['야 인마! 거기다 버리면 어떡해!!', '그거 방금 치운 데잖아!!', '집하장은 저쪽이라고!!']));
+      bubble(w, e, pick(['아… 죄송합니다!! 집하장으로 가겠습니다!', '헉… 여기 아니었습니까?!', '(얼어붙음)']));
+      e.mor = Math.min(100, (e.mor || 50) + 5); stat(w, 'pyeStop'); fun(w, 'pye');
+      endPye(w, true, { n: pe.n }); if (e.load > 0) e.state = 'haul';
+      return { ok: true, ui: 'pye' };
+    }
+    if (pe.id === 'broke' && pe.phase === 'idle') {
+      me(w, pick(['그걸 어떻게 부러뜨려?! 제설함 가서 새 거 가져와!', '제설함에 예비 넉가래 있다. 뛰어!']));
+      bubble(w, e, pick(['네! 뛰어갔다 오겠습니다!', '(전력 질주)']));
+      pe.phase = 'fetch'; pe.t = 0; stat(w, 'pyeStop'); fun(w, 'pye');
+      return { ok: true, ui: 'pye' };
+    }
+    return { ok: false };
+  }
+  function pyeMarks(w) {
+    var pe = w.act && w.act.pye; if (!pe) return [];
+    if (pe.id === 'dump') return [{ x: pe.e.x, y: pe.e.y, color: '#c8402e', label: '폐급!' }];
+    if (pe.id === 'hide' && pe.phase !== 'back') return [{ x: pe.spot.x, y: pe.spot.y, color: '#e2b33c', label: '어디 갔지?' }];
+    if (pe.id === 'broke' && pe.phase === 'idle') return [{ x: pe.e.x, y: pe.e.y, color: '#e2b33c', label: '넉가래 부러짐' }];
+    return [];
   }
 
   function hitDeer(w, d) {
@@ -1057,7 +1205,7 @@
     if (!w.demo) auto(w, dt);
     if (w.opEnd) return;
     a.ballCd -= dt;
-    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); stepDrops(w, dt); stepBig(w, dt); stepMapyeon(w, dt); w.crew.forEach(function (e) { if (e.chaseT > 0) stepChase(w, e, dt); }); stepChaos(w, dt); stepSkills(w, dt); }
+    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); stepDrops(w, dt); stepBig(w, dt); stepMapyeon(w, dt); w.crew.forEach(function (e) { if (e.chaseT > 0) stepChase(w, e, dt); }); stepChaos(w, dt); stepSkills(w, dt); stepDeerBump(w, dt); stepPye(w, dt); stepLookLine(w); }
     if (H.chaseT > 0) stepChase(w, H, dt);
     else if (H.downT > 0) { H.downT -= dt; H.hold = Math.max(H.hold || 0, 0.1); }
     if (w.opEnd) return;
@@ -1272,7 +1420,7 @@
     var reqs = a.reqs.map(function (q) { return { who: '제설차', item: q.item, want: ITEM[q.item].want, from: ITEM[q.item].from, t: q.t, max: q.max, ref: q.who }; });
     return { hand: a.hand ? { id: a.hand, name: ITEM[a.hand].name } : null, reqs: reqs, recruits: (w.recruits || []).length, heat: 0, buffs: list, mission: null,
       salute: urgent ? { title: OFF[urgent.id].title, left: Math.max(0, 3.5 - urgent.salT) } : null, mor: mor, slack: slack,
-      marks: a.marks || [], chaos: a.chaos ? { id: a.chaos.id, t: a.chaos.t, sec: a.chaos.sec } : null, ride: a.ride ? { name: a.ride.name, kind: a.ride.kind, fuel: a.ride.fuel, max: a.ride.max } : null, throwT: throwTarget(w), ballCd: Math.max(0, a.ballCd || 0),
+      marks: (a.marks || []).concat(pyeMarks(w)), pye: a.pye ? { id: a.pye.id, phase: a.pye.phase, t: a.pye.t } : null, chaos: a.chaos ? { id: a.chaos.id, t: a.chaos.t, sec: a.chaos.sec } : null, ride: a.ride ? { name: a.ride.name, kind: a.ride.kind, fuel: a.ride.fuel, max: a.ride.max } : null, throwT: throwTarget(w), ballCd: Math.max(0, a.ballCd || 0),
       op: G.opStatus(w), car: w.car && w.car.stuck ? { push: w.car.push } : null,
       pads: pads(w).map(function (p) { var t = a.padT && a.padT[p.id] > 0 ? a.padT[p.id] : 0; p.prog = Math.min(1, t / p.dwell); return p; }),
       goal: objective(w), assign: Math.min(1, (a.assignT || 0) / 1), fever: w.fever || 0, surge: w.surge || 0 };
@@ -1280,7 +1428,7 @@
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
-    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer, throwDir: throwDir, startChaos: startChaos, stepChaos: stepChaos, chaosDef: chaosDef, AIM: AIM, relation: relation, hitCrew: hitCrew, soothe: soothe, MAPYEON: MAPYEON,
+    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer, throwDir: throwDir, startChaos: startChaos, stepChaos: stepChaos, chaosDef: chaosDef, AIM: AIM, relation: relation, hitCrew: hitCrew, soothe: soothe, MAPYEON: MAPYEON, startPye: startPye, stepPye: stepPye, pyeStop: pyeStop, pyeDef: pyeDef,
     prepItems: prepItems, prepBuy: prepBuy, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, takeDrop: takeDrop, stepBig: stepBig, stepDrops: stepDrops, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,

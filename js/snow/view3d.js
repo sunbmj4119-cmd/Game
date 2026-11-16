@@ -509,20 +509,47 @@
     else if (hat === 'cateears') parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [cone(0.18, 0.34, { x: -0.3, y: y + 0.56, z: 0.02, rz: 0.3 }, 4), '#e8913a'], [cone(0.18, 0.34, { x: 0.3, y: y + 0.56, z: 0.02, rz: -0.3 }, 4), '#e8913a'], [cone(0.09, 0.2, { x: -0.3, y: y + 0.55, z: 0.1, rz: 0.3 }, 4), '#f6c3c3'], [cone(0.09, 0.2, { x: 0.3, y: y + 0.55, z: 0.1, rz: -0.3 }, 4), '#f6c3c3']);
     else if (hat === 'beret') parts.push([sph(HR + 0.08, { s: [1.08, 0.38, 1.08], x: 0.08, y: y + 0.36, rz: -0.18 }), '#3a4a2a'], [cyl(HR + 0.03, HR + 0.03, 0.1, { y: y + 0.2 }, 18), '#2c3822'], [box(0.14, 0.14, 0.04, { x: -0.22, y: y + 0.28, z: HR - 0.02 }), '#d0b45a']);
     else if (hat === 'crown') { parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [cyl(0.42, 0.4, 0.26, { y: y + 0.48 }, 16), '#f5c542']); for (var ci = 0; ci < 6; ci++) { var ca = ci / 6 * Math.PI * 2; parts.push([cone(0.09, 0.24, { x: Math.cos(ca) * 0.38, y: y + 0.72, z: Math.sin(ca) * 0.38 }, 4), '#f5c542'], [sph(0.05, { x: Math.cos(ca) * 0.42, y: y + 0.5, z: Math.sin(ca) * 0.42 }), ci % 2 ? '#d23a2a' : '#2b6fd1']); } }
-    // v23 간부는 병사와 다르게: 소대장(다이아 1) · 중대장(다이아 3) · 사단장(정모 + 별) · 행보관(검은 띠 + 금 막대 + 호루라기 줄)
+    // v24 간부는 빨간 모자 + 계급장을 크게 (앞 + 위): 3인칭에서 위에서 내려다봐도 누군지 보인다
+    // 소대장 = 은색 다이아 1 · 중대장 = 은색 다이아 3 · 사단장 = 금띠 정모 + 금별 2 · 행보관 = 검붉은 모자 + 금 갈매기 3
     else if (hat === 'lt' || hat === 'cpt' || hat === 'haeng') {
-      var oc = hat === 'haeng' ? '#2f3624' : hat === 'cpt' ? '#3f4a2a' : '#4a5530';
-      parts.push([P(new T.SphereGeometry(HR + 0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 0.7, 1], y: y + 0.14 }), oc], [cyl(HR + 0.07, HR + 0.07, 0.2, { y: y + 0.15 }, 18), oc], [box(0.66, 0.05, 0.42, { y: y + 0.08, z: HR + 0.14 }), '#1f241a']);
-      if (hat === 'haeng') parts.push([cyl(HR + 0.075, HR + 0.075, 0.07, { y: y + 0.1 }, 18), '#121410'], [box(0.26, 0.07, 0.03, { y: y + 0.24, z: HR + 0.07 }), '#e2b33c'], [P(new T.TorusGeometry(0.22, 0.02, 4, 16), { rx: 0.3, y: 1.38, z: 0.18 }), '#f2f2f2'], [box(0.08, 0.06, 0.14, { x: 0.12, y: 1.18, z: 0.33 }), '#c9d1d9']);
-      else for (var di = 0; di < (hat === 'cpt' ? 3 : 1); di++) parts.push([box(0.09, 0.09, 0.03, { x: (di - (hat === 'cpt' ? 1 : 0)) * 0.13, y: y + 0.27, z: HR + 0.08, rz: Math.PI / 4 }), '#e6eaef']);
+      var oc = hat === 'haeng' ? '#8e1f1f' : '#d22f2a', ob = hat === 'haeng' ? '#5e1212' : '#9e1d1a';
+      parts.push([P(new T.SphereGeometry(HR + 0.07, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 0.66, 1], y: y + 0.16 }), oc], [cyl(HR + 0.08, HR + 0.08, 0.22, { y: y + 0.16 }, 20), oc], [cyl(HR + 0.09, HR + 0.09, 0.06, { y: y + 0.08 }, 20), ob],
+        [box(0.7, 0.05, 0.44, { y: y + 0.08, z: HR + 0.15 }), '#1a1a1a']);
+      if (hat === 'haeng') {
+        for (var hc = 0; hc < 3; hc++) { var hy = y + 0.36 - hc * 0.09; parts.push([box(0.16, 0.05, 0.03, { x: -0.07, y: hy, z: HR + 0.08, rz: 0.55 }), '#ffd24a'], [box(0.16, 0.05, 0.03, { x: 0.07, y: hy, z: HR + 0.08, rz: -0.55 }), '#ffd24a']); }
+        for (var hc2 = 0; hc2 < 3; hc2++) parts.push([box(0.36, 0.035, 0.07, { y: y + 0.535, z: -0.1 + hc2 * 0.11 }), '#ffd24a']);   // 위에서도 금 줄 셋
+        parts.push([P(new T.TorusGeometry(0.22, 0.02, 4, 16), { rx: 0.3, y: 1.38, z: 0.18 }), '#f2f2f2'], [box(0.08, 0.06, 0.14, { x: 0.12, y: 1.18, z: 0.33 }), '#c9d1d9']);   // 호루라기 줄
+      } else {
+        var nd = hat === 'cpt' ? 3 : 1;
+        for (var di = 0; di < nd; di++) {
+          var dxp = (di - (nd - 1) / 2) * 0.2;
+          parts.push([box(0.15, 0.15, 0.04, { x: dxp, y: y + 0.3, z: HR + 0.09, rz: Math.PI / 4 }), '#f4f7fb']);   // 앞
+          parts.push([box(0.2, 0.04, 0.2, { x: dxp * 1.25, y: y + 0.545, ry: Math.PI / 4 }), '#f4f7fb']);   // 위 (크게)
+        }
+      }
       parts.push([box(0.2, 0.06, 0.03, { x: -0.18, y: 1.32, z: 0.36 }), '#1d2a4a']);   // 가슴 명찰
     }
     else if (hat === 'gen') {
-      parts.push([cyl(HR + 0.16, HR + 0.02, 0.36, { y: y + 0.32 }, 20), '#34401f'], [cyl(HR + 0.17, HR + 0.17, 0.1, { y: y + 0.17 }, 20), '#e2b33c'], [box(0.74, 0.05, 0.42, { y: y + 0.1, z: HR + 0.16, rx: 0.12 }), '#141410'],
-        [box(0.18, 0.18, 0.04, { y: y + 0.36, z: HR + 0.12 }), '#c8402e']);
-      for (var gs = 0; gs < 2; gs++) parts.push([cone(0.07, 0.04, { x: (gs - 0.5) * 0.17, y: y + 0.36, z: HR + 0.15, rx: Math.PI / 2 }, 5), '#ffd24a'], [cone(0.08, 0.05, { x: (gs ? 1 : -1) * 0.42, y: 1.5, z: 0.06, rx: -0.2 }, 5), '#ffd24a']);   // 모자·어깨 별 둘
+      parts.push([cyl(HR + 0.18, HR + 0.02, 0.38, { y: y + 0.33 }, 22), '#d22f2a'], [cyl(HR + 0.19, HR + 0.19, 0.11, { y: y + 0.17 }, 22), '#e2b33c'], [box(0.76, 0.05, 0.44, { y: y + 0.1, z: HR + 0.17, rx: 0.12 }), '#141410'],
+        [cyl(HR + 0.17, HR + 0.17, 0.03, { y: y + 0.52 }, 22), '#b0221e']);
+      for (var gs = 0; gs < 2; gs++) parts.push([cone(0.1, 0.05, { x: (gs - 0.5) * 0.24, y: y + 0.36, z: HR + 0.16, rx: Math.PI / 2 }, 5), '#ffd24a'],   // 모자 앞 별 둘
+        [cone(0.15, 0.05, { x: (gs - 0.5) * 0.34, y: y + 0.55 }, 5), '#ffd24a'],   // 모자 위 별 둘 (크게)
+        [cone(0.08, 0.05, { x: (gs ? 1 : -1) * 0.42, y: 1.5, z: 0.06, rx: -0.2 }, 5), '#ffd24a']);   // 어깨 별
       parts.push([P(new T.TorusGeometry(0.16, 0.025, 4, 14), { ry: 0.4, x: 0.3, y: 1.3, z: 0.2 }), '#e2b33c']);   // 금 견장 줄
     }
+    // v24 꾸미기 모자: 3인칭(위·뒤에서 보는 카메라)에서도 한눈에 보이게 크고 색이 강하게
+    else if (hat === 'bobble') { parts.push([P(new T.SphereGeometry(HR + 0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 1.15, 1], y: y + 0.02 }), '#e23b3b'], [P(new T.TorusGeometry(HR + 0.06, 0.07, 6, 22), { rx: Math.PI / 2, y: y + 0.08 }), '#ffffff'], [P(new T.TorusGeometry(HR - 0.06, 0.05, 6, 22), { rx: Math.PI / 2, y: y + 0.36 }), '#ffffff'], [sph(0.22, { y: y + 0.72 }), '#ffffff']); }
+    else if (hat === 'earmuff') parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [P(new T.TorusGeometry(HR + 0.06, 0.05, 6, 20, Math.PI), { y: y - 0.02 }), '#f07aa8'], [sph(0.24, { s: [0.6, 1, 1], x: -HR - 0.05, y: y - 0.04 }), '#ffb3d1'], [sph(0.24, { s: [0.6, 1, 1], x: HR + 0.05, y: y - 0.04 }), '#ffb3d1']);
+    else if (hat === 'santa') parts.push([cone(HR + 0.05, 1.0, { x: 0.12, y: y + 0.52, z: -0.08, rz: -0.35, rx: -0.25 }, 14), '#e3342f'], [P(new T.TorusGeometry(HR + 0.04, 0.1, 6, 22), { rx: Math.PI / 2, y: y + 0.08 }), '#ffffff'], [sph(0.17, { x: 0.46, y: y + 0.92, z: -0.32 }), '#ffffff']);
+    else if (hat === 'bear') parts.push([P(new T.SphereGeometry(HR + 0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { y: y + 0.02 }), '#9c6833'], [sph(0.2, { s: [1, 1, 0.6], x: -0.4, y: y + 0.5 }), '#8b5a2b'], [sph(0.2, { s: [1, 1, 0.6], x: 0.4, y: y + 0.5 }), '#8b5a2b'], [sph(0.1, { s: [1, 1, 0.5], x: -0.4, y: y + 0.5, z: 0.08 }), '#e9b48a'], [sph(0.1, { s: [1, 1, 0.5], x: 0.4, y: y + 0.5, z: 0.08 }), '#e9b48a']);
+    else if (hat === 'cone') parts.push([box(0.95, 0.1, 0.95, { y: y + 0.36 }), '#2b2b2b'], [cone(0.42, 1.25, { y: y + 1.02 }, 16), '#ff7a1a'], [cyl(0.29, 0.33, 0.14, { y: y + 0.82 }, 16), '#ffffff'], [cyl(0.17, 0.21, 0.12, { y: y + 1.18 }, 16), '#ffffff'], [P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128']);
+    else if (hat === 'bantong') parts.push([box(0.98, 0.42, 0.78, { y: y + 0.42 }), '#7d8456'], [box(1.0, 0.06, 0.8, { y: y + 0.24 }), '#5f6640'], [P(new T.TorusGeometry(0.26, 0.035, 5, 14, Math.PI), { rz: -Math.PI / 2, x: 0.5, y: y + 0.42 }), '#5f6640'], [box(0.05, 0.62, 0.06, { x: 0.18, y: y + 0.82, rz: -0.4 }), '#c9d1d9'], [sph(0.09, { s: [1, 1.4, 0.4], x: 0.3, y: y + 1.12, rz: -0.4 }), '#c9d1d9']);
+    else if (hat === 'lamp') parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [P(new T.TorusGeometry(HR + 0.03, 0.05, 5, 22), { rx: Math.PI / 2 - 0.15, y: y + 0.16 }), '#1e1e1e'], [box(0.3, 0.22, 0.16, { y: y + 0.24, z: HR + 0.06 }), '#ffd34d']);
+    else if (hat === 'propeller') parts.push([P(new T.SphereGeometry(HR + 0.06, 16, 8, 0, Math.PI, 0, Math.PI / 2), { y: y + 0.03 }), '#e3342f'], [P(new T.SphereGeometry(HR + 0.06, 16, 8, Math.PI, Math.PI, 0, Math.PI / 2), { y: y + 0.03 }), '#ffd34d'], [P(new T.TorusGeometry(HR + 0.05, 0.05, 5, 22), { rx: Math.PI / 2, y: y + 0.05 }), '#2f80ed'], [box(0.62, 0.05, 0.36, { y: y + 0.06, z: HR + 0.12 }), '#2f80ed'], [cyl(0.03, 0.03, 0.3, { y: y + 0.72 }, 6), '#555']);
+    else if (hat === 'viking') parts.push([P(new T.SphereGeometry(HR + 0.08, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { y: y + 0.04 }), '#9aa3ad'], [cyl(HR + 0.1, HR + 0.1, 0.14, { y: y + 0.06 }, 20), '#c8a24a'], [cone(0.13, 0.62, { x: -0.62, y: y + 0.5, rz: 0.75 }, 8), '#fffbea'], [cone(0.13, 0.62, { x: 0.62, y: y + 0.5, rz: -0.75 }, 8), '#fffbea']);
+    else if (hat === 'afro') { var AC = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93']; for (var ai = 0; ai < 14; ai++) { var aa = ai / 14 * Math.PI * 2, ar = ai % 2 ? 0.52 : 0.62; parts.push([sph(0.3, { x: Math.cos(aa) * ar, y: y + 0.35 + (ai % 3) * 0.12, z: Math.sin(aa) * ar - 0.05 }, 10, 8), AC[ai % 5]]); } parts.push([sph(0.42, { y: y + 0.62 }, 12, 8), '#ffca3a']); }
+    else if (hat === 'goldhelm') parts.push([P(new T.SphereGeometry(HR + 0.12, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1.08, 0.86, 1.08], y: y + 0.06 }), '#f2c335'], [cyl(HR + 0.18, HR + 0.18, 0.08, { y: y + 0.05 }, 18), '#c9971d'], [cone(0.12, 0.04, { y: y + 0.36, z: HR + 0.08, rx: Math.PI / 2 }, 5), '#fff4a3'], [cone(0.18, 0.05, { y: y + 0.56 }, 5), '#fff4a3']);
+    else if (hat === 'fakestar') { parts.push([P(new T.SphereGeometry(HR + 0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 0.66, 1], y: y + 0.16 }), '#4a5530'], [cyl(HR + 0.07, HR + 0.07, 0.22, { y: y + 0.16 }, 18), '#4a5530'], [box(0.7, 0.05, 0.44, { y: y + 0.08, z: HR + 0.15 }), '#1f241a']); for (var fs = 0; fs < 2; fs++) parts.push([cone(0.13, 0.05, { x: (fs - 0.5) * 0.3, y: y + 0.32, z: HR + 0.1, rx: Math.PI / 2, rz: fs ? 0.3 : -0.2 }, 5), '#ffd24a'], [cone(0.2, 0.05, { x: (fs - 0.5) * 0.4, y: y + 0.55, rz: fs ? 0.12 : -0.1 }, 5), '#ffd24a']); }
     else if (hat === 'chef') parts.push([cyl(0.44, 0.42, 0.5, { y: y + 0.55 }, 16), '#ffffff'], [sph(0.52, { s: [1, 0.7, 1], y: y + 0.88 }, 14, 8), '#ffffff'], [cyl(0.47, 0.47, 0.1, { y: y + 0.32 }, 16), '#e7e2d6']);
     else parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128']);
     return parts;
@@ -703,6 +730,18 @@
     playerObj = makePerson({ coat: lookCol('coat', '#5b6a3a'), face: 'me', hat: L.hat || 'beanie', toolColor: lookCol('tool', '#e7ae2f'), tool: veh ? null : Tl.aura ? 'salt' : Tl.id === 'broom' ? 'broom' : Tl.id === 'twin' ? 'twin' : Tl.id === 'cart' ? 'cart' : 'pusher', r: Tl.r, vehicle: veh, big: !!veh, shadow: true });
     var ring = new T.Mesh(new T.RingGeometry(0.75, 0.95, 24), new T.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; playerObj.g.add(ring); playerObj.ring = ring;
+    // v24 내 캐릭터: 조금 크게 + 모자별 움직이는 부분 (프로펠러가 돈다 · 헤드랜턴이 앞을 비춘다) + 전설 등급은 반짝
+    playerObj.hatId = veh ? '' : (L.hat || 'beanie'); playerObj.tier = MM() && MM().tierOf ? MM().tierOf('hat', playerObj.hatId) : '';
+    if (!veh) {
+      playerObj.g.scale.setScalar(1.34); ring.scale.setScalar(1 / 1.34 * 1.25);
+      if (playerObj.hatId === 'propeller') { var pr = new T.Mesh(geos.prop || (geos.prop = merge([[box(1.2, 0.04, 0.18, {}), '#e3342f'], [box(0.18, 0.04, 1.2, {}), '#2ec27e'], [sph(0.08, {}), '#ffd34d']])), matV); pr.position.set(0, HY + 0.88, 0); playerObj.body.add(pr); playerObj.prop = pr; }
+      if (playerObj.hatId === 'lamp') {
+        var lg = new T.Group(); lg.position.set(0, HY + 0.24, HR + 0.12); lg.rotation.x = 0.28; playerObj.body.add(lg);
+        var bg = new T.ConeGeometry(1.25, 5, 18, 1, true); bg.translate(0, -2.5, 0); bg.rotateX(-Math.PI / 2);
+        var beam = new T.Mesh(bg, new T.MeshBasicMaterial({ color: '#fff3a0', transparent: true, opacity: 0.15, depthWrite: false, side: T.DoubleSide }));
+        lg.add(beam); lg.add(new T.Mesh(new T.SphereGeometry(0.1, 10, 8), new T.MeshBasicMaterial({ color: '#fffbe0' }))); playerObj.beam = beam;
+      }
+    }
   }
   function crewObj(e, many) {
     var C = e.def, o = makePerson({ coat: C.coat, face: C.face, hat: C.hat, tool: C.vehicle ? null : C.id === 'cook' ? 'shovel' : C.id === 'hoobae' ? 'broom' : 'pusher', r: e.r, vehicle: C.vehicle ? 'plow' : null, big: C.vehicle, shadow: !many || C.vehicle });
@@ -983,8 +1022,9 @@
       else if (f.t === 'carFree') { for (k = 0; k < 40; k++) emit(f.x * U + rnd(-1, 1), 0.5, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(3, 7), rnd(-3, 3), rnd(0.6, 1)); if (sfx) sfx.vroom(); }
       else if (f.t === 'roofWarn') { for (k = 0; k < 18; k++) emit((f.x + Math.random() * f.w) * U, rnd(3, 3.6), (f.y + 2) * U, 0, rnd(-1, 0), rnd(0.2, 0.8), rnd(0.6, 1.2)); if (sfx) sfx.rumble(); }
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
+      else if (f.t === 'pyeDump') { for (k = 0; k < 30; k++) emit(f.x * U + rnd(-1, 1), 1.2, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(2, 5), rnd(-3, 3), rnd(0.5, 0.9)); if (f.e && f.n === 1) addOv('와르르~', 'ov-hurt', 0, 0, 3.4, 1.2, f.e); if (sfx) sfx.pour(0.5); }
       else if (f.t === 'help') { if (f.e) addOv(f.name + ' 도우러 갑니다!', 'ov-chat', 0, 0, 3.6, 2, f.e); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel|chase|caught|escaped)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -996,6 +1036,13 @@
     playerObj.g.visible = !isFP();
     setExpr(playerObj, P.stun > 0 ? 'stun' : 'normal');
     placePerson(playerObj, P, { lie: (P.stun > 0.6 || P.angel > 0) && !playerObj.vehicle });
+    // v24 가만히 서 있으면 카메라 쪽으로 돌아서 얼굴·모자를 보여 준다 (움직이면 바로 원래 방향)
+    var idleF = !isFP() && !P.moving && !(P.stun > 0) && !playerObj.vehicle && (P.idleT || 0) > 0.9 && !(w.act && w.act.ride);
+    playerObj.faceK = (playerObj.faceK || 0) + ((idleF ? 1 : 0) - (playerObj.faceK || 0)) * Math.min(1, dt * (idleF ? 4 : 12));
+    if (playerObj.faceK > 0.01) { var by = playerObj.body.rotation.y, dA = Math.atan2(Math.sin(0.35 - by), Math.cos(0.35 - by)); playerObj.body.rotation.y = by + dA * playerObj.faceK; }
+    if (playerObj.prop) playerObj.prop.rotation.y += dt * (P.moving ? 22 : 9);
+    if (playerObj.beam) playerObj.beam.material.opacity = 0.12 + Math.sin(t * 3) * 0.03;
+    if (playerObj.tier === 'l' && !isFP()) { playerObj.spk = (playerObj.spk || 0) - dt; if (playerObj.spk <= 0) { playerObj.spk = 0.22; var ga = Math.random() * 6.28; emit(P.x * U + Math.cos(ga) * 0.9, 3.0 + Math.random() * 0.9, P.y * U + Math.sin(ga) * 0.9, 0, rnd(0.6, 1.4), 0, rnd(0.5, 0.9), [1, 0.86, 0.3]); } }
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
     stackOn(playerObj, P);
     if (playerObj.vehicle === 'heli') playerObj.body.position.y = 2.2 + Math.sin(t * 2) * 0.15;
@@ -1011,9 +1058,10 @@
     w.crew.forEach(function (e, i) {
       var o = crewObjs[i]; if (!o) return;
       o.g.visible = !e.off;
-      setExpr(o, e.injured > 0 ? 'hurt' : e.asleep || e.slack ? 'sleep' : 'normal');
-      placePerson(o, e, { lie: e.injured > 0 || e.asleep || e.slack || e.downT > 0 });
+      setExpr(o, e.injured > 0 ? 'hurt' : e.asleep || e.slack || e.hidden ? 'sleep' : 'normal');
+      placePerson(o, e, { lie: e.injured > 0 || e.asleep || e.slack || e.downT > 0 || e.hidden });
       sack(o, e.load / e.cap);
+      if (o.tool) o.tool.visible = !e.broke;   // v24 폐급짓: 넉가래 부러뜨림
     });
     // 고라니
     while (deerObjs.length < w.deer.length) deerObjs.push(makeDeer());
@@ -2023,6 +2071,7 @@
     _setLook: function (yaw, pitch) { fpYaw = yaw; if (pitch !== undefined) fpPitch = pitch; },
     _screenToWorld: function (x, y) { return screenToWorld(x, y); },
     focusZone: function (id, sec) { var Z = G.zoneById(id); if (!Z) return; focus = { x: (Z.x + Z.w / 2) * U, z: (Z.y + Z.h / 2) * U - 3, t: 0, life: sec || 2.6 }; },
+    _playerPose: function () { return playerObj ? { yaw: playerObj.body.rotation.y, faceK: playerObj.faceK || 0, hat: playerObj.hatId, prop: !!playerObj.prop, beam: !!playerObj.beam, scale: playerObj.g.scale.x } : null; },
     _crewShown: function () { return crewObjs.filter(function (o) { return o && o.g.visible && o.g.parent; }).length; },
     _teleport: function (x, y) { if (world) { world.player.x = x; world.player.y = y; camera3(0, true); } },
     _stats: function () { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles }; }

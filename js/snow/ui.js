@@ -18,6 +18,7 @@
       var raw = localStorage.getItem(KEY);
       s = G.migrate(raw ? JSON.parse(raw) : null);
     } catch (e) { s = G.newSave(); }
+    if (JY.SnowMeta && JY.SnowMeta.fixLook) JY.SnowMeta.fixLook(s);   // v24 입어 보다 꺼진 저장
     return seenOld(s);
   }
   // v13: 이미 하던 저장이면 지금 열린 기능·버튼은 본 것으로 (갑자기 '새로 생김'·N이 잔뜩 뜨지 않게)
@@ -389,6 +390,17 @@
     else if (f.t === 'mapyeon') { banner('후임이 마음의 편지를 쓰러 간다!!', '행정반 가기 전에 쫓아가서 달래라', 2600); if (X) X.whistle(true); vibrate([80, 40, 80, 40, 80]); }
     else if (f.t === 'mapyeonFiled') { banner('마음의 편지 접수…', '내일 중대장님 면담 · 지적 +1 · ' + f.took, 2800); if (X) X.deny(); vibrate([120, 60, 120]); flash(); }
     else if (f.t === 'soothe') { chip('달래기 성공 · 초코파이 -' + f.cost + ' · 후임이 다시 일하러 간다', 'good'); if (X) X.ding(); }
+    // v24 후임 폐급짓
+    else if (f.t === 'pye') {
+      var PY = { dump: ['후임이 폐급짓을 한다!!', f.who + '이(가) 치운 길에 눈을 버린다 · 가서 "야! 멈춰!"'], hide: ['후임이 사라졌다…?', '짱박혔다 · ' + f.spot + ' 쪽을 찾아봐라'], broke: ['"넉가래가… 부러졌습니다…"', '가서 제설함에서 새 거 가져오라고 해라'] }[f.id] || [f.name, ''];
+      banner(PY[0], PY[1], 2600); if (X) X.whistle(true); vibrate([50, 30, 50]);
+    }
+    else if (f.t === 'pyeEnd' && !f.gone) {
+      if (f.id === 'dump') { if (f.ok) chip('폐급 수습! 후임이 눈을 들고 집하장으로 간다', 'good'); else banner('치운 길이 다시 하얘졌다…', '후임: "다 버렸습니다! 잘했지 말입니다?"', 2400); }
+      else if (f.id === 'hide') { if (f.ok) banner('짱박힌 후임 검거!', '숨겨 둔 냉동 압수 · 10초 동안 이동 +20% · +' + fmt(f.pay || 0), 2400); else banner('행보관: "너네 후임 냉동 먹고 있더라?!"', '분대원 사기 -8', 2400); }
+      else if (f.id === 'broke') { if (f.ok) chip('후임이 제설함에서 새 넉가래를 들고 왔다', 'good'); else chip('행보관: "후임 놀고 있잖아!" · 분대원 사기 -8', 'warn'); }
+      if (X) { if (f.ok) X.ding(); else X.deny(); }
+    }
     else if (f.t === 'catHit') { chip('짬타이거가 화났다… (털 곤두섬)', 'warn'); if (X) X.meow && X.meow(); }
     // v22 역동: 고라니 떼 · 보급품 낙하 · 대왕 눈덩이
     else if (f.t === 'herd') { banner('고라니 떼다!!', f.n + '마리 — 전부 눈덩이로 벌러덩시키면 몰이 보너스', 2400); if (X) X.deer && X.deer(); vibrate([60, 40, 60, 40, 60]); }
@@ -662,6 +674,7 @@
     renderShop();
   }
   function closeShop() {
+    untry();
     persist();
     dirty = false;
     if (opShop) {
@@ -674,6 +687,7 @@
   }
 
   function renderShop() {
+    if (tab !== 'look' && lookTry) untry();
     $('s-bank').textContent = fmt(save.bank);
     var all = G.offers(save);
     all.up = (G.feat(save, 'perk') ? all.perk : []).concat(G.feat(save, 'factory') ? all.factory : []).concat(all.ride || []);
@@ -753,7 +767,13 @@
       });
     };
   }
-  function persistRaw() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 저장 불가 */ } }
+  function persistRaw() {
+    try {
+      var s2 = save;   // v24: 입어 보는 중인 꾸미기는 저장하지 않는다
+      if (lookTry) { s2 = JSON.parse(JSON.stringify(save)); if (lookTry.cat === 'extras') s2.look.extras = lookTry.prev; else s2.look[lookTry.cat] = lookTry.prev; }
+      localStorage.setItem(KEY, JSON.stringify(s2));
+    } catch (e) { /* 저장 불가 */ }
+  }
 
   /* ── v18 장구류 · 보급 상자 · 일일 임무 · 복무 패스 ── */
   var BOLT = '<svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="#ffd24a" stroke="#8a6200" stroke-width="1.2" stroke-linejoin="round"/></svg>';
@@ -874,12 +894,20 @@
       persistRaw(); renderShop(); return;
     }
     var lt = e.target.closest('[data-ltab]');
-    if (lt) { lookTab = lt.getAttribute('data-ltab'); renderShop(); return; }
+    if (lt) { untry(); lookTab = lt.getAttribute('data-ltab'); renderShop(); return; }
+    if (e.target.closest('[data-luntry]')) { untry(); if (X) X.pop(); renderShop(); return; }
+    var lb = e.target.closest('[data-lbuy]');
     var lk = e.target.closest('[data-look]');
+    if (lb && lookTry) lk = { getAttribute: function (k) { return k === 'data-cat' ? lookTry.cat : k === 'data-look' ? lookTry.id : 'buy!'; } };
     if (lk) {
       var cat = lk.getAttribute('data-cat'), id = lk.getAttribute('data-look'), st = lk.getAttribute('data-state');
-      if (st === 'buy') { if (M.buyLook(save, cat, id)) { if (X) X.dia(); toast(M.lookName(cat + ':' + id) + ' 획득!'); } else { if (X) X.deny(); toast('상점이 모자라다'); } }
-      else if (st === 'own') { M.setLook(save, cat, id); if (X) X.pop(); }
+      if (st === 'buy' && !(lookTry && lookTry.cat === cat && lookTry.id === id)) { tryOn(cat, id); if (X) X.pop(); lookTab = LOOK_TABS.filter(function (t) { return t[2].indexOf(cat) >= 0; })[0][0]; renderShop(); var sl = $('s-list'); if (sl) { try { sl.scrollTo({ top: 0, behavior: 'smooth' }); } catch (er) { sl.scrollTop = 0; } } return; }   // 입어 본 모습이 보이게 맨 위로
+      if (st === 'buy' || st === 'buy!') {
+        var tier = M.tierOf(cat, id); untry();
+        if (M.buyLook(save, cat, id)) { if (X) { if (tier === 'l' || tier === 'e') X.fanfare(); else X.dia(); } toast((tier ? '[' + S.LOOK_TIER[tier].name + '] ' : '') + M.lookName(cat + ':' + id) + ' 획득! 멋 +' + S.LOOK_TIER[tier || 'c'].pts); vibrate(tier === 'l' ? [30, 30, 30, 30, 120] : 30); }
+        else { tryOn(cat, id); if (X) X.deny(); toast('상점이 모자라다 (' + M.priceOf(save, cat, id) + '개 필요)'); }
+      }
+      else if (st === 'own') { untry(); M.setLook(save, cat, id); if (X) X.pop(); }
       else { if (X) X.deny(); toast('스토리를 진행하면 열린다'); }
       persistRaw(); lookChanged(); renderShop(); return;
     }
@@ -1114,7 +1142,7 @@
     // v14 눈덩이 버튼: 던질 사람(고라니·분대원·행보관)이 근처에 있을 때만
     var canT = G.feat(save, 'snowball') && !(w.act && w.act.ride && w.act.ride.kind !== 'cart'), tt = st.throwT, tk = canT ? (tt ? tt.k + (tt.k === 'deer' ? '!' : '') + tt.name : 'free') : '';   // v23: 조준해서 아무 데나 던질 수 있게 늘 보인다
     if ($('throw-btn').classList.contains('aiming')) tk = hudA.tk;
-    if (hudA.tk !== tk) { hudA.tk = tk; $('throw-btn').hidden = !canT; $('throw-btn').classList.toggle('deer', !!tt && tt.k === 'deer'); $('throw-btn').classList.toggle('risky', !!tt && (tt.k === 'off' || tt.k === 'haeng')); $('throw-n').textContent = tt ? (tt.k === 'deer' ? '고라니!' : tt.k === 'off' || tt.k === 'haeng' ? tt.name + ' ⚠' : tt.name) : '끌어서 조준'; }
+    if (hudA.tk !== tk) { hudA.tk = tk; $('throw-btn').hidden = !canT; $('throw-btn').classList.toggle('deer', !!tt && tt.k === 'deer'); $('throw-btn').classList.remove('risky'); $('throw-n').textContent = tt && tt.k === 'deer' ? '고라니! 끌어서' : '끌어서 조준'; }   // v24: 자동 조준 없음 — 이름 대신 늘 '끌어서'
     $('throw-btn').classList.toggle('cd', st.ballCd > 0);
     $('throw-btn').classList.toggle('up', !$('act2-btn').hidden && !$('acts').classList.contains('off'));   // 행동 버튼에 두 번째 줄이 있으면 그 위로
     var rk = st.reqs.map(function (q) { return q.who + q.item + Math.ceil(q.t / 5); }).join('|') + hk;
@@ -1251,7 +1279,10 @@
     if (!JY.art) return '';
     if (who === 'me') return JY.art.character(M.lookSpec(save));
     var C = JY.CHARS && JY.CHARS[who];
-    return C && C.spec ? JY.art.character(C.spec) : '';
+    if (!C || !C.spec) return '';
+    var sp = C.spec;   // v24 간부는 빨간 모자 + 큰 계급장
+    if (sp.hat === 'general' || /^(o1|o3|nco)$/.test(sp.hatRank || '')) { sp = Object.assign({}, sp, { hat: sp.hat === 'general' ? 'redgen' : 'redcap' }); }
+    return JY.art.character(sp);
   }
   function whoName(who) {
     if (who === 'me') return (save.look.name || '김제설') + '<small>' + S.RANKS[G.rankOf(save)].name + ' · 나</small>';
@@ -1313,7 +1344,7 @@
     if (V.lookChanged) V.lookChanged();
   }
   // ── 꾸미기: 옵션마다 그림 카드 + 위에 실제 모습 (대사 얼굴 · 3인칭 · 1인칭 손) ──
-  var lookTab = 'face', LOOK_TABS = [['face', '얼굴', ['eyes', 'mouth', 'brows', 'head', 'skin', 'extras']], ['hat', '모자', ['hat']], ['wear', '군복·장갑', ['coat', 'glove']], ['tool', '넉가래', ['tool']]];
+  var lookTab = 'hat', lookTry = null, LOOK_TABS = [['hat', '모자', ['hat']], ['face', '얼굴', ['eyes', 'mouth', 'brows', 'extras', 'head', 'skin']], ['wear', '군복·장갑', ['coat', 'glove']], ['tool', '넉가래', ['tool']]];
   var CROP = { hat: '14 -16 172 178', coat: '0 34 200 198' };
   function lookThumb(cat, o) {
     if (cat === 'glove') return '<svg viewBox="0 0 64 64"><path d="M18 58V30c0-4 3-6 6-6V12c0-3 2-5 4-5s4 2 4 5v10c0-3 2-5 4-5s4 2 4 5v4c0-2 2-4 4-4s4 2 4 5v18c0 9-6 14-14 14h-6c-6 0-10-3-10-8z" fill="' + o.color + '" stroke="#23281e" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 30c-4 0-8 3-8 8s4 8 8 8" fill="' + o.color + '" stroke="#23281e" stroke-width="2.5"/><rect x="16" y="54" width="30" height="8" rx="2" fill="#4d5b31" stroke="#23281e" stroke-width="2"/></svg>';
@@ -1332,29 +1363,46 @@
     var svg = JY.art.character(M.lookSpec({ look: L2 }));
     return svg.replace('viewBox="0 0 200 232"', 'viewBox="' + (CROP[cat] || '24 26 152 150') + '"');
   }
+  // v24 입어 보기: 사기 전에 미리 걸쳐 본다 (저장은 안 한다. 화면을 나가면 원래대로)
+  function tryOn(cat, id) {
+    untry();
+    lookTry = { cat: cat, id: id, prev: cat === 'extras' ? (save.look.extras || []).slice() : save.look[cat] };
+    if (cat === 'extras') { var ex = (save.look.extras || []).filter(function (x) { return x !== id; }); ex.push(id); save.look.extras = ex.slice(-3); } else save.look[cat] = id;
+    lookChanged();
+  }
+  function untry() { if (!lookTry) return; if (lookTry.cat === 'extras') save.look.extras = lookTry.prev; else save.look[lookTry.cat] = lookTry.prev; lookTry = null; lookChanged(); }
+  function tierChip(t) { return t ? '<i class="tier t-' + t + '">' + S.LOOK_TIER[t].name + '</i>' : ''; }
   function renderLook(list) {
-    var opts = M.lookOptions(save);
+    var opts = M.lookOptions(save), si = M.styleInfo(save), dk = M.dealOf(save), dp = dk ? dk.split(':') : null, dOpt = dp ? opts[dp[0]].filter(function (o) { return o.id === dp[1]; })[0] : null;
     var top = document.createElement('div'); top.className = 'look-top';
     var snap = V.snapshot ? '<figure><img id="pv-3p" alt="3인칭 모습"><figcaption>3인칭</figcaption></figure><figure><img id="pv-fp" alt="1인칭 손"><figcaption>1인칭 손</figcaption></figure>' : '';
+    var tr = lookTry ? opts[lookTry.cat].filter(function (o) { return o.id === lookTry.id; })[0] : null;
     top.innerHTML = '<div class="look-pv"><figure class="pv-face">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '<figcaption>대사 얼굴</figcaption></figure>' + snap + '</div>' +
-      '<label class="look-name">이름<input id="look-name" maxlength="6" value="' + esc(save.look.name || '') + '" placeholder="김제설"><small>상점 ' + save.dia + '개 · 상점으로 사거나 스토리로 연다</small></label>';
+      (tr ? '<div class="look-try t-' + (tr.tier || 'c') + '"><span><b>입어 보는 중</b> ' + esc(tr.name) + ' ' + tierChip(tr.tier) + '</span><span class="lt-btns"><button class="btn sm" data-luntry>벗기</button><button class="btn sm gold" data-lbuy' + (tr.ok ? '' : ' disabled') + '>' + dia() + tr.dia + ' 사기</button></span></div>' : '') +
+      '<div class="look-style"><span>멋 <b>' + si.pts + '</b>점 · 초코파이 <b>+' + Math.round(si.bonus * 1000) / 10 + '%</b></span><small>' + (si.bonus >= si.cap ? '최대!' : '꾸미기를 살수록 오른다 (' + si.capPts + '점이면 최대 +' + Math.round(si.cap * 100) + '%)') + '</small><i style="width:' + Math.min(100, si.pts / si.capPts * 100).toFixed(1) + '%"></i></div>' +
+      (dOpt ? '<button class="look-deal t-' + (dOpt.tier || 'c') + '" data-look="' + dOpt.id + '" data-cat="' + dOpt.cat + '" data-state="buy"><span class="lthumb">' + lookThumb(dOpt.cat, dOpt) + '</span><span><small>오늘의 특가 -' + Math.round(S.STYLE.deal * 100) + '%</small><b>' + esc(dOpt.name) + ' ' + tierChip(dOpt.tier) + '</b><em><s>' + dOpt.full + '</s> ' + dia() + dOpt.dia + '</em></span></button>' : '') +
+      '<label class="look-name">이름<input id="look-name" maxlength="6" value="' + esc(save.look.name || '') + '" placeholder="김제설"><small>상점 ' + save.dia + '개 · 누르면 먼저 입어 보고, 한 번 더 누르면 산다</small></label>';
     list.appendChild(top);
     var nm = top.querySelector('#look-name');
     nm.onchange = function () { save.look.name = (nm.value || '').trim().slice(0, 6); persistRaw(); };
     nm.onkeydown = function (e) { e.stopPropagation(); };
     var tabs = document.createElement('div'); tabs.className = 'look-tabs';
-    tabs.innerHTML = LOOK_TABS.map(function (t) { return '<button data-ltab="' + t[0] + '" aria-pressed="' + (lookTab === t[0]) + '">' + t[1] + '</button>'; }).join('');
+    tabs.innerHTML = LOOK_TABS.map(function (t) { var nw = t[2].some(function (c) { return opts[c].some(function (o) { return o.isNew; }); }); return '<button data-ltab="' + t[0] + '" aria-pressed="' + (lookTab === t[0]) + '">' + t[1] + (nw ? '<i class="nd">N</i>' : '') + '</button>'; }).join('');
     list.appendChild(tabs);
     var cats = LOOK_TABS.filter(function (t) { return t[0] === lookTab; })[0][2];
     cats.forEach(function (cat) {
       var sec = document.createElement('div'); sec.className = 'look-cat';
-      sec.innerHTML = '<b>' + S.LOOK_NAMES[cat] + (cat === 'extras' ? ' <small>(3개까지 켜고 끈다)</small>' : '') + '</b><div class="lgrid">' + opts[cat].map(function (o) {
-        var badge = o.on ? '<em class="on">사용 중</em>' : o.state === 'buy' ? '<em class="cost">' + dia() + o.dia + '</em>' : o.state === 'lock' ? '<em class="lock">스토리</em>' : '<em>보유</em>';
-        return '<button class="lcard' + (o.on ? ' on' : '') + (o.state !== 'own' ? ' ' + o.state : '') + '" data-look="' + o.id + '" data-cat="' + cat + '" data-state="' + o.state + '" aria-pressed="' + o.on + '">' +
+      var ord = opts[cat].slice().sort(function (p, q) { var R = { '': 0, c: 1, r: 2, e: 3, l: 4 }; return (p.state === 'lock') - (q.state === 'lock') || R[p.tier] - R[q.tier]; });
+      sec.innerHTML = '<b>' + S.LOOK_NAMES[cat] + (cat === 'extras' ? ' <small>(3개까지 켜고 끈다)</small>' : '') + '</b><div class="lgrid">' + ord.map(function (o) {
+        var trying = lookTry && lookTry.cat === cat && lookTry.id === o.id;
+        var badge = trying ? '<em class="try">입어 보는 중</em>' : o.on ? '<em class="on">사용 중</em>' : o.state === 'buy' ? '<em class="cost">' + (o.deal ? '<s>' + o.full + '</s>' : '') + dia() + o.dia + '</em>' : o.state === 'lock' ? '<em class="lock">스토리</em>' : '<em>보유</em>';
+        return '<button class="lcard' + (o.on && !trying ? ' on' : '') + (trying ? ' trying' : '') + (o.state !== 'own' ? ' ' + o.state : '') + (o.tier ? ' t-' + o.tier : '') + '" data-look="' + o.id + '" data-cat="' + cat + '" data-state="' + o.state + '" aria-pressed="' + (o.on || trying) + '">' +
+          (o.isNew ? '<i class="lnew">NEW</i>' : o.deal ? '<i class="lnew deal">특가</i>' : '') + (o.tier && o.tier !== 'c' ? '<i class="ltier">' + S.LOOK_TIER[o.tier].name + '</i>' : '') +
           '<span class="lthumb' + (cat === 'skin' ? ' skin' : '') + '">' + lookThumb(cat, o) + '</span><b>' + esc(o.name) + '</b>' + badge + '</button>';
       }).join('') + '</div>';
       list.appendChild(sec);
     });
+    var sn = save.seen = save.seen || {}; cats.forEach(function (c) { sn['lk24:' + c] = 1; });
     refreshSnaps();
   }
   // 3D 미리보기는 얼굴 그림이 늦게 오므로 몇 번 다시 찍는다
@@ -1433,7 +1481,8 @@
       if (w.act && w.act.ride) { A.act(w, { k: 'exit' }, w.player.dir); if (X) X.pop(); hudA.hand = null; return; }
       if (A.drop(w)) { if (X) X.pop(); hudA.hand = null; }
     });
-    // v23 눈덩이: 버튼을 누른 채 끌면 조준(점선 + 떨어질 자리), 놓으면 그쪽으로. 그냥 누르면 가까운 사람에게 (없으면 앞으로)
+    // v23 눈덩이: 버튼을 누른 채 끌면 조준(점선 + 떨어질 자리), 놓으면 그쪽으로
+    // v24 무조건 수동: 그냥 누르면 안 던진다 (1인칭은 조준점 쪽으로). 대신 '끌어서' 안내
     (function () {
       var tb = $('throw-btn'), aim = null;
       function aimOf(e) {
@@ -1456,8 +1505,10 @@
         if (!aim || (e && e.pointerId !== aim.id)) return;
         var cur = aim.cur; aim = null; tb.classList.remove('aiming'); if (V.setAim) V.setAim(null); hudA.tk = null;
         var w = V.world(); if (cancel || !A || !w || V.mode() !== 'play') return;
-        var r = cur ? A.throwDir(w, cur.ux, cur.uy, cur.dist) : A.throwBall(w);
-        if (!cur && !r.ok) r = A.throwDir(w, w.player.dir.x, w.player.dir.y, 120);
+        var lk = !cur && V.look ? V.look() : null, r;
+        if (cur) r = A.throwDir(w, cur.ux, cur.uy, cur.dist);
+        else if (lk && lk.fp) r = A.throwDir(w, lk.x, lk.y, 150);
+        else { r = { ok: false }; tb.classList.remove('nudge'); void tb.offsetWidth; tb.classList.add('nudge'); if (Date.now() - (hudA.nudgeAt || 0) > 4000) { hudA.nudgeAt = Date.now(); toast('버튼을 누른 채 던질 곳으로 끌었다 놓는다'); } }
         if (r.ok) vibrate(15);
       }
       tb.addEventListener('pointerup', function (e) { e.preventDefault(); end(e, false); });
@@ -1500,7 +1551,7 @@
   window.__SNOW = {
     view: function () { return V; },
     save: function () { return save; },
-    setSave: function (s) { save = seenOld(G.migrate(s)); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
+    setSave: function (s) { lookTry = null; save = seenOld(G.migrate(s)); if (M && M.fixLook) M.fixLook(save); rankSeen = G.rankOf(save); persistRaw(); lookChanged(); },
     play: play, startDay: function () { play(false); }, startOp: startOp, briefing: briefing, help: help, settings: settings, renderHub: renderHub, openShop: openShop, closeShop: closeShop, title: title, persist: persist,
     openPX: openPX, results: results, talk: function (ch) { playStory(ch || S.STORY[1], true, renderHub); },
     autopilot: function (b) { V.setAutopilot(b); },

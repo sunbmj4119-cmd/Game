@@ -25,7 +25,7 @@
   var mats = {}, geos = {}, matV, blobMat, barrierArm = null, flagMesh = null;
   var vibAt = 0, A = function () { return JY.SnowAct; }, fpYaw = 0, fpPitch = -0.2, lookPtr = null, stunK = 0, curFocus = null, markEl = null, lastCamMode = '';
   var vmScene, vmCam, vmRoot = null, vmKind = '', vmTool = null, vmArm = null, vmGlove = null, vmBallM = null, vmBoot = null, vmAnim = { k: '', t: 0, d: 1 }, vmHemi, vmSun;
-  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null, dropObjs = {}, bigObj = null;   // v22 보급품 · 대왕 눈덩이
+  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null, dropObjs = {}, bigObj = null, aimState = null, aimDots = [], aimRing = null;   // v23 조준 표시   // v22 보급품 · 대왕 눈덩이
   var lowFx = false, slowAvg = 0.016, slowN = 0, gainAcc = 0, gainT = 0, scrapeT = 0, crewScrapeT = 0, ray = new T.Raycaster(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
 
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) ^ 0x5bf03635; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -509,6 +509,20 @@
     else if (hat === 'cateears') parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [cone(0.18, 0.34, { x: -0.3, y: y + 0.56, z: 0.02, rz: 0.3 }, 4), '#e8913a'], [cone(0.18, 0.34, { x: 0.3, y: y + 0.56, z: 0.02, rz: -0.3 }, 4), '#e8913a'], [cone(0.09, 0.2, { x: -0.3, y: y + 0.55, z: 0.1, rz: 0.3 }, 4), '#f6c3c3'], [cone(0.09, 0.2, { x: 0.3, y: y + 0.55, z: 0.1, rz: -0.3 }, 4), '#f6c3c3']);
     else if (hat === 'beret') parts.push([sph(HR + 0.08, { s: [1.08, 0.38, 1.08], x: 0.08, y: y + 0.36, rz: -0.18 }), '#3a4a2a'], [cyl(HR + 0.03, HR + 0.03, 0.1, { y: y + 0.2 }, 18), '#2c3822'], [box(0.14, 0.14, 0.04, { x: -0.22, y: y + 0.28, z: HR - 0.02 }), '#d0b45a']);
     else if (hat === 'crown') { parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [cyl(0.42, 0.4, 0.26, { y: y + 0.48 }, 16), '#f5c542']); for (var ci = 0; ci < 6; ci++) { var ca = ci / 6 * Math.PI * 2; parts.push([cone(0.09, 0.24, { x: Math.cos(ca) * 0.38, y: y + 0.72, z: Math.sin(ca) * 0.38 }, 4), '#f5c542'], [sph(0.05, { x: Math.cos(ca) * 0.42, y: y + 0.5, z: Math.sin(ca) * 0.42 }), ci % 2 ? '#d23a2a' : '#2b6fd1']); } }
+    // v23 간부는 병사와 다르게: 소대장(다이아 1) · 중대장(다이아 3) · 사단장(정모 + 별) · 행보관(검은 띠 + 금 막대 + 호루라기 줄)
+    else if (hat === 'lt' || hat === 'cpt' || hat === 'haeng') {
+      var oc = hat === 'haeng' ? '#2f3624' : hat === 'cpt' ? '#3f4a2a' : '#4a5530';
+      parts.push([P(new T.SphereGeometry(HR + 0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 0.7, 1], y: y + 0.14 }), oc], [cyl(HR + 0.07, HR + 0.07, 0.2, { y: y + 0.15 }, 18), oc], [box(0.66, 0.05, 0.42, { y: y + 0.08, z: HR + 0.14 }), '#1f241a']);
+      if (hat === 'haeng') parts.push([cyl(HR + 0.075, HR + 0.075, 0.07, { y: y + 0.1 }, 18), '#121410'], [box(0.26, 0.07, 0.03, { y: y + 0.24, z: HR + 0.07 }), '#e2b33c'], [P(new T.TorusGeometry(0.22, 0.02, 4, 16), { rx: 0.3, y: 1.38, z: 0.18 }), '#f2f2f2'], [box(0.08, 0.06, 0.14, { x: 0.12, y: 1.18, z: 0.33 }), '#c9d1d9']);
+      else for (var di = 0; di < (hat === 'cpt' ? 3 : 1); di++) parts.push([box(0.09, 0.09, 0.03, { x: (di - (hat === 'cpt' ? 1 : 0)) * 0.13, y: y + 0.27, z: HR + 0.08, rz: Math.PI / 4 }), '#e6eaef']);
+      parts.push([box(0.2, 0.06, 0.03, { x: -0.18, y: 1.32, z: 0.36 }), '#1d2a4a']);   // 가슴 명찰
+    }
+    else if (hat === 'gen') {
+      parts.push([cyl(HR + 0.16, HR + 0.02, 0.36, { y: y + 0.32 }, 20), '#34401f'], [cyl(HR + 0.17, HR + 0.17, 0.1, { y: y + 0.17 }, 20), '#e2b33c'], [box(0.74, 0.05, 0.42, { y: y + 0.1, z: HR + 0.16, rx: 0.12 }), '#141410'],
+        [box(0.18, 0.18, 0.04, { y: y + 0.36, z: HR + 0.12 }), '#c8402e']);
+      for (var gs = 0; gs < 2; gs++) parts.push([cone(0.07, 0.04, { x: (gs - 0.5) * 0.17, y: y + 0.36, z: HR + 0.15, rx: Math.PI / 2 }, 5), '#ffd24a'], [cone(0.08, 0.05, { x: (gs ? 1 : -1) * 0.42, y: 1.5, z: 0.06, rx: -0.2 }, 5), '#ffd24a']);   // 모자·어깨 별 둘
+      parts.push([P(new T.TorusGeometry(0.16, 0.025, 4, 14), { ry: 0.4, x: 0.3, y: 1.3, z: 0.2 }), '#e2b33c']);   // 금 견장 줄
+    }
     else if (hat === 'chef') parts.push([cyl(0.44, 0.42, 0.5, { y: y + 0.55 }, 16), '#ffffff'], [sph(0.52, { s: [1, 0.7, 1], y: y + 0.88 }, 14, 8), '#ffffff'], [cyl(0.47, 0.47, 0.1, { y: y + 0.32 }, 16), '#e7e2d6']);
     else parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128']);
     return parts;
@@ -699,7 +713,7 @@
     crewObjs.forEach(removeObj); deerObjs.forEach(removeObj); catObjs.forEach(removeObj);
     crewObjs = []; deerObjs = []; catObjs = []; carObj = null; heliObj = null;
     buildPlayer();
-    haengObj = makePerson({ coat: '#4b5733', face: 'haeng', hat: 'cap', tool: 'shovel', r: 10, shadow: true });
+    haengObj = makePerson({ coat: '#434e2e', face: 'haeng', hat: 'haeng', tool: 'shovel', r: 10, shadow: true });
     faceMat('me', 'stun'); faceMat('haeng', 'shout');
     S.CREW.forEach(function (C) { if (world.save.crew[C.id]) { faceMat(C.face, 'hurt'); faceMat(C.face, 'sleep'); } });
     var many = world.crew.length > 24;
@@ -1349,7 +1363,7 @@
     var urgent = null;
     offs.forEach(function (o) {
       var ob = null; for (var i = 0; i < offObjs.length; i++) if (offObjs[i].ref === o) ob = offObjs[i];
-      if (!ob) { ob = makePerson({ coat: o.id === 'gen' ? '#2f3a22' : '#3d4a2b', face: OFFACE[o.id], hat: 'cap', tool: o.id === 'lt' ? 'shovel' : null, r: 10, shadow: true, scale: o.id === 'gen' ? 1.4 : 1.25 }); ob.ref = o; offObjs.push(ob); }
+      if (!ob) { ob = makePerson({ coat: o.id === 'gen' ? '#2b3320' : o.id === 'cpt' ? '#36422a' : '#3d4a2b', face: OFFACE[o.id], hat: o.id === 'gen' ? 'gen' : o.id === 'cpt' ? 'cpt' : 'lt', tool: o.id === 'lt' ? 'shovel' : null, r: 10, shadow: true, scale: o.id === 'gen' ? 1.4 : 1.25 }); ob.ref = o; offObjs.push(ob); }
       placePerson(ob, o, { lie: o.downT > 0 }); if (ob.tool) ob.tool.visible = o.helpT > 0;
       if (!o.saluted && !o.missed && o.warned) urgent = o;
     });
@@ -1473,6 +1487,40 @@
     bigObj.position.set(B.x * U, R * 0.92 + snowAt(B.x, B.y) * 0.2, B.y * U);
     if (B.vx || B.vy) { bigObj.rotation.y = Math.atan2(B.vx, B.vy); bigObj.rotation.x = B.roll; }
   }
+  // v23 돌발 표시: 땅 위 고리 + 이름표 (화장실 · 나무 · 치우지 마!)
+  var markObjs = [];
+  function syncMarks(a, t) {
+    var list = (a && a.marks) || [];
+    while (markObjs.length < list.length) {
+      var ring = new T.Mesh(new T.RingGeometry(0.85, 1, 36), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; ring.renderOrder = 5; scene.add(ring);
+      var el = document.createElement('div'); el.className = 'ov ov-mark'; ov.appendChild(el);
+      markObjs.push({ ring: ring, el: el });
+    }
+    markObjs.forEach(function (mo, i) {
+      var m = list[i], on = !!m && mode === 'play';
+      mo.ring.visible = on; mo.el.style.display = on ? '' : 'none';
+      if (!on) return;
+      var R = (m.r || 14) * U * (1 + Math.sin(t * 5) * 0.05);
+      mo.ring.material.color.set(m.color || '#ffffff'); mo.ring.scale.setScalar(R); mo.ring.position.set(m.x * U, 0.12 + snowAt(m.x, m.y) * 0.4, m.y * U);
+      if (mo.el._t !== m.label) { mo.el._t = m.label; mo.el.textContent = m.label; mo.el.style.background = m.color || '#333'; }
+      var pp = project(m.x, m.y, 2.6); if (pp && pp[2] < 1) mo.el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)'; else mo.el.style.display = 'none';
+    });
+  }
+  // v23 눈덩이 조준: 점선 궤적 + 떨어질 자리 고리
+  function syncAim(t) {
+    var on = !!(aimState && world && mode === 'play');
+    if (!aimRing) {
+      aimRing = new T.Mesh(new T.RingGeometry(0.8, 1.1, 28), new T.MeshBasicMaterial({ color: '#ff6a55', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+      aimRing.rotation.x = -Math.PI / 2; aimRing.renderOrder = 6; scene.add(aimRing);
+      for (var i = 0; i < 12; i++) { var d = new T.Mesh(geos.aimDot || (geos.aimDot = new T.SphereGeometry(0.13, 8, 6)), mats.aimDot || (mats.aimDot = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthTest: false }))); d.renderOrder = 6; scene.add(d); aimDots.push(d); }
+    }
+    aimRing.visible = on; aimDots.forEach(function (d) { d.visible = on; });
+    if (!on) return;
+    var P = world.player, A0 = aimState, ex = P.x + A0.ux * A0.dist, ey = P.y + A0.uy * A0.dist;
+    aimRing.position.set(ex * U, 0.15 + snowAt(ex, ey) * 0.4, ey * U); aimRing.scale.setScalar(1 + Math.sin(t * 8) * 0.08);
+    aimDots.forEach(function (d, i) { var k = (i + 1) / (aimDots.length + 1), x = P.x + A0.ux * A0.dist * k, y = P.y + A0.uy * A0.dist * k, h = (20 + 4 * Math.sin(Math.PI * k)) * (1 - k) + 1; d.position.set(x * U, h * U + 0.3, y * U); });
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !G.feat(world.save, 'tractor');   // v14: 트랙터를 탈 수 있으면 아래 탈것이 대신 그린다
@@ -1488,7 +1536,7 @@
       kickBall = new T.Mesh(merge([[sph(0.3, {}, 14, 10), '#f4f1e6'], [cyl(0.305, 0.305, 0.1, {}, 16), '#e2b33c'], [cyl(0.305, 0.305, 0.1, { rx: Math.PI / 2 }, 16), '#2b5fd1']]), matV);
       kickBall.castShadow = true; scene.add(kickBall);
     }
-    syncDrops(a, t); syncBig(a);
+    syncDrops(a, t); syncBig(a); syncAim(t); syncMarks(a, t);
     var B = a.ball; kickBall.visible = true;
     kickBall.position.set(B.x * U, 0.3 + B.h * U + snowAt(B.x, B.y) * 0.35, B.y * U);
     if (B.vx || B.vy) { kickBall.rotation.y = Math.atan2(B.vx, B.vy); kickBall.rotation.x = B.roll || 0; }
@@ -1965,6 +2013,9 @@
     camMode: function () { return camMode; },
     isFP: function () { return isFP(); },
     // 지금 보는 방향 (1인칭이면 고개 방향, 아니면 몸 방향)
+    // v23 화면에서 끈 방향 → 세상 방향 (3인칭은 그대로, 1인칭은 보는 방향 기준)
+    aimDir: function (dx, dy) { var l = Math.hypot(dx, dy) || 1, x = dx / l, y = dy / l; if (!isFP()) return { x: x, y: y }; var s = Math.sin(fpYaw), c = Math.cos(fpYaw); return { x: s * -y - c * x, y: c * -y + s * x }; },
+    setAim: function (o) { aimState = o || null; },
     look: function () { if (!world) return null; if (isFP()) return { x: Math.sin(fpYaw), y: Math.cos(fpYaw), pitch: fpPitch, fp: true }; var d = world.player.dir; return { x: d.x, y: d.y, pitch: 0.12, fp: false }; },
     setFocus: function (t) { curFocus = t || null; },
     snapshot: function (kind) { try { return snapshot(kind); } catch (e) { return null; } },

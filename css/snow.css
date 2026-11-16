@@ -1189,3 +1189,25 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 
 /* v21 복무 패스 '보상 받기'가 흰 바탕에 흰 글씨였다 */
 .pass-btns .btn[data-pclaim] { background: linear-gradient(180deg, #ffd96b, #f0a020); color: #2a2208; box-shadow: 0 3px 0 #a8701a; }
+
+/* v23 '상' 배지와 숫자가 한 줄로 (버튼 안에서 배지는 아래, 숫자는 위로 어긋나 위아래로 쓴 것처럼 보였다) */
+.btn .dia, .buy .dia, .gi-b .dia, .mi-step .dia, .pl-row .dia, .chips button .dia, .lcard em.cost .dia { vertical-align: middle; position: relative; top: -.06em; }
+.ch-btns .btn, .gi-b { display: inline-flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: nowrap; white-space: nowrap; }
+.item .buy { display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; column-gap: 2px; }
+.ch-btns .btn .dia, .gi-b .dia, .item .buy .dia { margin: 0 1px 0 2px; top: 0; }
+
+/* v23 눈덩이 조준 중 */
+.throwb.aiming { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(255,106,85,.55), 0 6px 16px rgba(0,0,0,.35); }
+
+/* v23 돌발 이름표 */
+.ov-mark { position: absolute; left: 0; top: 0; padding: 3px 8px; border-radius: 8px; color: #fff; font: 700 12px var(--f-body, sans-serif); white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+
+/* v23 숙련 */
+.sk-row { display: grid; gap: 3px; padding: 8px 10px; margin-top: 6px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--line); }
+.sk-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sk-top b { font-size: 14.5px; }
+.sk-lv { font-family: var(--f-title); font-size: 15px; color: var(--olive-d, #3b4a20); }
+.sk-bar { height: 7px; border-radius: 4px; background: #e6e0d0; overflow: hidden; }
+.sk-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #8fd36b, #3fae6a); }
+.sk-row small { font-size: 12px; color: var(--mute); }
+.sec-t small { font-weight: 400; font-size: 11.5px; color: var(--mute); margin-left: 4px; }

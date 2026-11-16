@@ -102,7 +102,7 @@ G.spawn(w, 'car'); ok(!A.candidates(w).some(function (c) { return c.k === 'car';
 ok(A.state(w).heat === 0 && !A.state(w).ride, '행보관 분노·운전 없음');
 
 // ── 빠진 출근 차량: 옆에 붙어 있으면 저절로 민다 (분대원도 와서 민다) ──
-w = fresh(function (s) { s.merit = 30; s.rank = 2; G.assignZones(s); s.crew = { hoobae: 1 }; }); away(w);
+w = fresh(function (s) { s.merit = 45; s.rank = 2; G.assignZones(s); s.crew = { hoobae: 1 }; });   // v23: 진입로 ★30 → 45 away(w);
 w.player.x = 30; w.player.y = 300; G.spawn(w, 'car'); run(w, 8);
 var car = w.car;
 ok(car && car.stuck && w.op.stuck, '눈 쌓인 진입로 → 차가 빠졌다');
@@ -114,7 +114,7 @@ run(w, 2.5);
 ok(!car.stuck && car.freed && w.save.stats.carPush === 1 && w.fx.some(function (f) { return f.t === 'carFree'; }), '다 밀면 빠져나온다 + 기록');
 run(w, 12);
 ok(!w.car && A.init(w).off.some(function (o) { return o.id === 'cpt'; }), '차가 서면 중대장님이 내려서 순찰한다');
-var wP2 = fresh(function (s) { s.merit = 30; s.rank = 2; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
+var wP2 = fresh(function (s) { s.merit = 45; s.rank = 2; G.assignZones(s); }); away(wP2); wP2.player.x = 30; wP2.player.y = 300; G.spawn(wP2, 'car'); run(wP2, 8);
 var push0 = wP2.car.push;
 ok(wP2.car.stuck && push0 === 0, '혼자면 아무도 안 민다');
 
@@ -355,7 +355,7 @@ A.applyStats(wh); wh.act.buffs.praise = 30;
 ok(A.throwTarget(wh) && A.throwTarget(wh).k === 'haeng', 'v14 행보관도 맞힐 수 있다 (아무도 없을 때만 고른다)');
 A.throwBall(wh); run(wh, 0.6);
 ok(wh.save.fun.haeng && !wh.act.buffs.praise, 'v14 행보관 명중 → "간 큰 놈" 발견, 칭찬 버프는 날아간다');
-var wc = v14(function (s) { s.crew = { hoobae: 1 }; }); wc.act.offPlan = []; wc.act.off = []; away(wc);
+var wc = v14(function (s) { s.crew = { donggi: 1 }; });   // v23: 후임은 선임에게 안 던진다 → 동기로 wc.act.offPlan = []; wc.act.off = []; away(wc);
 run(wc, 0.1); var cm = wc.crew[0]; cm.x = 320; cm.y = 470; cm.retarget = 99; cm.speed = 0; wc.player.x = 250; wc.player.y = 470; wc.deer = [];
 ok(A.prank(wc) && wc.act.balls.length === 1 && cm.fought, 'v14 선임 장난: 근처 분대원이 보이게 던진다');
 run(wc, 1.2); ok(wc.player.stun <= 0, 'v16 맞으면 나도 벌러덩 (0.8초) 뒤 일어난다'); A.throwBall(wc); run(wc, 0.8);
@@ -494,7 +494,8 @@ ok(!wq.act.drops.some(function (d) { return d.id === 99; }), 'v22 안 주우면 
 var wb = v22(); away(wb); wb.act.off = []; wb.act.offPlan = []; wb.deer = []; wb.act.bigAt = 0; run(wb, 0.1);
 var BB = wb.act.big;
 ok(BB && BB.r === S.BIGBALL.r0, 'v22 대왕 눈덩이 등장 (눈 위)', BB && [Math.round(BB.x), Math.round(BB.y)]);
-for (var pq = 0; pq < 30 * 5 && wb.act.big; pq++) { var bx = wb.act.big.x - wb.player.x, by = wb.act.big.y - wb.player.y, bl = Math.hypot(bx, by) || 1; G.step(wb, 1 / 30, { x: bx / bl, y: by / bl }); }
+var ZA = G.zoneById('A'); wb.act.big.x = ZA.x + 40; wb.act.big.y = ZA.y + ZA.h / 2; wb.player.x = ZA.x + 22; wb.player.y = ZA.y + ZA.h / 2;   // v23: 구역 한가운데서 옆으로 민다 (스폰 자리에 따라 흔들리지 않게)
+for (var pq = 0; pq < 30 * 3.5 && wb.act.big; pq++) { var bx = wb.act.big.x - wb.player.x, by = wb.act.big.y - wb.player.y, bl = Math.hypot(bx, by) || 1; G.step(wb, 1 / 30, { x: bx / bl, y: by / bl }); }
 ok(wb.act.big && wb.act.big.r > S.BIGBALL.r0 + 4 && wb.act.big.load > 100, 'v22 밀면 굴러가며 눈을 먹고 커진다', wb.act.big && [wb.act.big.r.toFixed(1), wb.act.big.load]);
 var dmp = G.nearestDump(wb, wb.act.big.x, wb.act.big.y), bval = wb.act.big.val, bkb = wb.save.bank;
 wb.act.big.x = dmp.x + 1; wb.act.big.y = dmp.y; wb.act.big.vx = 40; wb.act.big.vy = 0; run(wb, 0.1);
@@ -502,6 +503,64 @@ ok(!wb.act.big && wb.act.bigDone && wb.save.bank - bkb >= Math.floor(bval * wb.m
 var wd3 = v22(); away(wd3); wd3.act.off = []; wd3.act.offPlan = []; wd3.act.bigAt = 0; run(wd3, 0.1);
 var Bd = wd3.act.big; wd3.deer = [{ x: Bd.x + 8, y: Bd.y, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }]; Bd.vx = 60; run(wd3, 0.1);
 ok(wd3.deer[0].down > 0, 'v22 굴러가는 눈덩이에 고라니가 깔리면 벌러덩');
+
+// ── v23 맞은 사람 반응 · 조준 · 돌발 · 숙련 ──
+function v23(fn) { return fresh(function (s) { s.day = 9; s.rank = 1; s.merit = 12; s.stats.ops = 9; s.bank = 50000; s.crew = { hoobae: 1, donggi: 1, malnyeon: 1 }; G.assignZones(s); if (fn) fn(s); }); }
+var wv = v23(); away(wv); wv.act.off = []; wv.act.offPlan = []; wv.deer = []; wv.act.chaosAt = 1e9; run(wv, 0.1);
+var jr = wv.crew.filter(function (e) { return e.def.id === 'hoobae'; })[0], pr = wv.crew.filter(function (e) { return e.def.id === 'donggi'; })[0], sn = wv.crew.filter(function (e) { return e.def.id === 'malnyeon'; })[0];
+ok(A.relation(wv, jr) === 'junior' && A.relation(wv, pr) === 'peer' && A.relation(wv, sn) === 'senior', 'v23 일병에게: 후임 = 후임, 동기 = 동기, 말년 병장 = 선임');
+wv.save.rank = 3; ok(A.relation(wv, sn) === 'peer' && A.relation(wv, wv.crew.filter(function (e) { return e.def.id === 'donggi'; })[0]) === 'peer', 'v23 병장이 되면 말년 병장도 동기뻘'); wv.save.rank = 1;
+A.hitCrew(wv, jr); A.hitCrew(wv, jr);
+ok(!jr.mapyeon && !(jr.throwT > 0) && jr.hitN === 2, 'v23 후임은 말없이 맞는다 (받아치지 않는다)');
+A.hitCrew(wv, jr);
+ok(jr.mapyeon && jr.ctl === 'mapyeon' && fxs(wv, 'mapyeon').length === 1, 'v23 세 번 맞으면 마음의 편지 쓰러 간다');
+var dB0 = Math.hypot(jr.x - A.MAPYEON.box.x, jr.y - A.MAPYEON.box.y); run(wv, 1.5);
+ok(Math.hypot(jr.x - A.MAPYEON.box.x, jr.y - A.MAPYEON.box.y) < dB0 - 20, 'v23 행정반(마편함) 쪽으로 걸어간다');
+var obj = A.objective(wv); ok(obj.kind === 'soothe' && obj.tone === 'red', 'v23 할 일: "후임 달래기!"', obj.text);
+wv.player.x = jr.x + 12; wv.player.y = jr.y; var sc = A.candidates(wv).filter(function (q) { return q.k === 'soothe'; })[0], bk1 = wv.save.bank;
+ok(sc && A.act(wv, sc, wv.player.dir).ok && !jr.mapyeon && !jr.ctl && jr.hitN === 0 && wv.save.bank < bk1, 'v23 옆에 가서 달래기 (초코파이) → 다시 일하러 간다');
+A.hitCrew(wv, jr); A.hitCrew(wv, jr); A.hitCrew(wv, jr); jr.x = A.MAPYEON.box.x + 4; jr.y = A.MAPYEON.box.y + 4; var jg = wv.op.jigeok; run(wv, 0.5);
+ok(!jr.mapyeon && wv.op.jigeok === jg + 1 && wv.save.stats.mapyeon === 1, 'v23 못 막으면 마편 접수 → 지적 +1');
+// 선임: 쫓아온다, 잡히면 얼차려 + PX 털림
+sn.x = wv.player.x + 40; sn.y = wv.player.y; sn.downT = 0; A.hitCrew(wv, sn);
+ok(sn.chaseT > 0 && sn.ctl === 'chase' && fxs(wv, 'chase').some(function (f) { return f.who === '말년 병장'; }), 'v23 선임을 맞히면 쫓아온다');
+var bk2 = wv.save.bank, cg = false; for (var cq = 0; cq < 30 * 6 && sn.chaseT > 0; cq++) { G.step(wv, 1 / 30, null); if (fxs(wv, 'caught').length) cg = true; }
+ok(cg && wv.save.bank < bk2 && !sn.ctl && wv.player.stun > 0, 'v23 가만히 있으면 잡혀서 얼차려 + PX 털림 (초코파이)', [bk2, wv.save.bank]);
+// 동기: 받아친다
+A.hitCrew(wv, pr); ok(pr.throwT > 0 || pr.downT > 0, 'v23 동기는 벌러덩 → 받아친다 (눈싸움)');
+// 조준 던지기: 그 자리에 떨어진다, 가는 길의 사람은 맞는다
+var wa2 = v23(); away(wa2); wa2.act.off = []; wa2.act.offPlan = []; wa2.deer = []; wa2.crew = []; wa2.act.chaosAt = 1e9; run(wa2, 0.1);
+wa2.player.x = 150; wa2.player.y = 190; var px0 = wa2.player.x, py0 = wa2.player.y, th = A.throwDir(wa2, 1, 0, 150), land = null;   // 생활관 앞 길을 따라 옆으로 (구령대에 안 막히게)
+for (var tq = 0; tq < 60 && !land; tq++) { G.step(wa2, 1 / 30, null); var sp1 = fxs(wa2, 'splat')[0]; if (sp1) land = sp1; }
+ok(th.ok && land && Math.abs(land.x - (px0 + 150)) < 25 && Math.abs(land.y - py0) < 8, 'v23 끌어서 조준: 그 방향·거리에 떨어진다 (건물에 막히면 거기서 터진다)', land && [Math.round(land.x - px0), Math.round(land.y - py0)]);
+// 돌발 다섯 가지
+function cz(id, fn) { var w0 = v23(fn); away(w0); w0.act.off = []; w0.act.offPlan = []; w0.deer = []; w0.act.chaosAt = 1e9; run(w0, 0.1); A.startChaos(w0, A.chaosDef(id)); return w0; }
+var wp = cz('poop'); var tl = S.CHAOS.toilet; ok(A.objective(wp).text.indexOf('화장실') === 0, 'v23 급똥: 할 일 "화장실!! N초"');
+wp.player.x = tl.x; wp.player.y = tl.y + 5; run(wp, 0.1); ok(!wp.act.chaos && wp.act.buffs.relief > 0, 'v23 급똥: 화장실 도착 → 해방감 (이동 +20%)');
+var wp2 = cz('poop'); run(wp2, 23); ok(!wp2.act.chaos && fxs(wp2, 'chaosEnd').length === 0 || !wp2.act.chaos, 'v23 급똥: 시간이 지나면… (아무 일도 없었다)');
+var wcat = cz('cat'), cat0 = wcat.act.chaos.cat; cat0.x = wcat.player.x + 10; cat0.y = wcat.player.y; var bk3 = wcat.save.bank; run(wcat, 0.2);
+ok(wcat.act.chaos && wcat.act.chaos.phase === 'run' && wcat.save.bank < bk3, 'v23 짬타이거가 초코파이를 물고 튄다');
+run(wcat, 1.4); cat0.x = wcat.player.x + 5; cat0.y = wcat.player.y; run(wcat, 0.1);
+ok(!wcat.act.chaos && wcat.save.bank > bk3, 'v23 잡으면 1.5배로 돌려받는다', [bk3, wcat.save.bank]);
+var wt = cz('tree'); wt.act.chaos.trees.forEach(function (t) { wt.player.x = t.x; wt.player.y = t.y; wt.player.stun = 0; run(wt, 0.1); });
+ok(!wt.act.chaos && wt.save.stats.treeShake === 3, 'v23 나무 세 그루 털기 (털 때마다 눈이 머리로)');
+var wsn = cz('scenic', function (s) { s.rank = 2; }), chs = wsn.act.chaos, Pts = wsn.parts[chs.k];
+for (var sq = 0; sq < 30 * 6 && wsn.act.chaos; sq++) { var ang = sq / 10; wsn.player.load = 0; G.step(wsn, 1 / 30, { x: Math.cos(ang), y: Math.sin(ang) }); if (wsn.player.x < Pts.x || wsn.player.x > Pts.x + Pts.w || wsn.player.y < Pts.y || wsn.player.y > Pts.y + Pts.h) { wsn.player.x = Pts.x + Pts.w / 2; wsn.player.y = Pts.y + Pts.h / 2; } }
+ok(!wsn.act.chaos && wsn.haeng.chaseT > 0, 'v23 사단장님 설경: 빨간 구역을 치우면 행보관이 쫓아온다');
+var wsn2 = cz('scenic', function (s) { s.rank = 2; }), dia0 = wsn2.save.dia; run(wsn2, 36); ok(!wsn2.act.chaos && wsn2.save.dia >= dia0 + 2, 'v23 설경을 남겨 두면 상점 +2');
+var whw = cz('hotwater', function (s) { s.rank = 2; }); whw.parts.forEach(function (q) { if (whw.zoneOpen[q.zi]) q.clear = q.total; }); whw.act.chaos = null; A.startChaos(whw, A.chaosDef('hotwater'));
+var hk = whw.act.chaos && whw.act.chaos.k; if (whw.act.chaos) { var who2 = whw.act.chaos.who; who2.x = whw.act.chaos.x + 6; who2.y = whw.act.chaos.y; } run(whw, 0.3);
+ok(hk !== undefined && whw.parts[hk].icy, 'v23 뜨거운 물 제설 → 그 조각이 빙판');
+// 숙련: 하는 만큼 오르고, 효과가 붙는다
+var wsk = v23(function (s) { s.skill = {}; }); away(wsk); wsk.act.off = []; wsk.act.offPlan = []; wsk.deer = []; wsk.act.chaosAt = 1e9; A.applyStats(wsk); var r0s = wsk.player.r, c0s = wsk.player.cap;
+wsk.save.skill = { shovel: 1e5, haul: 1e5 }; A.applyStats(wsk);
+ok(G.skillLv(wsk.save, 'shovel').lv === S.SKILLS.max && wsk.player.r > r0s * 1.2 && wsk.player.cap > c0s * 1.4, 'v23 삽질·짐 나르기 숙련 최대: 범위·적재가 붙는다', [r0s, wsk.player.r, c0s, wsk.player.cap]);
+var wsk2 = v23(function (s) { s.skill = {}; }); away(wsk2); wsk2.act.off = []; wsk2.act.offPlan = []; wsk2.deer = []; wsk2.act.chaosAt = 1e9; run(wsk2, 0.6);
+for (var mq = 0; mq < 30 * 12; mq++) G.step(wsk2, 1 / 30, { x: Math.cos(mq / 40), y: Math.sin(mq / 55) });
+ok((wsk2.save.skill.legs || 0) > 0 && fxs(wsk2, 'skillUp').length >= 0, 'v23 걸으면 체력 숙련이 오른다', wsk2.save.skill.legs);
+var sc0 = G.newSave(); sc0.crewXp = { hoobae: 20000 }; ok(G.crewLv(sc0, 'hoobae').lv > 3, 'v23 분대원 숙련: 많이 부을수록 레벨 (후임 20000 → Lv ' + G.crewLv(sc0, 'hoobae').lv + ')');
+var ds = G.newSave(); ds.skill = { shovel: 500 }; ds.crewXp = { hoobae: 900 }; ds.rank = 3; ds.merit = S.DISCHARGE_MERIT; ds.life = 1e7; G.discharge(ds);
+ok(ds.skill.shovel === 500 && ds.crewXp.hoobae === 900, 'v23 숙련은 전역해도 남는다');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

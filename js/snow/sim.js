@@ -59,6 +59,12 @@
   function crewN(save, id) { return save.crew[id] || 0; }
   function procLvl(save, id) { return save.proc[id] || 0; }
   // v10: 계급은 진급 심사를 통과해야 오른다 (save.rank). 근무평정(★)이 기준을 넘으면 다음 작전이 심사
+  // v23 숙련 레벨: xp → Lv (1부터). 다음 레벨까지 base × Lv^pow
+  function lvOf(xp, base, pow, max) { var L = 1, need = base; xp = xp || 0; while (L < max && xp >= need) { xp -= need; L++; need = Math.round(base * Math.pow(L, pow)); } return { lv: L, into: xp, need: need, max: L >= max }; }
+  function skillLv(save, id) { var K = S.SKILLS; return lvOf((save.skill || {})[id], K.base, K.pow, K.max); }
+  function crewLv(save, id) { var C = S.SKILLS.crew; return lvOf((save.crewXp || {})[id], C.base, C.pow, C.max); }
+  function crewLvBonus(save, id) { return (crewLv(save, id).lv - 1) * S.SKILLS.crew.step; }
+  function skillBonus(save) { var o = {}; S.SKILLS.list.forEach(function (K) { o[K.eff] = (skillLv(save, K.id).lv - 1) * K.step; }); return o; }
   function rankOf(save) { return Math.max(0, Math.min(S.RANKS.length - 1, save.rank || 0)); }
   // v20 호봉·군생활 %: 계급 안에서 ★가 얼마나 찼나 → 몇 호봉, 18개월 중 몇 달
   function service(save) {
@@ -228,7 +234,8 @@
     var keep = { medals: save.medals + gain, discharges: save.discharges + 1, best: save.best, total: save.total, seed: (Math.random() * 1e9) | 0, seen: { tut: true }, deerHits: save.deerHits,
       dia: save.dia, diaLife: save.diaLife, found: save.found, ach: save.ach, stats: save.stats, roll: save.roll, boxes: save.boxes, bestCombo: save.bestCombo,
       look: save.look, story: save.story, unlocked: save.unlocked, quest: save.quest, leave: save.leave, fun: save.fun || {},
-      gear: save.gear, parts: save.parts || 0, pity: save.pity, chestT: save.chestT, energy: save.energy, pass: save.pass, daily: save.daily };   // v18: 장구·상자·체력·패스·임무는 전역해도 남는다
+      gear: save.gear, parts: save.parts || 0, pity: save.pity, chestT: save.chestT, energy: save.energy, pass: save.pass, daily: save.daily,
+      skill: save.skill || {}, crewXp: save.crewXp || {} };   // v23 숙련도 몸이 기억한다   // v18: 장구·상자·체력·패스·임무는 전역해도 남는다
     var fresh = newSave();
     Object.keys(fresh).forEach(function (k) { save[k] = fresh[k]; });
     Object.keys(keep).forEach(function (k) { save[k] = keep[k]; });
@@ -382,7 +389,7 @@
         var sp = spotIn(w, post, R);
         w.crew.push({ def: C, n: i, post: post, x: sp.x, y: sp.y, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
           hitT: R() * C.hit, retarget: 0, stuck: 0, walk: R() * 10, asleep: false, sleepT: 2 + R() * 4, swing: 0, moving: false, injured: 0,
-          speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
+          speed: C.speed * (1 + 0.12 * song) * (1 + crewLvBonus(save, C.id)), hit: C.hit / (1 + 0.06 * song) / (1 + crewLvBonus(save, C.id)), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
           cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: Math.min(100, (save.mor || 80) + R() * 10 - 5), slack: false });
         var e = w.crew[w.crew.length - 1]; if (blocked(e.x, e.y, 6)) { e.x = S.DUMP.x + 30; e.y = S.DUMP.y; }
       }
@@ -607,7 +614,7 @@
     (save.cpost[C.id] = save.cpost[C.id] || [])[n] = zid;
     var song = lvl(save, 'song'), gear = lvl(save, 'gear'), back = lvl(save, 'back'), R = w.rand;
     var e = { def: C, n: n, post: zid, x: r.x, y: r.y, dir: { x: r.dir.x, y: r.dir.y }, tidx: -1, tx: 0, ty: 0, hitT: 0, retarget: 0, stuck: 0, walk: 0, asleep: false, sleepT: 4, swing: 0, moving: false, injured: 0,
-      speed: C.speed * (1 + 0.12 * song), hit: C.hit / (1 + 0.06 * song), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
+      speed: C.speed * (1 + 0.12 * song) * (1 + crewLvBonus(save, C.id)), hit: C.hit / (1 + 0.06 * song) / (1 + crewLvBonus(save, C.id)), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
       cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: 100, slack: false };
     w.crew.push(e);
     w.fx.push({ t: 'assigned', e: e, zone: zid });
@@ -783,6 +790,7 @@
     if (!w.demo && procLvl(w.save, 'press')) mk.brick += who.load / 40;
     if (!w.demo && procLvl(w.save, 'sculpt')) mk.snowman += who.load / 400;
     if (src === 'player') { w.dumpedP += who.load; stat(w, 'dumps'); }
+    else if (who.def && !w.demo) { var cx = w.save.crewXp = w.save.crewXp || {}, cl0 = crewLv(w.save, who.def.id).lv; cx[who.def.id] = (cx[who.def.id] || 0) + who.load; var cl1 = crewLv(w.save, who.def.id).lv; if (cl1 > cl0) w.fx.push({ t: 'crewUp', name: who.def.name, lv: cl1, pct: Math.round((cl1 - 1) * S.SKILLS.crew.step * 100) }); }   // v23 분대원 숙련
     w.fx.push({ t: 'dump', x: dump.x, y: dump.y, units: who.load, pay: amount, src: src, main: dump.main, fromX: who.x, fromY: who.y, full: full });
     who.load = 0; who.val = 0;
     return amount;
@@ -1047,6 +1055,7 @@
     }
     // 짬타이거: 뛰어오면 도망, 가만히 있으면 구경. 쓰다듬으면 멈추고, 짬을 주면 따라온다
     w.cats.forEach(function (c) {
+      if (c.ctl) return;   // v23 짬타이거 도둑은 act가 움직인다
       c.wait -= dt;
       if (c.pet > 0) { c.pet -= dt; c.moving = false; return; }
       var pd = Math.hypot(P.x - c.x, P.y - c.y), flee = pd < 34 && P.moving && !(c.follow > 0);
@@ -1157,7 +1166,8 @@
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       if (e.off) { e.moving = false; continue; }
-      if (e.downT > 0) { e.downT -= dt; e.moving = false; continue; }   // v16: 눈덩이 맞고 벌러덩
+      if (e.downT > 0 && !e.ctl) { e.downT -= dt; e.moving = false; continue; }   // v16: 눈덩이 맞고 벌러덩
+      if (e.ctl) continue;   // v23: 쫓아오는 선임 · 마음의 편지 쓰러 가는 후임은 act가 움직인다
       if (e.state === 'follow') {   // 따라와 → 새 구역으로 데려간다
         var fd = Math.hypot(P.x - e.x, P.y - e.y);
         if (fd > 32) steer(e, P.x + (e.x - P.x) / fd * 28, P.y + (e.y - P.y) / fd * 28, Math.max(e.speed, S.SPEED * 1.05), dt, 6); else e.moving = false;
@@ -1248,7 +1258,7 @@
   }
 
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
-    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, nextRank: nextRank,
+    mulberry: mulberry, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,

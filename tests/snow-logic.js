@@ -66,8 +66,8 @@ ok(G.buy(s6, 'crew', 'hoobae').ok && !s6.crew.hoobae && s6.pend.length === 1, '�
 ok(!G.offers(s6).crew[0].ok, '이병 정원은 1명');
 s6.bank = 1e6; s6.perks.back = 2; ok(G.capOf(s6) === Math.round(110 * 1.6), '튼튼한 등짝: 적재 +30%씩', G.capOf(s6));
 ok(!G.buy(s6, 'zone', 'B').ok && G.offers(s6).zone.every(function (z) { return !z.ok; }), '구역은 사지 않는다 (v10)');
-s6.merit = 8; G.assignZones(s6); ok(s6.zones.B && !s6.zones.C, '이병: ★이 쌓여도 족구장까지만 (v12: 구역은 계급만큼)');
-s6.rank = 1; G.assignZones(s6); ok(s6.zones.B && s6.zones.C && !s6.zones.D, '일병 + ★8 → 연병장도 맡는다');
+s6.merit = 10; G.assignZones(s6); ok(s6.zones.B && !s6.zones.C, '이병: ★이 쌓여도 족구장까지만 (v12: 구역은 계급만큼)');
+s6.rank = 1; G.assignZones(s6); ok(s6.zones.B && s6.zones.C && !s6.zones.D, '일병 + ★10 → 연병장도 맡는다 (v23 ★8 → 10)');
 var o6 = G.offers(s6).factory;
 ok(!o6.some(function (x) { return x.kind === 'relay'; }), 'v15 릴레이는 사지 않는다 (상점 목록에 없다)');
 ok(G.dumpsOf(s6).length === 1 + Object.keys(s6.zones).filter(function (z) { return G.zoneById(z).relay; }).length, 'v15 맡은 구역마다 옆에 집하장이 저절로 생긴다', G.dumpsOf(s6).length);
@@ -296,7 +296,7 @@ ok(iceP3.icy, '다시 열어도 언 구간은 언 채로 (저장)');
 wI3.player.x = iceP3.x + 30; wI3.player.y = iceP3.y + 40; G.step(wI3, 1 / 30, null);
 ok(iceP3.salted && sI.stats.salt === 1 && sI.op.salted.length === 1, '염화칼슘 살포기로 지나가면 저절로 뿌려진다 (저장)');
 // 07:30 출근 차량: 진입로가 깊으면 빠진다 → 다 같이 밀어야 한다. 치워 두면 한 번에 올라가고 상점
-var sV = G.newSave(); sV.seed = 36; sV.merit = 30; sV.rank = 2; G.assignZones(sV); var wV = G.createWorld(sV);
+var sV = G.newSave(); sV.seed = 36; sV.merit = 45; sV.rank = 2; G.assignZones(sV); var wV = G.createWorld(sV);
 ok(wV.events.some(function (e) { return e.k === 'car' && Math.abs(e.t - G.timeAt(450)) < 0.01; }), '진입로를 맡으면 07:30에 중대장님 차가 온다');
 wV.events = []; wV.player.x = 30; wV.player.y = 300; G.spawn(wV, 'car'); run(wV, 8);
 ok(wV.car && wV.car.stuck && wV.op.stuck && wV.fx.some(function (f) { return f.t === 'carStuck'; }), '눈 쌓인 진입로에서 차가 빠진다');
@@ -326,7 +326,7 @@ ok(v8.v === 10 && v8.rank === 2 && v8.merit === S.RANKS[2].merit && v8.zones.C &
 // ── v12: 구역은 근무평정 + 계급 (일병한테 진입로를 맡기지 않는다) ──
 var sZ = G.newSave(); sZ.merit = 3; G.assignZones(sZ);
 ok(sZ.zones.B && !sZ.zones.C, '★3 → 족구장');
-sZ.merit = 40; G.assignZones(sZ);
+sZ.merit = 46; G.assignZones(sZ);
 ok(!sZ.zones.C && !sZ.zones.E, '이병은 ★이 많아도 족구장까지만 (진급해야 더 맡는다)');
 sZ.rank = 1; G.assignZones(sZ);
 ok(sZ.zones.C && sZ.zones.D && !sZ.zones.E, '일병: 연병장·취사장 앞까지');
@@ -426,9 +426,9 @@ ok(supOff === 0 && supOn > 0, 'v19 공병대 제설차는 상병부터, 폭설 �
 ok(S.HIT === 0.2 && S.ENERGY.max / S.ENERGY.cost === 15, 'v19 손 0.2초 · 체력은 작전 15번 분량');
 // ── v20: 호봉·군생활 % ──
 function svOf(rank, merit) { var sv = G.newSave(); sv.rank = rank; sv.merit = merit; return G.service(sv); }
-ok(svOf(0, 0).pct === 0 && svOf(0, 0).hob === 1 && svOf(1, 6).pct === 11 && svOf(2, 24).pct === 44 && svOf(3, 60).pct === 77 && svOf(3, 150).pct === 100 && svOf(3, 150).left === 0, 'v20 군생활 %: 이병 0 · 일병 11 · 상병 44 · 병장 77 · 전역 100', [svOf(1, 6).pct, svOf(2, 24).pct, svOf(3, 60).pct]);
-ok(svOf(1, 9).hob === 2 && svOf(1, 23).hob === 6 && svOf(1, 40).hob === 6 && svOf(2, 24).hob === 1 && svOf(3, 149).hob === 4, 'v20 호봉: 일병 1~6 · 진급 심사를 못 붙으면 6호봉에서 멈춤 · 진급하면 1호봉');
-var sPay = G.newSave(); sPay.seed = 34; sPay.rank = 1; sPay.merit = 7; G.assignZones(sPay); var wPay = G.createWorld(sPay); wPay.events = [];
+ok(svOf(0, 0).pct === 0 && svOf(0, 0).hob === 1 && svOf(1, 6).pct === 11 && svOf(2, 36).pct === 44 && svOf(3, 105).pct === 77 && svOf(3, 270).pct === 100 && svOf(3, 270).left === 0, 'v20 군생활 %: 이병 0 · 일병 11 · 상병 44 · 병장 77 · 전역 100', [svOf(1, 6).pct, svOf(2, 36).pct, svOf(3, 105).pct]);
+ok(svOf(1, 11).hob === 2 && svOf(1, 35).hob === 6 && svOf(1, 50).hob === 6 && svOf(2, 36).hob === 1 && svOf(3, 269).hob === 4, 'v20 호봉: 일병 1~6 · 진급 심사를 못 붙으면 6호봉에서 멈춤 · 진급하면 1호봉');
+var sPay = G.newSave(); sPay.seed = 34; sPay.rank = 1; sPay.merit = 9; G.assignZones(sPay); var wPay = G.createWorld(sPay); wPay.events = [];
 wPay.op.tasks.forEach(function (t) { clearZone(wPay, S.ZONES[t.zi].id, 1); }); G.checkTasks(wPay);
 var bk0 = sPay.bank, rPay = G.endOp(wPay, 'report');
 ok(rPay.stars === 3 && rPay.payday && rPay.payday.hob === 2 && rPay.payday.pie > 0 && rPay.svc1 > rPay.svc0, 'v20 호봉이 오르면 월급날 (일병 2호봉)', rPay.payday);

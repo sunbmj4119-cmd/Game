@@ -106,6 +106,12 @@ function scan() {
     await page.evaluate(function () { var w = __SNOW.view().world(); if (w.op) w.op.ready = true; });
     await sleep(600); await check('play-report');
     await page.evaluate(function () { var w = __SNOW.view().world(); if (w.op) w.op.ready = false; });
+    // v23: 돌발(설경 · 급똥 이름표) · 후임 마음의 편지 · 조준 표시
+    await page.evaluate(function () { var w = __SNOW.view().world(), A = JY.SnowAct; w.act.chaos = null; A.startChaos(w, A.chaosDef('poop')); __SNOW.view().setAim && __SNOW.view().setAim({ ux: 0.6, uy: -0.8, dist: 140 }); });
+    await sleep(700); await check('play-chaos');
+    await page.evaluate(function () { var w = __SNOW.view().world(), A = JY.SnowAct; __SNOW.view().setAim && __SNOW.view().setAim(null); w.act.chaos = null; w.act.marks = []; var jr = w.crew.filter(function (e) { return e.def && !e.def.vehicle; })[0]; if (jr) { jr.mapyeon = { t: 0 }; jr.ctl = 'mapyeon'; } });
+    await sleep(700); await check('play-mapyeon');
+    await page.evaluate(function () { var w = __SNOW.view().world(); w.crew.forEach(function (e) { e.mapyeon = null; e.ctl = null; }); });
     var supB = await page.$('#h-sup:not([hidden])');
     if (supB) { await supB.click(); await sleep(400); await check('play-shop'); await page.click('#s-go'); await sleep(500); }
     // 1인칭 (시점 버튼)

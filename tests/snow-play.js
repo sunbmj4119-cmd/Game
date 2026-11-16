@@ -265,7 +265,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="story"]'); await sleep(300);
-  ok('v14 수첩 → 발견 15칸 (v22 +3) (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/15\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 15 && /\?\?\?/.test(t); }));
+  ok('v14 수첩 → 발견 21칸 (v22 +3 · v23 +6) (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/21\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 21 && /\?\?\?/.test(t); }));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]'); await sleep(200);
   ok('설정 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
@@ -371,7 +371,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
 
   // ── 병장: 말년 특권 2배속 · 후반 ──
   await page.evaluate(function () {
-    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 100; s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
+    var s = JY.SnowSim.newSave(); s.day = 24; s.bank = 223456; s.life = 1600000; s.tool = 6; s.rank = 3; s.merit = 185;   // v23 헬기장 ★180 s.spec = { 1: 'leader', 2: 'insa', 3: 'chill' };
     s.crew = { hoobae: 4, donggi: 3, cook: 2, malnyeon: 2, admin: 2, reserve: 2, plow: 1 }; s.proc = { press: 5, sculpt: 2 }; s.relays = { B: true, C: true, D: true, E: true };
     s.perks = { eisen: 3, back: 3, matsta: 2, praise: 5, song: 2, gear: 2 }; JY.SnowSim.assignZones(s); s.seen = { tut: true, dis: true, help: true }; s.px = 160; s.py = 300;
     s.look.name = '홍길동'; JY.SNOW.STORY.forEach(function (c) { s.story[c.id] = true; });

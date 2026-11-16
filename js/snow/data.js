@@ -16,23 +16,23 @@
     { id: 'B', name: '족구장', x: 480, y: 130, w: 300, h: 150, value: 1, cost: 300, need: 3, rank: 0, due: 480, why: '오후 체육 시간', relay: [630, 300], ground: 'court',
       parts: [['족구장 왼쪽 코트', 0, 0, 0.5, 1], ['족구장 오른쪽 코트', 0.5, 0, 1, 1]],
       reveal: '눈 치우자마자 족구가 시작된다. 지는 쪽이 내일 제설이다.' },
-    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1200, need: 8, rank: 1, due: 480, why: '일과 시작 집합', relay: [200, 618], ground: 'parade',
+    { id: 'C', name: '연병장', x: 40, y: 320, w: 460, h: 280, value: 2, cost: 1200, need: 10, rank: 1, due: 480, why: '일과 시작 집합', relay: [200, 618], ground: 'parade',
       parts: [['1소대 자리', 0, 0, 0.5, 0.5], ['2소대 자리', 0.5, 0, 1, 0.5], ['3소대 자리', 0, 0.5, 0.5, 1], ['4소대 자리', 0.5, 0.5, 1, 1]],
       reveal: '구령대 앞 바닥에 "충성". 사열 때 얼어 죽을 뻔한 그곳.' },
-    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, need: 15, rank: 1, due: 420, why: '아침 배식', relay: [520, 440], ground: 'yard',
+    { id: 'D', name: '취사장 앞', x: 540, y: 320, w: 230, h: 240, value: 3, cost: 7000, need: 22, rank: 1, due: 420, why: '아침 배식', relay: [520, 440], ground: 'yard',
       parts: [['배식구 가는 길', 0, 0, 1, 0.5, true], ['짬통 가는 길', 0, 0.5, 1, 1]],
       reveal: '배식구 앞은 설거지 물이 흘러서 꼭 언다. 짬통 옆엔 짬타이거가 산다.' },
-    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 3, cost: 22000, need: 30, rank: 2, due: 450, why: '간부 출근 차량', relay: [482, 780], ground: 'road',
+    { id: 'E', name: '부대 진입로', x: 340, y: 620, w: 120, h: 450, value: 3, cost: 22000, need: 45, rank: 2, due: 450, why: '간부 출근 차량', relay: [482, 780], ground: 'road',
       parts: [['진입로 위쪽', 0, 0, 1, 0.34], ['진입로 가운데', 0, 0.34, 1, 0.67], ['진입로 아래쪽', 0, 0.67, 1, 1, true]],
       reveal: '작전 중간에 중대장님 차가 올라온다. 못 치워 두면 차가 빠진다. 아래쪽은 비탈이라 얼기 쉽다.' },
-    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 4, cost: 65000, need: 42, rank: 2, due: 480, why: '전투 장비 점검', relay: [325, 760], ground: 'tank',
+    { id: 'F', name: '전차 주차장', x: 40, y: 640, w: 270, h: 280, value: 4, cost: 65000, need: 70, rank: 2, due: 480, why: '전투 장비 점검', relay: [325, 760], ground: 'tank',
       parts: [['1호 전차 주변', 0, 0, 1, 0.5], ['2호 전차 주변', 0, 0.5, 1, 1]],
       holes: [[80, 690, 70, 50], [200, 800, 70, 50]],
       reveal: 'K-전차 두 대가 눈을 맞고 있다. 장비 점검 전에 주변을 비워야 한다.' },
-    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 5, cost: 180000, need: 75, rank: 3, due: 450, why: '출근 차량 통과', relay: [100, 1135], ground: 'gate',
+    { id: 'G', name: '위병소 앞', x: 120, y: 1090, w: 500, h: 90, value: 5, cost: 180000, need: 130, rank: 3, due: 450, why: '출근 차량 통과', relay: [100, 1135], ground: 'gate',
       parts: [['위병소 왼쪽', 0, 0, 0.5, 1, true], ['위병소 오른쪽', 0.5, 0, 1, 1]],
       reveal: '부대의 얼굴. 사단장님 차가 여기로 들어온다. 한 톨도 남기면 안 된다.' },
-    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 7, cost: 450000, need: 95, rank: 3, due: 480, why: '응급 후송 대비', relay: [635, 1030], ground: 'pad',
+    { id: 'H', name: '헬기장', x: 500, y: 720, w: 270, h: 280, value: 7, cost: 450000, need: 180, rank: 3, due: 480, why: '응급 후송 대비', relay: [635, 1030], ground: 'pad',
       parts: [['헬기장 북쪽', 0, 0, 1, 0.5], ['헬기장 남쪽', 0, 0.5, 1, 1]],
       reveal: '응급 환자가 생기면 의무후송 헬기가 내린다. 언제든 내릴 수 있게 비워 둔다.' }
   ];
@@ -142,12 +142,12 @@
       easy: [], more: ['싸리비·넉가래 보급', '간부 경례·관등성명'] },
     { name: '일병', merit: 6, role: '일꾼 — 맡은 구역을 알아서 끝낸다',
       easy: ['선임 눈덩이 장난이 줄어든다', '분대원 정원 1 → 3명'], more: ['2인용 넉가래', '동기·취사병 전입', '염화칼슘 살포'] },
-    { name: '상병', merit: 24, role: '조장 — 작업 분담을 정하고 조원을 굴린다',
+    { name: '상병', merit: 36, role: '조장 — 작업 분담을 정하고 조원을 굴린다',
       easy: ['눈덩이 장난 끝', '작전 전에 조원 배치(걸어가서 안 데려와도 된다)', '분대원 정원 6명'], more: ['보행식 제설기·염화칼슘 살포기', '말년 병장·행정병 전입'] },
-    { name: '병장', merit: 60, role: '분대장 — 지휘만 한다. 몸은 난로 옆에',
+    { name: '병장', merit: 105, role: '분대장 — 지휘만 한다. 몸은 난로 옆에',
       easy: ['작업 2배속(말년 특권)', '분대원 정원 10명'], more: ['트랙터·군용 제설차', '예비군·제설차 지원', '전역 신고'] }
   ];
-  var DISCHARGE_MERIT = 150; // v17: 75 → 150 (처음은 빠르게, 뒤로 갈수록 오래). 병장 + 근무평정 150 → 전역 신고 가능
+  var DISCHARGE_MERIT = 270; // v23: 150 → 270 (Moon Sweepers 5~9시간에 맞춰 첫 전역까지 사람 기준 5~6시간). v17: 75 → 150 (처음은 빠르게, 뒤로 갈수록 오래). 병장 + 근무평정 150 → 전역 신고 가능
   var DISCHARGE_LIFE = 1500000; // (예전 기준, 메달 계산에만 쓴다)
   // 계급별 분대원 정원 (이병 1명 → 병장 16명). 분대원은 '전입 요청' → 다음 작전 아침 생활관 앞 신병 → 인솔해서 구역에 배치
   var CREW_CAP = [1, 3, 6, 10];   // v12: 7 → 6, 16 → 10 (상병부터 작전이 30초 만에 끝나 버려서)
@@ -190,7 +190,13 @@
     { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' },
     { id: 'bigball', name: '대왕 눈덩이 골인', hint: '굴러다니는 큰 눈덩이를 집하장까지 밀고 가자' },
     { id: 'herd', name: '고라니 몰이', hint: '고라니 떼를 전부 벌러덩' },
-    { id: 'gold', name: '황금 넉가래', hint: '하늘에서 떨어지는 보급품을 주워 보자' }
+    { id: 'gold', name: '황금 넉가래', hint: '하늘에서 떨어지는 보급품을 주워 보자' },
+    { id: 'senior', name: '선임 저격', hint: '선임을 눈덩이로 맞혀 보면… (PX 털린다)' },
+    { id: 'soothe', name: '후임 달래기', hint: '마음의 편지 쓰러 가는 후임을 막아라' },
+    { id: 'mapyeon', name: '마음의 편지', hint: '후임을 너무 맞히면…' },
+    { id: 'poop', name: '급똥 생존', hint: '배가 아프면 화장실까지 달려라' },
+    { id: 'catThief', name: '짬타이거 검거', hint: '초코파이를 훔쳐 간 고양이를 잡아라' },
+    { id: 'scenic', name: '설경 보존', hint: '사단장님이 보고 싶다는 눈은 남겨 둬라' }
   ];
 
   // v17 이번 주 작전: 8일차부터 7일마다 바뀐다 (열린 기능 중에서). 같은 눈 치우기가 질리지 않게 규칙을 한 가지씩 비튼다
@@ -320,6 +326,26 @@
       { id: 'hot6', name: '핫식스', w: 35, buff: 'hot6', sec: 8, lines: ['핫식스 원샷! 다리가 막 움직인다!', '카페인 충전 완료!'] },
       { id: 'gold', name: '황금 넉가래', w: 25, buff: 'gold', sec: 10, lines: ['황금 넉가래?! 다 쓸어 버리겠다!', '이게 그 전설의…!'] },
       { id: 'crate', name: '보급품 상자', w: 40, lines: ['보급품이다! 개이득!', '누가 떨어뜨렸지? 내 거다!'] }
+    ] };
+  // v23 육성: 내 몸 숙련 (하는 만큼 오른다, 전역해도 남는다) · 분대원 숙련 (종류별로, 일할수록)
+  //  xp: 삽질 = 내가 집하장에 부은 눈 · 짐 나르기 = 붓기 횟수 · 체력 = 걸은 거리(px) · 눈덩이 = 던진 것 + 맞힌 것
+  var SKILLS = { max: 30, base: 40, pow: 1.45,
+    list: [
+      { id: 'shovel', name: '삽질', eff: 'range', step: 0.008, unit: '범위', per: 1 / 30 },
+      { id: 'haul', name: '짐 나르기', eff: 'cap', step: 0.015, unit: '적재', per: 1.5 },
+      { id: 'legs', name: '체력', eff: 'move', step: 0.006, unit: '이동', per: 1 / 160 },
+      { id: 'arm', name: '눈덩이', eff: 'throw', step: 0.02, unit: '던지는 간격', per: 3 }
+    ],
+    crew: { max: 10, base: 1200, pow: 1.5, step: 0.04 } };
+  // v23 골때리는 돌발: 작전 3번째부터 작전마다 하나(70%), 상병부터 하나 더(40%). 무슨 일이 날지 모르게
+  var CHAOS = { fromOps: 3, p: 0.7, p2: 0.4, at: [35, 110], gap: 55,
+    toilet: { x: 260, y: 124 },
+    kinds: [
+      { id: 'poop', name: '급똥', w: 25, sec: 22 },
+      { id: 'cat', name: '짬타이거 도둑', w: 20, sec: 14 },
+      { id: 'tree', name: '나무 눈 털기', w: 18, sec: 45, n: 3 },
+      { id: 'scenic', name: '사단장님 설경', w: 20, sec: 35 },
+      { id: 'hotwater', name: '뜨거운 물 제설', w: 17, need: 'ice' }
     ] };
   var BIGBALL = { at: [25, 70], r0: 7, rmax: 24, grow: 0.55, push: 0.92, pay: 1.5 };
   var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
@@ -582,7 +608,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, CHAOS: CHAOS, SKILLS: SKILLS, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

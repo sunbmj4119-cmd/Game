@@ -5,7 +5,7 @@
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
-  var KEY = 'jeseol-v10', PREV_KEY = 'jeseol-v8', OLD_KEYS = ['jeseol-v1'];
+  var KEY = 'jeseol-v22', OLD_KEYS = ['jeseol-v1'];   // v22: 처음부터 다시 (예전 저장 jeseol-v10·v8은 지우지 않고 그대로 둔다)
   try { OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { /* 저장소 없음 */ }
   var G2 = JY.SnowGear;   // v18 장구·상자·체력·임무·패스
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
@@ -15,7 +15,7 @@
   function load() {
     var s;
     try {
-      var raw = localStorage.getItem(KEY) || localStorage.getItem(PREV_KEY);
+      var raw = localStorage.getItem(KEY);
       s = G.migrate(raw ? JSON.parse(raw) : null);
     } catch (e) { s = G.newSave(); }
     return seenOld(s);
@@ -198,7 +198,7 @@
     else if (k === 'settings') settings();
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
-  var CAM_NAME = { near: '위에서 (추천)', far: '멀리서', fp: '1인칭' };
+  var CAM_NAME = { near: '3인칭 (추천)', fp: '1인칭' };   // v22: 두 개만
   function settings() {
     function render() {
       modal('<div class="m-rank set"><p class="kicker">설정</p><h3>설정</h3><div class="set-list">' +
@@ -367,6 +367,18 @@
     if (onV6Event(f)) return;
     if (onOpEvent(f)) return;
     if (f.t === 'deer') { vibrate(80); }
+    // v22 역동: 고라니 떼 · 보급품 낙하 · 대왕 눈덩이
+    else if (f.t === 'herd') { banner('고라니 떼다!!', f.n + '마리 — 전부 눈덩이로 벌러덩시키면 몰이 보너스', 2400); if (X) X.deer && X.deer(); vibrate([60, 40, 60, 40, 60]); }
+    else if (f.t === 'herdAll') { banner('고라니 몰이 성공!', '+' + fmt(f.pay) + ' · 상점 +1', 2400); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
+    else if (f.t === 'drop') { chip('보급품 낙하! ' + f.name + ' — 근처에 떨어졌다', 'good'); if (X) X.whoosh(); }
+    else if (f.t === 'dropGet') {
+      if (f.kind === 'crate') chip('보급품 상자! +' + fmt(f.pay) + (f.dia ? ' · 상점 +1' : '') + (f.parts ? ' · 부품 +' + f.parts : ''), 'good');
+      else banner(f.name + '!', (f.kind === 'gold' ? '넉가래 범위 ×1.7' : '이동 +40%') + ' · ' + f.sec + '초', 1600);
+      if (X) X.buy(); vibrate([30, 20, 50]);
+    }
+    else if (f.t === 'big') { banner('대왕 눈덩이 등장!', '몸으로 밀면 굴러가며 커진다 · 집하장에 넣으면 1.5배', 2600); if (X) X.ding(); }
+    else if (f.t === 'bigGoal') { banner('대왕 눈덩이 골인!!', '+' + fmt(f.pay) + ' · 눈 ' + fmt(f.units) + ' · 콤보 +20', 2400); if (X) X.fanfare(); vibrate([60, 30, 60, 30, 160]); coinFly({ x: f.x, y: f.y, pay: f.pay, src: 'player' }); }
+    else if (f.t === 'bigBowl') { chip('스트라이크! 고라니가 눈덩이에 깔렸다', 'good'); if (X) X.thud(); }
     else if (f.t === 'fun') { banner('발견! ' + f.name, '상점 +' + f.dia + ' · 수첩 ' + f.n + '/' + f.of, 2400); vibrate([30, 30, 60]); }
     else if (f.t === 'deerDown') vibrate([40, 30, 90]);
     else if (f.t === 'goal') { if (!(save.fun && save.fun.goal && hud.goalSaid)) chip('족구 한 골! +' + fmt(f.pay), 'good'); hud.goalSaid = 1; if (X) X.fanfare(); }
@@ -1017,7 +1029,7 @@
 
   /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
   var curT = null, actAt = 0, subTimer = 0, hudA = {};
-  var CAM_NEXT = { near: '멀리', far: '1인칭', fp: '위에서' };
+  var CAM_NEXT = { near: '1인칭', fp: '3인칭' };
   function camLabel() { if (V.camMode) $('h-cam-t').textContent = CAM_NEXT[V.camMode()] || '시점'; }
   function fp() { return !!(V.isFP && V.isFP()); }
   function fpLayout() {

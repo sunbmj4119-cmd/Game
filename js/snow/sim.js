@@ -295,9 +295,10 @@
     var R = w.rand, dl = S.DAY_LEN, ev = [], day = save.day, i;
     function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
     if (day >= HAZ.deer.from && feat(save, 'deer')) {
-      var n = Math.round(Math.min(HAZ.deer.max, 1 + (day - HAZ.deer.from) / 6) * (1 - 0.25 * lvl(save, 'gong')));
+      var n = Math.max(1, Math.round(Math.min(HAZ.deer.max, 2 + (day - HAZ.deer.from) / 8) * (1 - 0.2 * lvl(save, 'gong'))));   // v22: 작전당 2~4마리
       var wk0 = weekOf(save); if (wk0 && wk0.mods.deer) n = Math.min(6, n * wk0.mods.deer);   // v17 고라니 대이동
-      for (i = 0; i < n; i++) at(20 + R() * (dl - 40), 'deer');
+      for (i = 0; i < n; i++) at(15 + (i + R() * 0.8) * (dl - 50) / n, 'deer');   // v22: 작전 내내 고르게
+      if (day >= HAZ.deer.herd.from && R() < HAZ.deer.herd.p) at(dl * (0.25 + R() * 0.45), 'herd');   // v22 고라니 떼
     }
     // 선임 눈덩이 장난: 이병은 자주, 일병은 가끔, 상병부터는 없다 (짬이 차면 편해진다)
     var sbp = HAZ.snowball.p[rankOf(save)] || 0;
@@ -871,14 +872,33 @@
   }
 
   /* ── 방해꾼 ── */
+  // v22: 고라니는 내 근처(화면 가장자리쯤)에서 나타나 내 앞을 가로지른다 (전엔 지도 끝에서 나와 거의 안 보였다)
+  function deerNear(w, ang, back) {
+    // 화면에 보이게: 왼쪽·오른쪽에서, 살짝 화면 위(먼 쪽)로 · 건물 뒤가 아니라 구역 땅 위에서
+    var R = w.rand, P = w.player, Hd = HAZ.deer, x = P.x, y = P.y, d0 = Hd.near[0] + R() * (Hd.near[1] - Hd.near[0]) + (back || 0), ok = false;
+    var side = ang === undefined ? (R() < 0.5 ? 0 : 1) : (Math.cos(ang) >= 0 ? 0 : 1);
+    for (var k = 0; k < 20 && !ok; k++) {
+      var sd = k < 14 ? side : 1 - side, up = (ang !== undefined && k === 0) ? Math.abs(Math.sin(ang)) * 0.7 : R() * 0.7, a = sd === 0 ? -up : Math.PI + up;
+      x = Math.max(12, Math.min(S.W - 12, P.x + Math.cos(a) * d0)); y = Math.max(12, Math.min(S.H - 12, P.y + Math.sin(a) * d0));
+      var ci = Math.floor(y / S.CELL) * S.GW + Math.floor(x / S.CELL);
+      ok = !blocked(x, y, 6) && (w.zone[ci] >= 0 || k >= 16);
+    }
+    var hd = Math.atan2(P.y - y, P.x - x) + (R() - 0.5) * 0.7;
+    var d = { x: x, y: y, dir: { x: Math.cos(hd), y: Math.sin(hd) }, heading: hd, turnT: 1.4, life: Hd.life[0] + R() * (Hd.life[1] - Hd.life[0]), t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false };
+    w.deer.push(d); return d;
+  }
   function spawn(w, k) {
     var R = w.rand, save = w.save, medic = lvl(save, 'medic');
     if (k === 'deer') {
-      var left = R() < 0.5, y = 150 + R() * (S.H - 300), tgt = randomOpenPoint(w);
-      w.deer.push({ x: left ? 8 : S.W - 8, y: y, dir: { x: left ? 1 : -1, y: 0 }, heading: Math.atan2(tgt.y - y, tgt.x - (left ? 8 : S.W - 8)),
-        turnT: 0.6, life: HAZ.deer.life[0] + R() * (HAZ.deer.life[1] - HAZ.deer.life[0]), t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false });
+      var dn = deerNear(w);
       say(w, 'deer', true);
-      w.fx.push({ t: 'deer', e: w.deer[w.deer.length - 1] });
+      w.fx.push({ t: 'deer', e: dn });
+    } else if (k === 'herd') {
+      // v22 고라니 떼: 네 마리가 한쪽에서 줄지어 내 앞을 가로지른다. 전부 벌러덩이면 고라니 몰이 보너스
+      var hid = (w.herdN = (w.herdN || 0) + 1), base = (R() < 0.5 ? 0 : Math.PI) + (R() - 0.5) * 0.6;
+      w.herd = { id: hid, n: HAZ.deer.herd.n, down: 0, done: false };
+      for (var hi = 0; hi < HAZ.deer.herd.n; hi++) { var hd = deerNear(w, base + (hi - 1.5) * 0.12, hi * 16); hd.herd = hid; hd.life += 4; }
+      w.fx.push({ t: 'herd', n: HAZ.deer.herd.n }); say(w, 'deer', true);
     } else if (k === 'snowball') {
       // v14: 근처에 분대원이 있으면 그 사람이 보이게 던진다 (받아칠 수 있다). 없으면 예전처럼 어디선가 날아온다
       if (!(JY.SnowAct && JY.SnowAct.prank && JY.SnowAct.prank(w))) { w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun * w.mod.stun); w.fx.push({ t: 'snowball' }); }
@@ -948,7 +968,7 @@
         d.turnT = 0.5 + R() * 0.6;
         var pd = Math.hypot(P.x - d.x, P.y - d.y);
         if (pd < 50 && R() < 0.6) d.heading = Math.atan2(d.y - P.y, d.x - P.x) + (R() - 0.5) * 0.6;
-        else if (R() < 0.45) { var tg = randomOpenPoint(w); d.heading = Math.atan2(tg.y - d.y, tg.x - d.x); }
+        else if (R() < 0.5) { var ta = R() * Math.PI * 2, tr = 40 + R() * 90, tgx = P.x + Math.cos(ta) * tr, tgy = P.y + Math.sin(ta) * tr; d.heading = Math.atan2(tgy - d.y, tgx - d.x); }   // v22: 내 주변을 뛰어다닌다
         else d.heading += (R() - 0.5) * 2.2;
       }
       if (d.slowT > 0) d.slowT -= dt;

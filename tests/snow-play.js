@@ -119,9 +119,10 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
     await page.evaluate(function () { __SNOW.view().toggleCam('near'); });
   }
   await page.evaluate(function () { __SNOW.view()._teleport(200, 160); });
-  var k0 = (await W()).y;
+  var k0 = (await W()).y, kt0 = await page.evaluate(function () { return __SNOW.view().world().time; });
   await page.keyboard.down('ArrowDown'); await sleep(700); await page.keyboard.up('ArrowDown');
-  ok('방향키로도 걷는다', (await W()).y > k0 + 15);
+  var kw = await W();
+  ok('방향키로도 걷는다', kw.y > k0 + 15, await page.evaluate(function (a) { var w = __SNOW.view().world(); return { dy: Math.round(w.player.y - a[0]), dt: +(w.time - a[1]).toFixed(2), stun: w.player.stun, talk: !document.getElementById('talk').hidden, modal: !document.getElementById('modal').hidden, mode: __SNOW.view().mode(), focus: document.activeElement && document.activeElement.tagName }; }, [k0, kt0]));
 
   // ── 가득 차면 → 집하장에 붓기 (+금액, 초코파이가 지갑으로) ──
   await page.evaluate(function () { var w = __SNOW.view().world(); w.player.load = w.player.cap - 1; w.player.val = w.player.cap - 1; __SNOW.view()._teleport(250, 190); });
@@ -264,7 +265,7 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('꾸미기 버튼 → 꾸미기 탭', await vis('#shop') && !!(await page.$('#s-list .lcard')));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="story"]'); await sleep(300);
-  ok('v14 수첩 → 발견 12칸 (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/12\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 12 && /\?\?\?/.test(t); }));
+  ok('v14 수첩 → 발견 15칸 (v22 +3) (못 찾은 건 ??? + 힌트) · v15 훈장도 여기 · 탭 줄 없음', await vis('#shop') && await page.evaluate(function () { var t = document.getElementById('s-list').textContent; return document.getElementById('s-tabs').hidden && /훈장 \(/.test(t) && /발견 \(\d+\/15\)/.test(t) && document.querySelectorAll('#s-list .fun-c').length === 15 && /\?\?\?/.test(t); }));
   await page.click('#s-back'); await sleep(300);
   await page.click('[data-hub="settings"]'); await sleep(250); await page.click('#modal [data-set="help"]'); await sleep(200);
   ok('설정 → 교범 다시 보기', !!(await page.$('#modal .m-help')));
@@ -414,14 +415,14 @@ var url = process.env.SNOW_URL || 'file://' + path.join(__dirname, '..', 'snow.h
   ok('처음부터 다시: 전부 초기화', await page.evaluate(function () { var s = __SNOW.save(); return s.bank === 0 && s.medals === 0 && !Object.keys(s.story).length && s.day === 1; }));
 
   // ── 쉬는 동안 · v8 저장 이전 ──
-  await page.evaluate(function () { var s = __SNOW.save(); s.crewRate = 50; s.last = Date.now() - 3600 * 1000; s.stats.ops = 3; localStorage.setItem('jeseol-v10', JSON.stringify(s)); });
+  await page.evaluate(function () { var s = __SNOW.save(); s.crewRate = 50; s.last = Date.now() - 3600 * 1000; s.stats.ops = 3; localStorage.setItem('jeseol-v22', JSON.stringify(s)); });
   await page.reload({ timeout: 20000 }); await sleep(1200); await enter();
   ok('쉬는 동안 분대원이 번 초코파이', await page.evaluate(function () { return !document.getElementById('modal').hidden && /분대원들이/.test(document.getElementById('modal').textContent); }));
   await shot('19-offline');
-  await page.evaluate(function () { localStorage.clear(); Storage.prototype._set = Storage.prototype.setItem; localStorage._set('jeseol-v8', JSON.stringify({ v: 5, life: 30000, bank: 777, day: 12, tool: 3, zones: { A: true, B: true, C: true, D: true, E: true, F: true }, crew: { hoobae: 2 }, story: { prologue: true }, look: { name: '옛날사람' } })); Storage.prototype.setItem = function () {}; });
+  await page.evaluate(function () { localStorage.clear(); Storage.prototype._set = Storage.prototype.setItem; localStorage._set('jeseol-v10', JSON.stringify({ v: 10, life: 30000, bank: 777, day: 12, rank: 2, merit: 30, tool: 3, zones: { A: true, B: true }, stats: { ops: 11 }, look: { name: '옛날사람' } })); Storage.prototype.setItem = function () {}; });
   await page.reload({ timeout: 20000 }); await sleep(1200);
-  var mig = await page.evaluate(function () { var s = __SNOW.save(); return { v: s.v, rank: s.rank, bank: s.bank, zones: Object.keys(s.zones).join(''), name: s.look.name, v8: !!localStorage.getItem('jeseol-v8') }; });
-  ok('v8 저장을 옮겨 온다 (상병, 근무평정만큼 구역, v8 저장은 그대로)', mig.v === 10 && mig.rank === 2 && mig.bank === 777 && mig.zones === 'ABCD' && mig.name === '옛날사람' && mig.v8, mig);
+  var mig = await page.evaluate(function () { var s = __SNOW.save(); return { day: s.day, rank: s.rank, ops: s.stats.ops || 0, bank: s.bank, old: !!localStorage.getItem('jeseol-v10') }; });
+  ok('v22 처음부터: 예전 저장(jeseol-v10)이 있어도 1일차 이병부터, 예전 저장은 지우지 않는다', mig.day === 1 && mig.rank === 0 && mig.ops === 0 && mig.bank !== 777 && mig.old, mig);
 
   } catch (err) { ok('흐름이 중간에 멈췄다', false, String(err).split('\n')[0]); await shot('zz-stuck'); }
   await browser.close();

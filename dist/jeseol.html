@@ -2300,7 +2300,10 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     { id: 'drift', name: '빙판 드리프트', hint: '사륜바이크로 빙판 위를 달려 보자' },
     { id: 'cat', name: '짬타이거 집사', hint: '고양이를 쓰다듬자' },
     { id: 'officer', name: '간부 저격', hint: '간부에게 눈덩이를… (잡히면 얼차려)' },
-    { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' }
+    { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' },
+    { id: 'bigball', name: '대왕 눈덩이 골인', hint: '굴러다니는 큰 눈덩이를 집하장까지 밀고 가자' },
+    { id: 'herd', name: '고라니 몰이', hint: '고라니 떼를 전부 벌러덩' },
+    { id: 'gold', name: '황금 넉가래', hint: '하늘에서 떨어지는 보급품을 주워 보자' }
   ];
 
   // v17 이번 주 작전: 8일차부터 7일마다 바뀐다 (열린 기능 중에서). 같은 눈 치우기가 질리지 않게 규칙을 한 가지씩 비튼다
@@ -2353,7 +2356,10 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     { id: 'gearUp', text: '장구 강화 1번', stat: 'gearUp', goal: 1 },
     { id: 'shoo', text: '고라니 쫓기 1번', stat: 'shoo', goal: 1, need: 'deer' },
     { id: 'salt', text: '빙판에 염화칼슘 2번', stat: 'salt', goal: 2, need: 'ice' },
-    { id: 'tasks', text: '지시서 4줄 끝내기', stat: 'tasks', goal: 4 }
+    { id: 'tasks', text: '지시서 4줄 끝내기', stat: 'tasks', goal: 4 },
+    { id: 'drop', text: '떨어진 보급품 3개 줍기', stat: 'drop', goal: 3, need: 'drop' },
+    { id: 'big', text: '대왕 눈덩이 골인 1번', stat: 'bigball', goal: 1, need: 'bigball' },
+    { id: 'deerDown', text: '고라니 벌러덩 2번', stat: 'deerDown', goal: 2, need: 'deer' }
   ];
   var MISSION_DAY = { n: 5, pts: 20, steps: [{ at: 40, parts: 6 }, { at: 70, box: 'common', pie: 1 }, { at: 100, dia: 10, parts: 10 }] };
   // 복무 패스: 28일 시즌, 30단계 (100점마다 한 단계). 무료 줄과 프리미엄 줄(상점 150으로 연다)
@@ -2379,7 +2385,9 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     { id: 'roof', when: { rank: 1 } },
     { id: 'px', when: { rank: 1 } },
     { id: 'perk', when: { rank: 1 } },
-    { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
+    { id: 'deer', when: { zone: 'B' }, name: '고라니', line: '내 근처로 뛰어든다 · 눈덩이 두 방이면 벌러덩' },   // v22: 연병장 → 족구장부터 (잘 안 보였다)
+    { id: 'drop', when: { ops: 2 }, name: '보급품 낙하', line: '근처에 떨어진 보급품을 주워라 — 핫식스 · 황금 넉가래 · 보급품 상자' },
+    { id: 'bigball', when: { ops: 3 }, name: '대왕 눈덩이', line: '몸으로 밀면 굴러가며 눈을 먹고 커진다 · 집하장에 넣으면 1.5배' },
     { id: 'cam', when: { zone: 'C' } },
     { id: 'factory', when: { zone: 'C' } },
     { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
@@ -2419,6 +2427,14 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
   // v19 눈 양: 계급이 오를수록 더 깊이 쌓인다 (작전이 1~2분에 끝나서). 눈 한 덩이 값은 그만큼 낮춰 수입은 비슷하게
   // vis: 깊이 → 그림 단계(2D 덩어리 1~4)
+  // v22 역동: 보급품 낙하 (근처에 떨어져 14초 뒤 사라진다) · 대왕 눈덩이 (작전마다 하나)
+  var DROPS = { first: 22, every: [28, 40], life: 14, near: [60, 140],
+    kinds: [
+      { id: 'hot6', name: '핫식스', w: 35, buff: 'hot6', sec: 8, lines: ['핫식스 원샷! 다리가 막 움직인다!', '카페인 충전 완료!'] },
+      { id: 'gold', name: '황금 넉가래', w: 25, buff: 'gold', sec: 10, lines: ['황금 넉가래?! 다 쓸어 버리겠다!', '이게 그 전설의…!'] },
+      { id: 'crate', name: '보급품 상자', w: 40, lines: ['보급품이다! 개이득!', '누가 떨어뜨렸지? 내 거다!'] }
+    ] };
+  var BIGBALL = { at: [25, 70], r0: 7, rmax: 24, grow: 0.55, push: 0.92, pay: 1.5 };
   var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
   var WEATHER = {
     light: { name: '잔설', depth: [1, 3], fall: 0.45, dump: 0, night: 0.2, night2: 0, flakes: 25 },
@@ -2431,7 +2447,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   // deer: 산골 부대엔 진짜 고라니가 들어온다 / snowball: 선임들 장난 (이병·일병만 당한다)
   // car: 07:30 중대장님 출근 차량 — 진입로를 못 치웠으면 빠진다 / roof: 처마 눈 — 먼저 '우두둑' 소리가 난다
   var HAZ = {
-    deer: { from: 3, max: 2, speed: 96, life: [9, 13], hitR: 11, injure: 3, stun: 1.0, kick: 0.2 },
+    deer: { from: 2, max: 4, speed: 96, life: [12, 16], hitR: 11, injure: 3, stun: 1.0, kick: 0.2, near: [170, 210], herd: { from: 5, p: 0.3, n: 4 } },   // v22: 내 근처에서 나타난다 · 작전당 2~4마리 · 고라니 떼
     snowball: { from: 2, p: [0.6, 0.3, 0, 0], stun: 0.5 },
     car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 3, push: 0.25, crewPush: 0.18 },
     roof: { every: 95, warn: 1.6, stun: 1.2, injure: 3 },   // v14: 55→95 (작전당 약 4번 → 2번, 방해는 줄이고)
@@ -2679,7 +2695,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };
@@ -2983,9 +2999,10 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     var R = w.rand, dl = S.DAY_LEN, ev = [], day = save.day, i;
     function at(t, k) { if (t >= from) ev.push({ t: t, k: k }); }
     if (day >= HAZ.deer.from && feat(save, 'deer')) {
-      var n = Math.round(Math.min(HAZ.deer.max, 1 + (day - HAZ.deer.from) / 6) * (1 - 0.25 * lvl(save, 'gong')));
+      var n = Math.max(1, Math.round(Math.min(HAZ.deer.max, 2 + (day - HAZ.deer.from) / 8) * (1 - 0.2 * lvl(save, 'gong'))));   // v22: 작전당 2~4마리
       var wk0 = weekOf(save); if (wk0 && wk0.mods.deer) n = Math.min(6, n * wk0.mods.deer);   // v17 고라니 대이동
-      for (i = 0; i < n; i++) at(20 + R() * (dl - 40), 'deer');
+      for (i = 0; i < n; i++) at(15 + (i + R() * 0.8) * (dl - 50) / n, 'deer');   // v22: 작전 내내 고르게
+      if (day >= HAZ.deer.herd.from && R() < HAZ.deer.herd.p) at(dl * (0.25 + R() * 0.45), 'herd');   // v22 고라니 떼
     }
     // 선임 눈덩이 장난: 이병은 자주, 일병은 가끔, 상병부터는 없다 (짬이 차면 편해진다)
     var sbp = HAZ.snowball.p[rankOf(save)] || 0;
@@ -3559,14 +3576,33 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   }
 
   /* ── 방해꾼 ── */
+  // v22: 고라니는 내 근처(화면 가장자리쯤)에서 나타나 내 앞을 가로지른다 (전엔 지도 끝에서 나와 거의 안 보였다)
+  function deerNear(w, ang, back) {
+    // 화면에 보이게: 왼쪽·오른쪽에서, 살짝 화면 위(먼 쪽)로 · 건물 뒤가 아니라 구역 땅 위에서
+    var R = w.rand, P = w.player, Hd = HAZ.deer, x = P.x, y = P.y, d0 = Hd.near[0] + R() * (Hd.near[1] - Hd.near[0]) + (back || 0), ok = false;
+    var side = ang === undefined ? (R() < 0.5 ? 0 : 1) : (Math.cos(ang) >= 0 ? 0 : 1);
+    for (var k = 0; k < 20 && !ok; k++) {
+      var sd = k < 14 ? side : 1 - side, up = (ang !== undefined && k === 0) ? Math.abs(Math.sin(ang)) * 0.7 : R() * 0.7, a = sd === 0 ? -up : Math.PI + up;
+      x = Math.max(12, Math.min(S.W - 12, P.x + Math.cos(a) * d0)); y = Math.max(12, Math.min(S.H - 12, P.y + Math.sin(a) * d0));
+      var ci = Math.floor(y / S.CELL) * S.GW + Math.floor(x / S.CELL);
+      ok = !blocked(x, y, 6) && (w.zone[ci] >= 0 || k >= 16);
+    }
+    var hd = Math.atan2(P.y - y, P.x - x) + (R() - 0.5) * 0.7;
+    var d = { x: x, y: y, dir: { x: Math.cos(hd), y: Math.sin(hd) }, heading: hd, turnT: 1.4, life: Hd.life[0] + R() * (Hd.life[1] - Hd.life[0]), t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false };
+    w.deer.push(d); return d;
+  }
   function spawn(w, k) {
     var R = w.rand, save = w.save, medic = lvl(save, 'medic');
     if (k === 'deer') {
-      var left = R() < 0.5, y = 150 + R() * (S.H - 300), tgt = randomOpenPoint(w);
-      w.deer.push({ x: left ? 8 : S.W - 8, y: y, dir: { x: left ? 1 : -1, y: 0 }, heading: Math.atan2(tgt.y - y, tgt.x - (left ? 8 : S.W - 8)),
-        turnT: 0.6, life: HAZ.deer.life[0] + R() * (HAZ.deer.life[1] - HAZ.deer.life[0]), t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false });
+      var dn = deerNear(w);
       say(w, 'deer', true);
-      w.fx.push({ t: 'deer', e: w.deer[w.deer.length - 1] });
+      w.fx.push({ t: 'deer', e: dn });
+    } else if (k === 'herd') {
+      // v22 고라니 떼: 네 마리가 한쪽에서 줄지어 내 앞을 가로지른다. 전부 벌러덩이면 고라니 몰이 보너스
+      var hid = (w.herdN = (w.herdN || 0) + 1), base = (R() < 0.5 ? 0 : Math.PI) + (R() - 0.5) * 0.6;
+      w.herd = { id: hid, n: HAZ.deer.herd.n, down: 0, done: false };
+      for (var hi = 0; hi < HAZ.deer.herd.n; hi++) { var hd = deerNear(w, base + (hi - 1.5) * 0.12, hi * 16); hd.herd = hid; hd.life += 4; }
+      w.fx.push({ t: 'herd', n: HAZ.deer.herd.n }); say(w, 'deer', true);
     } else if (k === 'snowball') {
       // v14: 근처에 분대원이 있으면 그 사람이 보이게 던진다 (받아칠 수 있다). 없으면 예전처럼 어디선가 날아온다
       if (!(JY.SnowAct && JY.SnowAct.prank && JY.SnowAct.prank(w))) { w.player.stun = Math.max(w.player.stun, HAZ.snowball.stun * w.mod.stun); w.fx.push({ t: 'snowball' }); }
@@ -3636,7 +3672,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
         d.turnT = 0.5 + R() * 0.6;
         var pd = Math.hypot(P.x - d.x, P.y - d.y);
         if (pd < 50 && R() < 0.6) d.heading = Math.atan2(d.y - P.y, d.x - P.x) + (R() - 0.5) * 0.6;
-        else if (R() < 0.45) { var tg = randomOpenPoint(w); d.heading = Math.atan2(tg.y - d.y, tg.x - d.x); }
+        else if (R() < 0.5) { var ta = R() * Math.PI * 2, tr = 40 + R() * 90, tgx = P.x + Math.cos(ta) * tr, tgy = P.y + Math.sin(ta) * tr; d.heading = Math.atan2(tgy - d.y, tgx - d.x); }   // v22: 내 주변을 뛰어다닌다
         else d.heading += (R() - 0.5) * 2.2;
       }
       if (d.slowT > 0) d.slowT -= dt;
@@ -3960,7 +3996,9 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     rally: { name: '구령', desc: '분대원 +25%' },
     support: { name: '대대 지원', desc: '분대원 ×2' },
     power: { name: '체력단련', desc: '적재 +25%' },
-    warm: { name: '난로 온기', desc: '손 +20% · 이동 +10%' }
+    warm: { name: '난로 온기', desc: '손 +20% · 이동 +10%' },
+    hot6: { name: '핫식스', desc: '이동 +40%' },
+    gold: { name: '황금 넉가래', desc: '범위 ×1.7' }
   };
 
   // 간부: 하루에 한 번씩 순찰 온다. 다가오면 3.5초 안에 경례! (1.2초 안이면 칼경례). 안 하면 '지적' (등급 감점)
@@ -4213,6 +4251,8 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
     if (urgent) return { kind: 'salute', x: urgent.x, y: urgent.y, text: OFF[urgent.id].title + '께 경례!', sub: '아래 큰 버튼', tone: 'red' };
     if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
+    // v22 대왕 눈덩이를 밀고 있으면: 가까운 집하장으로
+    if (a.big && Math.hypot(a.big.x - P.x, a.big.y - P.y) < a.big.r + 34) { var db = G.nearestDump(w, a.big.x, a.big.y); return { kind: 'big', x: db.x, y: db.y, text: '대왕 눈덩이 → 집하장', sub: '굴려서 넣으면 1.5배 · 지금 눈 ' + Math.round(a.big.load), tone: 'gold' }; }
     if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return { kind: 'dump', x: d.x, y: d.y, text: '가득 찼다! 집하장에 붓기', sub: d.main ? '노란 원으로' : '가까운 집하장 (노란 원)', tone: 'gold' }; }
     var icy = w.parts.filter(function (q) { return q.icy && !q.salted; });
     if (icy.length && a.hand === 'salt') { var ip = near(icy.map(function (q) { return { x: q.x + q.w / 2, y: q.y + q.h / 2, q: q }; })); return { kind: 'spread', x: ip.x, y: ip.y, text: '빙판에 염화칼슘', sub: ip.q.name + '에 들어가면 뿌린다', tone: 'blue' }; }
@@ -4358,13 +4398,13 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   // 도구·버프로 지금 능력치를 다시 계산
   function applyStats(w) {
     var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? rideDef(a.ride, save) : null;
-    P.r = rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save); P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
+    P.r = (rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save)) * (b.gold > 0 ? 1.7 : 1);   // v22 황금 넉가래 P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
     P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1) * (rd ? rd.capMul : 1));
     P.body = rd ? rd.body : 6;
     var m = w.mod;
     var wk = w.week ? w.week.mods : {};
     var gbn = G.gearBonus(save);   // v18 장구류: 전투화 = 이동, 장갑 = 손 빠르기
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1) * (1 + gbn.move);
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (b.hot6 > 0 ? 1.4 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1) * (1 + gbn.move);
     m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1) / (1 + gbn.hand);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1) * (G.spec(save, 'leader') ? 1.4 : 1);
     if (G.spec(save, 'insa')) w.crew.forEach(function (c) { if (c.mor < 75) c.mor = 75; c.slack = false; });   // v16 특기 '인싸'
@@ -4575,6 +4615,12 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     fx(w, { t: 'deerDown', e: d, x: d.x, y: d.y, pay: g });
     fun(w, 'deerDown');
     w.crew.slice(0, 3).forEach(function (c) { if (!c.off && Math.hypot(c.x - d.x, c.y - d.y) < 160) bubble(w, c, pick(['나이스 샷!!', '와 명중!', '저격수 출신?'])); });
+    // v22 고라니 떼: 전부 벌러덩이면 몰이 보너스
+    var hd = w.herd;
+    if (d.herd && hd && d.herd === hd.id && !hd.done) {
+      hd.down++;
+      if (hd.down >= hd.n) { hd.done = true; var hb = give(w, (80 + 40 * rank(w)) * w.mult, 'herd'); G.gainDia(w, 1, 'herd'); stat(w, 'herd'); fun(w, 'herd'); fx(w, { t: 'herdAll', x: d.x, y: d.y, pay: hb }); }
+    }
   }
 
   /* ── v14 족구공: 몸으로 밀면 굴러간다. 네트를 넘기면 한 골 ── */
@@ -4620,6 +4666,100 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     if (a.angelT > 5) { a.angelDone = true; P.angel = 2.5; fx(w, { t: 'angel', x: P.x, y: P.y }); me(w, pick(['(벌러덩) …하늘 예쁘다', '눈천사 완성!', '(팔다리 휘적휘적)'])); stat(w, 'angel'); fun(w, 'angel'); }
   }
 
+  /* ── v22 보급품 낙하: 근처에 떨어져 14초 뒤 사라진다 (핫식스 · 황금 넉가래 · 보급품 상자) ── */
+  function nearPoint(w, P, dmin, dmax, snowy) {
+    for (var k = 0; k < 24; k++) {
+      var an = w.rand() * Math.PI * 2, dd = dmin + w.rand() * (dmax - dmin), x = P.x + Math.cos(an) * dd, y = P.y + Math.sin(an) * dd;
+      if (x < 20 || y < 20 || x > S.W - 20 || y > S.H - 20 || G.blocked(x, y, 9)) continue;
+      if (snowy) { var idx = Math.floor(y / S.CELL) * S.GW + Math.floor(x / S.CELL), zi = w.zone[idx]; if (zi < 0 || !w.zoneOpen[zi] || !w.depth[idx]) continue; }
+      return { x: x, y: y };
+    }
+    return null;
+  }
+  function dropDef(id) { for (var i = 0; i < S.DROPS.kinds.length; i++) if (S.DROPS.kinds[i].id === id) return S.DROPS.kinds[i]; return S.DROPS.kinds[0]; }
+  function stepDrops(w, dt) {
+    var a = w.act, P = w.player, D = S.DROPS;
+    if (!G.feat(w.save, 'drop')) return;
+    a.drops = a.drops || [];
+    if (a.dropT === undefined) a.dropT = D.first;
+    a.dropT -= dt;
+    if (a.dropT <= 0) {
+      a.dropT = D.every[0] + w.rand() * (D.every[1] - D.every[0]);
+      var pt = !(w.op && w.op.ready) && nearPoint(w, P, D.near[0], D.near[1], false);
+      if (pt) {
+        var tot = 0, r = w.rand(), K = D.kinds[0]; D.kinds.forEach(function (k) { tot += k.w; }); r *= tot;
+        for (var i = 0; i < D.kinds.length; i++) { r -= D.kinds[i].w; if (r < 0) { K = D.kinds[i]; break; } }
+        var dr = { id: (a.dropN = (a.dropN || 0) + 1), kind: K.id, name: K.name, x: pt.x, y: pt.y, t: D.life, life: D.life, h: 60 };
+        a.drops.push(dr); fx(w, { t: 'drop', kind: K.id, name: K.name, x: pt.x, y: pt.y });
+      }
+    }
+    for (var j = a.drops.length - 1; j >= 0; j--) {
+      var d = a.drops[j]; d.t -= dt; d.h = Math.max(0, d.h - dt * 70);
+      if (d.t <= 0) { a.drops.splice(j, 1); fx(w, { t: 'dropGone', kind: d.kind, x: d.x, y: d.y }); continue; }
+      if (d.h <= 6 && !(P.stun > 0) && Math.hypot(d.x - P.x, d.y - P.y) < 14 + (P.body || 6)) { a.drops.splice(j, 1); takeDrop(w, d); }
+    }
+  }
+  function takeDrop(w, d) {
+    var K = dropDef(d.kind), pay = 0, dia = 0, parts = 0;
+    stat(w, 'drop');
+    if (K.buff) buff(w, K.buff, K.sec);
+    if (K.id === 'gold') fun(w, 'gold');
+    if (K.id === 'crate') {
+      pay = give(w, S.SERVICE.pay[rank(w)] * 0.5 * w.mult, 'drop');
+      if (w.rand() < 0.3) { G.gainDia(w, 1, 'drop'); dia = 1; }
+      if (JY.SnowGear) { w.save.parts = (w.save.parts || 0) + 2; parts = 2; }
+    }
+    me(w, pick(K.lines));
+    fx(w, { t: 'dropGet', kind: K.id, name: K.name, x: d.x, y: d.y, pay: pay, dia: dia, parts: parts, sec: K.sec || 0 });
+  }
+
+  /* ── v22 대왕 눈덩이: 작전마다 하나. 몸으로 밀면 굴러가며 눈을 먹고 커진다 → 집하장에 넣으면 1.5배 ── */
+  function stepBig(w, dt) {
+    var a = w.act, P = w.player, BB = S.BIGBALL;
+    if (!G.feat(w.save, 'bigball')) return;
+    if (a.bigAt === undefined) a.bigAt = BB.at[0] + w.rand() * (BB.at[1] - BB.at[0]);
+    if (!a.big && !a.bigDone && w.time >= a.bigAt) {
+      var pt = !(w.op && w.op.ready) && nearPoint(w, P, 45, 120, true);
+      if (pt) { a.big = { x: pt.x, y: pt.y, r: BB.r0, vx: 0, vy: 0, load: 0, val: 0, cap: 1e9, roll: 0, clr: 0 }; fx(w, { t: 'big', x: pt.x, y: pt.y }); }
+      else a.bigAt = w.time + 4;
+    }
+    var B = a.big; if (!B) return;
+    var dx = B.x - P.x, dy = B.y - P.y, d = Math.hypot(dx, dy) || 1, reach = B.r + (P.body || 6) + 4, ux = dx / d, uy = dy / d;
+    var pushing = d < reach && P.moving && !(P.stun > 0) && (P.dir.x * ux + P.dir.y * uy) > 0.15;
+    if (pushing) {
+      var sp = S.SPEED * w.mod.speed * BB.push;
+      B.vx = (P.dir.x * 0.75 + ux * 0.25) * sp; B.vy = (P.dir.y * 0.75 + uy * 0.25) * sp;
+      if (!B.touched) { B.touched = true; me(w, pick(['영차! 굴러간다!', '이거 굴리면 되겠는데?', '대왕 눈덩이다!'])); }
+    }
+    var spd = Math.hypot(B.vx, B.vy);
+    if (spd > 2) {
+      var rr = Math.max(5, B.r * 0.7), nx = Math.max(B.r, Math.min(S.W - B.r, B.x + B.vx * dt)), ny = Math.max(B.r, Math.min(S.H - B.r, B.y + B.vy * dt));
+      if (G.blocked(nx, B.y, rr)) { B.vx = -B.vx * 0.3; nx = B.x; }
+      if (G.blocked(B.x, ny, rr)) { B.vy = -B.vy * 0.3; ny = B.y; }
+      B.x = nx; B.y = ny; B.roll += spd * dt / Math.max(4, B.r);
+      B.clr -= dt;
+      if (B.clr <= 0) {
+        B.clr = 0.08;
+        if (G.clearAt(w, B.x, B.y, B.r * 0.85, 9, 'big', B)) B.r = Math.min(BB.rmax, BB.r0 + Math.sqrt(B.load) * BB.grow);
+      }
+      // 굴러가다 고라니를 치면 벌러덩
+      if (spd > 30) w.deer.forEach(function (dd) { if (!(dd.down > 0) && !dd.leaving && Math.hypot(dd.x - B.x, dd.y - B.y) < B.r + 7) { dd.hp = 1; hitDeer(w, dd); fx(w, { t: 'bigBowl', x: dd.x, y: dd.y }); } });
+      // 집하장에 골인
+      var dm = G.nearestDump(w, B.x, B.y);
+      if (dm && B.load > 0 && Math.hypot(dm.x - B.x, dm.y - B.y) < (dm.r || 18) + B.r * 0.4) {
+        var g = give(w, B.val * w.mult * BB.pay, 'big');
+        w.combo += 20; w.comboT = Math.max(w.comboT, 4);
+        stat(w, 'bigball'); fun(w, 'bigball');
+        fx(w, { t: 'bigGoal', x: B.x, y: B.y, pay: g, units: B.load, r: B.r });
+        a.big = null; a.bigDone = true; return;
+      }
+    }
+    // 밀지 않으면 금방 멈춘다
+    var k = Math.exp(-(pushing ? 0.5 : 3.2) * dt); B.vx *= k; B.vy *= k;
+    // 밀고 있으면 몸에 겹치지 않게 앞으로 비켜 둔다
+    if (d < B.r + (P.body || 6) && !G.blocked(P.x + ux * (B.r + (P.body || 6) + 1), P.y + uy * (B.r + (P.body || 6) + 1), Math.max(5, B.r * 0.7))) { B.x = P.x + ux * (B.r + (P.body || 6) + 1); B.y = P.y + uy * (B.r + (P.body || 6) + 1); }
+  }
+
   /* ── 매 틱 ── */
   function step(w, dt) {
     var a = init(w), P = w.player, H = w.haeng;
@@ -4632,7 +4772,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     if (!w.demo) auto(w, dt);
     if (w.opEnd) return;
     a.ballCd -= dt;
-    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); }
+    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); stepDrops(w, dt); stepBig(w, dt); }
     if (H.chaseT > 0) stepChase(w, H, dt);
     else if (H.downT > 0) { H.downT -= dt; H.hold = Math.max(H.hold || 0, 0.1); }
     if (w.opEnd) return;
@@ -4858,7 +4998,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
     prepItems: prepItems, prepBuy: prepBuy, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
-    ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
+    ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, takeDrop: takeDrop, stepBig: stepBig, stepDrops: stepDrops, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
     RIDE: RIDE, BUFF: BUFF, PX: S.PREP, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
   };
 })(window.JY = window.JY || {});
@@ -5900,6 +6040,23 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !G.feat(world.save, 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    // v22 보급품 낙하 · 대왕 눈덩이
+    var tNow = performance.now() / 1000;
+    if (ac && ac.drops) ac.drops.forEach(function (d) { list.push({ y: d.y, f: function () {
+      if (d.t < 3 && Math.floor(tNow * 6) % 2) return;
+      var lift = d.h * 0.8, col = d.kind === 'gold' ? '#ffcc33' : d.kind === 'hot6' ? '#f07a12' : '#5b6a3a';
+      c.strokeStyle = d.kind === 'gold' ? '#ffd84a' : d.kind === 'hot6' ? '#ff9a3c' : '#9be37a'; c.lineWidth = 2.5; c.beginPath(); c.arc(d.x, d.y, 11 + Math.sin(tNow * 6) * 1.2, 0, 7); c.stroke();
+      if (lift > 2) { c.fillStyle = '#e8e2cf'; c.beginPath(); c.ellipse(d.x, d.y - lift - 16, 11, 6, 0, Math.PI, 0); c.fill(); c.strokeStyle = '#555'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(d.x - 10, d.y - lift - 16); c.lineTo(d.x, d.y - lift - 4); c.lineTo(d.x + 10, d.y - lift - 16); c.stroke(); }
+      c.fillStyle = col; if (d.kind === 'hot6') rr(c, d.x - 3.5, d.y - lift - 12, 7, 12, 2); else if (d.kind === 'gold') rr(c, d.x - 8, d.y - lift - 8, 16, 7, 2); else rr(c, d.x - 6, d.y - lift - 11, 12, 11, 2); c.fill();
+      if (d.kind === 'crate') { c.fillStyle = '#f2f2f2'; c.fillRect(d.x - 6, d.y - lift - 6.5, 12, 2); }
+      c.fillStyle = '#2f3a25'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(d.name, d.x, d.y - lift - 15 - (lift > 2 ? 12 : 0));
+    } }); });
+    if (ac && ac.big) { var BG = ac.big; list.push({ y: BG.y + BG.r * 0.5, f: function () {
+      c.fillStyle = 'rgba(80,100,130,.25)'; c.beginPath(); c.ellipse(BG.x + 2, BG.y + 2, BG.r, BG.r * 0.6, 0, 0, 7); c.fill();
+      var gr = c.createRadialGradient(BG.x - BG.r * 0.35, BG.y - BG.r * 0.9, BG.r * 0.2, BG.x, BG.y - BG.r * 0.6, BG.r * 1.1); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#c9d6e3');
+      c.fillStyle = gr; c.beginPath(); c.arc(BG.x, BG.y - BG.r * 0.6, BG.r, 0, 7); c.fill(); c.strokeStyle = '#9fb3c6'; c.lineWidth = 1.2; c.stroke();
+      c.fillStyle = '#9aa9b8'; var ra = BG.roll || 0; for (var bi = 0; bi < 3; bi++) { var aa = ra + bi * 2.1; c.beginPath(); c.arc(BG.x + Math.cos(aa) * BG.r * 0.55, BG.y - BG.r * 0.6 + Math.sin(aa) * BG.r * 0.35, Math.max(1.2, BG.r * 0.12), 0, 7); c.fill(); }
+    } }); }
     // v14 탈것 (세워 둔 것). 타고 있으면 내 자리에 그린다
     if (ac && ac.rides) ac.rides.forEach(function (rd) {
       if (!G.feat(world.save, rd.id)) return;
@@ -6162,7 +6319,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   var mats = {}, geos = {}, matV, blobMat, barrierArm = null, flagMesh = null;
   var vibAt = 0, A = function () { return JY.SnowAct; }, fpYaw = 0, fpPitch = -0.2, lookPtr = null, stunK = 0, curFocus = null, markEl = null, lastCamMode = '';
   var vmScene, vmCam, vmRoot = null, vmKind = '', vmTool = null, vmArm = null, vmGlove = null, vmBallM = null, vmBoot = null, vmAnim = { k: '', t: 0, d: 1 }, vmHemi, vmSun;
-  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null;
+  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null, dropObjs = {}, bigObj = null;   // v22 보급품 · 대왕 눈덩이
   var lowFx = false, slowAvg = 0.016, slowN = 0, gainAcc = 0, gainT = 0, scrapeT = 0, crewScrapeT = 0, ray = new T.Raycaster(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
 
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) ^ 0x5bf03635; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -7178,7 +7335,8 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 0.6, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  var CAMS = ['near', 'fp'], camMode = 'near';   // v22: 3인칭(뒤에서 비스듬히)·1인칭 두 개만 ('멀리서'는 뺐다)
+  var _cams = 0, WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 0.6, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
   // v11: 처음엔 위에서 비스듬히 내려다보는 3인칭 (한 손가락으로 끌어서 이동). 1인칭은 시점 버튼으로
   try { var cm0 = localStorage.getItem('jeseol-cam3'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
   // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
@@ -7568,6 +7726,47 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
       }
     });
   }
+  // v22 보급품 낙하: 핫식스(캔) · 황금 넉가래 · 보급품 상자(낙하산). 빛기둥 + 고리로 멀리서도 보이게
+  function dropMesh(kind) {
+    var g = new T.Group(), body;
+    if (kind === 'hot6') body = new T.Mesh(merge([[cyl(0.22, 0.22, 0.62, { y: 0.31 }, 14), '#f07a12'], [cyl(0.225, 0.225, 0.2, { y: 0.36 }, 14), '#1d1d1d'], [cyl(0.2, 0.22, 0.05, { y: 0.64 }, 14), '#c9d1d9']]), matV);
+    else if (kind === 'gold') body = new T.Mesh(merge([[box(0.1, 1.3, 0.1, { y: 0.75, rz: 0.35 }), '#a8701a'], [box(0.85, 0.5, 0.08, { y: 0.2 }), '#ffcc33'], [box(0.86, 0.08, 0.1, { y: 0.46 }), '#e2a419']]), new T.MeshLambertMaterial({ vertexColors: true, emissive: '#6b4a00' }));
+    else body = new T.Mesh(merge([[box(0.75, 0.6, 0.75, { y: 0.3 }), '#5b6a3a'], [box(0.77, 0.12, 0.2, { y: 0.32 }), '#f2f2f2'], [box(0.2, 0.12, 0.77, { y: 0.32 }), '#f2f2f2']]), matV);
+    body.castShadow = true; g.add(body); g.body = body;
+    var chute = new T.Mesh(merge([[sph(0.75, { s: [1, 0.5, 1], y: 2.1 }, 12, 6), '#e8e2cf'], [cyl(0.01, 0.01, 1.5, { y: 1.3, rz: 0.4 }, 4), '#555'], [cyl(0.01, 0.01, 1.5, { y: 1.3, rz: -0.4 }, 4), '#555']]), matV);
+    g.add(chute); g.chute = chute;
+    body.scale.setScalar(1.7);   // 작으면 눈밭에서 안 보인다
+    var ring = new T.Mesh(new T.RingGeometry(1.0, 1.3, 28), new T.MeshBasicMaterial({ color: kind === 'gold' ? '#ffd84a' : kind === 'hot6' ? '#ff9a3c' : '#9be37a', transparent: true, opacity: 0.85, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring); g.ring = ring;
+    var beam = new T.Mesh(new T.CylinderGeometry(0.16, 0.34, 8, 10, 1, true), new T.MeshBasicMaterial({ color: kind === 'gold' ? '#ffc21a' : kind === 'hot6' ? '#ff8a1a' : '#4fcf74', transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide }));
+    beam.position.y = 4; g.add(beam); g.beam = beam;
+    scene.add(g); return g;
+  }
+  function syncDrops(a, t) {
+    var list = (a && a.drops) || [], seen = {};
+    list.forEach(function (d) {
+      seen[d.id] = 1; var o = dropObjs[d.id] || (dropObjs[d.id] = dropMesh(d.kind));
+      var base = snowAt(d.x, d.y) * 0.35;
+      o.position.set(d.x * U, base, d.y * U);
+      o.body.position.y = d.h * U * 0.6 + (d.h ? 0 : Math.sin(t * 4) * 0.06 + 0.06); o.body.rotation.y = t * 1.6;
+      o.chute.visible = d.h > 2; o.chute.position.y = d.h * U * 0.6;
+      o.ring.scale.setScalar(1 + Math.sin(t * 6) * 0.08); o.beam.visible = d.h <= 2;
+      o.visible = !(d.t < 3 && Math.floor(t * 6) % 2);   // 사라지기 3초 전 깜빡깜빡
+    });
+    Object.keys(dropObjs).forEach(function (id) { if (!seen[id]) { scene.remove(dropObjs[id]); delete dropObjs[id]; } });
+  }
+  // v22 대왕 눈덩이: 눈 공 + 흙·나뭇가지 몇 개 (굴러가는 게 보이게)
+  function syncBig(a) {
+    var B = a && a.big;
+    if (!B) { if (bigObj) bigObj.visible = false; return; }
+    if (!bigObj) {
+      bigObj = new T.Mesh(merge([[sph(1, {}, 22, 16), '#f6f9fc'], [sph(0.2, { x: 0.82, y: 0.45 }, 6, 5), '#a9b8c6'], [sph(0.16, { x: -0.6, y: -0.7 }, 6, 5), '#9aa9b8'], [sph(0.18, { z: 0.9, y: 0.2 }, 6, 5), '#b4c2cf'], [cyl(0.03, 0.03, 0.7, { x: -0.3, y: 0.95, rz: 1.1 }, 4), '#6b4a32']]), matV);
+      bigObj.castShadow = true; scene.add(bigObj);
+    }
+    var R = B.r * U; bigObj.visible = true; bigObj.scale.setScalar(R);
+    bigObj.position.set(B.x * U, R * 0.92 + snowAt(B.x, B.y) * 0.2, B.y * U);
+    if (B.vx || B.vy) { bigObj.rotation.y = Math.atan2(B.vx, B.vy); bigObj.rotation.x = B.roll; }
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !G.feat(world.save, 'tractor');   // v14: 트랙터를 탈 수 있으면 아래 탈것이 대신 그린다
@@ -7583,6 +7782,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
       kickBall = new T.Mesh(merge([[sph(0.3, {}, 14, 10), '#f4f1e6'], [cyl(0.305, 0.305, 0.1, {}, 16), '#e2b33c'], [cyl(0.305, 0.305, 0.1, { rx: Math.PI / 2 }, 16), '#2b5fd1']]), matV);
       kickBall.castShadow = true; scene.add(kickBall);
     }
+    syncDrops(a, t); syncBig(a);
     var B = a.ball; kickBall.visible = true;
     kickBall.position.set(B.x * U, 0.3 + B.h * U + snowAt(B.x, B.y) * 0.35, B.y * U);
     if (B.vx || B.vy) { kickBall.rotation.y = Math.atan2(B.vx, B.vy); kickBall.rotation.x = B.roll || 0; }
@@ -7975,6 +8175,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   }
 
   function begin(save, m) {
+    Object.keys(dropObjs).forEach(function (id) { scene.remove(dropObjs[id]); }); dropObjs = {}; if (bigObj) bigObj.visible = false;   // v22: 지난 작전 보급품·눈덩이 치우기
     world = G.createWorld(save, { demo: m === 'demo' || m === 'lobby', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });   // 로비 장면은 저장을 건드리지 않는다
     mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];
@@ -8079,7 +8280,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
-  var KEY = 'jeseol-v10', PREV_KEY = 'jeseol-v8', OLD_KEYS = ['jeseol-v1'];
+  var KEY = 'jeseol-v22', OLD_KEYS = ['jeseol-v1'];   // v22: 처음부터 다시 (예전 저장 jeseol-v10·v8은 지우지 않고 그대로 둔다)
   try { OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { /* 저장소 없음 */ }
   var G2 = JY.SnowGear;   // v18 장구·상자·체력·임무·패스
   var save = load(), tab = 'tool', sayTimer = 0, toastTimer = 0, lastSave = 0, hud = {}, rankSeen = G.rankOf(save), dirty = false;
@@ -8089,7 +8290,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
   function load() {
     var s;
     try {
-      var raw = localStorage.getItem(KEY) || localStorage.getItem(PREV_KEY);
+      var raw = localStorage.getItem(KEY);
       s = G.migrate(raw ? JSON.parse(raw) : null);
     } catch (e) { s = G.newSave(); }
     return seenOld(s);
@@ -8272,7 +8473,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     else if (k === 'settings') settings();
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
-  var CAM_NAME = { near: '위에서 (추천)', far: '멀리서', fp: '1인칭' };
+  var CAM_NAME = { near: '3인칭 (추천)', fp: '1인칭' };   // v22: 두 개만
   function settings() {
     function render() {
       modal('<div class="m-rank set"><p class="kicker">설정</p><h3>설정</h3><div class="set-list">' +
@@ -8441,6 +8642,18 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
     if (onV6Event(f)) return;
     if (onOpEvent(f)) return;
     if (f.t === 'deer') { vibrate(80); }
+    // v22 역동: 고라니 떼 · 보급품 낙하 · 대왕 눈덩이
+    else if (f.t === 'herd') { banner('고라니 떼다!!', f.n + '마리 — 전부 눈덩이로 벌러덩시키면 몰이 보너스', 2400); if (X) X.deer && X.deer(); vibrate([60, 40, 60, 40, 60]); }
+    else if (f.t === 'herdAll') { banner('고라니 몰이 성공!', '+' + fmt(f.pay) + ' · 상점 +1', 2400); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
+    else if (f.t === 'drop') { chip('보급품 낙하! ' + f.name + ' — 근처에 떨어졌다', 'good'); if (X) X.whoosh(); }
+    else if (f.t === 'dropGet') {
+      if (f.kind === 'crate') chip('보급품 상자! +' + fmt(f.pay) + (f.dia ? ' · 상점 +1' : '') + (f.parts ? ' · 부품 +' + f.parts : ''), 'good');
+      else banner(f.name + '!', (f.kind === 'gold' ? '넉가래 범위 ×1.7' : '이동 +40%') + ' · ' + f.sec + '초', 1600);
+      if (X) X.buy(); vibrate([30, 20, 50]);
+    }
+    else if (f.t === 'big') { banner('대왕 눈덩이 등장!', '몸으로 밀면 굴러가며 커진다 · 집하장에 넣으면 1.5배', 2600); if (X) X.ding(); }
+    else if (f.t === 'bigGoal') { banner('대왕 눈덩이 골인!!', '+' + fmt(f.pay) + ' · 눈 ' + fmt(f.units) + ' · 콤보 +20', 2400); if (X) X.fanfare(); vibrate([60, 30, 60, 30, 160]); coinFly({ x: f.x, y: f.y, pay: f.pay, src: 'player' }); }
+    else if (f.t === 'bigBowl') { chip('스트라이크! 고라니가 눈덩이에 깔렸다', 'good'); if (X) X.thud(); }
     else if (f.t === 'fun') { banner('발견! ' + f.name, '상점 +' + f.dia + ' · 수첩 ' + f.n + '/' + f.of, 2400); vibrate([30, 30, 60]); }
     else if (f.t === 'deerDown') vibrate([40, 30, 90]);
     else if (f.t === 'goal') { if (!(save.fun && save.fun.goal && hud.goalSaid)) chip('족구 한 골! +' + fmt(f.pay), 'good'); hud.goalSaid = 1; if (X) X.fanfare(); }
@@ -9091,7 +9304,7 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 
   /* ── 상호작용: 행동 버튼, 눈덩이, 조준점, 자막, 분노, 임무, 버프, PX, 취침 ── */
   var curT = null, actAt = 0, subTimer = 0, hudA = {};
-  var CAM_NEXT = { near: '멀리', far: '1인칭', fp: '위에서' };
+  var CAM_NEXT = { near: '1인칭', fp: '3인칭' };
   function camLabel() { if (V.camMode) $('h-cam-t').textContent = CAM_NEXT[V.camMode()] || '시점'; }
   function fp() { return !!(V.isFP && V.isFP()); }
   function fpLayout() {

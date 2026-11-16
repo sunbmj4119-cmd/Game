@@ -505,6 +505,23 @@
     (world.save.snowmen || []).forEach(function (m) { list.push({ y: m.y, f: function () { drawSnowman(c, m.x, m.y); } }); });
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !G.feat(world.save, 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
+    // v22 보급품 낙하 · 대왕 눈덩이
+    var tNow = performance.now() / 1000;
+    if (ac && ac.drops) ac.drops.forEach(function (d) { list.push({ y: d.y, f: function () {
+      if (d.t < 3 && Math.floor(tNow * 6) % 2) return;
+      var lift = d.h * 0.8, col = d.kind === 'gold' ? '#ffcc33' : d.kind === 'hot6' ? '#f07a12' : '#5b6a3a';
+      c.strokeStyle = d.kind === 'gold' ? '#ffd84a' : d.kind === 'hot6' ? '#ff9a3c' : '#9be37a'; c.lineWidth = 2.5; c.beginPath(); c.arc(d.x, d.y, 11 + Math.sin(tNow * 6) * 1.2, 0, 7); c.stroke();
+      if (lift > 2) { c.fillStyle = '#e8e2cf'; c.beginPath(); c.ellipse(d.x, d.y - lift - 16, 11, 6, 0, Math.PI, 0); c.fill(); c.strokeStyle = '#555'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(d.x - 10, d.y - lift - 16); c.lineTo(d.x, d.y - lift - 4); c.lineTo(d.x + 10, d.y - lift - 16); c.stroke(); }
+      c.fillStyle = col; if (d.kind === 'hot6') rr(c, d.x - 3.5, d.y - lift - 12, 7, 12, 2); else if (d.kind === 'gold') rr(c, d.x - 8, d.y - lift - 8, 16, 7, 2); else rr(c, d.x - 6, d.y - lift - 11, 12, 11, 2); c.fill();
+      if (d.kind === 'crate') { c.fillStyle = '#f2f2f2'; c.fillRect(d.x - 6, d.y - lift - 6.5, 12, 2); }
+      c.fillStyle = '#2f3a25'; c.font = '700 8px ' + FONT; c.textAlign = 'center'; c.fillText(d.name, d.x, d.y - lift - 15 - (lift > 2 ? 12 : 0));
+    } }); });
+    if (ac && ac.big) { var BG = ac.big; list.push({ y: BG.y + BG.r * 0.5, f: function () {
+      c.fillStyle = 'rgba(80,100,130,.25)'; c.beginPath(); c.ellipse(BG.x + 2, BG.y + 2, BG.r, BG.r * 0.6, 0, 0, 7); c.fill();
+      var gr = c.createRadialGradient(BG.x - BG.r * 0.35, BG.y - BG.r * 0.9, BG.r * 0.2, BG.x, BG.y - BG.r * 0.6, BG.r * 1.1); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#c9d6e3');
+      c.fillStyle = gr; c.beginPath(); c.arc(BG.x, BG.y - BG.r * 0.6, BG.r, 0, 7); c.fill(); c.strokeStyle = '#9fb3c6'; c.lineWidth = 1.2; c.stroke();
+      c.fillStyle = '#9aa9b8'; var ra = BG.roll || 0; for (var bi = 0; bi < 3; bi++) { var aa = ra + bi * 2.1; c.beginPath(); c.arc(BG.x + Math.cos(aa) * BG.r * 0.55, BG.y - BG.r * 0.6 + Math.sin(aa) * BG.r * 0.35, Math.max(1.2, BG.r * 0.12), 0, 7); c.fill(); }
+    } }); }
     // v14 탈것 (세워 둔 것). 타고 있으면 내 자리에 그린다
     if (ac && ac.rides) ac.rides.forEach(function (rd) {
       if (!G.feat(world.save, rd.id)) return;

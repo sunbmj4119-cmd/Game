@@ -187,7 +187,10 @@
     { id: 'drift', name: '빙판 드리프트', hint: '사륜바이크로 빙판 위를 달려 보자' },
     { id: 'cat', name: '짬타이거 집사', hint: '고양이를 쓰다듬자' },
     { id: 'officer', name: '간부 저격', hint: '간부에게 눈덩이를… (잡히면 얼차려)' },
-    { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' }
+    { id: 'escape', name: '도주 성공', hint: '맞히고 쫓아오면 7초 동안 안 잡히기' },
+    { id: 'bigball', name: '대왕 눈덩이 골인', hint: '굴러다니는 큰 눈덩이를 집하장까지 밀고 가자' },
+    { id: 'herd', name: '고라니 몰이', hint: '고라니 떼를 전부 벌러덩' },
+    { id: 'gold', name: '황금 넉가래', hint: '하늘에서 떨어지는 보급품을 주워 보자' }
   ];
 
   // v17 이번 주 작전: 8일차부터 7일마다 바뀐다 (열린 기능 중에서). 같은 눈 치우기가 질리지 않게 규칙을 한 가지씩 비튼다
@@ -240,7 +243,10 @@
     { id: 'gearUp', text: '장구 강화 1번', stat: 'gearUp', goal: 1 },
     { id: 'shoo', text: '고라니 쫓기 1번', stat: 'shoo', goal: 1, need: 'deer' },
     { id: 'salt', text: '빙판에 염화칼슘 2번', stat: 'salt', goal: 2, need: 'ice' },
-    { id: 'tasks', text: '지시서 4줄 끝내기', stat: 'tasks', goal: 4 }
+    { id: 'tasks', text: '지시서 4줄 끝내기', stat: 'tasks', goal: 4 },
+    { id: 'drop', text: '떨어진 보급품 3개 줍기', stat: 'drop', goal: 3, need: 'drop' },
+    { id: 'big', text: '대왕 눈덩이 골인 1번', stat: 'bigball', goal: 1, need: 'bigball' },
+    { id: 'deerDown', text: '고라니 벌러덩 2번', stat: 'deerDown', goal: 2, need: 'deer' }
   ];
   var MISSION_DAY = { n: 5, pts: 20, steps: [{ at: 40, parts: 6 }, { at: 70, box: 'common', pie: 1 }, { at: 100, dia: 10, parts: 10 }] };
   // 복무 패스: 28일 시즌, 30단계 (100점마다 한 단계). 무료 줄과 프리미엄 줄(상점 150으로 연다)
@@ -266,7 +272,9 @@
     { id: 'roof', when: { rank: 1 } },
     { id: 'px', when: { rank: 1 } },
     { id: 'perk', when: { rank: 1 } },
-    { id: 'deer', when: { zone: 'C' }, name: '고라니', line: '다가가면 도망간다' },
+    { id: 'deer', when: { zone: 'B' }, name: '고라니', line: '내 근처로 뛰어든다 · 눈덩이 두 방이면 벌러덩' },   // v22: 연병장 → 족구장부터 (잘 안 보였다)
+    { id: 'drop', when: { ops: 2 }, name: '보급품 낙하', line: '근처에 떨어진 보급품을 주워라 — 핫식스 · 황금 넉가래 · 보급품 상자' },
+    { id: 'bigball', when: { ops: 3 }, name: '대왕 눈덩이', line: '몸으로 밀면 굴러가며 눈을 먹고 커진다 · 집하장에 넣으면 1.5배' },
     { id: 'cam', when: { zone: 'C' } },
     { id: 'factory', when: { zone: 'C' } },
     { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
@@ -306,6 +314,14 @@
   // 날씨. depth = 밤사이 쌓인 깊이 범위, fall = 낮에 내리는 양, mult = 보상 배수
   // v19 눈 양: 계급이 오를수록 더 깊이 쌓인다 (작전이 1~2분에 끝나서). 눈 한 덩이 값은 그만큼 낮춰 수입은 비슷하게
   // vis: 깊이 → 그림 단계(2D 덩어리 1~4)
+  // v22 역동: 보급품 낙하 (근처에 떨어져 14초 뒤 사라진다) · 대왕 눈덩이 (작전마다 하나)
+  var DROPS = { first: 22, every: [28, 40], life: 14, near: [60, 140],
+    kinds: [
+      { id: 'hot6', name: '핫식스', w: 35, buff: 'hot6', sec: 8, lines: ['핫식스 원샷! 다리가 막 움직인다!', '카페인 충전 완료!'] },
+      { id: 'gold', name: '황금 넉가래', w: 25, buff: 'gold', sec: 10, lines: ['황금 넉가래?! 다 쓸어 버리겠다!', '이게 그 전설의…!'] },
+      { id: 'crate', name: '보급품 상자', w: 40, lines: ['보급품이다! 개이득!', '누가 떨어뜨렸지? 내 거다!'] }
+    ] };
+  var BIGBALL = { at: [25, 70], r0: 7, rmax: 24, grow: 0.55, push: 0.92, pay: 1.5 };
   var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
   var WEATHER = {
     light: { name: '잔설', depth: [1, 3], fall: 0.45, dump: 0, night: 0.2, night2: 0, flakes: 25 },
@@ -318,7 +334,7 @@
   // deer: 산골 부대엔 진짜 고라니가 들어온다 / snowball: 선임들 장난 (이병·일병만 당한다)
   // car: 07:30 중대장님 출근 차량 — 진입로를 못 치웠으면 빠진다 / roof: 처마 눈 — 먼저 '우두둑' 소리가 난다
   var HAZ = {
-    deer: { from: 3, max: 2, speed: 96, life: [9, 13], hitR: 11, injure: 3, stun: 1.0, kick: 0.2 },
+    deer: { from: 2, max: 4, speed: 96, life: [12, 16], hitR: 11, injure: 3, stun: 1.0, kick: 0.2, near: [170, 210], herd: { from: 5, p: 0.3, n: 4 } },   // v22: 내 근처에서 나타난다 · 작전당 2~4마리 · 고라니 떼
     snowball: { from: 2, p: [0.6, 0.3, 0, 0], stun: 0.5 },
     car: { zone: 'E', at: 450, speed: 62, r: 12, slush: 0.3, stuckDepth: 3, push: 0.25, crewPush: 0.18 },
     roof: { every: 95, warn: 1.6, stun: 1.2, injure: 3 },   // v14: 55→95 (작전당 약 4번 → 2번, 방해는 줄이고)
@@ -566,7 +582,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

@@ -462,5 +462,46 @@ ok(paid2.slice(0, 6).every(function (p) { return p > 0; }) && paid2[6] === 0, 'v
 var wc2 = weekW('storm'); A.applyStats(wc2); var wn = v14(); away(wn); A.applyStats(wn);
 ok(Math.abs(wc2.mult / wn.mult - 1.4) < 0.01, 'v17 폭설 주간: 보상 +40%', [wn.mult, wc2.mult]);
 
+// ── v22 역동: 고라니가 내 근처 · 고라니 떼 · 보급품 낙하 · 대왕 눈덩이 ──
+function v22(fn) { return fresh(function (s) { s.day = 8; s.rank = 1; s.merit = 12; s.stats.ops = 8; G.assignZones(s); if (fn) fn(s); }); }
+var wd2 = v22(); away(wd2); wd2.act.off = []; wd2.act.offPlan = [];
+G.spawn ? G.spawn(wd2, 'deer') : null;
+wd2.events = [{ t: wd2.time, k: 'deer' }]; G.step(wd2, 1 / 30, null);
+var dd2 = wd2.deer[wd2.deer.length - 1], dP = dd2 ? Math.hypot(dd2.x - wd2.player.x, dd2.y - wd2.player.y) : 1e9;
+ok(dd2 && dP < 240, 'v22 고라니는 내 근처(화면 가장자리쯤)에서 나타난다', Math.round(dP));
+var sch = 0, nd = 0; for (var sd2 = 1; sd2 < 30; sd2++) { var ss = G.newSave(); ss.seed = sd2; ss.day = 10; ss.rank = 1; ss.merit = 12; ss.stats.ops = 9; G.assignZones(ss); var ww = G.createWorld(ss); nd += ww.events.filter(function (e) { return e.k === 'deer'; }).length; sch++; }
+ok(nd / sch >= 2, 'v22 작전당 고라니 2마리 이상', (nd / sch).toFixed(2));
+// 고라니 떼: 네 마리 다 벌러덩이면 보너스 + 상점
+var wh = v22(); away(wh); wh.act.off = []; wh.act.offPlan = []; wh.events = [{ t: wh.time, k: 'herd' }]; G.step(wh, 1 / 30, null);
+var herdD = wh.deer.filter(function (d) { return d.herd; }), dia0 = wh.save.dia;
+ok(herdD.length === 4 && fxs(wh, 'herd').length === 1, 'v22 고라니 떼 네 마리', herdD.length);
+herdD.forEach(function (d) { d.hp = 1; A.hitDeer ? A.hitDeer(wh, d) : null; });
+ok(!A.hitDeer || (wh.herd.done && wh.save.dia >= dia0 + 1 && fxs(wh, 'herdAll').length === 1), 'v22 전부 벌러덩 → 고라니 몰이 (초코파이 + 상점 1)', wh.herd);
+// 보급품: 근처에 떨어지고, 주우면 효과
+var wq = v22(); away(wq); wq.act.off = []; wq.act.offPlan = []; wq.deer = []; wq.act.dropT = 0; run(wq, 0.1);
+var dq = wq.act.drops[0];
+ok(dq && Math.hypot(dq.x - wq.player.x, dq.y - wq.player.y) <= S.DROPS.near[1] + 1 && fxs(wq, 'drop').length >= 0, 'v22 보급품이 내 근처에 떨어진다', dq && Math.round(Math.hypot(dq.x - wq.player.x, dq.y - wq.player.y)));
+A.applyStats(wq); var r0q = wq.player.r, sp0q = wq.mod.speed;
+A.takeDrop(wq, { kind: 'gold', x: wq.player.x, y: wq.player.y }); A.applyStats(wq);
+ok(Math.abs(wq.player.r / r0q - 1.7) < 0.01 && wq.act.buffs.gold > 9, 'v22 황금 넉가래: 범위 ×1.7 (10초)', [r0q, wq.player.r]);
+A.takeDrop(wq, { kind: 'hot6', x: wq.player.x, y: wq.player.y }); A.applyStats(wq);
+ok(Math.abs(wq.mod.speed / sp0q - 1.4) < 0.01, 'v22 핫식스: 이동 +40%', [sp0q, wq.mod.speed]);
+var bk0 = wq.save.bank; A.takeDrop(wq, { kind: 'crate', x: wq.player.x, y: wq.player.y });
+ok(wq.save.bank > bk0 && wq.save.stats.drop === 3, 'v22 보급품 상자: 초코파이 (+ 가끔 상점) · 줍기 기록', [bk0, wq.save.bank]);
+wq.act.drops = [{ id: 99, kind: 'hot6', name: '핫식스', x: 300, y: 300, t: 0.05, life: 14, h: 0 }]; run(wq, 0.2);
+ok(!wq.act.drops.some(function (d) { return d.id === 99; }), 'v22 안 주우면 사라진다');
+// 대왕 눈덩이: 밀면 굴러가며 커지고, 집하장에 넣으면 1.5배
+var wb = v22(); away(wb); wb.act.off = []; wb.act.offPlan = []; wb.deer = []; wb.act.bigAt = 0; run(wb, 0.1);
+var BB = wb.act.big;
+ok(BB && BB.r === S.BIGBALL.r0, 'v22 대왕 눈덩이 등장 (눈 위)', BB && [Math.round(BB.x), Math.round(BB.y)]);
+for (var pq = 0; pq < 30 * 5 && wb.act.big; pq++) { var bx = wb.act.big.x - wb.player.x, by = wb.act.big.y - wb.player.y, bl = Math.hypot(bx, by) || 1; G.step(wb, 1 / 30, { x: bx / bl, y: by / bl }); }
+ok(wb.act.big && wb.act.big.r > S.BIGBALL.r0 + 4 && wb.act.big.load > 100, 'v22 밀면 굴러가며 눈을 먹고 커진다', wb.act.big && [wb.act.big.r.toFixed(1), wb.act.big.load]);
+var dmp = G.nearestDump(wb, wb.act.big.x, wb.act.big.y), bval = wb.act.big.val, bkb = wb.save.bank;
+wb.act.big.x = dmp.x + 1; wb.act.big.y = dmp.y; wb.act.big.vx = 40; wb.act.big.vy = 0; run(wb, 0.1);
+ok(!wb.act.big && wb.act.bigDone && wb.save.bank - bkb >= Math.floor(bval * wb.mult * S.BIGBALL.pay) - 1 && wb.save.stats.bigball === 1, 'v22 집하장에 골인 → 눈 값 ×1.5', [Math.round(bval), wb.save.bank - bkb]);
+var wd3 = v22(); away(wd3); wd3.act.off = []; wd3.act.offPlan = []; wd3.act.bigAt = 0; run(wd3, 0.1);
+var Bd = wd3.act.big; wd3.deer = [{ x: Bd.x + 8, y: Bd.y, dir: { x: 1, y: 0 }, heading: 0, turnT: 9, life: 40, t: 0, walk: 0, moving: true, kickT: 0, hitT: 0, leaving: false }]; Bd.vx = 60; run(wd3, 0.1);
+ok(wd3.deer[0].down > 0, 'v22 굴러가는 눈덩이에 고라니가 깔리면 벌러덩');
+
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

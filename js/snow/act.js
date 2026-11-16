@@ -31,7 +31,9 @@
     rally: { name: '구령', desc: '분대원 +25%' },
     support: { name: '대대 지원', desc: '분대원 ×2' },
     power: { name: '체력단련', desc: '적재 +25%' },
-    warm: { name: '난로 온기', desc: '손 +20% · 이동 +10%' }
+    warm: { name: '난로 온기', desc: '손 +20% · 이동 +10%' },
+    hot6: { name: '핫식스', desc: '이동 +40%' },
+    gold: { name: '황금 넉가래', desc: '범위 ×1.7' }
   };
 
   // 간부: 하루에 한 번씩 순찰 온다. 다가오면 3.5초 안에 경례! (1.2초 안이면 칼경례). 안 하면 '지적' (등급 감점)
@@ -284,6 +286,8 @@
     var urgent = (a.off || []).filter(function (o) { return !o.saluted && !o.missed && o.warned; })[0];
     if (urgent) return { kind: 'salute', x: urgent.x, y: urgent.y, text: OFF[urgent.id].title + '께 경례!', sub: '아래 큰 버튼', tone: 'red' };
     if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
+    // v22 대왕 눈덩이를 밀고 있으면: 가까운 집하장으로
+    if (a.big && Math.hypot(a.big.x - P.x, a.big.y - P.y) < a.big.r + 34) { var db = G.nearestDump(w, a.big.x, a.big.y); return { kind: 'big', x: db.x, y: db.y, text: '대왕 눈덩이 → 집하장', sub: '굴려서 넣으면 1.5배 · 지금 눈 ' + Math.round(a.big.load), tone: 'gold' }; }
     if (P.load >= P.cap * 0.95) { var d = G.nearestDump(w, P.x, P.y); return { kind: 'dump', x: d.x, y: d.y, text: '가득 찼다! 집하장에 붓기', sub: d.main ? '노란 원으로' : '가까운 집하장 (노란 원)', tone: 'gold' }; }
     var icy = w.parts.filter(function (q) { return q.icy && !q.salted; });
     if (icy.length && a.hand === 'salt') { var ip = near(icy.map(function (q) { return { x: q.x + q.w / 2, y: q.y + q.h / 2, q: q }; })); return { kind: 'spread', x: ip.x, y: ip.y, text: '빙판에 염화칼슘', sub: ip.q.name + '에 들어가면 뿌린다', tone: 'blue' }; }
@@ -429,13 +433,13 @@
   // 도구·버프로 지금 능력치를 다시 계산
   function applyStats(w) {
     var a = w.act, P = w.player, save = w.save, T = G.toolOf(save), b = a.buffs, rd = a.ride ? rideDef(a.ride, save) : null;
-    P.r = rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save); P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
+    P.r = (rd ? Math.max(G.toolR(save), rd.r) : G.toolR(save)) * (b.gold > 0 ? 1.7 : 1);   // v22 황금 넉가래 P.p = rd && rd.r ? Math.max(T.p, 2) : T.p; P.aura = !rd && !!T.aura; P.noClear = false;
     P.cap = Math.round(G.capOf(save) * (b.power > 0 ? 1.25 : 1) * (rd ? rd.capMul : 1));
     P.body = rd ? rd.body : 6;
     var m = w.mod;
     var wk = w.week ? w.week.mods : {};
     var gbn = G.gearBonus(save);   // v18 장구류: 전투화 = 이동, 장갑 = 손 빠르기
-    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1) * (1 + gbn.move);
+    m.speed = (b.matsta > 0 ? 1.25 : 1) * (b.warm > 0 ? 1.1 : 1) * (b.hot6 > 0 ? 1.4 : 1) * (rd ? rd.speed * (wk.rideSpd || 1) : 1) * (1 + gbn.move);
     m.hit = (b.hotbar > 0 ? 0.7 : 1) * (b.warm > 0 ? 0.8 : 1) / (1 + gbn.hand);
     m.crew = (b.choco > 0 ? 1.4 : 1) * (b.rally > 0 ? 1.25 : 1) * (b.support > 0 ? 2 : 1) * (G.spec(save, 'leader') ? 1.4 : 1);
     if (G.spec(save, 'insa')) w.crew.forEach(function (c) { if (c.mor < 75) c.mor = 75; c.slack = false; });   // v16 특기 '인싸'
@@ -646,6 +650,12 @@
     fx(w, { t: 'deerDown', e: d, x: d.x, y: d.y, pay: g });
     fun(w, 'deerDown');
     w.crew.slice(0, 3).forEach(function (c) { if (!c.off && Math.hypot(c.x - d.x, c.y - d.y) < 160) bubble(w, c, pick(['나이스 샷!!', '와 명중!', '저격수 출신?'])); });
+    // v22 고라니 떼: 전부 벌러덩이면 몰이 보너스
+    var hd = w.herd;
+    if (d.herd && hd && d.herd === hd.id && !hd.done) {
+      hd.down++;
+      if (hd.down >= hd.n) { hd.done = true; var hb = give(w, (80 + 40 * rank(w)) * w.mult, 'herd'); G.gainDia(w, 1, 'herd'); stat(w, 'herd'); fun(w, 'herd'); fx(w, { t: 'herdAll', x: d.x, y: d.y, pay: hb }); }
+    }
   }
 
   /* ── v14 족구공: 몸으로 밀면 굴러간다. 네트를 넘기면 한 골 ── */
@@ -691,6 +701,100 @@
     if (a.angelT > 5) { a.angelDone = true; P.angel = 2.5; fx(w, { t: 'angel', x: P.x, y: P.y }); me(w, pick(['(벌러덩) …하늘 예쁘다', '눈천사 완성!', '(팔다리 휘적휘적)'])); stat(w, 'angel'); fun(w, 'angel'); }
   }
 
+  /* ── v22 보급품 낙하: 근처에 떨어져 14초 뒤 사라진다 (핫식스 · 황금 넉가래 · 보급품 상자) ── */
+  function nearPoint(w, P, dmin, dmax, snowy) {
+    for (var k = 0; k < 24; k++) {
+      var an = w.rand() * Math.PI * 2, dd = dmin + w.rand() * (dmax - dmin), x = P.x + Math.cos(an) * dd, y = P.y + Math.sin(an) * dd;
+      if (x < 20 || y < 20 || x > S.W - 20 || y > S.H - 20 || G.blocked(x, y, 9)) continue;
+      if (snowy) { var idx = Math.floor(y / S.CELL) * S.GW + Math.floor(x / S.CELL), zi = w.zone[idx]; if (zi < 0 || !w.zoneOpen[zi] || !w.depth[idx]) continue; }
+      return { x: x, y: y };
+    }
+    return null;
+  }
+  function dropDef(id) { for (var i = 0; i < S.DROPS.kinds.length; i++) if (S.DROPS.kinds[i].id === id) return S.DROPS.kinds[i]; return S.DROPS.kinds[0]; }
+  function stepDrops(w, dt) {
+    var a = w.act, P = w.player, D = S.DROPS;
+    if (!G.feat(w.save, 'drop')) return;
+    a.drops = a.drops || [];
+    if (a.dropT === undefined) a.dropT = D.first;
+    a.dropT -= dt;
+    if (a.dropT <= 0) {
+      a.dropT = D.every[0] + w.rand() * (D.every[1] - D.every[0]);
+      var pt = !(w.op && w.op.ready) && nearPoint(w, P, D.near[0], D.near[1], false);
+      if (pt) {
+        var tot = 0, r = w.rand(), K = D.kinds[0]; D.kinds.forEach(function (k) { tot += k.w; }); r *= tot;
+        for (var i = 0; i < D.kinds.length; i++) { r -= D.kinds[i].w; if (r < 0) { K = D.kinds[i]; break; } }
+        var dr = { id: (a.dropN = (a.dropN || 0) + 1), kind: K.id, name: K.name, x: pt.x, y: pt.y, t: D.life, life: D.life, h: 60 };
+        a.drops.push(dr); fx(w, { t: 'drop', kind: K.id, name: K.name, x: pt.x, y: pt.y });
+      }
+    }
+    for (var j = a.drops.length - 1; j >= 0; j--) {
+      var d = a.drops[j]; d.t -= dt; d.h = Math.max(0, d.h - dt * 70);
+      if (d.t <= 0) { a.drops.splice(j, 1); fx(w, { t: 'dropGone', kind: d.kind, x: d.x, y: d.y }); continue; }
+      if (d.h <= 6 && !(P.stun > 0) && Math.hypot(d.x - P.x, d.y - P.y) < 14 + (P.body || 6)) { a.drops.splice(j, 1); takeDrop(w, d); }
+    }
+  }
+  function takeDrop(w, d) {
+    var K = dropDef(d.kind), pay = 0, dia = 0, parts = 0;
+    stat(w, 'drop');
+    if (K.buff) buff(w, K.buff, K.sec);
+    if (K.id === 'gold') fun(w, 'gold');
+    if (K.id === 'crate') {
+      pay = give(w, S.SERVICE.pay[rank(w)] * 0.5 * w.mult, 'drop');
+      if (w.rand() < 0.3) { G.gainDia(w, 1, 'drop'); dia = 1; }
+      if (JY.SnowGear) { w.save.parts = (w.save.parts || 0) + 2; parts = 2; }
+    }
+    me(w, pick(K.lines));
+    fx(w, { t: 'dropGet', kind: K.id, name: K.name, x: d.x, y: d.y, pay: pay, dia: dia, parts: parts, sec: K.sec || 0 });
+  }
+
+  /* ── v22 대왕 눈덩이: 작전마다 하나. 몸으로 밀면 굴러가며 눈을 먹고 커진다 → 집하장에 넣으면 1.5배 ── */
+  function stepBig(w, dt) {
+    var a = w.act, P = w.player, BB = S.BIGBALL;
+    if (!G.feat(w.save, 'bigball')) return;
+    if (a.bigAt === undefined) a.bigAt = BB.at[0] + w.rand() * (BB.at[1] - BB.at[0]);
+    if (!a.big && !a.bigDone && w.time >= a.bigAt) {
+      var pt = !(w.op && w.op.ready) && nearPoint(w, P, 45, 120, true);
+      if (pt) { a.big = { x: pt.x, y: pt.y, r: BB.r0, vx: 0, vy: 0, load: 0, val: 0, cap: 1e9, roll: 0, clr: 0 }; fx(w, { t: 'big', x: pt.x, y: pt.y }); }
+      else a.bigAt = w.time + 4;
+    }
+    var B = a.big; if (!B) return;
+    var dx = B.x - P.x, dy = B.y - P.y, d = Math.hypot(dx, dy) || 1, reach = B.r + (P.body || 6) + 4, ux = dx / d, uy = dy / d;
+    var pushing = d < reach && P.moving && !(P.stun > 0) && (P.dir.x * ux + P.dir.y * uy) > 0.15;
+    if (pushing) {
+      var sp = S.SPEED * w.mod.speed * BB.push;
+      B.vx = (P.dir.x * 0.75 + ux * 0.25) * sp; B.vy = (P.dir.y * 0.75 + uy * 0.25) * sp;
+      if (!B.touched) { B.touched = true; me(w, pick(['영차! 굴러간다!', '이거 굴리면 되겠는데?', '대왕 눈덩이다!'])); }
+    }
+    var spd = Math.hypot(B.vx, B.vy);
+    if (spd > 2) {
+      var rr = Math.max(5, B.r * 0.7), nx = Math.max(B.r, Math.min(S.W - B.r, B.x + B.vx * dt)), ny = Math.max(B.r, Math.min(S.H - B.r, B.y + B.vy * dt));
+      if (G.blocked(nx, B.y, rr)) { B.vx = -B.vx * 0.3; nx = B.x; }
+      if (G.blocked(B.x, ny, rr)) { B.vy = -B.vy * 0.3; ny = B.y; }
+      B.x = nx; B.y = ny; B.roll += spd * dt / Math.max(4, B.r);
+      B.clr -= dt;
+      if (B.clr <= 0) {
+        B.clr = 0.08;
+        if (G.clearAt(w, B.x, B.y, B.r * 0.85, 9, 'big', B)) B.r = Math.min(BB.rmax, BB.r0 + Math.sqrt(B.load) * BB.grow);
+      }
+      // 굴러가다 고라니를 치면 벌러덩
+      if (spd > 30) w.deer.forEach(function (dd) { if (!(dd.down > 0) && !dd.leaving && Math.hypot(dd.x - B.x, dd.y - B.y) < B.r + 7) { dd.hp = 1; hitDeer(w, dd); fx(w, { t: 'bigBowl', x: dd.x, y: dd.y }); } });
+      // 집하장에 골인
+      var dm = G.nearestDump(w, B.x, B.y);
+      if (dm && B.load > 0 && Math.hypot(dm.x - B.x, dm.y - B.y) < (dm.r || 18) + B.r * 0.4) {
+        var g = give(w, B.val * w.mult * BB.pay, 'big');
+        w.combo += 20; w.comboT = Math.max(w.comboT, 4);
+        stat(w, 'bigball'); fun(w, 'bigball');
+        fx(w, { t: 'bigGoal', x: B.x, y: B.y, pay: g, units: B.load, r: B.r });
+        a.big = null; a.bigDone = true; return;
+      }
+    }
+    // 밀지 않으면 금방 멈춘다
+    var k = Math.exp(-(pushing ? 0.5 : 3.2) * dt); B.vx *= k; B.vy *= k;
+    // 밀고 있으면 몸에 겹치지 않게 앞으로 비켜 둔다
+    if (d < B.r + (P.body || 6) && !G.blocked(P.x + ux * (B.r + (P.body || 6) + 1), P.y + uy * (B.r + (P.body || 6) + 1), Math.max(5, B.r * 0.7))) { B.x = P.x + ux * (B.r + (P.body || 6) + 1); B.y = P.y + uy * (B.r + (P.body || 6) + 1); }
+  }
+
   /* ── 매 틱 ── */
   function step(w, dt) {
     var a = init(w), P = w.player, H = w.haeng;
@@ -703,7 +807,7 @@
     if (!w.demo) auto(w, dt);
     if (w.opEnd) return;
     a.ballCd -= dt;
-    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); }
+    if (!w.demo) { stepBalls(w, dt); stepKick(w, dt); stepRides(w, dt); stepAngel(w, dt); stepDrops(w, dt); stepBig(w, dt); }
     if (H.chaseT > 0) stepChase(w, H, dt);
     else if (H.downT > 0) { H.downT -= dt; H.hold = Math.max(H.hold || 0, 0.1); }
     if (w.opEnd) return;
@@ -929,7 +1033,7 @@
     canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer,
     prepItems: prepItems, prepBuy: prepBuy, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
-    ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
+    ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, takeDrop: takeDrop, stepBig: stepBig, stepDrops: stepDrops, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,
     RIDE: RIDE, BUFF: BUFF, PX: S.PREP, TRACTOR: TRACTOR, FLAG: FLAG, DECOR_MAN: DECOR_MAN, SNOWMAN_COST: SNOWMAN_COST, door: door
   };
 })(window.JY = window.JY || {});

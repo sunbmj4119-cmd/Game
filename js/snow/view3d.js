@@ -25,7 +25,7 @@
   var mats = {}, geos = {}, matV, blobMat, barrierArm = null, flagMesh = null;
   var vibAt = 0, A = function () { return JY.SnowAct; }, fpYaw = 0, fpPitch = -0.2, lookPtr = null, stunK = 0, curFocus = null, markEl = null, lastCamMode = '';
   var vmScene, vmCam, vmRoot = null, vmKind = '', vmTool = null, vmArm = null, vmGlove = null, vmBallM = null, vmBoot = null, vmAnim = { k: '', t: 0, d: 1 }, vmHemi, vmSun;
-  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null;
+  var actBalls = [], manObjs = [], manKey = '', kickBall = null, tractorObj = null, dropObjs = {}, bigObj = null;   // v22 보급품 · 대왕 눈덩이
   var lowFx = false, slowAvg = 0.016, slowN = 0, gainAcc = 0, gainT = 0, scrapeT = 0, crewScrapeT = 0, ray = new T.Raycaster(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
 
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) ^ 0x5bf03635; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -1041,7 +1041,8 @@
     renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false);
     fitCam();
   }
-  var CAMS = ['near', 'far', 'fp'], camMode = 'near', WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 0.6, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
+  var CAMS = ['near', 'fp'], camMode = 'near';   // v22: 3인칭(뒤에서 비스듬히)·1인칭 두 개만 ('멀리서'는 뺐다)
+  var _cams = 0, WIDN = [14.5, 15.5, 17, 18.5, 20, 23, 27, 32, 40], PITCHN = 0.6, FOVN = 50, sunDir = new T.Vector3(0.3, 0.6, 0.7).normalize(), bobK = 0;
   // v11: 처음엔 위에서 비스듬히 내려다보는 3인칭 (한 손가락으로 끌어서 이동). 1인칭은 시점 버튼으로
   try { var cm0 = localStorage.getItem('jeseol-cam3'); if (CAMS.indexOf(cm0) >= 0) camMode = cm0; } catch (e) { /* 저장소 없음 */ }
   // 타이틀(데모)은 늘 3인칭, 작업 중엔 고른 시점
@@ -1431,6 +1432,47 @@
       }
     });
   }
+  // v22 보급품 낙하: 핫식스(캔) · 황금 넉가래 · 보급품 상자(낙하산). 빛기둥 + 고리로 멀리서도 보이게
+  function dropMesh(kind) {
+    var g = new T.Group(), body;
+    if (kind === 'hot6') body = new T.Mesh(merge([[cyl(0.22, 0.22, 0.62, { y: 0.31 }, 14), '#f07a12'], [cyl(0.225, 0.225, 0.2, { y: 0.36 }, 14), '#1d1d1d'], [cyl(0.2, 0.22, 0.05, { y: 0.64 }, 14), '#c9d1d9']]), matV);
+    else if (kind === 'gold') body = new T.Mesh(merge([[box(0.1, 1.3, 0.1, { y: 0.75, rz: 0.35 }), '#a8701a'], [box(0.85, 0.5, 0.08, { y: 0.2 }), '#ffcc33'], [box(0.86, 0.08, 0.1, { y: 0.46 }), '#e2a419']]), new T.MeshLambertMaterial({ vertexColors: true, emissive: '#6b4a00' }));
+    else body = new T.Mesh(merge([[box(0.75, 0.6, 0.75, { y: 0.3 }), '#5b6a3a'], [box(0.77, 0.12, 0.2, { y: 0.32 }), '#f2f2f2'], [box(0.2, 0.12, 0.77, { y: 0.32 }), '#f2f2f2']]), matV);
+    body.castShadow = true; g.add(body); g.body = body;
+    var chute = new T.Mesh(merge([[sph(0.75, { s: [1, 0.5, 1], y: 2.1 }, 12, 6), '#e8e2cf'], [cyl(0.01, 0.01, 1.5, { y: 1.3, rz: 0.4 }, 4), '#555'], [cyl(0.01, 0.01, 1.5, { y: 1.3, rz: -0.4 }, 4), '#555']]), matV);
+    g.add(chute); g.chute = chute;
+    body.scale.setScalar(1.7);   // 작으면 눈밭에서 안 보인다
+    var ring = new T.Mesh(new T.RingGeometry(1.0, 1.3, 28), new T.MeshBasicMaterial({ color: kind === 'gold' ? '#ffd84a' : kind === 'hot6' ? '#ff9a3c' : '#9be37a', transparent: true, opacity: 0.85, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring); g.ring = ring;
+    var beam = new T.Mesh(new T.CylinderGeometry(0.16, 0.34, 8, 10, 1, true), new T.MeshBasicMaterial({ color: kind === 'gold' ? '#ffc21a' : kind === 'hot6' ? '#ff8a1a' : '#4fcf74', transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide }));
+    beam.position.y = 4; g.add(beam); g.beam = beam;
+    scene.add(g); return g;
+  }
+  function syncDrops(a, t) {
+    var list = (a && a.drops) || [], seen = {};
+    list.forEach(function (d) {
+      seen[d.id] = 1; var o = dropObjs[d.id] || (dropObjs[d.id] = dropMesh(d.kind));
+      var base = snowAt(d.x, d.y) * 0.35;
+      o.position.set(d.x * U, base, d.y * U);
+      o.body.position.y = d.h * U * 0.6 + (d.h ? 0 : Math.sin(t * 4) * 0.06 + 0.06); o.body.rotation.y = t * 1.6;
+      o.chute.visible = d.h > 2; o.chute.position.y = d.h * U * 0.6;
+      o.ring.scale.setScalar(1 + Math.sin(t * 6) * 0.08); o.beam.visible = d.h <= 2;
+      o.visible = !(d.t < 3 && Math.floor(t * 6) % 2);   // 사라지기 3초 전 깜빡깜빡
+    });
+    Object.keys(dropObjs).forEach(function (id) { if (!seen[id]) { scene.remove(dropObjs[id]); delete dropObjs[id]; } });
+  }
+  // v22 대왕 눈덩이: 눈 공 + 흙·나뭇가지 몇 개 (굴러가는 게 보이게)
+  function syncBig(a) {
+    var B = a && a.big;
+    if (!B) { if (bigObj) bigObj.visible = false; return; }
+    if (!bigObj) {
+      bigObj = new T.Mesh(merge([[sph(1, {}, 22, 16), '#f6f9fc'], [sph(0.2, { x: 0.82, y: 0.45 }, 6, 5), '#a9b8c6'], [sph(0.16, { x: -0.6, y: -0.7 }, 6, 5), '#9aa9b8'], [sph(0.18, { z: 0.9, y: 0.2 }, 6, 5), '#b4c2cf'], [cyl(0.03, 0.03, 0.7, { x: -0.3, y: 0.95, rz: 1.1 }, 4), '#6b4a32']]), matV);
+      bigObj.castShadow = true; scene.add(bigObj);
+    }
+    var R = B.r * U; bigObj.visible = true; bigObj.scale.setScalar(R);
+    bigObj.position.set(B.x * U, R * 0.92 + snowAt(B.x, B.y) * 0.2, B.y * U);
+    if (B.vx || B.vy) { bigObj.rotation.y = Math.atan2(B.vx, B.vy); bigObj.rotation.x = B.roll; }
+  }
   function syncAct(dt) {
     var a = world.act, t = performance.now() / 1000;
     if (tractorObj) tractorObj.visible = !G.feat(world.save, 'tractor');   // v14: 트랙터를 탈 수 있으면 아래 탈것이 대신 그린다
@@ -1446,6 +1488,7 @@
       kickBall = new T.Mesh(merge([[sph(0.3, {}, 14, 10), '#f4f1e6'], [cyl(0.305, 0.305, 0.1, {}, 16), '#e2b33c'], [cyl(0.305, 0.305, 0.1, { rx: Math.PI / 2 }, 16), '#2b5fd1']]), matV);
       kickBall.castShadow = true; scene.add(kickBall);
     }
+    syncDrops(a, t); syncBig(a);
     var B = a.ball; kickBall.visible = true;
     kickBall.position.set(B.x * U, 0.3 + B.h * U + snowAt(B.x, B.y) * 0.35, B.y * U);
     if (B.vx || B.vy) { kickBall.rotation.y = Math.atan2(B.vx, B.vy); kickBall.rotation.x = B.roll || 0; }
@@ -1838,6 +1881,7 @@
   }
 
   function begin(save, m) {
+    Object.keys(dropObjs).forEach(function (id) { scene.remove(dropObjs[id]); }); dropObjs = {}; if (bigObj) bigObj.visible = false;   // v22: 지난 작전 보급품·눈덩이 치우기
     world = G.createWorld(save, { demo: m === 'demo' || m === 'lobby', salt: m === 'demo' ? (Math.random() * 1e6) | 0 : 0 });   // 로비 장면은 저장을 건드리지 않는다
     mode = m; doneSent = false; moveTo = null; stick = null; lookPtr = null; scanT = 0; focus = null; curFocus = null; vmAnim.k = ''; lastCamMode = ''; stunK = 0; manKey = '#';
     overlays.forEach(function (o) { o.el.remove(); }); overlays = [];

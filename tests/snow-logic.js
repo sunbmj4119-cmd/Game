@@ -111,10 +111,10 @@ var cl0 = wH.clear; G.step(wH, 1 / 30, null);
 var mh = wH.fx.filter(function (f) { return f.t === 'meHit'; })[0];
 ok(wH.player.stun > 0.9 && wH.player.load === 30 && mh && mh.spilled === 0, '고라니에 받히면 잠깐 넘어진다 (짐은 그대로)', [wH.player.stun, mh && mh.spilled]);
 var px0 = wH.player.x; G.step(wH, 0.2, { x: 1, y: 0 }); ok(wH.player.x === px0, '기절 중엔 못 걷는다');
-var sG0 = G.newSave(); sG0.day = 13; sG0.zones.C = true; sG0.rank = 1; sG0.seed = 1; while (G.weekOf(sG0) && G.weekOf(sG0).mods.deer) sG0.seed++;   // 고라니 대이동 주간은 빼고 (전엔 시드가 무작위라 가끔 실패)
+var sG0 = G.newSave(); sG0.day = 13; sG0.zones.B = true; sG0.zones.C = true; sG0.rank = 1; sG0.seed = 1; while (G.weekOf(sG0) && G.weekOf(sG0).mods.deer) sG0.seed++;   // 고라니 대이동 주간은 빼고 (전엔 시드가 무작위라 가끔 실패)
 var nG0 = G.createWorld(sG0).events.filter(function (e) { return e.k === 'deer'; }).length;
-var sG3 = G.newSave(); sG3.day = 13; sG3.seed = sG0.seed; sG3.zones.C = true; sG3.rank = 1; sG3.perks = { gong: 3 }; var nG3 = G.createWorld(sG3).events.filter(function (e) { return e.k === 'deer'; }).length;
-ok(nG0 === 2 && nG3 === 1, '고라니는 하루 최대 2마리, 깡통 줄 3단계면 1마리', [nG0, nG3]);
+var sG3 = G.newSave(); sG3.day = 13; sG3.seed = sG0.seed; sG3.zones.B = true; sG3.zones.C = true; sG3.rank = 1; sG3.perks = { gong: 3 }; var nG3 = G.createWorld(sG3).events.filter(function (e) { return e.k === 'deer'; }).length;
+ok(nG0 === 3 && nG3 === 1, 'v22 고라니는 작전당 2~4마리 (13일차 3마리), 깡통 줄 3단계면 1마리', [nG0, nG3]);
 var sC = G.newSave(); sC.seed = 12; ['A', 'B', 'C', 'D', 'E'].forEach(function (z) { sC.zones[z] = true; sC.fresh[z] = true; }); var wC = G.createWorld(sC);
 wC.cells.forEach(function (idx) { if (wC.zone[idx] === 4 && wC.depth[idx]) { wC.depth[idx] = 0; wC.clear++; wC.zoneClear[4]++; } });
 var e0 = wC.zoneClear[4]; wC.player.x = 30; wC.player.y = 300; wC.events = []; G.spawn(wC, 'car'); run(wC, 10);

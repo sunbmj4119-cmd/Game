@@ -963,7 +963,11 @@
   }
   function stepHazards(w, dt) {
     var R = w.rand, save = w.save, P = w.player, medic = lvl(save, 'medic'), i;
-    while (w.events.length && w.events[0].t <= w.time) spawn(w, w.events.shift().k);
+    while (w.events.length && w.events[0].t <= w.time) {
+      var ev0 = w.events[0];   // v25 집중: 큰 일이 진행 중이면 미룬다 (한 번에 하나씩)
+      if (!w.demo && JY.SnowAct && JY.SnowAct.defer && JY.SnowAct.defer(w, ev0.k)) { ev0.t = w.time + S.FOCUS.retry; w.events.sort(function (p, q) { return p.t - q.t; }); break; }
+      w.events.shift(); spawn(w, ev0.k);
+    }
     for (i = w.roofs.length - 1; i >= 0; i--) { w.roofs[i].t -= dt; if (w.roofs[i].t <= 0) roofFall(w, w.roofs.splice(i, 1)[0]); }
     for (i = w.deer.length - 1; i >= 0; i--) {
       var d = w.deer[i];
@@ -1092,10 +1096,17 @@
   function step(w, dt, input) {
     var save = w.save, R = w.rand, P = w.player;
     if (w.opEnd) return;   // 작전 끝: 결과 화면을 기다린다
+    if (w.timeUp) return;   // v25 시간 끝 — '30초 더?'를 묻는 중 (UI가 extendOp 또는 endOp를 부른다)
     w.time += dt; w.sayT -= dt; w.lockT -= dt;
     if (w.time >= w.dayLen) {
       // 08:00 — 아침 식사. 데모 화면은 계속 새 날로 돈다
-      if (w.demo) newDay(w); else { checkTasks(w); endOp(w, 'time'); return; }
+      if (w.demo) newDay(w);
+      else {
+        checkTasks(w);
+        // v25 지시서가 남았고 '30초 더'를 쓸 수 있으면 멈추고 묻는다 (작전당 한 번)
+        if (w.askExtend && !w.extended && !(w.op && w.op.ready) && w.op && w.op.tasks.some(function (q) { return q.done < 0; })) { w.time = w.dayLen; w.timeUp = true; w.fx.push({ t: 'timeUp' }); return; }
+        endOp(w, 'time'); return;
+      }
     }
     if (JY.SnowAct && !w.demo) JY.SnowAct.step(w, dt, input);
     if (w.opEnd) return;
@@ -1166,6 +1177,7 @@
 
     // 인력: 담고 → 꽉 차면 가까운 집하장(릴레이)으로 → 붓고 → 다시
     if (w.crew.length) w.crewT += dt;
+    if (w.chatCd > 0) w.chatCd -= dt;
     for (var i = 0; i < w.crew.length; i++) {
       var e = w.crew[i], C = e.def;
       if (e.off) { e.moving = false; continue; }
@@ -1218,7 +1230,7 @@
         if (clearAt(w, e.x + e.dir.x * e.r * 0.6, e.y + e.dir.y * e.r * 0.6 + 2, e.r, e.p, 'crew', e)) e.swing = 1;
         if (e.load >= e.cap) e.state = 'haul';
       }
-      if (R() < dt * 0.02) w.fx.push({ t: 'chat', e: e, tired: tired });
+      if (R() < dt * 0.02 && !(w.chatCd > 0) && !(JY.SnowAct && JY.SnowAct.attention && JY.SnowAct.attention(w).length)) { w.chatCd = 7; w.fx.push({ t: 'chat', e: e, tired: tired }); }   // v25 잡담은 7초에 한 번, 큰 일 중엔 조용히
     }
 
     // 행보관: 돌아다니며 감시, 조는 병장 깨우기
@@ -1250,6 +1262,9 @@
   }
 
   function pct(w) { return w.total ? w.clear / w.total : 0; }
+  // v25 광고 보고 30초 더 (작전당 한 번)
+  function extendOp(w, sec) { if (!w.timeUp) return false; w.timeUp = false; w.extended = true; w.dayLen += sec; w.fx.push({ t: 'extended', sec: sec }); return true; }
+  function finishTimeUp(w) { if (!w.timeUp) return false; w.timeUp = false; w.extended = true; endOp(w, 'time'); return true; }
 
   // 앱을 꺼 둔 동안: 인력 수입 × 시간 × 10% (최대 8시간)
   function offline(save, now) {
@@ -1264,7 +1279,7 @@
     mulberry: mulberry, styleScore: styleScore, styleBonus: styleBonus, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
-    blocked: blocked, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
+    blocked: blocked, extendOp: extendOp, finishTimeUp: finishTimeUp, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,
     examDue: examDue, assignZones: assignZones, clockOf: clockOf, timeAt: timeAt, clockText: clockText, initOp: initOp, checkTasks: checkTasks, opStatus: opStatus, gradeOp: gradeOp, endOp: endOp, syncOpSave: syncOpSave, taskPct: taskPct,
     crewCap: crewCap, pendN: pendN, assignRecruit: assignRecruit, setPost: setPost, autoPost: autoPost, zoneAt: zoneAt, arriveRecruits: arriveRecruits, zoneIndex: zoneIndex,
     cellIndex: cellIndex, clearAt: clearAt, pay: pay, gainDia: gainDia, stat: stat, toolR: toolR, lockAt: lockAt, comboMult: comboMult, moveEnt: moveEnt, steer: steer, say: say, randomOpenPoint: randomOpenPoint, dumpAt: dumpAt, deposit: deposit, spill: spill, pickTarget: pickTarget, spawn: spawn, zoneById: zoneById, newDay: newDay

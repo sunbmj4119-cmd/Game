@@ -4,6 +4,8 @@
 (function (JY) {
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
+  var AD = JY.SnowAds;   // v25 광고
+  var AD_ICON = '<svg class="ad-ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="3.5" width="17" height="13" rx="3" fill="currentColor" opacity=".18"/><path d="M8 7.2v5.6l4.8-2.8z" fill="currentColor"/></svg>';
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v22', OLD_KEYS = ['jeseol-v1'];   // v22: 처음부터 다시 (예전 저장 jeseol-v10·v8은 지우지 않고 그대로 둔다)
   try { OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { /* 저장소 없음 */ }
@@ -84,19 +86,41 @@
   }
   var chipTimer = 0, chipPrio = 0, chipAt = 0, PRIO = { bad: 3, warn: 2, good: 1 };
   // 중요한 알림(위험·경고)은 1.5초 동안 덜 중요한 알림에 덮이지 않는다
-  function chip(text, cls) {
+  // v25 알림 정리: 큰 일(경례·돌발·폐급짓·마편…)이 진행 중이면 '좋은 소식' 칩은 조용히 (중요한 경고만)
+  function bigNow() { var w = V.world && V.world(); return !!(w && A && A.attention && V.mode && V.mode() === 'play' && A.attention(w).length); }
+  function chip(text, cls, force) {
     var pr = PRIO[cls] || 0, now = Date.now(), c = $('chip');
+    if (!force && cls === 'good' && bigNow()) return;
     if (!c.hidden && pr < chipPrio && now - chipAt < 1500) return;
     chipPrio = pr; chipAt = now;
     c.textContent = text; c.className = cls || ''; c.hidden = false;
     clearTimeout(chipTimer); chipTimer = setTimeout(function () { c.hidden = true; }, 2600);
   }
-  function banner(big, small, ms) {
-    var bn = $('banner');
-    bn.innerHTML = '<b>' + esc(big) + '</b>' + (small ? '<span>' + esc(small) + '</span>' : '');
-    bn.hidden = false; bn.classList.remove('in'); void bn.offsetWidth; bn.classList.add('in');
-    setTimeout(function () { bn.hidden = true; }, ms || 2200);
+  // v25 배너는 한 번에 하나: 중요도(3 긴급 · 2 보통 · 1 소식)가 높으면 끼어들고, 아니면 줄을 선다 (줄은 3개까지, 6초 지나면 버린다)
+  var bnQ = [], bnCur = null, bnTimer = 0;
+  function banner(big, small, ms, pri) {
+    var it = { big: big, small: small, ms: ms || 2200, pri: pri || 2, at: Date.now() };
+    if (bnCur && Date.now() < bnCur.end) {
+      if (it.pri > bnCur.pri) { bnQ.unshift(bnCur.it); showBanner(it); return; }
+      if (it.pri === 1 && bigNow()) return;   // 큰 일 중엔 '소식' 배너는 버린다
+      bnQ.push(it); bnQ.sort(function (p, q) { return q.pri - p.pri || p.at - q.at; }); if (bnQ.length > 3) bnQ.length = 3;
+      return;
+    }
+    showBanner(it);
   }
+  function showBanner(it) {
+    var bn = $('banner');
+    bn.innerHTML = '<b>' + esc(it.big) + '</b>' + (it.small ? '<span>' + esc(it.small) + '</span>' : '');
+    bn.hidden = false; bn.classList.remove('in'); void bn.offsetWidth; bn.classList.add('in');
+    bnCur = { it: it, pri: it.pri, end: Date.now() + it.ms };
+    clearTimeout(bnTimer);
+    bnTimer = setTimeout(function () {
+      bn.hidden = true; bnCur = null;
+      while (bnQ.length && Date.now() - bnQ[0].at > 6000) bnQ.shift();
+      if (bnQ.length) { var nx = bnQ.shift(); setTimeout(function () { if (!bnCur) showBanner(nx); else bnQ.unshift(nx); }, 260); }
+    }, it.ms);
+  }
+  function bannerReset() { bnQ = []; bnCur = null; clearTimeout(bnTimer); var bn = $('banner'); if (bn) bn.hidden = true; }
   function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* 무시 */ } }
   function flash() { var f = $('flash'); f.hidden = false; f.classList.remove('in'); void f.offsetWidth; f.classList.add('in'); setTimeout(function () { f.hidden = true; }, 500); }
   function splat() {
@@ -134,7 +158,7 @@
       '<div class="lc-bar' + (save.exam ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i><span>' + (save.exam ? '진급 심사!' : '★' + m + ' / ' + top) + '</span></div><div class="lc-svc" aria-hidden="true"><i style="width:' + sv.pct + '%"></i></div></div>';
     $('lb-bank').textContent = save.bank >= 1e7 ? short(save.bank) : fmt(save.bank); $('lb-dia').textContent = fmt(save.dia);
     var steps = S.RANKS.map(function (R, i) { return { name: R.name, need: R.merit, i: i }; }).concat([{ name: '전역', need: S.DISCHARGE_MERIT, i: S.RANKS.length }]);
-    var road = '<ol class="road">' + steps.map(function (s) {
+    var road = '<ol class="road" data-hub="road" role="button" aria-label="군생활 로드맵 열기">' + steps.map(function (s) {
       var cls = s.i < r ? 'past' : s.i === r ? 'now' : s.i === r + 1 ? 'next' + (save.exam ? ' exam' : '') : '';
       return '<li class="' + cls + '"><i>' + (s.i < S.RANKS.length ? insignia(s.i) : STAR_SVG) + '</i><b>' + s.name + '</b><small>' + (s.i === r ? '지금' : s.i === r + 1 && save.exam ? '심사!' : '★' + s.need) + '</small></li>';
     }).join('') + '</ol>';
@@ -148,11 +172,14 @@
     var nt = A && on ? A.nextTool(save) : null, tb = on ? G.previewBonus(save) : null;
     if (nt) news.push('<li>다음 장비 <b>' + esc(nt.name) + '</b> · ' + (r < (nt.rank || 0) ? S.RANKS[nt.rank].name + '부터' : save.bank >= nt.cost ? '<b class="ok">받을 수 있다! (보급 원)</b>' : pie() + fmt(save.bank) + '/' + fmt(nt.cost)) + '</li>');
     if (tb) news.push('<li>내일 특명 <b>' + esc(tb.text) + '</b> · ' + dia() + '+' + tb.dia + '</li>');
-    if (nextZone && on) news.push('<li>★' + nextZone.need + (r < (nextZone.rank || 0) ? ' · ' + S.RANKS[nextZone.rank].name : '') + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
+    // v25 다음 해금 (누르면 로드맵)
+    var rmN = on && M && M.roadmap ? M.roadmap(save).next : null;
+    if (rmN) news.push('<li class="unlock" data-hub="road">다음 해금 <b>' + esc(rmN.names.slice(0, 2).join(' · ')) + (rmN.names.length > 2 ? ' 외 ' + (rmN.names.length - 2) : '') + '</b> · ★' + rmN.left + ' 남음 <span class="more">로드맵 ›</span></li>');
+    else if (nextZone && on) news.push('<li>★' + nextZone.need + (r < (nextZone.rank || 0) ? ' · ' + S.RANKS[nextZone.rank].name : '') + '이면 <b>' + esc(nextZone.name) + '</b>도 맡는다</li>');
     // v13: 소식은 두 줄만 — 지금 할 일(안내)이 있으면 그게 먼저
     var q = M && on ? M.questNow(save) : null;
     if (q) news.unshift('<li class="hl">할 일: <b>' + esc(q.text) + '</b> · ' + esc(q.how) + '</li>');
-    var pri = function (li) { return /data-hub="dis"|class="exam"/.test(li) ? 0 : /할 일:/.test(li) ? 1 : /class="week hl"/.test(li) ? 1.5 : /받을 수 있다/.test(li) ? 2 : /특명/.test(li) ? 3 : /class="week"/.test(li) ? 3.5 : 4; };
+    var pri = function (li) { return /data-hub="dis"|class="exam"/.test(li) ? 0 : /할 일:/.test(li) ? 1 : /class="week hl"/.test(li) ? 1.5 : /받을 수 있다/.test(li) ? 2 : /class="unlock"/.test(li) ? 1.4 : /특명/.test(li) ? 3 : /class="week"/.test(li) ? 3.5 : 4; };
     news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
@@ -197,6 +224,7 @@
     else if (k === 'help') help();
     else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k === 'gear' && (save.boxes || []).length ? 'chest' : k; openShop(); }   // v20: 받은 상자가 있으면 상자 탭부터
     else if (k === 'settings') settings();
+    else if (k === 'road') { tab = 'road'; openShop(); }
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
   var CAM_NAME = { near: '3인칭 (추천)', fp: '1인칭' };   // v22: 두 개만
@@ -209,6 +237,7 @@
         '<button data-set="help"><span>제설 교범 다시 보기</span><b>›</b></button>' +
         (specNames() ? '<button data-set="spec"><span>특기 다시 고르기 <small>' + esc(specNames()) + '</small></span><b>상점 5</b></button>' : '') +
         (G.rankOf(save) >= 3 || save.discharges ? '<button data-set="dis"><span>전역 신고</span><b>›</b></button>' : '') +
+        (AD ? '<button data-set="noads"><span>광고 제거 <small>' + (AD.state(save).noAds ? '적용됨 · 보상형 광고는 원할 때만' : '생활관 가는 길 전면 광고 없음 · 보상형은 그대로') + '</small></span><b>' + (AD.state(save).noAds ? '✓' : '출시판') + '</b></button>' : '') +
         '<button data-set="reset" id="t-reset" class="danger"><span>처음부터 다시</span><b>›</b></button>' +
         '</div><button class="btn big" data-m="close">닫기</button></div>');
       var b = $('modal-box'), base = b.onclick;
@@ -218,6 +247,7 @@
         if (k === 'sound') { if (X) { X.setMuted(!X.muted()); if (!X.muted()) { X.unlock(); X.pop(); } } render(); }
         else if (k === 'haptic') { JY.snowHaptic = !JY.snowHaptic; try { localStorage.setItem('jeseol-haptic', JY.snowHaptic ? '1' : '0'); } catch (er) { /* 무시 */ } if (JY.snowHaptic) vibrate(30); render(); }
         else if (k === 'cam') { V.toggleCam(); camLabel(); render(); }
+        else if (k === 'noads') { toast(AD.state(save).noAds ? '이미 광고 제거가 적용됐다' : '광고 제거는 앱(플레이스토어) 출시판에서 결제로 열린다'); }
         else if (k === 'spec') {
           if (save.dia < 5) { toast('상점이 5개 있어야 한다 (지금 ' + save.dia + '개)'); return; }
           $('modal').hidden = true; save.dia -= 5; save.spec = {}; persistRaw(); if (X) X.dia(); renderHub(); afterHub();
@@ -272,10 +302,13 @@
   function energyGate(done) {
     var e = G2.energy(save, Date.now()), p = G2.refillPrice(save, Date.now());
     modal('<div class="m-rank"><p class="kicker">출동 체력</p><h3>체력이 모자라다</h3><p class="m-big">' + BOLT + ' ' + e.v + ' / ' + e.max + '</p><p>작전 1번에 ' + e.cost + ' · ' + Math.round(S.ENERGY.regen / 60) + '분에 1씩 찬다<br>다음 1까지 <b>' + mmss(e.next) + '</b> · 아침 점호 때마다 가득</p>' +
-      '<div class="res-btns"><button class="btn ghost" data-m="wait">기다린다</button><button class="btn big" data-m="refill"' + (save.dia < p ? ' disabled' : '') + '>' + dia() + ' ' + p + '로 가득</button></div></div>', function (k) {
+      '<div class="res-btns"><button class="btn ghost" data-m="wait">기다린다</button><button class="btn big" data-m="refill"' + (save.dia < p ? ' disabled' : '') + '>' + dia() + ' ' + p + '로 가득</button></div>' +
+      adBtn('energy', '광고 보고 체력 +' + S.ADS.rewarded.energy.amount + ' (작전 3번)') + '</div>', function (k) {
       if (k !== 'refill') return;
       if (G2.refill(save, Date.now())) { persistRaw(); if (X) X.dia(); toast('체력 가득! (상점 -' + p + ')'); renderHub(); if (done) done(); }
     });
+    var eb = document.querySelector('#modal-box [data-ad="energy"]');
+    if (eb) eb.onclick = function () { $('modal').hidden = true; watchAd('energy', null, function (ok) { if (ok) { toast('체력 +' + S.ADS.rewarded.energy.amount + '!'); renderHub(); if (done) done(); } }); };
   }
   function briefing() {
     var r = G.rankOf(save), wx = G.weatherFor(save), B = S.BRIEF[r], exam = !!save.exam, goal = G.opGoal(save, wx.id, exam), wxCut = S.OP.wx[wx.id] || 0, bo = G.previewBonus(save);
@@ -331,7 +364,8 @@
     if (X) X.unlock();
     var w = V.play(save);
     show('play');
-    hud = {};
+    hud = {}; bannerReset(); lvlUps = [];
+    w.askExtend = !!(AD && (save.stats.ops || 0) >= 3 && AD.can(save, 'extend'));   // v25 시간이 끝났는데 지시서가 남으면 '광고 보고 30초 더'
     rankSeen = G.rankOf(save);
     $('h-ins').innerHTML = insignia(rankSeen);
     dayLabel(w);
@@ -368,12 +402,12 @@
     if (onV6Event(f)) return;
     if (onOpEvent(f)) return;
     if (f.t === 'deer') { vibrate(80); }
-    else if (f.t === 'crewUp') { chip(f.name + '들 손이 빨라졌다! 숙련 Lv ' + f.lv + ' (다음 작전부터 +' + f.pct + '%)', 'good'); if (X) X.ding(); }
-    else if (f.t === 'skillUp') { chip(f.name + ' 숙련 Lv ' + f.lv + '! ' + f.unit + (f.id === 'arm' ? ' -' : ' +') + f.pct + '%', 'good'); if (X) X.ding(); vibrate([20, 20, 40]); }
+    else if (f.t === 'crewUp') { lvlUps.push(f.name + ' 숙련 Lv' + f.lv); if (X) X.ding(); }   // v25 작전 중엔 소리만, 글은 결과 화면에
+    else if (f.t === 'skillUp') { if (X) X.ding(); }
     // v23 골때리는 돌발
     else if (f.t === 'chaos') {
       var CH = { poop: ['급똥 비상!!', '배가 꾸르륵… 생활관 화장실까지 ' + f.sec + '초'], cat: ['짬타이거 접근 중', '…초코파이 냄새를 맡은 것 같다'], tree: ['행보관님 지시: 나무 눈 털기', '나무 세 그루 · 털면 눈이 머리로…'], scenic: ['사단장님: "설경이 보고 싶구나"', '빨간 구역 눈은 ' + f.sec + '초 동안 치우지 마!'], hotwater: ['누가 뜨거운 물을 들고 뛰어온다', '"이거 부으면 금방 녹지 않습니까?!"'] }[f.id] || [f.name, ''];
-      banner(CH[0], CH[1], 2600); if (X) X.whistle(true); vibrate([60, 40, 60]);
+      banner(CH[0], CH[1], 2600, 3); if (X) X.whistle(true); vibrate([60, 40, 60]);
     }
     else if (f.t === 'catSteal') { banner('짬타이거가 초코파이를 물고 튀었다!!', '-' + fmt(f.loot) + ' · 잡으면 1.5배로 돌려받는다', 2200); if (X) X.meow && X.meow(); vibrate([40, 30, 40]); }
     else if (f.t === 'treeDump') { chip('우수수수… 눈이 목덜미로 들어갔다', 'warn'); if (X) X.thud(); vibrate(60); }
@@ -387,13 +421,16 @@
       if (E2) banner(E2[0], E2[1], 2400); if (X) { if (f.ok) X.fanfare(); else X.deny(); }
     }
     // v23 후임 마음의 편지 · 달래기 · 고양이
-    else if (f.t === 'mapyeon') { banner('후임이 마음의 편지를 쓰러 간다!!', '행정반 가기 전에 쫓아가서 달래라', 2600); if (X) X.whistle(true); vibrate([80, 40, 80, 40, 80]); }
+    else if (f.t === 'mapyeon') { banner('후임이 마음의 편지를 쓰러 간다!!', '행정반 가기 전에 쫓아가서 달래라', 2600, 3); if (X) X.whistle(true); vibrate([80, 40, 80, 40, 80]); }
     else if (f.t === 'mapyeonFiled') { banner('마음의 편지 접수…', '내일 중대장님 면담 · 지적 +1 · ' + f.took, 2800); if (X) X.deny(); vibrate([120, 60, 120]); flash(); }
     else if (f.t === 'soothe') { chip('달래기 성공 · 초코파이 -' + f.cost + ' · 후임이 다시 일하러 간다', 'good'); if (X) X.ding(); }
+    // v25 시간 끝 · 지시서가 남았다 → 광고 보고 30초 더?
+    else if (f.t === 'timeUp') askExtend();
+    else if (f.t === 'extended') banner('30초 더!', '남은 지시서부터 끝내자', 1600, 3);
     // v24 후임 폐급짓
     else if (f.t === 'pye') {
       var PY = { dump: ['후임이 폐급짓을 한다!!', f.who + '이(가) 치운 길에 눈을 버린다 · 가서 "야! 멈춰!"'], hide: ['후임이 사라졌다…?', '짱박혔다 · ' + f.spot + ' 쪽을 찾아봐라'], broke: ['"넉가래가… 부러졌습니다…"', '가서 제설함에서 새 거 가져오라고 해라'] }[f.id] || [f.name, ''];
-      banner(PY[0], PY[1], 2600); if (X) X.whistle(true); vibrate([50, 30, 50]);
+      banner(PY[0], PY[1], 2600, 3); if (X) X.whistle(true); vibrate([50, 30, 50]);
     }
     else if (f.t === 'pyeEnd' && !f.gone) {
       if (f.id === 'dump') { if (f.ok) chip('폐급 수습! 후임이 눈을 들고 집하장으로 간다', 'good'); else banner('치운 길이 다시 하얘졌다…', '후임: "다 버렸습니다! 잘했지 말입니다?"', 2400); }
@@ -403,7 +440,7 @@
     }
     else if (f.t === 'catHit') { chip('짬타이거가 화났다… (털 곤두섬)', 'warn'); if (X) X.meow && X.meow(); }
     // v22 역동: 고라니 떼 · 보급품 낙하 · 대왕 눈덩이
-    else if (f.t === 'herd') { banner('고라니 떼다!!', f.n + '마리 — 전부 눈덩이로 벌러덩시키면 몰이 보너스', 2400); if (X) X.deer && X.deer(); vibrate([60, 40, 60, 40, 60]); }
+    else if (f.t === 'herd') { banner('고라니 떼다!!', f.n + '마리 — 전부 눈덩이로 벌러덩시키면 몰이 보너스', 2400, 3); if (X) X.deer && X.deer(); vibrate([60, 40, 60, 40, 60]); }
     else if (f.t === 'herdAll') { banner('고라니 몰이 성공!', '+' + fmt(f.pay) + ' · 상점 +1', 2400); if (X) X.fanfare(); vibrate([40, 30, 40, 30, 120]); }
     else if (f.t === 'drop') { chip('보급품 낙하! ' + f.name + ' — 근처에 떨어졌다', 'good'); if (X) X.whoosh(); }
     else if (f.t === 'dropGet') {
@@ -411,10 +448,10 @@
       else banner(f.name + '!', (f.kind === 'gold' ? '넉가래 범위 ×1.7' : '이동 +40%') + ' · ' + f.sec + '초', 1600);
       if (X) X.buy(); vibrate([30, 20, 50]);
     }
-    else if (f.t === 'big') { banner('대왕 눈덩이 등장!', '몸으로 밀면 굴러가며 커진다 · 집하장에 넣으면 1.5배', 2600); if (X) X.ding(); }
+    else if (f.t === 'big') { banner('대왕 눈덩이 등장!', '몸으로 밀면 굴러가며 커진다 · 집하장에 넣으면 1.5배', 2600, 1); if (X) X.ding(); }
     else if (f.t === 'bigGoal') { banner('대왕 눈덩이 골인!!', '+' + fmt(f.pay) + ' · 눈 ' + fmt(f.units) + ' · 콤보 +20', 2400); if (X) X.fanfare(); vibrate([60, 30, 60, 30, 160]); coinFly({ x: f.x, y: f.y, pay: f.pay, src: 'player' }); }
     else if (f.t === 'bigBowl') { chip('스트라이크! 고라니가 눈덩이에 깔렸다', 'good'); if (X) X.thud(); }
-    else if (f.t === 'fun') { banner('발견! ' + f.name, '상점 +' + f.dia + ' · 수첩 ' + f.n + '/' + f.of, 2400); vibrate([30, 30, 60]); }
+    else if (f.t === 'fun') { banner('발견! ' + f.name, '상점 +' + f.dia + ' · 수첩 ' + f.n + '/' + f.of, 2000, 1); vibrate([30, 30, 60]); }
     else if (f.t === 'deerDown') vibrate([40, 30, 90]);
     else if (f.t === 'goal') { if (!(save.fun && save.fun.goal && hud.goalSaid)) chip('족구 한 골! +' + fmt(f.pay), 'good'); hud.goalSaid = 1; if (X) X.fanfare(); }
     else if (f.t === 'ride') { if (f.on) chip(f.name + ' 탑승!', 'good'); else if (!f.hand) chip('기름 떨어짐 · 정비고 앞에 세우면 찬다', 'warn'); }
@@ -448,7 +485,7 @@
     if (f.t === 'nag') return true;
     if (f.t === 'prep') return true;
     if (f.t === 'toolGet') { banner(f.name + ' 보급!', '', 2000); if (X) X.buy(); if (V.shake) V.shake(2); vibrate([30, 30, 60]); hud.ld = -1; return true; }
-    if (f.t === 'fever') { if (f.on) { banner('폭풍 제설!!', '콤보 ' + f.n + ' · ' + S.FEVER.sec + '초 동안 눈 값 ×' + S.FEVER.value + ' · 넉가래 범위 UP', 2000); if (X && X.fever) X.fever(); vibrate([30, 30, 30, 30, 90]); } return true; }
+    if (f.t === 'fever') { if (f.on) { if (!hud.feverSaid) { hud.feverSaid = true; banner('폭풍 제설!!', '콤보 ' + f.n + ' · ' + S.FEVER.sec + '초 동안 눈 값 ×' + S.FEVER.value + ' · 넉가래 범위 UP', 2000, 1); } if (X && X.fever) X.fever(); vibrate([30, 30, 30, 30, 90]); } return true; }   // v25 배너는 작전당 첫 번째만 (다음부턴 소리·화면 효과로)
     if (f.t === 'surge') { if (f.on) { banner('폭설 경보!', '눈이 미친 듯이 쏟아진다 · ' + Math.round(f.sec) + '초 버텨라', 2400); if (X) X.whistle(false); vibrate([100, 60, 100]); } else chip('폭설이 잦아들었다. 지금이 기회!', 'good'); return true; }
     if (f.t === 'support') { if (f.on) { banner('공병대 제설차 지원!', f.zone + '을(를) 한 줄 싹 밀고 간다', 2400); if (X) X.bugle(); } return true; }
     if (f.t === 'surprise') { banner('사단장님 불시 방문!!', '보이면 바로 경례 — 칼경례면 상점', 2600); if (X) X.bugle(); vibrate([80, 40, 80, 40, 80]); return true; }
@@ -526,12 +563,32 @@
   }
 
   /* ── 검열 결과: ★, 지시서 줄마다 이행, 감점, 보상, 근무평정 → 진급 심사 / 진급, 새 구역 ── */
+  // v25 광고: 보상형은 내가 필요할 때 누른다 (끝까지 봐야 보상)
+  function adBtn(id, label, extra) { return AD && AD.can(save, id) ? '<button class="btn ad-btn" type="button" data-ad="' + id + '"' + (extra || '') + '>' + AD_ICON + '<span>' + label + '</span><small>오늘 ' + AD.left(save, id) + '번</small></button>' : ''; }
+  function watchAd(id, ctx, done) {
+    if (!AD || !AD.can(save, id)) { if (done) done(false); return; }
+    AD.showRewarded(function (got) {
+      if (!got) { toast('끝까지 봐야 보상을 받는다'); if (done) done(false); return; }
+      var r = AD.grant(save, id, Date.now(), ctx); persistRaw(); if (X) X.coin && X.coin();
+      if (done) done(true, r);
+    });
+  }
+  function askExtend() {
+    var w = V.world(); if (!w || !w.timeUp) return;
+    if (V.pause) V.pause(true);
+    var left = (w.op ? w.op.tasks : []).filter(function (q) { return q.done < 0; }).slice(0, 3).map(function (q) { var zn = G.zoneById(q.zone) || {}; return esc(q.name || zn.name || '지시서'); });
+    modal('<div class="m-rank"><p class="kicker">시간 끝!</p><h3>지시서가 남았다</h3><p>' + (left.length ? '못 끝낸 줄: <b>' + left.join(' · ') + '</b><br>' : '') + '30초만 더 있으면 끝낼 수 있을 것 같다.</p>' +
+      '<div class="res-btns col">' + adBtn('extend', '광고 보고 30초 더') + '<button class="btn ghost" data-m="no">그냥 검열 받기</button></div></div>', function () { G.finishTimeUp(w); if (V.pause) V.pause(false); });
+    var b = document.querySelector('#modal-box [data-ad="extend"]');
+    if (b) b.onclick = function () { $('modal').hidden = true; watchAd('extend', null, function (ok) { if (ok) G.extendOp(w, S.ADS.rewarded.extend.sec); else G.finishTimeUp(w); if (V.pause) V.pause(false); }); };
+  }
   function results(res) {
     if (talking || !$('modal').hidden) { if (V.pause) V.pause(true); setTimeout(function () { results(res); }, 400); return; }   // 대사·다른 창이 끝난 뒤에
     if (V.pause) V.pause(true);
     if (V.setSpeed) V.setSpeed(1);
     $('throw-btn').hidden = true; hudA.tk = null;
     if (G2 && !res.demo) { var px0 = G2.pass(save, Date.now()).xp; G2.onOpEnd(save, Date.now(), res.stars); res.passXp = G2.pass(save, Date.now()).xp - px0; }
+    if (AD && !res.demo && !res.adCounted) { res.adCounted = true; AD.onOpEnd(save, Date.now()); }
     persistRaw();
     var r = res.rank, nr = S.RANKS[r + 1], R0 = S.RANKS[r];
     // v13: 읽을 게 적게 — 지시서는 '완료 N/M' 한 줄 + 못 한 줄·늦은 줄만 (최대 3)
@@ -565,16 +622,28 @@
       // v13: 줄은 4개까지만 보이고, 나머지는 '자세히'를 눌러야 펼쳐진다
       '<ul class="res-lines op">' + lines.slice(0, 4).join('') + '</ul>' +
       (lines.length > 4 ? '<details class="res-more"><summary>자세히 (' + (lines.length - 4) + ')</summary><ul class="res-lines op">' + lines.slice(4).join('') + '</ul></details>' : '') +
-      '<div class="res-pay"><span>' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
+      '<div class="res-pay"><span id="res-pie">' + pie() + '+' + fmt(res.pie + res.earlyPie) + (res.earlyPie ? ' <small>(조기 퇴근 ' + fmt(res.earlyPie) + ')</small>' : '') + '</span>' + (res.dia ? '<span>' + dia() + '상점 +' + res.dia + '</span>' : '') + (res.box ? '<span>보급 상자</span>' : '') + '</div>' +
+      (res.pie + res.earlyPie > 0 && (save.stats.ops || 0) >= 2 ? adBtn('double', '광고 보고 초코파이 ×2 (+' + fmt(res.pie + res.earlyPie) + ')') : '') +
       (res.passXp ? '<p class="res-pass">복무 패스 +' + res.passXp + '</p>' : '') + skillLine() +
       (res.payday ? '<p class="res-svc pay">월급날! ' + S.RANKS[res.rank].name + ' ' + res.payday.hob + '호봉 · ' + pie() + '+' + fmt(res.payday.pie) + '</p>' : res.svc1 !== undefined && res.svc1 > res.svc0 ? '<p class="res-svc">군생활 ' + res.svc0 + '% → <b>' + res.svc1 + '%</b></p>' : '') +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
       (res.zones.length ? '<p class="res-zone">새 담당 구역: <b>' + esc(res.zones.join(', ')) + '</b></p>' : '') +
+      (function () { var nx = M && M.roadmap ? M.roadmap(save).next : null; return nx && !res.zones.length ? '<p class="res-unlock">다음 해금 <b>' + esc(nx.names.slice(0, 2).join(' · ')) + '</b> · ★' + nx.left + ' 남음</p>' : ''; })() +
       '<button class="btn big" data-m="ok">' + (res.promoted ? '진급 신고하러 간다' : '충성! 들어가 보겠습니다') + '</button></div>', function () {
       rankSeen = G.rankOf(save);
       if (res.promoted) rankUp(res.rank, function () { title(); afterHub(); });
+      else if (AD && AD.interDue(save, Date.now())) { AD.showInterstitial(function () { AD.interShown(save, Date.now()); persistRaw(); title(); afterHub(); }); }   // v25 일정 판수가 지나면 생활관 가는 길에 전면 광고
       else { title(); afterHub(); }
     });
+    var adb = document.querySelector('#modal-box [data-ad="double"]');
+    if (adb) adb.onclick = function () {
+      adb.disabled = true;
+      watchAd('double', { pie: res.pie + res.earlyPie }, function (ok, r) {
+        if (!ok) { adb.disabled = false; return; }
+        adb.outerHTML = '<p class="res-svc pay">광고 보상! 초코파이 ×2 · +' + fmt(r.pie) + '</p>';
+        var rp = $('res-pie'); if (rp) rp.innerHTML = pie() + '+' + fmt((res.pie + res.earlyPie) * 2) + ' <small>(×2)</small>';
+      });
+    };
     if (X) setTimeout(function () { if (res.stars >= 3) X.fanfare(); else if (res.stars >= 1) X.stamp(); else X.deny(); }, 700);
   }
   // 생활관에 돌아오면: 이야기 장면 → 전역 안내
@@ -601,7 +670,7 @@
   /* ── 보급·인력·공장 ── */
   // v15: 보급 탭은 셋만 (장비 · 인원 · 강화). 꾸미기·수첩(훈장 포함)·전역은 생활관 버튼에서 따로 연다 (탭 줄 없이)
   var TABS = [['tool', '장비'], ['crew', '인원'], ['up', '강화']];
-  var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역' };
+  var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역', road: '군생활 로드맵' };
   var GTABS = [['gear', '장구'], ['chest', '보급 상자'], ['skill', '숙련']];   // v23 숙련 탭
   var GROUP = { gear: { title: '장구류', tabs: GTABS }, chest: { title: '장구류', tabs: GTABS }, skill: { title: '장구류', tabs: GTABS },
     mission: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] }, pass: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] } };
@@ -711,6 +780,7 @@
     if (tab === 'pass') { renderPass(list); return; }
     if (tab === 'dis') { renderDischarge(list); return; }
     if (tab === 'look') { renderLook(list); return; }
+    if (tab === 'road') { renderRoad(list); return; }
     if (tab === 'story' || tab === 'medal') { renderStory(list); if (G.feat(save, 'box')) renderMedals(list); return; }
     if (tab === 'crew') crewHead(list);
     if (tab === 'up' && G.feat(save, 'factory') && G.procLvl(save, 'press')) {
@@ -838,6 +908,9 @@
         (ch.ten ? '<button class="btn small" data-chest="' + ch.id + '" data-how="ten"' + (save.dia >= ch.ten ? '' : ' disabled') + '>10개 ' + dia() + ' ' + ch.ten + '</button>' : '');
       return '<div class="chest c-' + ch.id + '"><div class="ch-art">' + chestArt(ch.id) + '</div><div class="ch-info"><b>' + ch.name + '</b><small>' + odds + '</small><small>장구 1 + 정비 부품 ' + ch.parts[0] + '~' + ch.parts[1] + (Array.isArray(ch.dia) ? ' · 오늘 살수록 싸진다' : '') + '</small>' + pity + '</div><div class="ch-btns">' + btns + '</div></div>';
     }).join('');
+    // v25 광고 보상 (필요할 때만): 무료 상자 기다리기 싫을 때 · 상점이 조금 모자랄 때
+    var fb = G2.freeIn(save, 'basic', now), adRow = (fb > 0 ? adBtn('box', '광고 보고 일반 상자 지금 열기') : '') + adBtn('dia', '광고 보고 상점 +' + S.ADS.rewarded.dia.amount);
+    if (adRow) html += '<div class="ad-row">' + adRow + '</div>';
     html += '<p class="info-note">상점은 작전 ★★★·칼경례·특명·임무·훈장으로 모은다. 장구·상자·부품은 <b>전역해도 남는다</b>.</p>';
     list.insertAdjacentHTML('beforeend', html);
   }
@@ -878,6 +951,12 @@
   }
 
   function onShopClick(e) {
+    var adb = e.target.closest('[data-ad]');
+    if (adb) {
+      var aid = adb.getAttribute('data-ad');
+      watchAd(aid, null, function (ok, r) { if (!ok) return; if (aid === 'box' && r.open) { renderShop(); chestReveal(r.open); return; } if (aid === 'dia') toast('상점 +' + r.dia + '!'); renderShop(); });
+      return;
+    }
     // v18 장구·상자·임무·패스
     var bx = e.target.closest('[data-boxone],[data-boxall]');
     if (bx) { if (bx.hasAttribute('data-boxall')) openAllBoxes(); else openBox(); return; }
@@ -1061,9 +1140,11 @@
       (G2.mergeable(save).length ? '<br><b>합성할 수 있는 장구가 생겼다</b>' : '') + '</p><button class="btn big" data-m="ok">좋다!</button></div>', function () { renderShop(); });
   }
   // v23 결과 화면 숙련 한 줄: 이번 작전에 오른 것
+  var lvlUps = [];
   function skillLine() {
-    var w = V.world(), g = w && w.act && w.act.skGain; if (!g) return '';
-    var parts = S.SKILLS.list.filter(function (K) { return g[K.id] >= 1; }).map(function (K) { return K.name + ' Lv' + G.skillLv(save, K.id).lv; });
+    var w = V.world(), g = w && w.act && w.act.skGain;
+    var parts = g ? S.SKILLS.list.filter(function (K) { return g[K.id] >= 1; }).map(function (K) { return K.name + ' Lv' + G.skillLv(save, K.id).lv; }) : [];
+    parts = parts.concat(lvlUps.filter(function (x, i, A2) { return A2.indexOf(x) === i; }));
     return parts.length ? '<p class="res-svc">숙련 ▲ ' + esc(parts.join(' · ')) + '</p>' : '';
   }
   function crewHead(list) {
@@ -1362,6 +1443,42 @@
     else L2[cat] = o.id;
     var svg = JY.art.character(M.lookSpec({ look: L2 }));
     return svg.replace('viewBox="0 0 200 232"', 'viewBox="' + (CROP[cat] || '24 26 152 150') + '"');
+  }
+  // v25 군생활 로드맵: 지금까지 연 것 · 다음 해금 · 잠긴 것 (이름과 한 줄 설명은 보여 준다 — 저기까지 가고 싶게)
+  var RM_KIND = { zone: '구역', feat: '기능', tool: '장비', crew: '분대원', ride: '탈것', rank: '진급', dis: '전역', look: '꾸미기' };
+  var RM_IC = {
+    zone: '<path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z" fill="currentColor"/><circle cx="12" cy="9" r="2.6" fill="#fff"/>',
+    feat: '<path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.6L12 16.6 6 19.9l1.5-6.6-5-4.5 6.6-.6z" fill="currentColor"/>',
+    tool: '<path d="M6 21L16 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><rect x="12" y="2" width="10" height="6" rx="1.5" transform="rotate(35 17 5)" fill="currentColor"/>',
+    crew: '<circle cx="12" cy="7" r="4" fill="currentColor"/><path d="M4 21c0-5 3.6-8 8-8s8 3 8 8z" fill="currentColor"/>',
+    ride: '<circle cx="7" cy="17" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="17" cy="17" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M4 12h9l3-5h3v6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>',
+    rank: '<path d="M4 6h16v3H4zM4 11h16v3H4zM4 16h16v3H4z" fill="currentColor"/>',
+    dis: '<circle cx="12" cy="14" r="6" fill="currentColor"/><path d="M8 2h3l1 6-3 1zM16 2h-3l-1 6 3 1z" fill="currentColor"/>',
+    look: '<path d="M4 15l2-8 4 4 2-7 2 7 4-4 2 8z" fill="currentColor"/>',
+    lock: '<rect x="5" y="10" width="14" height="11" rx="2.5" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4"/>'
+  };
+  function rmIc(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (RM_IC[k] || RM_IC.feat) + '</svg>'; }
+  function renderRoad(list) {
+    var rm = M.roadmap(save), m = rm.merit, sv = G.service(save);
+    var head = document.createElement('div'); head.className = 'rm-head';
+    head.innerHTML = '<div><b>' + S.RANKS[rm.rank].name + ' ★' + m + '</b><small>군생활 ' + sv.pct + '% · 전역 ★' + S.DISCHARGE_MERIT + '</small></div>' +
+      (rm.next ? '<div class="rm-next"><small>다음 해금까지 ★' + rm.next.left + '</small><b>' + esc(rm.next.names.join(' · ')) + '</b></div>' : '<div class="rm-next"><b>전부 열었다!</b></div>');
+    list.appendChild(head);
+    var html = '<ol class="rm">';
+    rm.bands.forEach(function (B) {
+      var cls = B.i < rm.rank ? 'past' : B.i === rm.rank ? 'now' : 'future';
+      var shown = B.items;
+      html += '<li class="rm-band ' + cls + '"><div class="rm-rank"><i>' + insignia(B.i) + '</i><b>' + B.name + '</b><small>★' + B.from + '~' + B.to + (B.i === rm.rank ? ' · 지금' : '') + '</small></div><ul>' + shown.map(function (it) {
+        var st = it.state, left = it.at - m, pctW = st === 'next' ? Math.max(4, Math.min(100, (m - B.from) / Math.max(1, it.at - B.from) * 100)) : 0;
+        return '<li class="rm-it ' + st + ' k-' + it.kind + '"><span class="rm-ic">' + rmIc(st === 'lock' ? 'lock' : it.kind) + '</span><span class="rm-tx"><b>' + esc(it.name) + '</b><small>' + RM_KIND[it.kind] + (it.line ? ' · ' + esc(it.line) : '') + '</small></span>' +
+          '<em>' + (st === 'done' ? '열림' : st === 'open' ? '보급에서' : '★' + it.at) + '</em>' + (st === 'next' ? '<i class="rm-bar"><i style="width:' + pctW.toFixed(0) + '%"></i></i><span class="rm-left">★' + left + ' 남음</span>' : '') + '</li>';
+      }).join('') + '</ul></li>';
+    });
+    html += '<li class="rm-band tail"><div class="rm-rank"><i>' + STAR_SVG + '</i><b>전역 뒤에도</b><small>끝이 아니다</small></div><ul>' + rm.tail.map(function (it) {
+      return '<li class="rm-it ' + it.state + ' k-' + it.kind + '"><span class="rm-ic">' + rmIc(it.state === 'lock' ? 'lock' : it.kind) + '</span><span class="rm-tx"><b>' + esc(it.name) + '</b><small>' + esc(it.line) + '</small></span><em>' + (it.state === 'done' ? '열림' : '') + '</em></li>';
+    }).join('') + '</ul></li></ol>';
+    list.insertAdjacentHTML('beforeend', html);
+    setTimeout(function () { var cur = list.querySelector('.rm-it.next') || list.querySelector('.rm-band.now'); if (!cur) return; var lr = list.getBoundingClientRect(), cr = cur.getBoundingClientRect(); list.scrollTop += (cr.top - lr.top) - lr.height / 2 + cr.height / 2; }, 60);   // 목록만 굴린다 (화면 전체가 밀리지 않게)
   }
   // v24 입어 보기: 사기 전에 미리 걸쳐 본다 (저장은 안 한다. 화면을 나가면 원래대로)
   function tryOn(cat, id) {

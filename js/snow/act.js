@@ -297,9 +297,9 @@
     var mp = w.crew.filter(function (e) { return e.mapyeon; })[0];
     if (mp) return { kind: 'soothe', x: mp.x, y: mp.y, text: '후임 달래기!', sub: '행정반 가기 전에 막아라 · 옆에 가면 달래기 버튼', tone: 'red' };
     var py = a.pye;   // v24 폐급짓
-    if (py && py.id === 'dump') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 치운 길에 눈을 버린다!', sub: '가서 막아라 · 옆에 가면 "야! 멈춰!" · ' + py.n + '/' + py.max + '번째', tone: 'red' };
-    if (py && py.id === 'hide' && py.phase !== 'back') return { kind: 'pye', x: py.spot.x, y: py.spot.y, text: '후임이 사라졌다! ' + Math.max(0, Math.ceil(py.sec - py.t)) + '초', sub: py.spot.n + ' 쪽에서 봤다는데… 가서 찾아라', tone: 'gold' };
-    if (py && py.id === 'broke' && py.phase === 'idle') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 넉가래를 부러뜨렸다', sub: '가서 제설함에서 새 거 가져오라고 해라 · 안 그러면 계속 멍때린다', tone: 'gold' };
+    if (py && py.id === 'dump') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 치운 길에 눈을 버린다!', sub: '가서 "야! 멈춰!" · ' + py.n + '/' + py.max + '번째', tone: 'red' };
+    if (py && py.id === 'hide' && py.phase !== 'back') return { kind: 'pye', x: py.spot.x, y: py.spot.y, text: '후임이 사라졌다! ' + Math.max(0, Math.ceil(py.sec - py.t)) + '초', sub: py.spot.n + ' 쪽 · 가서 찾아라', tone: 'gold' };
+    if (py && py.id === 'broke' && py.phase === 'idle') return { kind: 'pye', x: py.e.x, y: py.e.y, text: '후임이 넉가래를 부러뜨렸다', sub: '가서 "새 거 가져와!" (안 하면 멍때림)', tone: 'gold' };
     if (w.car && w.car.stuck) return { kind: 'car', x: w.car.x, y: w.car.y + 16, text: '빠진 차 밀기', sub: Math.round(w.car.push * 100) + '% · 차 뒤에 붙어 있으면 민다', pct: w.car.push, tone: 'red' };
     // v22 대왕 눈덩이를 밀고 있으면: 가까운 집하장으로
     if (a.big && Math.hypot(a.big.x - P.x, a.big.y - P.y) < a.big.r + 34) { var db = G.nearestDump(w, a.big.x, a.big.y); return { kind: 'big', x: db.x, y: db.y, text: '대왕 눈덩이 → 집하장', sub: '굴려서 넣으면 1.5배 · 지금 눈 ' + Math.round(a.big.load), tone: 'gold' }; }
@@ -626,6 +626,51 @@
   /* ── v16 벌러덩 · 추격 ── */
   // 맞으면 잠깐 쓰러진다 (누운 모습, 그동안 일·이동 멈춤)
   // v24 고라니는 간부·행보관도 가리지 않는다 — 지나가다 박으면 벌러덩 (내 탓이 아니니 쫓아오지 않는다)
+  /* ── v25 집중: 지금 플레이어가 신경 써야 하는 큰 일 (경례 · 돌발 · 폐급짓 · 마편 · 고라니 떼 · 빠진 차 · 추격) ── */
+  function attention(w) {
+    var a = w.act || {}, out = [], H = w.haeng;
+    (a.off || []).forEach(function (o) { if (o.chaseT > 0) out.push('chase'); else if (!o.saluted && !o.missed && o.phase !== 'go') out.push('salute'); });
+    if (H && H.chaseT > 0) out.push('chase');
+    if (w.crew.some(function (e) { return e.chaseT > 0; })) out.push('chase');
+    if (a.chaos) out.push('chaos');
+    if (a.pye) out.push('pye');
+    if (w.crew.some(function (e) { return e.mapyeon; })) out.push('mapyeon');
+    if (w.herd && !w.herd.done && w.deer.some(function (d) { return d.herd === w.herd.id && !(d.down > 0) && !d.leaving; })) out.push('herd');
+    if (w.car && w.car.stuck) out.push('car');
+    return out;
+  }
+  function minors(w) {
+    var a = w.act || {}, out = [];
+    if (a.big) out.push('big');
+    if ((a.drops || []).length) out.push('drop');
+    if (w.surge > 0) out.push('surge');
+    if (w.deer.some(function (d) { return !d.herd && !(d.down > 0) && !d.leaving; })) out.push('deer');
+    return out;
+  }
+  function focusOf(w) { var a = w.act; return a.focus || (a.focus = { lastMajor: -99, lastMinor: -99, n: 0 }); }
+  function stepFocus(w) { if (attention(w).length) focusOf(w).lastMajor = w.time; }
+  function budgetOf(w) { var ops = w.save.stats.ops || 0, B = S.FOCUS.budget; for (var i = 0; i < B.length; i++) if (ops < B[i][0]) return B[i][1]; return 3; }
+  // 큰 일(돌발 · 폐급짓 · 고라니 떼)을 지금 시작해도 되나
+  function majorOK(w) {
+    var F = S.FOCUS, f = focusOf(w);
+    if (attention(w).length || (w.op && w.op.ready)) return false;
+    if (w.time < F.calmStart || w.time > (w.dayLen || S.DAY_LEN) - F.calmEnd) return false;
+    if (w.time - f.lastMajor < F.gap) return false;
+    return f.n < budgetOf(w);
+  }
+  function majorStart(w) { var f = focusOf(w); f.n++; f.lastMajor = w.time; }
+  // 작은 일: 큰 일 중엔 미루고, 작은 일끼리도 6초 간격
+  function minorOK(w) { var f = focusOf(w); return !attention(w).length && w.time - f.lastMinor >= S.FOCUS.minorGap; }
+  function minorStart(w) { focusOf(w).lastMinor = w.time; }
+  // sim의 하루 일정 (고라니·떼·차·선임 장난·폭설·사단장 불시 방문…): 지금 하면 겹치면 미룬다
+  var MINOR_EV = { deer: 1, snowball: 1, roof: 1, surge: 1, support: 1, heli: 1 };
+  function defer(w, k) {
+    if (!w.act) return false;
+    if (k === 'herd') { if (!majorOK(w)) return true; majorStart(w); return false; }
+    if (k === 'car' || k === 'surprise') return attention(w).length > 0;
+    if (MINOR_EV[k]) { if (!minorOK(w)) return true; minorStart(w); return false; }
+    return false;
+  }
   // v24 모자를 쓰고 출동하면 누군가 한마디 (작전 시작 4초쯤, 70%)
   function stepLookLine(w) {
     var a = w.act; if (a.lookSaid || w.time < 4) return; a.lookSaid = true;
@@ -778,12 +823,12 @@
     if (a.pyeAt === undefined) { a.pyeAt = w.rand() < C.p ? C.at[0] + w.rand() * (C.at[1] - C.at[0]) : 1e9; a.pyeN = 0; }
     var pe = a.pye;
     if (!pe && w.time >= a.pyeAt && !(w.op && w.op.ready)) {
-      if (a.chaos) { a.pyeAt = w.time + 6; return; }   // 돌발과 한꺼번에 겹치지 않게
+      if (!majorOK(w)) { a.pyeAt = w.time + S.FOCUS.retry; return; }   // v25 다른 큰 일과 겹치지 않게
       var who = pyeWho(w); if (!who.length) { a.pyeAt = w.time + 12; return; }
       a.pyeN++; a.pyeAt = a.pyeN < 2 && rank(w) >= 2 && w.rand() < C.p2 ? w.time + C.gap + w.rand() * 40 : 1e9;
       var tot = 0, r = w.rand(), K = null; C.kinds.forEach(function (k) { tot += k.w; }); r *= tot;
       for (var i = 0; i < C.kinds.length; i++) { r -= C.kinds[i].w; if (r < 0) { K = C.kinds[i]; break; } }
-      startPye(w, K || C.kinds[0], who[(w.rand() * who.length) | 0]);
+      majorStart(w); startPye(w, K || C.kinds[0], who[(w.rand() * who.length) | 0]);
       return;
     }
     if (pe) tickPye(w, pe, dt);
@@ -960,8 +1005,9 @@
     a.drops = a.drops || [];
     if (a.dropT === undefined) a.dropT = D.first;
     a.dropT -= dt;
+    if (a.dropT <= 0 && !minorOK(w)) a.dropT = S.FOCUS.retry;   // v25 큰 일 중엔 미룬다
     if (a.dropT <= 0) {
-      a.dropT = D.every[0] + w.rand() * (D.every[1] - D.every[0]);
+      a.dropT = D.every[0] + w.rand() * (D.every[1] - D.every[0]); minorStart(w);
       var pt = !(w.op && w.op.ready) && nearPoint(w, P, D.near[0], D.near[1], false);
       if (pt) {
         var tot = 0, r = w.rand(), K = D.kinds[0]; D.kinds.forEach(function (k) { tot += k.w; }); r *= tot;
@@ -995,6 +1041,7 @@
     var a = w.act, P = w.player, BB = S.BIGBALL;
     if (!G.feat(w.save, 'bigball')) return;
     if (a.bigAt === undefined) a.bigAt = BB.at[0] + w.rand() * (BB.at[1] - BB.at[0]);
+    if (!a.big && !a.bigDone && w.time >= a.bigAt && !minorOK(w)) a.bigAt = w.time + S.FOCUS.retry;   // v25
     if (!a.big && !a.bigDone && w.time >= a.bigAt) {
       var pt = !(w.op && w.op.ready) && nearPoint(w, P, 45, 120, true);
       if (pt) { a.big = { x: pt.x, y: pt.y, r: BB.r0, vx: 0, vy: 0, load: 0, val: 0, cap: 1e9, roll: 0, clr: 0 }; fx(w, { t: 'big', x: pt.x, y: pt.y }); }
@@ -1065,11 +1112,12 @@
     if (a.chaosAt === undefined) { a.chaosAt = w.rand() < C.p ? C.at[0] + w.rand() * (C.at[1] - C.at[0]) : 1e9; a.chaosN = 0; a.marks = []; }
     var ch = a.chaos;
     if (!ch && w.time >= a.chaosAt && !(w.op && w.op.ready) && !(P.stun > 0)) {
+      if (!majorOK(w)) { a.chaosAt = w.time + S.FOCUS.retry; return; }   // v25 다른 큰 일이 있으면 미룬다
       var pool = C.kinds.filter(function (K) { return chaosOK(w, K) && !(a.chaosDone || {})[K.id]; }), tot = 0, r = w.rand();
       pool.forEach(function (K) { tot += K.w; }); r *= tot;
       var K = null; for (var i = 0; i < pool.length; i++) { r -= pool[i].w; if (r < 0) { K = pool[i]; break; } }
       a.chaosN++; a.chaosAt = a.chaosN < 2 && rank(w) >= 2 && w.rand() < C.p2 ? w.time + C.gap + w.rand() * 40 : 1e9;
-      if (K) startChaos(w, K);
+      if (K) { majorStart(w); startChaos(w, K); }
       return;
     }
     if (ch) tickChaos(w, ch, dt);
@@ -1196,6 +1244,7 @@
   /* ── 매 틱 ── */
   function step(w, dt) {
     var a = init(w), P = w.player, H = w.haeng;
+    if (!w.demo) stepFocus(w);
     Object.keys(a.buffs).forEach(function (k) { a.buffs[k] -= dt; if (a.buffs[k] <= 0) { delete a.buffs[k]; fx(w, { t: 'buffEnd', id: k, name: BUFF[k].name }); } });
     Object.keys(a.cool).forEach(function (k) { a.cool[k] -= dt; });
     a.pickCd -= dt;
@@ -1300,6 +1349,7 @@
   function stepOfficers(w, dt) {
     var a = w.act, P = w.player;
     if (a.offDay !== w.save.day) planOfficers(w);
+    if (a.offPlan.length && a.offPlan[0].t <= w.time && !w.demo && attention(w).length) a.offPlan[0].t = w.time + S.FOCUS.retry;   // v25 큰 일 중엔 간부가 조금 늦게 온다 (경례는 한 번에 한 분)
     while (a.offPlan.length && a.offPlan[0].t <= w.time) { var pl = a.offPlan.shift(); if (!a.off.some(function (o) { return o.id === pl.id; })) spawnOfficer(w, pl.id); }
     // 출근 차량이 행정반 앞에 서면 중대장님이 내린다
     if (w.carArrived) { var ca = w.carArrived; w.carArrived = null; if (!a.off.some(function (o) { return o.id === 'cpt'; })) spawnOfficer(w, 'cpt', { x: ca.x, y: ca.y + 10 }); }
@@ -1428,7 +1478,7 @@
 
   JY.SnowAct = {
     init: init, step: step, candidates: candidates, best: best, act: act, canBuild: canBuild,
-    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer, throwDir: throwDir, startChaos: startChaos, stepChaos: stepChaos, chaosDef: chaosDef, AIM: AIM, relation: relation, hitCrew: hitCrew, soothe: soothe, MAPYEON: MAPYEON, startPye: startPye, stepPye: stepPye, pyeStop: pyeStop, pyeDef: pyeDef,
+    canThrow: function (w) { return !!throwTarget(w); }, prank: prank, knock: knock, startChase: startChase, CHASE: CHASE, throwBall: throwBall, throwTarget: throwTarget, fun: fun, startRide: startRide, rideDef: rideDef, hitDeer: hitDeer, throwDir: throwDir, startChaos: startChaos, stepChaos: stepChaos, chaosDef: chaosDef, AIM: AIM, relation: relation, hitCrew: hitCrew, soothe: soothe, MAPYEON: MAPYEON, startPye: startPye, stepPye: stepPye, attention: attention, minors: minors, allMarks: function (w) { return ((w.act && w.act.marks) || []).concat(pyeMarks(w)); }, defer: defer, majorOK: majorOK, minorOK: minorOK, focusOf: focusOf, pyeStop: pyeStop, pyeDef: pyeDef,
     prepItems: prepItems, prepBuy: prepBuy, useDia: useDia, applyPrep: applyPrep, nextTool: nextTool, pads: pads, objective: objective, auto: auto,
     drop: function (w) { init(w); if (w.act.hand) { me(w, '(' + ITEM[w.act.hand].name + '을/를 내려놨다)'); hold(w, null); return true; } return false; },
     ITEM: ITEM, state: state, applyStats: applyStats, reportNow: reportNow, takeDrop: takeDrop, stepBig: stepBig, stepDrops: stepDrops, endRide: endRide, spawnOfficer: spawnOfficer, OFF: OFF, chocoCost: chocoCost, opDone: opDone,

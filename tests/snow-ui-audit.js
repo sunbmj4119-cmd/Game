@@ -19,7 +19,7 @@ function scan() {
     if (!scr && (r.left < -1 || r.right > vw + 1 || r.bottom > vh + 1 || r.top < -1)) out.push('화면 밖: ' + name(el) + ' [' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.right) + ',' + Math.round(r.bottom) + ']');
     if (scr && !el.closest('.tabs, .look-tabs') && (r.left < -1 || r.right > vw + 1)) out.push('옆으로 넘침: ' + name(el));
     var cs = getComputedStyle(el);
-    if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el));
+    if ((cs.textOverflow === 'ellipsis' || cs.overflow === 'hidden') && el.children.length === 0 && el.scrollWidth > el.clientWidth + 2 && el.textContent.trim()) out.push('글씨 잘림: ' + name(el) + ' "' + el.textContent.trim().slice(0, 40) + '"');
     // v16 글자 꺾임: 칸이 좁아 한 줄에 서너 글자만 들어가며 여러 줄로 꺾이는 글 (v15 보급 카드 같은 것)
     var txt = el.children.length === 0 ? el.textContent.replace(/\s+/g, ' ').trim() : '';
     if (txt.length >= 6 && !el.closest('.talk-face, .say-face, .lc-face, .ico, .dots')) {
@@ -148,6 +148,13 @@ function scan() {
       }
       await page.click('#s-go'); await sleep(400); await closeAll();
     }
+    // v25 군생활 로드맵 · 체력 부족(광고 버튼)
+    var rdb = await page.$('.road[data-hub="road"]'); if (rdb) { await rdb.click(); await sleep(500); await check('page-road'); await page.click('#s-go'); await sleep(400); await closeAll(); }
+    await page.evaluate(function () { var s = __SNOW.save(); if (s.energy) { s.energy.v = 0; s.energy.t = Date.now(); } s.rank = Math.max(1, s.rank); __SNOW.title(); });
+    await sleep(300); await closeAll();
+    var stb = await page.$('#t-start'); if (stb) { await stb.click(); await sleep(500); var eg = await page.$('#modal-box [data-ad="energy"]'); if (eg) await check('energy-ad'); await closeAll(); }
+    await page.evaluate(function () { var s = __SNOW.save(); if (s.energy) s.energy.v = 75; __SNOW.title(); });
+    await sleep(300); await closeAll();
     // v16 극단값: 아주 큰 돈·상점, 가장 긴 이름, 분대원 꽉, 특기·탈것 정비 다 → 생활관·보급·결과
     await page.evaluate(function () {
       var s = __SNOW.save(); s.bank = 98765432109; s.dia = 9876; s.look.name = '가나다라마바'; s.rank = 3; s.merit = 70; JY.SnowSim.assignZones(s);

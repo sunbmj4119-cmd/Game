@@ -186,6 +186,36 @@
   function lookColor(save, cat) { var e = lookEntry(cat, (save.look || {})[cat]); return e && e[4] ? e[4] : (lookEntry(cat, S.LOOK[cat][0][0]) || [])[4]; }
   function lookKey(save) { var L = save.look || {}; return [L.eyes, L.mouth, L.brows, L.head, L.skin, (L.extras || []).join('+'), L.hat, L.coat, L.glove, L.tool].join('|'); }
 
-  JY.SnowMeta = { questNow: questNow, questProg: questProg, questCheck: questCheck, storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, tierOf: tierOf, dealOf: dealOf, priceOf: priceOf, fixLook: fixLook, styleInfo: styleInfo, lookEntry: lookEntry, owns: function (save, cat, id) { var e = lookEntry(cat, id); return !!e && owns(save, cat, e); }, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
+  /* ── v25 군생활 로드맵: 앞으로 무엇이 열리는지 (★ 순서) ── */
+  function roadmap(save) {
+    var m = save.merit || 0, items = [], rk = G.rankOf(save);
+    function zoneAt(id) { var Z = G.zoneById(id); return Z ? Z.need : 0; }
+    function rankAt(r) { return S.RANKS[r] ? S.RANKS[r].merit : 0; }
+    S.ZONES.forEach(function (Z, i) { if (i) items.push({ at: Math.max(Z.need, rankAt(Z.rank || 0)), kind: 'zone', name: Z.name, line: '새 담당 구역 · ' + (Z.why || ''), done: !!(save.zones || {})[Z.id] }); });
+    S.FEATURES.forEach(function (F) {
+      if (!F.name) return; var c = F.when || {}, at = c.zone ? zoneAt(c.zone) : c.rank ? rankAt(c.rank) : 0;
+      items.push({ at: at, kind: /^(cart|atv|tractor)$/.test(F.id) ? 'ride' : 'feat', name: F.name, line: F.line || '', done: G.feat(save, F.id) });
+    });
+    S.TOOLS.forEach(function (T0, i) { if (i) items.push({ at: rankAt(T0.rank || 0), kind: 'tool', name: T0.name, line: T0.desc, done: save.tool >= i, cost: T0.cost }); });
+    S.CREW.forEach(function (C) { items.push({ at: rankAt(C.rank || 0), kind: 'crew', name: C.vehicle ? '제설차 운전병' : C.name, line: C.tag ? C.tag + ' · 같이 치운다' : '', done: ((save.crew || {})[C.id] || 0) > 0 }); });
+    S.RANKS.forEach(function (R, i) { if (i) items.push({ at: R.merit, kind: 'rank', name: R.name + ' 진급', line: '진급 심사 (★★ 이상) · 월급이 오른다', done: rk >= i }); });
+    items.push({ at: S.DISCHARGE_MERIT, kind: 'dis', name: '전역', line: '베레모 · 전역 메달 (초코파이 영구 +10%) → 재입대하면 더 빨리', done: !!save.discharges });
+    items.forEach(function (it) { if (!it.done && m >= it.at && it.kind !== 'tool' && it.kind !== 'crew') it.ready = true; });
+    items.sort(function (a, b) { return a.at - b.at || (a.kind === 'rank' ? -1 : b.kind === 'rank' ? 1 : 0); });
+    var nxt = items.filter(function (it) { return !it.done && it.at > m; })[0], nextAt = nxt ? nxt.at : 0;
+    items.forEach(function (it) { it.state = it.done ? 'done' : it.at <= m ? 'open' : it.at === nextAt ? 'next' : 'lock'; });
+    var bands = S.RANKS.map(function (R, i) { return { i: i, name: R.name, from: R.merit, to: S.RANKS[i + 1] ? S.RANKS[i + 1].merit : S.DISCHARGE_MERIT, items: [] }; });
+    items.forEach(function (it) { var b = bands.filter(function (B) { return it.at >= B.from && it.at < B.to; })[0] || bands[bands.length - 1]; if (it.kind === 'dis') return; b.items.push(it); });
+    var tail = [
+      { kind: 'dis', name: '전역 · 재입대', line: '★' + S.DISCHARGE_MERIT + ' · 전역 메달은 영원히 남는다 (메달마다 초코파이 +10%)', state: save.discharges ? 'done' : m >= S.DISCHARGE_MERIT ? 'open' : 'lock' },
+      { kind: 'feat', name: '신화 장구', line: '같은 전설 장구 3개를 합성 · 장구는 전역해도 남는다', state: 'lock' },
+      { kind: 'feat', name: '숙련 Lv30', line: '삽질·짐 나르기·체력·눈덩이 · 여러 번 전역해야 닿는다', state: 'lock' },
+      { kind: 'look', name: '전설 꾸미기', line: '왕관 · 무지개 아프로 · 황금 철모 · 짝퉁 사단장 모자', state: 'lock' },
+      { kind: 'feat', name: '발견 수첩 ' + (S.FUN || []).length + '칸', line: '아직 못 찾은 골때리는 일들', state: 'lock' }
+    ];
+    return { merit: m, rank: rk, bands: bands, tail: tail, next: nxt ? { at: nxt.at, left: nxt.at - m, names: items.filter(function (it) { return it.state === 'next'; }).map(function (it) { return it.name; }) } : null };
+  }
+
+  JY.SnowMeta = { roadmap: roadmap, questNow: questNow, questProg: questProg, questCheck: questCheck, storyNext: storyNext, storyDone: storyDone, storyMet: storyMet, fill: fill, lookOptions: lookOptions, setLook: setLook, buyLook: buyLook, tierOf: tierOf, dealOf: dealOf, priceOf: priceOf, fixLook: fixLook, styleInfo: styleInfo, lookEntry: lookEntry, owns: function (save, cat, id) { var e = lookEntry(cat, id); return !!e && owns(save, cat, e); }, lookSpec: lookSpec, lookColor: lookColor, lookKey: lookKey, lookName: lookName,
     TIER: TIER, rollCall: rollCall, openBox: openBox, achList: achList, check: check, statOf: statOf, dateStr: dateStr };
 })(window.JY = window.JY || {});

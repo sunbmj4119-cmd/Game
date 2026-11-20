@@ -1250,3 +1250,74 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 .look-deal small { font-size: 11px; font-weight: 800; color: #e0661b; }
 .look-deal b { font-size: 14.5px; font-weight: 700; }
 .look-deal em { font-style: normal; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; }
+/* v25 광고: 보상형 버튼 (필요할 때 내가 누른다) · 웹에서 보이는 '광고 자리' 화면 */
+.ad-btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; padding: 10px 12px; border: 0; border-radius: 12px; background: #eaf3ff; color: #1f5fa8; font-weight: 700; font-size: 14.5px; box-shadow: inset 0 0 0 2px #9fc5ef; cursor: pointer; flex-wrap: nowrap; white-space: nowrap; }
+.ad-btn span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ad-btn small { flex: none; font-size: 11px; font-weight: 600; color: #5d84b3; background: #fff; border-radius: 99px; padding: 1px 7px; }
+.ad-btn .ad-ic { width: 20px; height: 20px; flex: none; }
+.ad-btn:disabled { opacity: .55; }
+.ad-row { display: grid; gap: 0; margin: 6px 0 2px; }
+.res-btns.col { flex-direction: column; display: flex; gap: 8px; }
+.res-btns.col .ad-btn { margin-top: 0; padding: 13px 12px; font-size: 15.5px; }
+.ad-mock { position: fixed; inset: 0; z-index: 9999; background: rgba(8,12,20,.92); display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+.ad-box { position: relative; box-sizing: border-box; width: min(340px, 100%); background: #fff; border-radius: 18px; padding: 18px 16px 16px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.ad-tag { position: absolute; top: 10px; left: 12px; font-size: 11px; font-weight: 800; color: #fff; background: #f0b429; border-radius: 6px; padding: 1px 6px; }
+.ad-art { box-sizing: border-box; width: 100%; aspect-ratio: 16 / 10; border-radius: 12px; background: repeating-linear-gradient(135deg, #eef2f6 0 12px, #e2e8ef 12px 24px); display: grid; place-content: center; gap: 6px; padding: 12px; }
+.ad-art b { font-size: 20px; color: #4b5d76; }
+.ad-art span { font-size: 12.5px; color: #6b7a8c; word-break: keep-all; }
+.ad-left { margin: 0; font-size: 15px; font-weight: 800; color: #23324a; }
+.ad-x { width: 100%; }
+.ad-skip { border: 0; background: none; color: #8a96a6; font-size: 12px; text-decoration: underline; cursor: pointer; }
+/* v25 군생활 로드맵 */
+.road[data-hub] { cursor: pointer; }
+.news li.unlock { cursor: pointer; }
+.news li.unlock .more { color: var(--gold); font-weight: 700; white-space: nowrap; }
+.res-unlock { margin: 6px 0 0; font-size: 13px; color: #6b5420; text-align: center; }
+.rm-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--navy); color: #fff; border-radius: 16px; padding: 12px 14px; }
+.rm-head > div { display: grid; gap: 2px; min-width: 0; }
+.rm-head b { font-size: 16px; }
+.rm-head small { font-size: 12px; color: #b8c7d9; }
+.rm-next { text-align: right; }
+.rm-next b { color: #ffd34d; font-size: 14.5px; word-break: keep-all; }
+.rm { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rm-band { background: #fff; border-radius: 16px; padding: 10px; box-shadow: inset 0 0 0 2px var(--line); }
+.rm-band.now { box-shadow: inset 0 0 0 3px var(--gold), 0 4px 12px rgba(232,164,0,.18); }
+.rm-band.past { opacity: .82; }
+.rm-band.future { background: #f4f6f9; }
+.rm-band.tail { background: linear-gradient(160deg, #fffaf0, #fff1c7); box-shadow: inset 0 0 0 2px #e8c25a; }
+.rm-rank { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rm-rank i { width: 26px; height: 26px; display: grid; place-items: center; flex: none; }
+.rm-rank i svg { width: 100%; height: 100%; }
+.rm-rank b { font-family: var(--f-title); font-weight: 400; font-size: 17px; }
+.rm-rank small { color: var(--mute); font-size: 12px; }
+.rm-band ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.rm-it { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 12px; background: #f6f8f2; }
+.rm-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: #e3ead6; color: #4d5b31; }
+.rm-ic svg { width: 18px; height: 18px; }
+.rm-tx { display: grid; gap: 1px; min-width: 0; }
+.rm-tx b { font-size: 14px; font-weight: 700; word-break: keep-all; }
+.rm-tx small { font-size: 11.5px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: keep-all; }
+.rm-it em { font-style: normal; font-size: 12px; font-weight: 700; color: #6b7a8c; white-space: nowrap; }
+.rm-it.done em { color: var(--olive); }
+.rm-it.open { background: #eef7e6; }
+.rm-it.open em { color: #2f8f5b; }
+.rm-it.next { background: #fff6dd; box-shadow: inset 0 0 0 2px #e8a400; padding-bottom: 16px; }
+.rm-it.next .rm-ic { background: #ffd34d; color: #5a3d00; }
+.rm-it.next em { color: #b07800; }
+.rm-it.lock { background: #eef1f5; }
+.rm-it.lock .rm-ic { background: #dde3ea; color: #8a96a6; }
+.rm-it.lock .rm-tx b { color: #4b5563; }
+.rm-bar { position: absolute; left: 46px; right: 70px; bottom: 6px; height: 5px; border-radius: 3px; background: rgba(0,0,0,.08); overflow: hidden; }
+.rm-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffcf3a, #e8a400); }
+.rm-left { position: absolute; right: 8px; bottom: 2px; font-size: 10.5px; font-weight: 700; color: #b07800; }
+.rm-it.k-zone .rm-ic { color: #2f6fd1; }
+.rm-it.k-ride .rm-ic, .rm-it.k-tool .rm-ic { color: #b0631b; }
+.rm-it.k-crew .rm-ic { color: #4d5b31; }
+.rm-it.k-rank .rm-ic, .rm-it.k-dis .rm-ic { color: #b07800; }
+.rm-it.lock .rm-ic { color: #8a96a6; }
+.road[data-hub] { position: relative; }
+.road[data-hub]::after { content: '로드맵 ›'; position: absolute; top: -9px; right: 10px; font-size: 10.5px; font-weight: 800; color: #3d2a00; background: var(--gold); border-radius: 99px; padding: 1px 8px; box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+/* v25 배너 큰 글씨: 한 단어만 다음 줄로 떨어지지 않게 (줄 균형 + 조금 작게) */
+#banner b { font-size: clamp(21px, 6.4vw, 32px); text-wrap: balance; }
+#banner span { font-size: 14.5px; max-width: 100%; box-sizing: border-box; }
+.m-res .kicker, .m-rank .kicker { text-wrap: balance; }

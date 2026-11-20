@@ -417,9 +417,9 @@
       if (f.t === 'dump' && (f.src === 'player' || Math.random() < 0.3)) { floats.push({ x: f.x, y: f.y - 30, text: '+' + Math.floor(f.pay), t: 0, life: 1.2, color: '#ffd84a', size: 13, pie: true }); if (JY.SnowSfx && f.src === 'player' && mode === 'play') { JY.SnowSfx.pour(1); JY.SnowSfx.coin(); } }
       // v13: '가득!'은 위 짐 고리가 말한다 (내 머리 위 글자는 캐릭터를 가렸다)
       if (f.t === 'inspect') floats.push({ x: f.x, y: f.y, text: '검열 통과! +' + Math.floor(f.bonus), t: 0, life: 2.4, color: '#ffd84a', size: 14 });
-      if (f.t === 'bubble' && f.e && bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 });
+      if (f.t === 'bubble' && f.e) { bubbles = bubbles.filter(function (b) { return b.e !== f.e; }); if (bubbles.length < 5) bubbles.push({ e: f.e, text: f.text, t: 0, life: 2.8 }); }   // v25 같은 사람은 새 말풍선 하나만
       if ((f.t === 'splat' || f.t === 'smash') && parts.length < 420) for (var q = 0; q < 8; q++) parts.push({ x: f.x, y: f.y, z: rnd(2, 8), vx: rnd(-40, 40), vy: rnd(-30, 30), vz: rnd(20, 60), life: rnd(0.3, 0.6), t: 0, s: rnd(1, 2.2) });
-      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|angel|drift|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(deer|meHit|snowball|car|heli|part|full|inspect|day|dump|me|heat|buff|buffEnd|mission|gift|sleep|ride|caught|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|call|vend|pullup|goal|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|angel|drift|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd|timeUp|extended)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -540,7 +540,7 @@
     var TR = JY.SnowAct && JY.SnowAct.TRACTOR, ac = world.act;
     if (TR && !G.feat(world.save, 'tractor')) list.push({ y: TR.y + 10, f: function () { drawVehicle(c, { x: TR.x, y: TR.y, dir: { x: 1, y: 0 } }, { kind: 'tractor', r: 30 }); } });
     // v23 돌발 표시 (화장실 · 나무 · 치우지 마!)
-    if (ac && ac.marks) ac.marks.forEach(function (m) { list.push({ y: 1e9 - 2, f: function () {
+    if (ac && ac.marks) (JY.SnowAct.allMarks ? JY.SnowAct.allMarks(world) : ac.marks).forEach(function (m) { list.push({ y: 1e9 - 2, f: function () {
       var rr0 = (m.r || 14) * (1 + Math.sin(tNow * 5) * 0.05); c.strokeStyle = m.color || '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(m.x, m.y, rr0, 0, 7); c.stroke();
       c.font = '700 9px ' + FONT; c.textAlign = 'center'; var tw = c.measureText(m.label).width + 8; c.fillStyle = m.color || '#333'; rr(c, m.x - tw / 2, m.y - rr0 - 15, tw, 13, 4); c.fill(); c.fillStyle = '#fff'; c.fillText(m.label, m.x, m.y - rr0 - 5.5);
     } }); });
@@ -621,9 +621,13 @@
       c.fillStyle = p.salt ? 'rgba(200,230,255,' + al + ')' : 'rgba(255,255,255,' + Math.min(1, al + 0.2) + ')'; circ(c, p.x, p.y - p.z, p.s); c.fill();
     }
     // 말풍선·숫자
-    bubbles.forEach(function (b) { drawBubble(c, b.e.x, b.e.y - 38, b.text, Math.min(1, (b.life - b.t) * 3, b.t * 6)); });
+    // v25 겹침 정리: 말풍선·글자가 겹치면 위로 비켜 선다 (먼저 뜬 것이 자리를 지킨다)
+    var placed2 = [];
+    function dodge(x, y, w, h) { var dy = 0; for (var k2 = 0; k2 < 6; k2++) { var hit = null; for (var j = 0; j < placed2.length; j++) { var r = placed2[j]; if (x - w / 2 < r.x + r.w && x + w / 2 > r.x && y - dy - h < r.y + r.h && y - dy > r.y) { hit = r; break; } } if (!hit) break; dy = y - hit.y + 2; if (dy > 60) break; } placed2.push({ x: x - w / 2, y: y - dy - h, w: w, h: h }); return dy; }
+    bubbles.forEach(function (b) { var by = b.e.y - 38, dy = dodge(b.e.x, by, Math.min(140, 12 + String(b.text).length * 7), 18); drawBubble(c, b.e.x, by - dy, b.text, Math.min(1, (b.life - b.t) * 3, b.t * 6)); });
     floats.forEach(function (f) {
       var k = f.t / f.life, fy = (f.follow ? f.follow.y - 30 : f.y) - k * 16, fx0 = f.follow ? f.follow.x + 6 : f.x;
+      fy -= dodge(fx0, fy + f.size / 2, String(f.text).length * f.size * 0.62 + 8, f.size + 2);
       c.globalAlpha = Math.min(1, (1 - k) * 2.2);
       c.font = '700 ' + f.size + 'px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
       c.lineWidth = 3; c.strokeStyle = 'rgba(40,40,40,.7)'; c.strokeText(f.text, fx0, fy); c.fillStyle = f.color; c.fillText(f.text, fx0, fy);

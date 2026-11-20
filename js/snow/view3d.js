@@ -840,6 +840,8 @@
   /* ── 화면 위 글자 (DOM) ── */
   function addOv(html, cls, x, y, h, life, follow) {
     if (overlays.length > 40) { var o0 = overlays.shift(); o0.el.remove(); }
+    // v25 같은 사람의 말풍선은 새 것 하나만 (이전 것은 바로 지운다)
+    if (follow && /ov-chat/.test(cls || '')) for (var q = overlays.length - 1; q >= 0; q--) if (overlays[q].follow === follow && overlays[q].el.classList.contains('ov-chat')) { overlays[q].el.remove(); overlays.splice(q, 1); }
     var el = document.createElement('div'); el.className = 'ov ' + (cls || ''); el.innerHTML = html; ov.appendChild(el);
     var o = { el: el, x: x, y: y, h: h || 2.5, t: 0, life: life || 1, follow: follow || null };
     var p0 = project(follow ? follow.x : x, follow ? follow.y : y, o.h);
@@ -848,15 +850,45 @@
   }
   function project(x, y, h) { tmp.set(x * U, h, y * U).project(camera); return [(tmp.x + 1) / 2 * vw, (1 - tmp.y) / 2 * vh, tmp.z]; }
   var tmp = new T.Vector3();
+  var hudTop = 0, hudTopT = 0;
   function stepOverlays(dt) {
+    // v25 겹침 정리: 화면에서 서로 겹치는 말풍선·글자는 위로 비켜 선다 (이름표는 고정 장애물)
+    var placed = [];
+    markObjs.forEach(function (mo) { if (mo._r && mo.el.style.display !== 'none') placed.push(mo._r); });
+    // 화면 위쪽 HUD(지금 할 일 · 버튼 줄 · 대사 · 배너) 아래까지만 말풍선이 올라간다
+    hudTopT = (hudTopT || 0) - dt;
+    if (hudTopT <= 0) { hudTopT = 0.5; hudTop = 0; ['goal', 'say', 'banner'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.hidden && el.offsetParent) { var r = el.getBoundingClientRect(); if (r.bottom < vh * 0.6) hudTop = Math.max(hudTop, r.bottom); } }); var hb = document.querySelector('.hud-btns'); if (hb && hb.offsetParent) { var rb = hb.getBoundingClientRect(); if (rb.bottom < vh * 0.5) hudTop = Math.max(hudTop, rb.bottom); } }
+    var vis = [];
     for (var i = overlays.length - 1; i >= 0; i--) {
       var o = overlays[i]; o.t += dt;
       if (o.t > o.life) { o.el.remove(); overlays.splice(i, 1); continue; }
       var x = o.follow ? o.follow.x : o.x, y = o.follow ? o.follow.y : o.y, p = project(x, y, o.h + o.t * (o.rise || 0));
-      var a = p[2] > 1 ? 0 : Math.min(1, (o.life - o.t) * 3, o.t * 8);
-      o.el.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px) translate(-50%,-100%)';
-      o.el.style.opacity = a.toFixed(2);
+      o.px = p[0]; o.py = p[1]; o.pz = p[2];
+      if (o.w === undefined && o.t > 0) { o.w = o.el.offsetWidth || 60; o.hh = o.el.offsetHeight || 20; }
+      vis.push(o);
     }
+    vis.reverse();   // 먼저 뜬 것이 자리를 지키고, 나중 것이 비킨다
+    var chatN = 0;
+    vis.forEach(function (o) {
+      var target = 0, hide = false, chat = o.el.classList.contains('ov-chat');
+      if (o.w !== undefined && o.pz < 1) {
+        var w2 = o.w / 2 + 3, top0 = o.py - o.hh, clash = false;
+        for (var k = 0; k < 6; k++) {
+          var hit = null, ty = top0 - target, by = o.py - target;
+          for (var j = 0; j < placed.length; j++) { var r = placed[j]; if (o.px - w2 < r.x + r.w && o.px + w2 > r.x && ty < r.y + r.h + 2 && by > r.y - 2) { hit = r; break; } }
+          if (!hit) { clash = false; break; }
+          clash = true; target = o.py - hit.y + 3;
+          if (target > 96) { target = 96; break; }
+        }
+        // 말풍선은 자리가 없거나(비켜도 겹침) HUD를 덮게 되면 잠깐 숨긴다 · 한 화면에 4개까지
+        if (chat && (clash || o.py - target - o.hh < hudTop + 4 || chatN >= 4)) hide = true;
+        if (!hide) { placed.push({ x: o.px - w2, y: o.py - target - o.hh, w: w2 * 2, h: o.hh }); if (chat) chatN++; }
+      }
+      o.dy = (o.dy || 0) + (target - (o.dy || 0)) * Math.min(1, dt * 12);
+      var a = o.pz > 1 || hide ? 0 : Math.min(1, (o.life - o.t) * 3, o.t * 8);
+      o.el.style.transform = 'translate(' + o.px.toFixed(1) + 'px,' + (o.py - o.dy).toFixed(1) + 'px) translate(-50%,-100%)';
+      o.el.style.opacity = a.toFixed(2);
+    });
     zoneLabels.forEach(function (l) {
       var p = project(l.x, l.y, 1.5), on = p[2] < 1 && (!isFP() || Math.hypot(l.x - world.player.x, l.y - world.player.y) < 230) && p[0] > 40 && p[0] < vw - 40 && p[1] > 150 && p[1] < vh - 40;
       l.el.style.display = on ? '' : 'none';
@@ -1024,7 +1056,7 @@
       else if (f.t === 'toolGet') { vmPlay('act', 0.7); if (sfx) sfx.ding(); }
       else if (f.t === 'pyeDump') { for (k = 0; k < 30; k++) emit(f.x * U + rnd(-1, 1), 1.2, f.y * U + rnd(-1, 1), rnd(-3, 3), rnd(2, 5), rnd(-3, 3), rnd(0.5, 0.9)); if (f.e && f.n === 1) addOv('와르르~', 'ov-hurt', 0, 0, 3.4, 1.2, f.e); if (sfx) sfx.pour(0.5); }
       else if (f.t === 'help') { if (f.e) addOv(f.name + ' 도우러 갑니다!', 'ov-chat', 0, 0, 3.6, 2, f.e); }
-      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
+      if (hooks.event && mode === 'play' && /^(me|buff|buffEnd|gong|dia|found|combo|comboEnd|zonePerfect|allClear|locked|ach|officer|slack|recruit|assigned|req|hand|quest|warm|task|taskLate|opReady|opEnd|icy|salted|slip|carStuck|carFree|carPass|push|roofWarn|jigeok|nag|prep|toolGet|bonus|help|fever|surge|support|surprise|dump|fun|deerDown|goal|ride|drift|angel|chase|caught|escaped|herd|herdAll|drop|dropGet|big|bigGoal|bigBowl|chaos|chaosEnd|catSteal|treeDump|hotwater|catHit|mapyeon|mapyeonFiled|soothe|skillUp|crewUp|pye|pyeEnd|timeUp|extended)$/.test(f.t) && (f.t !== 'dump' || f.src === 'player')) hooks.event(f);
     }
     fx.length = 0;
   }
@@ -1538,7 +1570,7 @@
   // v23 돌발 표시: 땅 위 고리 + 이름표 (화장실 · 나무 · 치우지 마!)
   var markObjs = [];
   function syncMarks(a, t) {
-    var list = (a && a.marks) || [];
+    var list = a && JY.SnowAct && JY.SnowAct.allMarks ? JY.SnowAct.allMarks(world) : (a && a.marks) || [];   // v25 폐급짓 표시도
     while (markObjs.length < list.length) {
       var ring = new T.Mesh(new T.RingGeometry(0.85, 1, 36), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide }));
       ring.rotation.x = -Math.PI / 2; ring.renderOrder = 5; scene.add(ring);
@@ -1552,7 +1584,8 @@
       var R = (m.r || 14) * U * (1 + Math.sin(t * 5) * 0.05);
       mo.ring.material.color.set(m.color || '#ffffff'); mo.ring.scale.setScalar(R); mo.ring.position.set(m.x * U, 0.12 + snowAt(m.x, m.y) * 0.4, m.y * U);
       if (mo.el._t !== m.label) { mo.el._t = m.label; mo.el.textContent = m.label; mo.el.style.background = m.color || '#333'; }
-      var pp = project(m.x, m.y, 2.6); if (pp && pp[2] < 1) mo.el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)'; else mo.el.style.display = 'none';
+      if (mo.el._w === undefined || mo.el._wt !== m.label) { mo.el._wt = m.label; mo.el._w = mo.el.offsetWidth || 70; mo.el._h = mo.el.offsetHeight || 22; }
+      var pp = project(m.x, m.y, 2.6); if (pp && pp[2] < 1) { mo.el.style.transform = 'translate(' + pp[0].toFixed(1) + 'px,' + pp[1].toFixed(1) + 'px) translate(-50%,-100%)'; mo._r = { x: pp[0] - mo.el._w / 2, y: pp[1] - mo.el._h, w: mo.el._w, h: mo.el._h }; } else { mo.el.style.display = 'none'; mo._r = null; }
     });
   }
   // v23 눈덩이 조준: 점선 궤적 + 떨어질 자리 고리

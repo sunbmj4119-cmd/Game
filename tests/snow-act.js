@@ -10,6 +10,7 @@ require('../js/snow/sim.js');
 require('../js/snow/act.js');
 require('../js/snow/meta.js');
 require('../js/snow/gear.js');
+require('../js/snow/ads.js');
 var M = window.JY.SnowMeta;
 var S = window.JY.SNOW, G = window.JY.SnowSim, A = window.JY.SnowAct, pass = 0, fail = 0;
 function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }
@@ -472,7 +473,7 @@ ok(dd2 && dP < 240, 'v22 고라니는 내 근처(화면 가장자리쯤)에서 �
 var sch = 0, nd = 0; for (var sd2 = 1; sd2 < 30; sd2++) { var ss = G.newSave(); ss.seed = sd2; ss.day = 10; ss.rank = 1; ss.merit = 12; ss.stats.ops = 9; G.assignZones(ss); var ww = G.createWorld(ss); nd += ww.events.filter(function (e) { return e.k === 'deer'; }).length; sch++; }
 ok(nd / sch >= 2, 'v22 작전당 고라니 2마리 이상', (nd / sch).toFixed(2));
 // 고라니 떼: 네 마리 다 벌러덩이면 보너스 + 상점
-var wh = v22(); away(wh); wh.act.off = []; wh.act.offPlan = []; wh.events = [{ t: wh.time, k: 'herd' }]; G.step(wh, 1 / 30, null);
+var wh = v22(); away(wh); wh.act.off = []; wh.act.offPlan = []; wh.time = 40; wh.events = [{ t: wh.time, k: 'herd' }]; G.step(wh, 1 / 30, null);
 var herdD = wh.deer.filter(function (d) { return d.herd; }), dia0 = wh.save.dia;
 ok(herdD.length === 4 && fxs(wh, 'herd').length === 1, 'v22 고라니 떼 네 마리', herdD.length);
 herdD.forEach(function (d) { d.hp = 1; A.hitDeer ? A.hitDeer(wh, d) : null; });
@@ -622,6 +623,44 @@ ok(sfx24.look.hat === 'beanie' && sfx24.look.extras.join() === 'snot', 'v24 안 
 var wl24 = v24(function (s) { s.unlocked['hat:cone'] = true; s.look.hat = 'cone'; }); wl24.crew.forEach(function (c) { c.x = wl24.player.x + 20; c.y = wl24.player.y; }); var said = 0;
 for (var rr24 = 0; rr24 < 12; rr24++) { var wq24 = v24(function (s) { s.seed = 100 + rr24; s.unlocked['hat:cone'] = true; s.look.hat = 'cone'; }); run(wq24, 5); if (wq24.save.stats.lookLine) said++; }
 ok(said >= 5 && said <= 12, 'v24 라바콘을 쓰고 출동하면 누군가 한마디 한다 (12판 중 ' + said + '번)');
+
+// ── v25 집중: 큰 일은 한 번에 하나 · 광고 규칙 · 30초 더 · 로드맵 ──
+var AD = window.JY.SnowAds, JY = window.JY;
+var wf = v24(function (s) { s.crew = { hoobae: 2 }; s.rank = 2; s.stats.ops = 25; }); wf.time = 60; wf.act.focus = null;
+A.startChaos(wf, A.chaosDef('tree')); wf.act.pyeAt = 0; run(wf, 2);
+ok(wf.act.chaos && !wf.act.pye && A.attention(wf).indexOf('chaos') >= 0, 'v25 돌발이 진행 중이면 폐급짓은 미뤄진다 (한 번에 하나)');
+wf.act.chaos = null; wf.act.marks = []; run(wf, 5);
+ok(!wf.act.pye, 'v25 큰 일이 끝나도 12초는 쉰다');
+run(wf, 10); ok(!!wf.act.pye, 'v25 쉬고 나면 미뤄 둔 폐급짓이 온다');
+var wq0 = v24(function (s) { s.stats.ops = 25; }); wq0.time = 5; ok(!A.majorOK(wq0), 'v25 작전 처음 18초는 조용히 (큰 일 없음)');
+wq0.time = wq0.dayLen - 5; ok(!A.majorOK(wq0), 'v25 마지막 15초도 조용히');
+var wb0 = v24(function (s) { s.stats.ops = 3; }); wb0.time = 60; A.focusOf(wb0).n = 1; ok(!A.majorOK(wb0), 'v25 초반(6판 전)엔 작전당 큰 일 1개까지');
+var wd0 = v24(); wd0.time = 60; A.startChaos(wd0, A.chaosDef('tree')); ok(A.defer(wd0, 'deer') && A.defer(wd0, 'herd') && A.defer(wd0, 'car'), 'v25 큰 일 중엔 고라니·고라니 떼·출근 차량도 미룬다');
+var wo0 = v24(function (s) { s.stats.ops = 25; }); wo0.time = 60; A.startChaos(wo0, A.chaosDef('tree')); wo0.act.offPlan = [{ t: 60, id: 'lt' }]; wo0.act.offDay = wo0.save.day; G.feat(wo0.save, 'officer') && run(wo0, 0.2);
+ok(!wo0.act.off.some(function (o) { return o.id === 'lt'; }), 'v25 큰 일 중엔 간부도 조금 늦게 온다 (경례가 겹치지 않게)');
+// 광고 규칙
+var sa = G.newSave(), t0 = Date.UTC(2026, 10, 20, 3), interAt = [];
+for (var ia = 1; ia <= 12; ia++) { AD.onOpEnd(sa, t0 + ia * 240000); if (AD.interDue(sa, t0 + ia * 240000)) { AD.interShown(sa, t0 + ia * 240000); interAt.push(ia); } }
+ok(interAt[0] === 6 && interAt[1] === 9 && interAt[2] === 12, 'v25 전면 광고는 6판째부터 3판마다 (' + interAt.join(',') + ')');
+var sb = G.newSave(); for (ia = 1; ia <= 12; ia++) { AD.onOpEnd(sb, t0 + ia * 60000); } ok(AD.interDue(sb, t0 + 12 * 60000) && (AD.interShown(sb, t0 + 12 * 60000), !AD.interDue(sb, t0 + 13 * 60000)), 'v25 전면 광고 사이는 3분 넘게');
+var sc = G.newSave(); for (ia = 1; ia <= 7; ia++) AD.onOpEnd(sc, t0); AD.used(sc, 'double', t0); ok(!AD.interDue(sc, t0 + 1e6), 'v25 방금 보상형 광고를 봤으면 전면 광고는 건너뛴다');
+var sd = G.newSave(); for (ia = 0; ia < 10; ia++) AD.used(sd, 'double', t0); ok(!AD.can(sd, 'double', t0) && AD.can(sd, 'double', t0 + 86400000), 'v25 보상형은 하루 한도 (결과 2배 10번) · 다음 날 다시');
+var se = G.newSave(); se.ads = { noAds: true }; for (ia = 0; ia < 12; ia++) AD.onOpEnd(se, t0); ok(!AD.interDue(se, t0 + 1e7), 'v25 광고 제거면 전면 광고 없음');
+var sf = G.newSave(); G.newFeatures(sf, true); sf.rank = 1; JY.SnowGear.init(sf); sf.energy.v = 0; sf.energy.t = t0; AD.grant(sf, 'energy', t0); ok(sf.energy.v === 15, 'v25 광고 보상: 체력 +15');
+var sg = G.newSave(); var b0 = sg.bank; AD.grant(sg, 'double', t0, { pie: 1234 }); ok(sg.bank === b0 + 1234, 'v25 광고 보상: 결과 초코파이 한 번 더 (×2)');
+var sh = G.newSave(); JY.SnowGear.init(sh); sh.chestT.basic = t0; var ob = AD.grant(sh, 'box', t0 + 1000); ok(ob.open && ob.open.got.length === 1, 'v25 광고 보상: 무료 상자 기다리지 않고 열기');
+// 30초 더
+var wt = v24(function (s) { s.stats.ops = 9; }); wt.askExtend = true; wt.time = wt.dayLen - 0.05; run(wt, 0.2);
+ok(wt.timeUp && !wt.opEnd && fxs(wt, 'timeUp').length >= 0, 'v25 시간이 끝났는데 지시서가 남으면 멈추고 "30초 더?"를 묻는다');
+var tm = wt.time; run(wt, 1); ok(wt.time === tm, 'v25 묻는 동안은 시간이 멈춘다');
+G.extendOp(wt, 30); run(wt, 5); ok(!wt.opEnd && !wt.timeUp && wt.dayLen > wt.time, 'v25 광고 보면 30초 더 이어진다');
+run(wt, 30); ok(!!wt.opEnd, 'v25 연장은 한 번뿐 — 끝나면 바로 검열');
+var wt2 = v24(function (s) { s.stats.ops = 9; }); wt2.askExtend = true; wt2.time = wt2.dayLen - 0.05; run(wt2, 0.2); G.finishTimeUp(wt2); ok(!!wt2.opEnd, 'v25 "그냥 검열 받기"면 바로 결과');
+// 로드맵
+var sr = G.newSave(); sr.merit = 14; sr.rank = 1; G.assignZones(sr); sr.stats.ops = 12; var rm = M.roadmap(sr);
+ok(rm.next && rm.next.at > 14 && rm.next.left === rm.next.at - 14 && rm.bands.length === S.RANKS.length, 'v25 로드맵: 다음 해금 (' + rm.next.names.join(',') + ' ★' + rm.next.at + ')');
+var allIt = []; rm.bands.forEach(function (B) { allIt = allIt.concat(B.items); });
+ok(allIt.some(function (it) { return it.kind === 'ride' && it.name === '트랙터' && it.state === 'lock'; }) && allIt.some(function (it) { return it.kind === 'zone' && it.state === 'done'; }), 'v25 로드맵: 연 것은 열림, 먼 것(트랙터)은 잠김으로 보인다');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);

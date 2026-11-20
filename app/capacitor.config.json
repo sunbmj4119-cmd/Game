@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.jeseol",
+  "appName": "제설각",
+  "webDir": "www",
+  "android": { "backgroundColor": "#16233a" }
+}

@@ -5,6 +5,7 @@
   'use strict';
   var S = JY.SNOW, G = JY.SnowSim, A = JY.SnowAct, M = JY.SnowMeta, V2 = JY.SnowView, V3 = JY.SnowView3D, X = JY.SnowSfx;
   var AD = JY.SnowAds;   // v25 광고
+  var LG = JY.SnowLeague;   // v26 경연
   var AD_ICON = '<svg class="ad-ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="3.5" width="17" height="13" rx="3" fill="currentColor" opacity=".18"/><path d="M8 7.2v5.6l4.8-2.8z" fill="currentColor"/></svg>';
   var V = V3 && V3.supported() && !/[?&]2d/.test(location.search) ? V3 : V2;
   var KEY = 'jeseol-v22', OLD_KEYS = ['jeseol-v1'];   // v22: 처음부터 다시 (예전 저장 jeseol-v10·v8은 지우지 않고 그대로 둔다)
@@ -183,7 +184,7 @@
     news = news.map(function (li, k) { return { li: li, p: pri(li), k: k }; }).sort(function (a, b) { return a.p - b.p || a.k - b.k; }).map(function (x) { return x.li; });
     $('hub').innerHTML = road + '<ul class="news">' + news.slice(0, 2).join('') + '</ul>';
     // v13: 생활관 버튼도 열린 것만 (처음엔 출동·교범·설정). 새로 열린 버튼엔 N
-    var GATE = { shop: 'lobby', px: 'px', look: 'look', medal: 'box', story: 'lobby', gear: 'gear', mission: 'mission' };
+    var GATE = { shop: 'lobby', px: 'px', look: 'look', medal: 'box', story: 'lobby', gear: 'gear', mission: 'mission', league: 'league' };
     // v15: 교범은 설정 안으로, 훈장은 수첩 안으로 · v19: 공중전화·체력단련·포상휴가는 뺐다 (재미가 없었다)
     var HIDE = { help: true, medal: true };
     document.querySelectorAll('.lb-side [data-hub]').forEach(function (b) {
@@ -202,6 +203,7 @@
       $('hub-mission-n').hidden = !mn || !G.feat(save, 'mission'); $('hub-mission-n').textContent = mn;
       enPill();
     }
+    if (LG && $('hub-league-n')) { var lgOn = G.feat(save, 'league'); if (lgOn) LG.rollover(save, Date.now()); var lr0 = lgOn ? LG.myRank(save, Date.now()) : 0; $('hub-league-n').hidden = !lgOn; $('hub-league-n').textContent = lr0 + '위'; $('hub-league-n').classList.toggle('up', lr0 <= LG.L.up); }
     $('hub-grid').hidden = !on;
   }
   // v18 생활관 위 체력 (일병부터)
@@ -225,6 +227,7 @@
     else if (k === 'medal' || k === 'story' || k === 'look' || k === 'dis' || k === 'gear' || k === 'mission') { tab = k === 'gear' && (save.boxes || []).length ? 'chest' : k; openShop(); }   // v20: 받은 상자가 있으면 상자 탭부터
     else if (k === 'settings') settings();
     else if (k === 'road') { tab = 'road'; openShop(); }
+    else if (k === 'league') { tab = 'league'; openShop(); }
   }
   // 설정: 소리·진동·작전 시점·교범·전역·처음부터
   var CAM_NAME = { near: '3인칭 (추천)', fp: '1인칭' };   // v22: 두 개만
@@ -237,6 +240,7 @@
         '<button data-set="help"><span>제설 교범 다시 보기</span><b>›</b></button>' +
         (specNames() ? '<button data-set="spec"><span>특기 다시 고르기 <small>' + esc(specNames()) + '</small></span><b>상점 5</b></button>' : '') +
         (G.rankOf(save) >= 3 || save.discharges ? '<button data-set="dis"><span>전역 신고</span><b>›</b></button>' : '') +
+        '<button data-set="diaask"><span>상점 쓸 때 한 번 더 묻기</span><b>' + (save.noDiaAsk ? '끔' : '켬') + '</b></button>' +
         (AD ? '<button data-set="noads"><span>광고 제거 <small>' + (AD.state(save).noAds ? '적용됨 · 보상형 광고는 원할 때만' : '생활관 가는 길 전면 광고 없음 · 보상형은 그대로') + '</small></span><b>' + (AD.state(save).noAds ? '✓' : '출시판') + '</b></button>' : '') +
         '<button data-set="reset" id="t-reset" class="danger"><span>처음부터 다시</span><b>›</b></button>' +
         '</div><button class="btn big" data-m="close">닫기</button></div>');
@@ -250,8 +254,10 @@
         else if (k === 'noads') { toast(AD.state(save).noAds ? '이미 광고 제거가 적용됐다' : '광고 제거는 앱(플레이스토어) 출시판에서 결제로 열린다'); }
         else if (k === 'spec') {
           if (save.dia < 5) { toast('상점이 5개 있어야 한다 (지금 ' + save.dia + '개)'); return; }
-          $('modal').hidden = true; save.dia -= 5; save.spec = {}; persistRaw(); if (X) X.dia(); renderHub(); afterHub();
+          $('modal').hidden = true;
+          confirmDia(5, '특기 다시 고르기', function () { save.dia -= 5; save.spec = {}; persistRaw(); if (X) X.dia(); renderHub(); afterHub(); }, '지금 특기: ' + specNames());
         }
+        else if (k === 'diaask') { save.noDiaAsk = !save.noDiaAsk; persistRaw(); render(); }
         else { $('modal').hidden = true; if (k === 'help') help(); else if (k === 'dis') { tab = 'dis'; openShop(); } else if (k === 'reset') resetAll(); }
       };
     }
@@ -305,7 +311,7 @@
       '<div class="res-btns"><button class="btn ghost" data-m="wait">기다린다</button><button class="btn big" data-m="refill"' + (save.dia < p ? ' disabled' : '') + '>' + dia() + ' ' + p + '로 가득</button></div>' +
       adBtn('energy', '광고 보고 체력 +' + S.ADS.rewarded.energy.amount + ' (작전 3번)') + '</div>', function (k) {
       if (k !== 'refill') return;
-      if (G2.refill(save, Date.now())) { persistRaw(); if (X) X.dia(); toast('체력 가득! (상점 -' + p + ')'); renderHub(); if (done) done(); }
+      confirmDia(p, '출동 체력 가득 채우기', function () { if (G2.refill(save, Date.now())) { persistRaw(); if (X) X.dia(); toast('체력 가득! (상점 -' + p + ')'); renderHub(); if (done) done(); } }, '체력 +' + S.ENERGY.max + ' (작전 ' + Math.floor(S.ENERGY.max / S.ENERGY.cost) + '번)');
     });
     var eb = document.querySelector('#modal-box [data-ad="energy"]');
     if (eb) eb.onclick = function () { $('modal').hidden = true; watchAd('energy', null, function (ok) { if (ok) { toast('체력 +' + S.ADS.rewarded.energy.amount + '!'); renderHub(); if (done) done(); } }); };
@@ -321,6 +327,9 @@
     if (wxCut) notes.push('<li class="good">' + S.WEATHER[wx.id].name + ' · 기준 −' + Math.round(wxCut * 100) + '%p</li>');
     if (wx.inspect) notes.push('<li class="red">사단장님 순시 — 바로 경례</li>');
     if (save.zones.E) notes.push('<li>출근 차량이 온다 — 진입로 먼저</li>');
+    // v26 구역 인계: 브리핑에서 알려 준다 (작전 화면은 깨끗하게)
+    var hoB = G.handover ? Object.keys(G.handover(save)).map(function (k) { return (G.zoneById(k) || {}).name; }).filter(Boolean) : [];
+    if (hoB.length) notes.push('<li class="good">후임 담당: ' + esc(hoB.length > 2 ? hoB[0] + ' 외 ' + (hoB.length - 1) + '곳' : hoB.join(', ')) + ' — 넌 새 구역에 집중</li>');
     var nf = G.newFeatures(save, true).slice(0, 3);
     var prep = Object.keys(save.prep || {}).map(function (k) { var it = S.PREP.filter(function (p) { return p.id === k; })[0]; return it ? it.name : k === 'support' ? '대대 지원' : k === 'morale' ? '전원 초코파이' : k === 'power' ? '체력단련' : ''; }).filter(Boolean);
     if (prep.length) notes.push('<li class="good">챙긴 것: ' + esc(prep.join(', ')) + '</li>');
@@ -383,10 +392,13 @@
     // v13: 버튼도 열린 것만 (처음엔 정지 하나)
     $('h-scan').hidden = !G.feat(save, 'scan'); $('h-cam').hidden = !V.toggleCam || !G.feat(save, 'cam');
     document.querySelector('#hud .pill.bank').classList.toggle('nodia', !G.feat(save, 'box'));
-    var fresh = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; })[0];
+    var freshAll = S.ZONES.filter(function (Z) { return save.seen['new' + Z.id]; }), fresh = freshAll[freshAll.length - 1];   // v26 가장 새 구역 하나만 보여 준다
+    // v26 인계: 지난 작전과 비교해서 새로 후임에게 넘긴 구역
+    var hoNow = w.handover || {}, hoOld = save.hoSeen || {}, hoNew = Object.keys(hoNow).filter(function (k) { return !hoOld[k]; }).map(function (k) { return (G.zoneById(k) || {}).name; }).filter(Boolean);
+    if (!resume) { save.hoSeen = hoNow; }
     if (fresh) {
-      delete save.seen['new' + fresh.id]; persist();
-      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.2); say('새 구역 「' + fresh.name + '」', 2600); }, resume ? 400 : 2300);
+      freshAll.forEach(function (Z) { delete save.seen['new' + Z.id]; }); persist(); hoNew = hoNew.filter(function (n) { return n !== fresh.name; });
+      setTimeout(function () { if (V.focusZone) V.focusZone(fresh.id, 3.4); banner('새 구역 개방! ' + fresh.name, '오늘부터 여기가 네 담당' + (hoNew.length ? ' · 예전 구역은 후임 담당' : ''), 3200, 3); say('새 구역 「' + fresh.name + '」', 2600); }, resume ? 400 : 2300);
     }
   }
   // v15: 시각(05:30·07:00) 대신 '남은 시간' 하나만 — 실제 초로 센다 (작전 4분)
@@ -573,6 +585,21 @@
       if (done) done(true, r);
     });
   }
+  // v26 상점은 귀하다: 쓸 때마다 한 번 더 묻는다 (설정에서 끌 수 있다)
+  function confirmDia(n, what, yes, sub) {
+    if (!n || n <= 0 || save.noDiaAsk) { yes(); return; }
+    if (save.dia < n) { if (X) X.deny(); toast('상점이 모자라다 (' + n + '개 필요 · 지금 ' + save.dia + '개)'); return; }
+    var wasPlay = V.mode && V.mode() === 'play' && !V.world().opEnd; if (wasPlay && V.pause) V.pause(true);
+    modal('<div class="m-rank confirm-dia"><p class="kicker">상점 사용</p><div class="cd-big">' + dia() + '<b>' + n + '</b></div><h3>' + esc(what) + '</h3>' + (sub ? '<p>' + esc(sub) + '</p>' : '') +
+      '<p class="cd-left">지금 <b>' + save.dia + '</b>개 → 남는 것 <b>' + (save.dia - n) + '</b>개</p>' +
+      '<div class="res-btns"><button class="btn ghost" data-m="no">아니요</button><button class="btn big" data-m="yes">쓴다</button></div>' +
+      '<label class="cd-skip"><input type="checkbox" id="cd-skip"> 다음부터 묻지 않기 <small>(설정에서 다시 켠다)</small></label></div>', function (k) {
+      var sk = document.getElementById('cd-skip'); if (k === 'yes' && sk && sk.checked) { save.noDiaAsk = true; persistRaw(); }
+      if (wasPlay && V.pause) V.pause(false);
+      if (k === 'yes') yes();
+    });
+    var cb = document.getElementById('cd-skip'); if (cb) cb.onclick = function (e) { e.stopPropagation(); };
+  }
   function askExtend() {
     var w = V.world(); if (!w || !w.timeUp) return;
     if (V.pause) V.pause(true);
@@ -589,13 +616,14 @@
     $('throw-btn').hidden = true; hudA.tk = null;
     if (G2 && !res.demo) { var px0 = G2.pass(save, Date.now()).xp; G2.onOpEnd(save, Date.now(), res.stars); res.passXp = G2.pass(save, Date.now()).xp - px0; }
     if (AD && !res.demo && !res.adCounted) { res.adCounted = true; AD.onOpEnd(save, Date.now()); }
+    if (LG && !res.demo && !res.lg && G.feat(save, 'league')) { var wv = V.world(); res.lg = LG.addOp(save, LG.opScore(res, wv && wv.comboMax), Date.now()); }
     persistRaw();
     var r = res.rank, nr = S.RANKS[r + 1], R0 = S.RANKS[r];
     // v13: 읽을 게 적게 — 지시서는 '완료 N/M' 한 줄 + 못 한 줄·늦은 줄만 (최대 3)
     var okN = res.lines.filter(function (l) { return l.done && !l.late; }).length;
     var lines = ['<li class="' + (okN === res.lines.length ? 'ok' : '') + '"><span>지시서</span><b>' + okN + '/' + res.lines.length + ' 완료</b></li>'];
     res.lines.filter(function (l) { return !l.done || l.late; }).slice(0, 3).forEach(function (l) {
-      lines.push('<li class="' + (l.done ? 'late' : 'bad') + '"><span>' + esc(l.name) + '</span><b>' + (l.done ? '늦음' : Math.floor(l.pct * 100) + '%') + '</b></li>');
+      lines.push('<li class="' + (l.done ? 'late' : 'bad') + '"><span>' + esc(l.name) + (l.ho ? ' <small class="ho-tag">후임 담당</small>' : '') + '</span><b>' + (l.done ? '늦음' : Math.floor(l.pct * 100) + '%') + '</b></li>');
     });
     // 특명 결과는 지시서 바로 아래 (작전마다 하나뿐인 목표)
     if (res.bonus) lines.splice(1, 0, '<li class="' + (res.bonus.done ? 'ok' : 'bad') + '"><span>특명: ' + esc(res.bonus.text) + '</span><b>' + (res.bonus.done ? '성공 · 상점 +' + res.bonus.dia : '실패') + '</b></li>');
@@ -628,6 +656,7 @@
       (res.payday ? '<p class="res-svc pay">월급날! ' + S.RANKS[res.rank].name + ' ' + res.payday.hob + '호봉 · ' + pie() + '+' + fmt(res.payday.pie) + '</p>' : res.svc1 !== undefined && res.svc1 > res.svc0 ? '<p class="res-svc">군생활 ' + res.svc0 + '% → <b>' + res.svc1 + '%</b></p>' : '') +
       '<div class="res-merit"><span>근무평정 +' + res.stars + '</span><div class="hub-bar' + (res.examNext ? ' exam' : '') + '"><i style="width:' + Math.round(prog * 100) + '%"></i></div><small>' + meritTxt + (res.examNext && !res.promoted ? ' · 다음 작전은 진급 심사!' : '') + '</small></div>' +
       (res.zones.length ? '<p class="res-zone">새 담당 구역: <b>' + esc(res.zones.join(', ')) + '</b></p>' : '') +
+      (res.lg ? '<p class="res-league">경연 <b>+' + fmt(res.lg.pts) + '점</b> · ' + res.lg.before + '위 → <b>' + res.lg.after + '위</b>' + (res.lg.after < res.lg.before ? ' <span class="up">▲</span>' : '') + (res.lg.after > 1 && res.lg.gap > 0 ? '<small>' + (res.lg.after - 1) + '위까지 ' + fmt(res.lg.gap) + '점</small>' : res.lg.after === 1 ? '<small>이번 주 1위!</small>' : '') + '</p>' : '') +
       (function () { var nx = M && M.roadmap ? M.roadmap(save).next : null; return nx && !res.zones.length ? '<p class="res-unlock">다음 해금 <b>' + esc(nx.names.slice(0, 2).join(' · ')) + '</b> · ★' + nx.left + ' 남음</p>' : ''; })() +
       '<button class="btn big" data-m="ok">' + (res.promoted ? '진급 신고하러 간다' : '충성! 들어가 보겠습니다') + '</button></div>', function () {
       rankSeen = G.rankOf(save);
@@ -660,6 +689,16 @@
     });
   }
   function afterHub() {
+    // v26 지난주 경연 결과 (한 번만)
+    var lgl = LG && save.league && save.league.last;
+    if (lgl && lgl.week && save.league.seen !== lgl.week && lgl.ops) {
+      save.league.seen = lgl.week; persistRaw();
+      modal('<div class="m-rank lg-result"><p class="kicker">지난주 대대 제설 경연</p><h3>' + LG.L.tiers[lgl.tier] + ' ' + lgl.rank + '위</h3>' +
+        '<p class="m-big">' + (lgl.moved > 0 ? '▲ ' + LG.L.tiers[lgl.newTier] + '로 승급!' : lgl.moved < 0 ? '▼ ' + LG.L.tiers[lgl.newTier] + '로 강등…' : '리그 유지') + '</p>' +
+        '<p>' + fmt(lgl.score) + '점 · ' + lgl.ops + '판' + (lgl.dia ? ' · 상점 +' + lgl.dia : '') + (lgl.box ? ' · 희귀 상자' : '') + '</p><button class="btn big" data-m="ok">' + (lgl.moved > 0 ? '좋았어!' : '이번 주엔 더!') + '</button></div>', function () { renderHub(); afterHub(); });
+      if (X) { if (lgl.moved > 0) X.fanfare(); else X.stamp && X.stamp(); }
+      return;
+    }
     var sd = G.specDue && G.specDue(save);
     if (sd) { chooseSpec(sd, afterHub); return; }
     var ch = M && M.storyNext(save, null);
@@ -670,7 +709,7 @@
   /* ── 보급·인력·공장 ── */
   // v15: 보급 탭은 셋만 (장비 · 인원 · 강화). 꾸미기·수첩(훈장 포함)·전역은 생활관 버튼에서 따로 연다 (탭 줄 없이)
   var TABS = [['tool', '장비'], ['crew', '인원'], ['up', '강화']];
-  var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역', road: '군생활 로드맵' };
+  var SOLO = { look: '꾸미기', story: '수첩', medal: '수첩', dis: '전역', road: '군생활 로드맵', league: '대대 제설 경연' };
   var GTABS = [['gear', '장구'], ['chest', '보급 상자'], ['skill', '숙련']];   // v23 숙련 탭
   var GROUP = { gear: { title: '장구류', tabs: GTABS }, chest: { title: '장구류', tabs: GTABS }, skill: { title: '장구류', tabs: GTABS },
     mission: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] }, pass: { title: '임무', tabs: [['mission', '일일 임무'], ['pass', '복무 패스']] } };
@@ -781,6 +820,7 @@
     if (tab === 'dis') { renderDischarge(list); return; }
     if (tab === 'look') { renderLook(list); return; }
     if (tab === 'road') { renderRoad(list); return; }
+    if (tab === 'league') { renderLeague(list); return; }
     if (tab === 'story' || tab === 'medal') { renderStory(list); if (G.feat(save, 'box')) renderMedals(list); return; }
     if (tab === 'crew') crewHead(list);
     if (tab === 'up' && G.feat(save, 'factory') && G.procLvl(save, 'press')) {
@@ -966,10 +1006,14 @@
       if (gq.hasAttribute('data-geq')) { G2.equip(save, +gq.getAttribute('data-geq')); if (X) X.pop(); }
       else if (gq.hasAttribute('data-gup')) { r = G2.upgrade(save, +gq.getAttribute('data-gup')); if (r) { if (X) X.buy(); toast(G2.rarDef(r.item.rar).name + ' ' + G2.slotDef(r.item.slot).name + ' Lv' + r.item.lv + '!'); } else { if (X) X.deny(); toast('초코파이나 정비 부품이 모자라다'); } }
       else if (gq.hasAttribute('data-gmerge')) { r = G2.mergeAll(save); if (r.length) { if (X) X.fanfare(); toast('합성! ' + r.map(function (it) { return G2.rarDef(it.rar).name + ' ' + G2.slotDef(it.slot).name; }).join(', ')); } }
-      else if (gq.hasAttribute('data-chest')) { r = G2.open(save, gq.getAttribute('data-chest'), gq.getAttribute('data-how'), now); if (r) { persistRaw(); renderShop(); chestReveal(r); return; } if (X) X.deny(); toast('상점이 모자라다'); }
+      else if (gq.hasAttribute('data-chest')) {
+        var cid = gq.getAttribute('data-chest'), how = gq.getAttribute('data-how'), chd = G2.chestDef(cid), cost0 = how === 'ten' ? chd.ten : how === 'dia' ? G2.price(save, cid, now) : 0;
+        confirmDia(cost0, chd.name + (how === 'ten' ? ' 10개' : '') + ' 열기', function () { var r1 = G2.open(save, cid, how, Date.now()); if (r1) { persistRaw(); renderShop(); chestReveal(r1); return; } if (X) X.deny(); toast('상점이 모자라다'); });
+        return;
+      }
       else if (gq.hasAttribute('data-mstep')) { r = G2.claimStep(save, now, +gq.getAttribute('data-mstep')); if (r) { if (X) X.dia(); toast('임무 보상: ' + r.join(' · ')); } }
       else if (gq.hasAttribute('data-pclaim')) { r = G2.claimPass(save, now); if (r.length) { if (X) X.fanfare(); toast('패스 보상 ' + r.length + '개: ' + r.slice(0, 3).join(' · ') + (r.length > 3 ? ' …' : '')); } }
-      else if (gq.hasAttribute('data-pprem')) { if (G2.buyPremium(save, now)) { if (X) X.fanfare(); toast('프리미엄 패스 열림! 지난 단계 보상도 받을 수 있다'); } }
+      else if (gq.hasAttribute('data-pprem')) { confirmDia(S.PASS.premium, '복무 패스 프리미엄 열기', function () { if (G2.buyPremium(save, Date.now())) { if (X) X.fanfare(); toast('프리미엄 패스 열림! 지난 단계 보상도 받을 수 있다'); persistRaw(); renderShop(); } }, '이번 시즌 프리미엄 보상 줄이 열린다'); return; }
       persistRaw(); renderShop(); return;
     }
     var lt = e.target.closest('[data-ltab]');
@@ -982,6 +1026,12 @@
       var cat = lk.getAttribute('data-cat'), id = lk.getAttribute('data-look'), st = lk.getAttribute('data-state');
       if (st === 'buy' && !(lookTry && lookTry.cat === cat && lookTry.id === id)) { tryOn(cat, id); if (X) X.pop(); lookTab = LOOK_TABS.filter(function (t) { return t[2].indexOf(cat) >= 0; })[0][0]; renderShop(); var sl = $('s-list'); if (sl) { try { sl.scrollTo({ top: 0, behavior: 'smooth' }); } catch (er) { sl.scrollTop = 0; } } return; }   // 입어 본 모습이 보이게 맨 위로
       if (st === 'buy' || st === 'buy!') {
+        var tier = M.tierOf(cat, id), pr0 = M.priceOf(save, cat, id);
+        if (save.dia < pr0) { if (X) X.deny(); toast('상점이 모자라다 (' + pr0 + '개 필요)'); return; }
+        confirmDia(pr0, (tier ? '[' + S.LOOK_TIER[tier].name + '] ' : '') + M.lookName(cat + ':' + id) + ' 사기', function () { buyLookNow(cat, id, tier); }, '멋 +' + S.LOOK_TIER[tier || 'c'].pts + ' · 한 번 사면 계속 쓴다');
+        return;
+      }
+      if (false) {
         var tier = M.tierOf(cat, id); untry();
         if (M.buyLook(save, cat, id)) { if (X) { if (tier === 'l' || tier === 'e') X.fanfare(); else X.dia(); } toast((tier ? '[' + S.LOOK_TIER[tier].name + '] ' : '') + M.lookName(cat + ':' + id) + ' 획득! 멋 +' + S.LOOK_TIER[tier || 'c'].pts); vibrate(tier === 'l' ? [30, 30, 30, 30, 120] : 30); }
         else { tryOn(cat, id); if (X) X.deny(); toast('상점이 모자라다 (' + M.priceOf(save, cat, id) + '개 필요)'); }
@@ -994,15 +1044,21 @@
     if (rp) { var ch = S.STORY.filter(function (c) { return c.id === rp.getAttribute('data-replay'); })[0]; if (ch) playStory(ch, true); return; }
     var du = e.target.closest('[data-dia]');
     if (du) {
-      var r0 = A ? A.useDia(save, du.getAttribute('data-dia')) : { ok: false };
-      if (r0.ok) { if (X) X.dia(); toast(du.getAttribute('data-dia') === 'morale' ? '다음 작전: 전원 초코파이 (사기 100)' : '다음 작전: 대대 지원 (처음 60초 분대원 두 배)'); persistRaw(); } else { if (X) X.deny(); if (r0.why === 'have') toast('이미 요청해 뒀다'); }
-      renderShop(); return;
+      var dk = du.getAttribute('data-dia');
+      confirmDia(S.DIA[dk], dk === 'morale' ? '전원 초코파이' : '대대 지원', function () {
+        var r0 = A ? A.useDia(save, dk) : { ok: false };
+        if (r0.ok) { if (X) X.dia(); toast(dk === 'morale' ? '다음 작전: 전원 초코파이 (사기 100)' : '다음 작전: 대대 지원 (처음 60초 분대원 두 배)'); persistRaw(); } else { if (X) X.deny(); if (r0.why === 'have') toast('이미 요청해 뒀다'); }
+        renderShop();
+      }, dk === 'morale' ? '다음 작전 분대원 사기 100' : '다음 작전 처음 60초 분대원 두 배');
+      return;
     }
     var t = e.target.closest('[data-tab]');
     if (t) { tab = t.getAttribute('data-tab'); renderShop(); $('s-list').scrollTop = 0; return; }
     var b = e.target.closest('.buy');
     if (!b) return;
     var kind = b.getAttribute('data-kind'), id = b.getAttribute('data-id');
+    var ofs = G.offers(save), off0 = [].concat(ofs.tool || [], ofs.crew || [], ofs.factory || [], ofs.perk || [], ofs.ride || [], ofs.zone || [], ofs.relay || []).filter(function (x) { return x.kind === kind && x.id === id; })[0];
+    if (off0 && off0.dia > 0 && off0.ok && !b._diaOk) { confirmDia(off0.dia, off0.name + (kind === 'crew' ? ' 전입 요청' : ''), function () { b._diaOk = true; b.click(); b._diaOk = false; }, '초코파이 ' + fmt(off0.cost) + ' + 상점 ' + off0.dia); return; }
     var r = G.buy(save, kind, id);
     if (!r.ok) { if (X) X.deny(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); return; }
     if (X) X.buy();
@@ -1299,7 +1355,7 @@
       var mins = Math.max(0, Math.ceil(t.left / S.DAY_LEN * (S.OP.end - S.OP.start)));
       var cls = t.done ? 'done' : t === cur ? 'cur' + (t.late ? ' late' : mins <= 15 ? ' soon' : '') : t.late ? 'late' : '';
       var pct = t.done ? '✔' : Math.floor(t.pct * 100) + '%';
-      return '<li class="' + cls + '"><span>' + esc(t.name) + '</span><em>' + pct + '</em>' + (t === cur ? (t.late || mins <= 15 ? '<small>' + (t.late ? '늦음' : '곧 마감') + '</small>' : '') + '<i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>' : '') + '</li>';
+      return '<li class="' + cls + (t.ho ? ' ho' : '') + '"><span>' + esc(t.name) + (t.ho ? ' <small class="ho-tag">후임</small>' : '') + '</span><em>' + pct + '</em>' + (t === cur ? (t.late || mins <= 15 ? '<small>' + (t.late ? '늦음' : '곧 마감') + '</small>' : '') + '<i><u style="width:' + Math.min(100, t.pct / t.goal * 100) + '%"></u></i>' : '') + '</li>';
     }).join('');
     $('op-warn').hidden = true; $('op-tip').hidden = true;
     $('op-bonus').hidden = !bo;
@@ -1444,6 +1500,29 @@
     var svg = JY.art.character(M.lookSpec({ look: L2 }));
     return svg.replace('viewBox="0 0 200 232"', 'viewBox="' + (CROP[cat] || '24 26 152 150') + '"');
   }
+  // v26 대대 제설 경연: 이번 주 순위표 (나 + 다른 중대 9명)
+  function leagueFace(r) { return JY.art ? JY.art.character({ seed: r.seed, eyes: r.face.eyes, mouth: r.face.mouth, hat: 'helmet' }).replace('viewBox="0 0 200 232"', 'viewBox="24 20 152 150"') : ''; }
+  function dhms(sec) { var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600); return d ? d + '일 ' + h + '시간' : h + '시간 ' + Math.floor(sec % 3600 / 60) + '분'; }
+  function renderLeague(list) {
+    var now = Date.now(); LG.rollover(save, now);
+    var g = LG.state(save, now), t = LG.table(save, now), L0 = LG.L, me = t.filter(function (r) { return r.me; })[0];
+    var head = document.createElement('div'); head.className = 'lg-head';
+    head.innerHTML = '<div class="lg-tier"><small>이번 주</small><b>' + L0.tiers[g.tier] + '</b><span>' + (g.tier + 1) + ' / ' + L0.tiers.length + '단계</span></div>' +
+      '<div class="lg-me"><b>' + me.rank + '위</b><small>' + fmt(g.score) + '점 · ' + g.ops + '판' + (g.best ? ' · 최고 ' + fmt(g.best) : '') + '</small><small>마감까지 ' + dhms(LG.leftSec(now)) + '</small></div>';
+    list.appendChild(head);
+    var html = '<ol class="lg-table">';
+    t.forEach(function (r, i) {
+      if (i === L0.up && g.tier < L0.tiers.length - 1) html += '<li class="lg-line up">▲ 여기까지 승급 → ' + L0.tiers[g.tier + 1] + '</li>';
+      if (i === t.length - L0.down && g.tier > 0) html += '<li class="lg-line down">▼ 여기부터 강등</li>';
+      html += '<li class="lg-row' + (r.me ? ' me' : '') + (r.zone ? ' ' + r.zone : '') + '"><em>' + r.rank + '</em><span class="lg-face">' + (r.me ? (JY.art && M ? JY.art.character(M.lookSpec(save)).replace('viewBox="0 0 200 232"', 'viewBox="24 20 152 150"') : '') : leagueFace(r)) + '</span>' +
+        '<span class="lg-nm"><b>' + (r.me ? esc((S.RANKS[G.rankOf(save)] || {}).name + ' ' + (save.look.name || '김제설')) + ' <i>나</i>' : esc(r.name)) + '</b><small>' + (r.me ? '우리 중대' : esc(r.unit) + ' · ' + r.style.name) + '</small></span><b class="lg-sc">' + fmt(r.score) + '</b></li>';
+    });
+    html += '</ol>';
+    html += '<div class="lg-rw"><b>주간 보상</b><span>1위 ' + dia() + (L0.reward[0] + g.tier) + ' + 희귀 상자 · 2위 ' + dia() + (L0.reward[1] + g.tier) + ' · 3위 ' + dia() + (L0.reward[2] + g.tier) + ' · 그 밖 ' + dia() + '1~' + (L0.reward[3] + g.tier) + '</span></div>' +
+      '<p class="info-note">작전 점수 = ★×100 + 치운 정도 + 콤보 + 일찍 보고 − 지적. 일요일 밤 마감, 월요일 새 주.<br>다른 중대 병사들은 게임 속 인물(AI)이다 — 실제 사람끼리의 순위는 앱 출시 때 구글 플레이 게임즈 순위표로.</p>';
+    if (g.last && g.last.week) html += '<p class="info-note">지난주: ' + L0.tiers[g.last.tier] + ' ' + g.last.rank + '위' + (g.last.moved > 0 ? ' → 승급' : g.last.moved < 0 ? ' → 강등' : '') + (g.last.dia ? ' · 상점 +' + g.last.dia : '') + '</p>';
+    list.insertAdjacentHTML('beforeend', html);
+  }
   // v25 군생활 로드맵: 지금까지 연 것 · 다음 해금 · 잠긴 것 (이름과 한 줄 설명은 보여 준다 — 저기까지 가고 싶게)
   var RM_KIND = { zone: '구역', feat: '기능', tool: '장비', crew: '분대원', ride: '탈것', rank: '진급', dis: '전역', look: '꾸미기' };
   var RM_IC = {
@@ -1488,13 +1567,22 @@
     lookChanged();
   }
   function untry() { if (!lookTry) return; if (lookTry.cat === 'extras') save.look.extras = lookTry.prev; else save.look[lookTry.cat] = lookTry.prev; lookTry = null; lookChanged(); }
+  function buyLookNow(cat, id, tier) {
+    untry();
+    if (M.buyLook(save, cat, id)) { if (X) { if (tier === 'l' || tier === 'e') X.fanfare(); else X.dia(); } toast((tier ? '[' + S.LOOK_TIER[tier].name + '] ' : '') + M.lookName(cat + ':' + id) + ' 획득! 멋 +' + S.LOOK_TIER[tier || 'c'].pts); vibrate(tier === 'l' ? [30, 30, 30, 30, 120] : 30); }
+    else { if (X) X.deny(); toast('상점이 모자라다'); }
+    persistRaw(); lookChanged(); renderShop();
+  }
   function tierChip(t) { return t ? '<i class="tier t-' + t + '">' + S.LOOK_TIER[t].name + '</i>' : ''; }
   function renderLook(list) {
     var opts = M.lookOptions(save), si = M.styleInfo(save), dk = M.dealOf(save), dp = dk ? dk.split(':') : null, dOpt = dp ? opts[dp[0]].filter(function (o) { return o.id === dp[1]; })[0] : null;
     var top = document.createElement('div'); top.className = 'look-top';
-    var snap = V.snapshot ? '<figure><img id="pv-3p" alt="3인칭 모습"><figcaption>3인칭</figcaption></figure><figure><img id="pv-fp" alt="1인칭 손"><figcaption>1인칭 손</figcaption></figure>' : '';
+    // v26 얼굴·모자 탭: 3인칭 '얼굴 가까이'를 크게 + 전신. 군복·넉가래 탭: 전신 + 1인칭 손
+    var faceTab = lookTab === 'face' || lookTab === 'hat';
+    var snap = V.snapshot ? (faceTab ? '<figure class="pv-big"><img id="pv-3f" alt="3인칭 얼굴"><figcaption>3인칭 · 가까이</figcaption></figure><figure><img id="pv-3p" alt="3인칭 모습"><figcaption>3인칭 · 전신</figcaption></figure>'
+      : '<figure><img id="pv-3p" alt="3인칭 모습"><figcaption>3인칭</figcaption></figure><figure><img id="pv-fp" alt="1인칭 손"><figcaption>1인칭 손</figcaption></figure>') : '';
     var tr = lookTry ? opts[lookTry.cat].filter(function (o) { return o.id === lookTry.id; })[0] : null;
-    top.innerHTML = '<div class="look-pv"><figure class="pv-face">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '<figcaption>대사 얼굴</figcaption></figure>' + snap + '</div>' +
+    top.innerHTML = '<div class="look-pv' + (faceTab ? ' face-tab' : '') + '"><figure class="pv-face">' + (JY.art ? JY.art.character(M.lookSpec(save)) : '') + '<figcaption>대사 얼굴</figcaption></figure>' + snap + '</div>' +
       (tr ? '<div class="look-try t-' + (tr.tier || 'c') + '"><span><b>입어 보는 중</b> ' + esc(tr.name) + ' ' + tierChip(tr.tier) + '</span><span class="lt-btns"><button class="btn sm" data-luntry>벗기</button><button class="btn sm gold" data-lbuy' + (tr.ok ? '' : ' disabled') + '>' + dia() + tr.dia + ' 사기</button></span></div>' : '') +
       '<div class="look-style"><span>멋 <b>' + si.pts + '</b>점 · 초코파이 <b>+' + Math.round(si.bonus * 1000) / 10 + '%</b></span><small>' + (si.bonus >= si.cap ? '최대!' : '꾸미기를 살수록 오른다 (' + si.capPts + '점이면 최대 +' + Math.round(si.cap * 100) + '%)') + '</small><i style="width:' + Math.min(100, si.pts / si.capPts * 100).toFixed(1) + '%"></i></div>' +
       (dOpt ? '<button class="look-deal t-' + (dOpt.tier || 'c') + '" data-look="' + dOpt.id + '" data-cat="' + dOpt.cat + '" data-state="buy"><span class="lthumb">' + lookThumb(dOpt.cat, dOpt) + '</span><span><small>오늘의 특가 -' + Math.round(S.STYLE.deal * 100) + '%</small><b>' + esc(dOpt.name) + ' ' + tierChip(dOpt.tier) + '</b><em><s>' + dOpt.full + '</s> ' + dia() + dOpt.dia + '</em></span></button>' : '') +
@@ -1529,8 +1617,10 @@
     snapTimers.forEach(clearTimeout); snapTimers = [];
     [30, 400, 1100].forEach(function (ms) {
       snapTimers.push(setTimeout(function () {
-        var a = document.getElementById('pv-3p'), b = document.getElementById('pv-fp'); if (!a || !b) return;
-        var u1 = V.snapshot('third'), u2 = V.snapshot('fp'); if (u1) a.src = u1; if (u2) b.src = u2;
+        var a = document.getElementById('pv-3p'), b = document.getElementById('pv-fp'), f = document.getElementById('pv-3f');
+        if (a) { var u1 = V.snapshot('third'); if (u1) a.src = u1; }
+        if (b) { var u2 = V.snapshot('fp'); if (u2) b.src = u2; }
+        if (f) { var u3 = V.snapshot('face'); if (u3) f.src = u3; }
       }, ms));
     });
   }

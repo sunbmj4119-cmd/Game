@@ -77,6 +77,13 @@
   function nextRank(save) { return S.RANKS[rankOf(save) + 1] || null; }
   function examDue(save) { var n = nextRank(save); return !!n && (save.merit || 0) >= n.merit; }
   // 근무평정이 쌓이면 중대에서 구역을 더 맡긴다 (사는 게 아니다). 새로 맡은 구역은 다음 작전에서 소개
+  // v26 인계 구역: 오래된 구역부터, 분대원 2명당 1구역 (최근 두 구역은 늘 내 담당)
+  function handover(save) {
+    var H = S.HANDOVER, n = crewCount(save), owned = S.ZONES.filter(function (Z) { return save.zones && save.zones[Z.id]; }), out = {};
+    var can = Math.min(owned.length - H.front, Math.ceil(n / H.perCrew));
+    for (var i = 0; i < can; i++) out[owned[i].id] = true;
+    return out;
+  }
   function assignZones(save) {
     var got = [];
     S.ZONES.forEach(function (Z) {
@@ -350,6 +357,7 @@
     };
     LOCKS = S.ZONES.filter(function (Z) { return !save.zones[Z.id]; });
     var R = w.rand, stored = save.snow && !opts.fresh ? dec(save.snow, GW * GH) : null;
+    var HO = opts.demo ? {} : handover(save); w.handover = HO; w.hoAny = Object.keys(HO).length > 0;
     S.ZONES.forEach(function (Z, zi) {
       var open = !!save.zones[Z.id], isNew = !!save.fresh[Z.id] || !stored;
       w.zoneOpen[zi] = open; w.zoneTotal[zi] = 0; w.zoneClear[zi] = 0;
@@ -365,6 +373,8 @@
           // 밤새 온 눈: 날씨만큼 (잔설 1~2 · 눈 1~3 · 함박눈 2~4 · 폭설 3~4). 첫날은 얕게
           var first = Z.id === 'A' && !save.discharges && save.day <= 1, ra = S.SNOWLOAD.rankAdd[rankOf(save)] || 0, lo = first ? 1 : Math.min(S.SNOWLOAD.maxD, wx.depth[0] + ra), hi = first ? 2 : Math.min(S.SNOWLOAD.maxD, wx.depth[1] + ra);
           w.depth[idx] = isNew ? Math.min(hi, lo + Math.floor(drift(save.seed + zi * 13, gx, gy) * (hi - lo + 1))) : stored[idx];
+          if (isNew && HO[Z.id]) w.depth[idx] = Math.floor(w.depth[idx] * (1 - S.HANDOVER.pre));   // v26 인계 구역: 후임들이 새벽에 먼저 나와 조금 치워 뒀다
+          else if (isNew && w.hoAny && w.depth[idx]) w.depth[idx] = Math.min(S.SNOWLOAD.maxD, w.depth[idx] + S.HANDOVER.frontAdd);   // 내 담당(새 구역)은 아무도 손 안 댄 눈 — 더 깊다
           w.cells.push(idx); w.zoneTotal[zi]++; (w.zoneCells[zi] = w.zoneCells[zi] || []).push(idx);
           if (!w.depth[idx]) { w.clear++; w.zoneClear[zi]++; }
           for (var k = pBase; k < w.parts.length; k++) {
@@ -392,7 +402,7 @@
         var sp = spotIn(w, post, R);
         w.crew.push({ def: C, n: i, post: post, x: sp.x, y: sp.y, dir: { x: 0, y: 1 }, tidx: -1, tx: 0, ty: 0,
           hitT: R() * C.hit, retarget: 0, stuck: 0, walk: R() * 10, asleep: false, sleepT: 2 + R() * 4, swing: 0, moving: false, injured: 0,
-          speed: C.speed * (1 + 0.12 * song) * (1 + crewLvBonus(save, C.id)), hit: C.hit / (1 + 0.06 * song) / (1 + crewLvBonus(save, C.id)), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
+          speed: C.speed * (1 + 0.12 * song) * (1 + crewLvBonus(save, C.id)) * (w.handover[post] ? S.HANDOVER.boost : 1), hit: C.hit / (1 + 0.06 * song) / (1 + crewLvBonus(save, C.id)) / (w.handover[post] ? S.HANDOVER.boost : 1), r: C.r * (1 + 0.15 * gear), p: C.p, seed: (R() * 1e6) | 0,
           cap: Math.round(C.cap * (1 + 0.2 * back)), load: 0, val: 0, state: 'work', home: null, mor: Math.min(100, (save.mor || 80) + R() * 10 - 5), slack: false });
         var e = w.crew[w.crew.length - 1]; if (blocked(e.x, e.y, 6)) { e.x = S.DUMP.x + 30; e.y = S.DUMP.y; }
       }
@@ -419,9 +429,9 @@
     S.ZONES.forEach(function (Z, zi) {
       if (!w.zoneOpen[zi] || !w.zoneTotal[zi]) return;
       var due = Z.due || S.OP.end, done = st && st.done && st.done[Z.id] !== undefined ? st.done[Z.id] : -1;
-      tasks.push({ zi: zi, id: Z.id, name: Z.name, why: Z.why || '', goal: goal, due: due, dueT: timeAt(due), done: done, lateSaid: done >= 0 || w.time > timeAt(due) });
+      tasks.push({ zi: zi, id: Z.id, name: Z.name, why: Z.why || '', goal: goal, due: due, dueT: timeAt(due), done: done, lateSaid: done >= 0 || w.time > timeAt(due), ho: !!(w.handover && w.handover[Z.id]) });
     });
-    tasks.sort(function (a, b) { return a.due - b.due || a.zi - b.zi; });
+    tasks.sort(function (a, b) { return (a.ho ? 1 : 0) - (b.ho ? 1 : 0) || a.due - b.due || a.zi - b.zi; });   // v26 내 담당(새 구역)이 먼저, 인계 구역은 뒤
     w.op = { day: save.day, exam: exam, goal: goal, tasks: tasks, jigeok: st ? st.jigeok || 0 : 0, stuck: st ? !!st.stuck : false, carPass: st ? !!st.carPass : false, ready: false, report: false, nag: 0,
       bonus: w.demo ? null : pickBonus(w, st && st.bonus) };
     if (st && st.salted) st.salted.forEach(function (k) { if (w.parts[k]) w.parts[k].salted = true; });
@@ -504,7 +514,7 @@
   }
   function opStatus(w) {
     var op = w.op; if (!op) return null;
-    var tasks = op.tasks.map(function (t) { return { id: t.id, name: t.name, why: t.why, goal: t.goal, pct: taskPct(w, t), due: t.due, dueT: t.dueT, done: t.done >= 0, late: t.done >= 0 ? t.done > t.dueT + 0.01 : w.time > t.dueT, left: t.dueT - w.time }; });
+    var tasks = op.tasks.map(function (t) { return { id: t.id, name: t.name, why: t.why, goal: t.goal, pct: taskPct(w, t), due: t.due, dueT: t.dueT, done: t.done >= 0, late: t.done >= 0 ? t.done > t.dueT + 0.01 : w.time > t.dueT, left: t.dueT - w.time, ho: !!t.ho }; });
     var icy = w.parts.filter(function (P) { return P.icy && !P.salted; }).map(function (P) { return P.name; });
     var b = op.bonus, bp = bonusProg(w);
     return { clock: clockOf(w.time), tasks: tasks, done: tasks.filter(function (t) { return t.done; }).length, ready: op.ready, exam: op.exam, jigeok: op.jigeok, stuck: op.stuck, icy: icy, left: w.dayLen - w.time ,
@@ -517,7 +527,7 @@
       var pct = taskPct(w, t), wt = t.due < S.OP.end ? 2 : 1, c;
       if (t.done >= 0) c = t.done <= t.dueT + 0.01 ? 1 : 0.6; else c = 0.5 * Math.min(1, pct / t.goal);
       sumW += wt; sumC += wt * c;
-      lines.push({ id: t.id, name: t.name, why: t.why, pct: pct, goal: t.goal, done: t.done >= 0, late: t.done >= 0 && t.done > t.dueT + 0.01, due: t.due, c: c });
+      lines.push({ id: t.id, name: t.name, why: t.why, pct: pct, goal: t.goal, done: t.done >= 0, late: t.done >= 0 && t.done > t.dueT + 0.01, due: t.due, c: c, ho: !!t.ho });
     });
     var base = sumW ? sumC / sumW : 1, icy = w.parts.filter(function (P) { return P.icy && !P.salted; }).length;
     var pen = op.jigeok * 0.05 + (op.stuck ? 0.1 : 0) + icy * 0.05, bonus = (op.report ? 0.03 : 0) + (w.early ? 0.03 : 0);
@@ -1276,7 +1286,7 @@
   }
 
   JY.SnowSim = { feat: feat, newFeatures: newFeatures, previewBonus: previewBonus, opGoal: opGoal, nextZone: nextZone, bonusProg: bonusProg, helpZone: helpZone,
-    mulberry: mulberry, styleScore: styleScore, styleBonus: styleBonus, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
+    mulberry: mulberry, handover: handover, styleScore: styleScore, styleBonus: styleBonus, newSave: newSave, migrate: migrate, lvl: lvl, crewN: crewN, procLvl: procLvl, rankOf: rankOf, service: service, lvOf: lvOf, skillLv: skillLv, crewLv: crewLv, skillBonus: skillBonus, nextRank: nextRank,
     crewCost: crewCost, perkCost: perkCost, incomeMult: incomeMult, procMult: procMult, toolOf: toolOf, capOf: capOf, crewCount: crewCount,
     canDischarge: canDischarge, gearBonus: gb, weekOf: weekOf, spec: spec, specDue: specDue, rideUp: rideUp, medalGain: medalGain, discharge: discharge, weatherFor: weatherFor, offers: offers, buy: buy, relayCost: relayCost,
     blocked: blocked, extendOp: extendOp, finishTimeUp: finishTimeUp, createWorld: createWorld, serialize: serialize, step: step, pct: pct, offline: offline, dumpsOf: dumpsOf, nearestDump: nearestDump,

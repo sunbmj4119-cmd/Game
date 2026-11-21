@@ -162,6 +162,10 @@ function scan() {
       s.rideUp = { cart: { spd: 3, cap: 3 }, atv: { spd: 2, cap: 1 } }; s.stats.ops = 40; JY.SnowSim.newFeatures(s, true); __SNOW.title();
     });
     await sleep(600); await closeAll(); await check('extreme-hub');
+    // v26 대대 제설 경연 (긴 이름 · 큰 점수)
+    await page.evaluate(function () { var s = __SNOW.save(); s.league = { week: JY.SnowLeague.weekKey(Date.now()), tier: 5, score: 98765432, ops: 999, best: 99999, last: null, seen: '' }; __SNOW.title(); });
+    await sleep(300); await closeAll();
+    var lgb = await page.$('[data-hub="league"]:not([hidden])'); if (lgb) { await lgb.click(); await sleep(500); await check('page-league'); await page.click('#s-go'); await sleep(400); await closeAll(); }
     await page.click('[data-hub="shop"]'); await sleep(300);
     for (var t2 of ['tool', 'crew', 'up']) { var tb2 = await page.$('#s-tabs [data-tab="' + t2 + '"]'); if (!tb2) continue; await tb2.click(); await sleep(250); await check('extreme-shop-' + t2); }
     await page.click('#s-go'); await sleep(400); await closeAll();
@@ -182,7 +186,7 @@ function scan() {
     }
     await page.click('[data-hub="gear"]'); await sleep(300); await page.click('#s-tabs [data-tab="chest"]'); await sleep(300);
     var ten = await page.$('[data-chest="good"][data-how="ten"]:not([disabled])');
-    if (ten) { await ten.click(); await sleep(1200); await check('v18-chest-ten'); await closeAll(); }
+    if (ten) { await ten.click(); await sleep(400); await check('v26-dia-confirm'); var yes = await page.$('#modal-box [data-m="yes"]'); if (yes) await yes.click(); await sleep(1200); await check('v18-chest-ten'); await closeAll(); }
     var ball = await page.$('[data-boxall]'); if (ball) { await ball.click(); await sleep(800); await check('v20-box-all'); await closeAll(); }
     await page.click('#s-go'); await sleep(400); await closeAll();
     await page.evaluate(function () { var s = __SNOW.save(); s.energy = { v: 2, t: Date.now() }; s.op = null; s.rank = Math.max(1, s.rank); __SNOW.title(); });

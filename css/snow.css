@@ -1321,3 +1321,53 @@ svg.bolt { width: 18px; height: 18px; vertical-align: -3px; }
 #banner b { font-size: clamp(21px, 6.4vw, 32px); text-wrap: balance; }
 #banner span { font-size: 14.5px; max-width: 100%; box-sizing: border-box; }
 .m-res .kicker, .m-rank .kicker { text-wrap: balance; }
+/* v26 꾸미기 미리보기: 얼굴·모자 탭은 '가까이' 그림을 크게 (대사 얼굴 | 가까이(크게) | 전신) */
+.look-pv.face-tab { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 0.8fr); align-items: end; }
+.look-pv.face-tab .pv-big img { box-shadow: 0 0 0 3px #ffd34d; }
+/* v26 상점 사용 확인 */
+.confirm-dia { text-align: center; }
+.confirm-dia .cd-big { display: inline-flex; align-items: center; gap: 6px; font-size: 30px; font-weight: 800; color: #c8302a; margin: 2px 0 4px; }
+.confirm-dia .cd-big .dia { width: 30px; height: 30px; font-size: 18px; }
+.confirm-dia h3 { word-break: keep-all; }
+.confirm-dia .cd-left { font-size: 13.5px; color: var(--mute); }
+.confirm-dia .cd-left b { color: var(--ink); }
+.cd-skip { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--mute); cursor: pointer; }
+.cd-skip small { font-size: 11px; }
+/* v26 인계 구역 */
+.ov-zone.ho b { background: rgba(47,111,209,.82); font-size: 13px; }
+.ov-zone.ho span { background: rgba(47,111,209,.82); color: #fff; font-family: var(--f-body); font-size: 12px; font-weight: 700; }
+.ho-tag { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: #2f6fd1; border-radius: 6px; padding: 0 5px; margin-left: 3px; vertical-align: middle; }
+#op-list li.ho span { color: #5d7fae; }
+/* v26 대대 제설 경연 */
+#hub-league-n { font-style: normal; }
+#hub-league-n.up { background: #2f8f5b; }
+.lg-head { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: var(--navy); color: #fff; border-radius: 16px; padding: 12px 14px; }
+.lg-tier { display: grid; gap: 1px; }
+.lg-tier small { font-size: 11.5px; color: #b8c7d9; }
+.lg-tier b { font-family: var(--f-title); font-weight: 400; font-size: 21px; color: #ffd34d; }
+.lg-tier span { font-size: 11.5px; color: #b8c7d9; }
+.lg-me { display: grid; gap: 1px; text-align: right; }
+.lg-me b { font-size: 26px; line-height: 1; }
+.lg-me small { font-size: 11.5px; color: #c9d6e6; }
+.lg-table { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lg-row { display: grid; grid-template-columns: 26px 38px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 10px 5px 6px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 2px var(--line); }
+.lg-row em { font-style: normal; font-weight: 800; font-size: 16px; text-align: center; color: #6b7a8c; }
+.lg-row.up em { color: #2f8f5b; }
+.lg-row.down em { color: #c8402e; }
+.lg-face { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #dfe9f3; display: block; }
+.lg-face svg { width: 100%; height: 100%; display: block; }
+.lg-nm { display: grid; min-width: 0; }
+.lg-nm b { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-nm b i { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: #e8a400; border-radius: 6px; padding: 0 5px; margin-left: 2px; vertical-align: middle; }
+.lg-nm small { font-size: 11px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-sc { font-size: 15px; font-variant-numeric: tabular-nums; }
+.lg-row.me { background: #fff6dd; box-shadow: inset 0 0 0 2.5px #e8a400; }
+.lg-line { list-style: none; text-align: center; font-size: 11.5px; font-weight: 800; padding: 2px 0; }
+.lg-line.up { color: #2f8f5b; border-bottom: 2px dashed #7cc49a; }
+.lg-line.down { color: #c8402e; border-top: 2px dashed #e5a09a; }
+.lg-rw { display: grid; gap: 2px; background: #f6f8f2; border-radius: 12px; padding: 8px 10px; font-size: 12.5px; }
+.lg-rw span { color: #4b5563; }
+.res-league { margin: 6px 0 0; text-align: center; font-size: 13.5px; color: #23324a; }
+.res-league .up { color: #2f8f5b; font-weight: 800; }
+.res-league small { display: block; font-size: 11.5px; color: var(--mute); }
+.m-res .kicker, .m-rank .kicker { word-break: keep-all; }

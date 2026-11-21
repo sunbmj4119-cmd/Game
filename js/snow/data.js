@@ -289,6 +289,7 @@
     { id: 'factory', when: { zone: 'C' } },
     { id: 'twist', when: { rank: 2 }, name: '돌발 상황', line: '폭설 경보 · 공병대 지원 · 사단장님 불시 방문' },
     { id: 'week', when: { ops: 7 }, name: '이번 주 작전', line: '7일마다 주제가 바뀐다 (폭설 주간·고라니 대이동…)' },
+    { id: 'league', when: { ops: 5 }, name: '대대 제설 경연', line: '매주 다른 중대 병사들과 작전 점수 경쟁 · 3위 안이면 승급' },   // v26 랭킹
     { id: 'gear', when: { ops: 1 }, name: '장구류 · 보급 상자', line: '장갑·전투화·넉가래 날… 같은 것 3개면 한 등급 위. 전역해도 남는다' },
     { id: 'mission', when: { ops: 2 }, name: '일일 임무 · 복무 패스', line: '날마다 임무 5개, 작전·임무로 패스가 오른다' },
     { id: 'energy', when: { rank: 1 }, name: '출동 체력', line: '작전 1번에 5 · 4분에 1씩 찬다 (최대 75, 작전 15번)' },
@@ -362,6 +363,9 @@
     ] };
   // v25 집중: 큰 일(돌발·폐급짓·고라니 떼)은 한 번에 하나, 끝나고 12초 쉬고 다음. 작전 처음 18초·마지막 15초는 조용히.
   // 작은 일(보급품·대왕 눈덩이·고라니 한 마리·선임 장난·폭설)은 큰 일 중엔 미루고, 서로 6초 간격. 작전당 큰 일 개수도 정해 둔다.
+  // v26 구역 인계: 가장 최근에 맡은 두 구역이 '내 담당'. 그 이전 구역은 분대원에게 넘긴다 (분대원 2명당 1구역까지)
+  // → 새벽에 후임들이 먼저 나와 조금 치워 두고(pre), 그 구역 담당 분대원은 손이 빠르다(boost). 나는 늘 새 구역(눈이 더 깊다 · frontAdd)에서 일한다
+  var HANDOVER = { front: 2, pre: 0.2, boost: 1.1, perCrew: 2, frontAdd: 2 };   // 가상 플레이어로 맞춤: 중반 작전 길이 -15% 안쪽, 전역까지 시간은 그대로
   var FOCUS = { calmStart: 18, calmEnd: 15, gap: 12, minorGap: 6, budget: [[6, 1], [20, 2], [1e9, 3]], retry: 2.5 };
   var BIGBALL = { at: [25, 70], r0: 7, rmax: 24, grow: 0.55, push: 0.92, pay: 1.5 };
   var SNOWLOAD = { rankAdd: [0, 1, 2, 4], unitVal: 0.5, maxD: 10, vis: [0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4] };
@@ -645,7 +649,7 @@
     PADS: PADS, FEVER: FEVER, TWIST: TWIST,
     CELL: CELL, W: W, H: H, GW: W / CELL, GH: H / CELL,
     ZONES: ZONES, BUILDINGS: BUILDINGS, TANKS: TANKS, TREES: TREES, DECOR: DECOR, TOOLS: TOOLS, CREW: CREW, PERKS: PERKS, FACES: FACES,
-    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, CHAOS: CHAOS, PYE: PYE, FOCUS: FOCUS, SKILLS: SKILLS, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, LOOK_TIER: LOOK_TIER, LOOK_RAR: LOOK_RAR, LOOK_NEW: LOOK_NEW, STYLE: STYLE, LOOK_LINES: LOOK_LINES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
+    RANKS: RANKS, DISCHARGE_LIFE: DISCHARGE_LIFE, DISCHARGE_MERIT: DISCHARGE_MERIT, CREW_CAP: CREW_CAP, OP: OP, BONUS: BONUS, FEATURES: FEATURES, RIDES: RIDES, SERVICE: SERVICE, SNOWLOAD: SNOWLOAD, DROPS: DROPS, BIGBALL: BIGBALL, CHAOS: CHAOS, PYE: PYE, FOCUS: FOCUS, HANDOVER: HANDOVER, SKILLS: SKILLS, FUN: FUN, SPECS: SPECS, RIDEUP: RIDEUP, WEEKS: WEEKS, GEAR: GEAR, CHESTS: CHESTS, ENERGY: ENERGY, MISSIONS: MISSIONS, MISSION_DAY: MISSION_DAY, PASS: PASS, PREP: PREP, BRIEF: BRIEF, STORY: STORY, LOOK: LOOK, LOOK_NAMES: LOOK_NAMES, LOOK_TIER: LOOK_TIER, LOOK_RAR: LOOK_RAR, LOOK_NEW: LOOK_NEW, STYLE: STYLE, LOOK_LINES: LOOK_LINES, QUESTS: QUESTS, PROPS: PROPS, VEND: VEND, WEATHER: WEATHER, HAZ: HAZ, LINES: LINES, PROC: PROC, DUMP: DUMP, TREASURE: TREASURE, RARITY: RARITY, ACH: ACH, DIA: DIA,
     SPAWN: { x: 200, y: 180 }, DOOR: { x: 260, y: 114 },
     DAY_LEN: 240, FALL: 0.003, HIT: 0.2, SPEED: 90, PART_DONE: 1, PART_RESET: 0.7, INSPECT: 0.95, ALMOST: 0.85
   };

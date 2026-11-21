@@ -411,6 +411,13 @@
       ov.appendChild(el);
       zoneLabels.push({ el: el, x: (Z.x + Z.w / 2), y: Z.y + Z.h / 2 });
     });
+    // v26 인계 구역 표시: 땅 위에 '후임 담당' 팻말
+    Object.keys(world.handover || {}).forEach(function (id) {
+      var Z = G.zoneById(id); if (!Z) return;
+      var el = document.createElement('div'); el.className = 'ov-zone ho';
+      el.innerHTML = '<b>' + Z.name + '</b><span>후임 담당</span>';
+      ov.appendChild(el); zoneLabels.push({ el: el, x: (Z.x + Z.w / 2), y: Z.y + Z.h / 2 });
+    });
     scene.add(lockGroup);
   }
 
@@ -540,7 +547,7 @@
     // v24 꾸미기 모자: 3인칭(위·뒤에서 보는 카메라)에서도 한눈에 보이게 크고 색이 강하게
     else if (hat === 'bobble') { parts.push([P(new T.SphereGeometry(HR + 0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { s: [1, 1.15, 1], y: y + 0.02 }), '#e23b3b'], [P(new T.TorusGeometry(HR + 0.06, 0.07, 6, 22), { rx: Math.PI / 2, y: y + 0.08 }), '#ffffff'], [P(new T.TorusGeometry(HR - 0.06, 0.05, 6, 22), { rx: Math.PI / 2, y: y + 0.36 }), '#ffffff'], [sph(0.22, { y: y + 0.72 }), '#ffffff']); }
     else if (hat === 'earmuff') parts.push([P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128'], [P(new T.TorusGeometry(HR + 0.06, 0.05, 6, 20, Math.PI), { y: y - 0.02 }), '#f07aa8'], [sph(0.24, { s: [0.6, 1, 1], x: -HR - 0.05, y: y - 0.04 }), '#ffb3d1'], [sph(0.24, { s: [0.6, 1, 1], x: HR + 0.05, y: y - 0.04 }), '#ffb3d1']);
-    else if (hat === 'santa') parts.push([cone(HR + 0.05, 1.0, { x: 0.12, y: y + 0.52, z: -0.08, rz: -0.35, rx: -0.25 }, 14), '#e3342f'], [P(new T.TorusGeometry(HR + 0.04, 0.1, 6, 22), { rx: Math.PI / 2, y: y + 0.08 }), '#ffffff'], [sph(0.17, { x: 0.46, y: y + 0.92, z: -0.32 }), '#ffffff']);
+    else if (hat === 'santa') parts.push([cone(HR + 0.05, 1.0, { x: 0.12, y: y + 0.52, z: -0.08, rz: -0.35, rx: -0.25 }, 14), '#e3342f'], [P(new T.TorusGeometry(HR + 0.03, 0.09, 6, 22), { rx: Math.PI / 2, y: y + 0.16 }), '#ffffff'], [sph(0.17, { x: 0.46, y: y + 0.92, z: -0.32 }), '#ffffff']);
     else if (hat === 'bear') parts.push([P(new T.SphereGeometry(HR + 0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), { y: y + 0.02 }), '#9c6833'], [sph(0.2, { s: [1, 1, 0.6], x: -0.4, y: y + 0.5 }), '#8b5a2b'], [sph(0.2, { s: [1, 1, 0.6], x: 0.4, y: y + 0.5 }), '#8b5a2b'], [sph(0.1, { s: [1, 1, 0.5], x: -0.4, y: y + 0.5, z: 0.08 }), '#e9b48a'], [sph(0.1, { s: [1, 1, 0.5], x: 0.4, y: y + 0.5, z: 0.08 }), '#e9b48a']);
     else if (hat === 'cone') parts.push([box(0.95, 0.1, 0.95, { y: y + 0.36 }), '#2b2b2b'], [cone(0.42, 1.25, { y: y + 1.02 }, 16), '#ff7a1a'], [cyl(0.29, 0.33, 0.14, { y: y + 0.82 }, 16), '#ffffff'], [cyl(0.17, 0.21, 0.12, { y: y + 1.18 }, 16), '#ffffff'], [P(new T.SphereGeometry(HR + 0.01, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), { y: y + 0.01 }), '#3b3128']);
     else if (hat === 'bantong') parts.push([box(0.98, 0.42, 0.78, { y: y + 0.42 }), '#7d8456'], [box(1.0, 0.06, 0.8, { y: y + 0.24 }), '#5f6640'], [P(new T.TorusGeometry(0.26, 0.035, 5, 14, Math.PI), { rz: -Math.PI / 2, x: 0.5, y: y + 0.42 }), '#5f6640'], [box(0.05, 0.62, 0.06, { x: 0.18, y: y + 0.82, rz: -0.4 }), '#c9d1d9'], [sph(0.09, { s: [1, 1.4, 0.4], x: 0.3, y: y + 1.12, rz: -0.4 }), '#c9d1d9']);
@@ -641,27 +648,30 @@
     else if (expr === 'shout') { o.brows = 'angry'; o.mouth = 'shout'; }
     return JY.art.character(s, o);
   }
+  var FACE_T0 = 1.05;
   function faceGeo() {
     if (geos.face) return geos.face;
-    var span = 1.9, g = new T.SphereGeometry(HR * 1.012, 24, 16, Math.PI / 2 - span / 2, span, 0.82, 1.32);
+    // v26 얼굴을 조금 아래로 (0.82 → 1.05): 눈이 모자 챙 아래로 내려와서 3인칭에서도 보인다 (눈 높이 ≈ 머리 가운데)
+    var span = 1.9, g = new T.SphereGeometry(HR * 1.012, 24, 16, Math.PI / 2 - span / 2, span, FACE_T0, 1.32);
     g.translate(0, HY, 0);
     return (geos.face = g);
   }
   function faceMat(key, expr) {
     var k = 'face:' + key + ':' + expr; if (mats[k]) return mats[k];
-    var c = document.createElement('canvas'); c.width = 256; c.height = 192;
+    var hi = key === 'me' ? 2 : 1;   // v26 내 얼굴은 두 배 선명하게 (꾸미기가 잘 보이게)
+    var c = document.createElement('canvas'); c.width = 256 * hi; c.height = 192 * hi;
     var tex = new T.CanvasTexture(c); tex.encoding = T.sRGBEncoding; tex.anisotropy = 4;
     var mat = new T.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.03 });
     mats[k] = mat;
     if (JY.art) {
-      var svg = faceSpec(key, expr).replace('viewBox="0 0 200 232"', 'width="400" height="464" viewBox="0 0 200 232"');
+      var svg = faceSpec(key, expr).replace('viewBox="0 0 200 232"', 'width="' + 400 * hi + '" height="' + 464 * hi + '" viewBox="0 0 200 232"');
       var img = new Image();
       img.onload = function () {
         var x = c.getContext('2d');
-        x.drawImage(img, 70, 110, 260, 196, 0, 0, 256, 192);
+        x.drawImage(img, 70 * hi, 110 * hi, 260 * hi, 196 * hi, 0, 0, 256 * hi, 192 * hi);
         x.globalCompositeOperation = 'destination-in';
-        var gr = x.createRadialGradient(128, 96, 40, 128, 96, 128); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.72, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        x.save(); x.scale(1, 0.75); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); x.restore();
+        var gr = x.createRadialGradient(128 * hi, 96 * hi, 40 * hi, 128 * hi, 96 * hi, 128 * hi); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.72, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        x.save(); x.scale(1, 0.75); x.fillStyle = gr; x.fillRect(0, 0, 256 * hi, 256 * hi); x.restore();
         tex.needsUpdate = true;
       };
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -719,6 +729,20 @@
     var sc = 0.45 + Math.min(1, k) * 0.85; o.sack.scale.setScalar(sc);
   }
 
+  // v26 얼굴 소품을 입체로: 얼굴 그림만으로는 멀리서 안 보여서, 선글라스·안경·콧수염·마스크·반창고는 모양을 따로 붙인다
+  function accGeo(L) {
+    var ex = (L && L.extras) || [], eyes = L && L.eyes, k = 'acc:' + eyes + ':' + ex.slice().sort().join('+');
+    if (geos[k] !== undefined) return geos[k];
+    var y = HY, ey = HY - 0.02, zf = 0.565, parts = [];   // 눈: 머리 가운데 높이 · 좌우 0.19
+    if (eyes === 'sunglasses') parts.push([box(0.25, 0.15, 0.05, { x: -0.19, y: ey, z: zf }), '#0d0d0d'], [box(0.25, 0.15, 0.05, { x: 0.19, y: ey, z: zf }), '#0d0d0d'], [box(0.14, 0.035, 0.04, { y: ey + 0.04, z: zf + 0.01 }), '#0d0d0d'], [box(0.04, 0.035, 0.42, { x: -0.33, y: ey + 0.04, z: zf - 0.22 }), '#0d0d0d'], [box(0.04, 0.035, 0.42, { x: 0.33, y: ey + 0.04, z: zf - 0.22 }), '#0d0d0d']);
+    if (ex.indexOf('glasses') >= 0) parts.push([P(new T.TorusGeometry(0.115, 0.022, 6, 18), { x: -0.19, y: ey, z: zf + 0.005 }), '#1e1e1e'], [P(new T.TorusGeometry(0.115, 0.022, 6, 18), { x: 0.19, y: ey, z: zf + 0.005 }), '#1e1e1e'], [box(0.1, 0.025, 0.03, { y: ey + 0.03, z: zf + 0.01 }), '#1e1e1e']);
+    if (ex.indexOf('mustache') >= 0) parts.push([sph(0.095, { s: [1.5, 0.55, 0.6], x: -0.085, y: y - 0.2, z: 0.535, rz: 0.25 }), '#2c241e'], [sph(0.095, { s: [1.5, 0.55, 0.6], x: 0.085, y: y - 0.2, z: 0.535, rz: -0.25 }), '#2c241e']);
+    if (ex.indexOf('mask') >= 0) parts.push([sph(0.34, { s: [1, 0.6, 0.5], y: y - 0.27, z: HR * 0.7 }), '#f4f7fb'], [box(0.04, 0.03, 0.55, { x: -0.42, y: y - 0.18, z: 0.1 }), '#f4f7fb'], [box(0.04, 0.03, 0.55, { x: 0.42, y: y - 0.18, z: 0.1 }), '#f4f7fb']);
+    if (ex.indexOf('bandage') >= 0) parts.push([box(0.26, 0.075, 0.04, { x: 0.3, y: y + 0.12, z: 0.5, rz: 0.5 }), '#f3d3a3'], [box(0.26, 0.075, 0.04, { x: 0.3, y: y + 0.12, z: 0.5, rz: -0.6 }), '#f3d3a3']);
+    if (ex.indexOf('snot') >= 0) parts.push([sph(0.065, { x: 0.05, y: y - 0.15, z: 0.57 }), '#bfe6ff']);
+    return (geos[k] = parts.length ? merge(parts) : null);
+  }
+  function addAcc(o, L) { var g = accGeo(L); if (!g) return; var m = new T.Mesh(g, matV); o.body.add(m); o.acc = m; }
   var MM = function () { return JY.SnowMeta; };
   function lookCol(cat, def) { return MM() ? MM().lookColor(world.save, cat) || def : def; }
   function playerKey() { var rd = world.act && world.act.ride, Tl = G.toolOf(world.save); return (rd ? 'ride:' + rd.kind : Tl.id) + '#' + (MM() ? MM().lookKey(world.save) : ''); }
@@ -732,6 +756,8 @@
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; playerObj.g.add(ring); playerObj.ring = ring;
     // v24 내 캐릭터: 조금 크게 + 모자별 움직이는 부분 (프로펠러가 돈다 · 헤드랜턴이 앞을 비춘다) + 전설 등급은 반짝
     playerObj.hatId = veh ? '' : (L.hat || 'beanie'); playerObj.tier = MM() && MM().tierOf ? MM().tierOf('hat', playerObj.hatId) : '';
+    if (!veh) addAcc(playerObj, L);
+    playerObj.sparkles = !veh && (L.extras || []).indexOf('sparkles') >= 0;
     if (!veh) {
       playerObj.g.scale.setScalar(1.34); ring.scale.setScalar(1 / 1.34 * 1.25);
       if (playerObj.hatId === 'propeller') { var pr = new T.Mesh(geos.prop || (geos.prop = merge([[box(1.2, 0.04, 0.18, {}), '#e3342f'], [box(0.18, 0.04, 1.2, {}), '#2ec27e'], [sph(0.08, {}), '#ffd34d']])), matV); pr.position.set(0, HY + 0.88, 0); playerObj.body.add(pr); playerObj.prop = pr; }
@@ -1074,6 +1100,7 @@
     if (playerObj.faceK > 0.01) { var by = playerObj.body.rotation.y, dA = Math.atan2(Math.sin(0.35 - by), Math.cos(0.35 - by)); playerObj.body.rotation.y = by + dA * playerObj.faceK; }
     if (playerObj.prop) playerObj.prop.rotation.y += dt * (P.moving ? 22 : 9);
     if (playerObj.beam) playerObj.beam.material.opacity = 0.12 + Math.sin(t * 3) * 0.03;
+    if (playerObj.sparkles && !isFP()) { playerObj.spk2 = (playerObj.spk2 || 0) - dt; if (playerObj.spk2 <= 0) { playerObj.spk2 = 0.3; var ga2 = Math.random() * 6.28; emit(P.x * U + Math.cos(ga2) * 0.7, 2.4 + Math.random() * 0.6, P.y * U + Math.sin(ga2) * 0.7, 0, rnd(0.3, 0.8), 0, rnd(0.4, 0.7), [1, 1, 0.75]); } }
     if (playerObj.tier === 'l' && !isFP()) { playerObj.spk = (playerObj.spk || 0) - dt; if (playerObj.spk <= 0) { playerObj.spk = 0.22; var ga = Math.random() * 6.28; emit(P.x * U + Math.cos(ga) * 0.9, 3.0 + Math.random() * 0.9, P.y * U + Math.sin(ga) * 0.9, 0, rnd(0.6, 1.4), 0, rnd(0.5, 0.9), [1, 0.86, 0.3]); } }
     playerObj.ring.material.opacity = 0.55 + Math.sin(t * 5) * 0.25;
     stackOn(playerObj, P);
@@ -1717,10 +1744,13 @@
       pv.ground.position.set(0, -1.15, -1.5); pv.ground.scale.setScalar(2);
       pv.cam.fov = 64; pv.cam.position.set(0, 0, 0); pv.cam.lookAt(0, -0.38, -1);
     } else {
-      var o = makePerson({ coat: lookCol('coat', '#5b6a3a'), face: 'me', hat: L.hat || 'beanie', toolColor: lookCol('tool', '#e7ae2f'), tool: 'pusher', r: 15, shadow: false });
-      scene.remove(o.g); o.shadow.visible = false; o.body.rotation.y = 0.55; pv.scene.add(o.g); pv.hold.push(o.g);
+      var o = makePerson({ coat: lookCol('coat', '#5b6a3a'), face: 'me', hat: L.hat || 'beanie', toolColor: lookCol('tool', '#e7ae2f'), tool: kind === 'face' ? null : 'pusher', r: 15, shadow: false });
+      addAcc(o, L);
+      scene.remove(o.g); o.shadow.visible = false; o.body.rotation.y = kind === 'face' ? 0.28 : 0.55; pv.scene.add(o.g); pv.hold.push(o.g);
       pv.ground.position.set(0, 0, 0); pv.ground.scale.setScalar(1);
-      pv.cam.fov = 30; pv.cam.position.set(1.6, 2.7, 6.6); pv.cam.lookAt(0, 1.55, 0.3);
+      // v26 '얼굴' 미리보기: 머리·어깨만 크게 (눈·입·소품이 바뀌는 게 보이게)
+      if (kind === 'face') { var tall = /^(cone|bantong|santa|afro|bobble|propeller|viking|crown|fakestar|lamp|bear)$/.test(L.hat || '') ? 0.35 : 0; pv.cam.fov = 30; pv.cam.position.set(0.55, 2.75 + tall * 0.5, 3.6 + tall); pv.cam.lookAt(0, 2.55 + tall * 0.45, 0); }
+      else { pv.cam.fov = 30; pv.cam.position.set(1.6, 2.7, 6.6); pv.cam.lookAt(0, 1.55, 0.3); }
     }
     pv.cam.aspect = W / H; pv.cam.updateProjectionMatrix();
     // 화면 왼쪽 아래 귀퉁이에 잠깐 그려서 복사 (톤·색이 게임과 똑같다). 다음 프레임에 원래대로 다시 그린다

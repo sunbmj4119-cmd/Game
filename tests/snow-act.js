@@ -11,6 +11,7 @@ require('../js/snow/act.js');
 require('../js/snow/meta.js');
 require('../js/snow/gear.js');
 require('../js/snow/ads.js');
+require('../js/snow/league.js');
 var M = window.JY.SnowMeta;
 var S = window.JY.SNOW, G = window.JY.SnowSim, A = window.JY.SnowAct, pass = 0, fail = 0;
 function ok(c, name, d) { if (c) pass++; else { fail++; console.log('✗ ' + name + (d !== undefined ? ' ' + JSON.stringify(d) : '')); } }
@@ -661,6 +662,30 @@ var sr = G.newSave(); sr.merit = 14; sr.rank = 1; G.assignZones(sr); sr.stats.op
 ok(rm.next && rm.next.at > 14 && rm.next.left === rm.next.at - 14 && rm.bands.length === S.RANKS.length, 'v25 로드맵: 다음 해금 (' + rm.next.names.join(',') + ' ★' + rm.next.at + ')');
 var allIt = []; rm.bands.forEach(function (B) { allIt = allIt.concat(B.items); });
 ok(allIt.some(function (it) { return it.kind === 'ride' && it.name === '트랙터' && it.state === 'lock'; }) && allIt.some(function (it) { return it.kind === 'zone' && it.state === 'done'; }), 'v25 로드맵: 연 것은 열림, 먼 것(트랙터)은 잠김으로 보인다');
+
+// ── v26 구역 인계 · 대대 제설 경연 ──
+var sho = G.newSave(); sho.merit = 50; sho.rank = 2; G.assignZones(sho); sho.crew = { hoobae: 3, donggi: 2 }; var HO = G.handover(sho);
+ok(HO.A && HO.B && HO.C && !HO.D && !HO.E, 'v26 인계: 최근 두 구역(취사장 앞·진입로)은 내 담당, 그 전 구역은 분대원 2명당 1구역씩 후임에게', Object.keys(HO));
+var sho1 = G.newSave(); sho1.merit = 50; sho1.rank = 2; G.assignZones(sho1); sho1.crew = { hoobae: 1 }; ok(Object.keys(G.handover(sho1)).length === 1, 'v26 분대원 1명이면 한 구역만 넘긴다');
+var sho0 = G.newSave(); sho0.merit = 50; sho0.rank = 2; G.assignZones(sho0); ok(!Object.keys(G.handover(sho0)).length, 'v26 분대원이 없으면 인계 없음');
+var wh0 = G.createWorld(sho0), wh1 = G.createWorld(sho);
+var depthOf = function (w, id) { var zi = G.zoneIndex(id), t = 0; w.zoneCells[zi].forEach(function (i) { t += w.depth[i]; }); return t / w.zoneCells[zi].length; };
+ok(depthOf(wh1, 'A') < depthOf(wh0, 'A') && depthOf(wh1, 'E') > depthOf(wh0, 'E'), 'v26 인계 구역은 새벽에 후임들이 조금 치워 두고, 내 담당(새 구역)은 눈이 더 깊다', [depthOf(wh0, 'A').toFixed(2), depthOf(wh1, 'A').toFixed(2), depthOf(wh0, 'E').toFixed(2), depthOf(wh1, 'E').toFixed(2)]);
+ok(!wh1.op.tasks[0].ho && wh1.op.tasks[wh1.op.tasks.length - 1].ho, 'v26 지시서: 내 담당이 먼저, 후임 담당은 뒤 (후임 표시)');
+var crA = wh1.crew.filter(function (e) { return wh1.handover[e.post]; })[0], crN = wh0.crew.length ? wh0.crew[0] : null;
+ok(!crA || crA.speed > crA.def.speed, 'v26 인계 구역 담당 분대원은 손이 빠르다');
+// 경연
+var LGm = window.JY.SnowLeague, sl = G.newSave(); sl.seed = 7; var t1 = new Date(2026, 10, 23, 9).getTime();
+var tb = LGm.table(sl, t1); ok(tb.length === 10 && tb.filter(function (r) { return r.me; }).length === 1, 'v26 경연: 나 + 다른 중대 9명');
+var early = LGm.rivals(sl, t1).reduce(function (a, r) { return a + r.score; }, 0), late = LGm.rivals(sl, t1 + 5 * 86400e3).reduce(function (a, r) { return a + r.score; }, 0);
+ok(late > early * 3, 'v26 상대들 점수는 주중에 오른다 (쉬면 따라잡힌다)', [early, late]);
+var a0 = LGm.addOp(sl, 500, t1); ok(a0.pts === 500 && sl.league.score === 500 && sl.league.ops === 1 && a0.after <= a0.before, 'v26 작전 점수가 쌓이고 순위가 오른다');
+ok(LGm.opScore({ stars: 3, score: 1, early: true, jigeok: 1 }, 200) === 300 + 100 + 40 + 40 - 25, 'v26 작전 점수 = ★×100 + 치운 정도 + 콤보 + 일찍 보고 − 지적');
+for (var lq = 0; lq < 60; lq++) LGm.addOp(sl, 500, t1 + lq * 3600e3);
+var rr = LGm.rollover(sl, t1 + 7 * 86400e3); ok(rr && rr.rank <= 3 && rr.moved === 1 && sl.league.tier === 1 && sl.league.score === 0 && sl.dia >= rr.dia && rr.dia > 0, 'v26 주가 바뀌면 마감: 3위 안이면 승급 + 상점 (' + (rr && rr.rank) + '위)');
+var sl2 = G.newSave(); sl2.seed = 9; sl2.league = { week: LGm.weekKey(t1), tier: 2, score: 0, ops: 0 }; var rr2 = LGm.rollover(sl2, t1 + 7 * 86400e3);
+ok(rr2.moved === -1 && sl2.league.tier === 1 && !rr2.dia, 'v26 한 판도 안 하면 강등 · 보상 없음');
+ok(!LGm.rollover(sl2, t1 + 7 * 86400e3 + 1000), 'v26 같은 주엔 다시 마감하지 않는다');
 
 console.log(fail ? '실패 ' + fail + '개 / 통과 ' + pass + '개' : '상호작용 ' + pass + '개 통과');
 process.exit(fail ? 1 : 0);
